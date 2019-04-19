@@ -1,5 +1,8 @@
 # ml_funnel
 
+![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)
+[![Build Status](https://img.shields.io/travis/with_precedent/ml_funnel.svg)](https://travis-ci.org/with_precedent/ml_funnel) 
+
 The Machine Learning Funnel is a high-level set of tools that allows users to mix and match various preprocessing methods and statistical models. Integrating scikit-learn, category-encoders, imblearn, xgboost, shap, and other modules, users are able to test and implement different "test tubes" in a machine learning funnel and export results for each option selected.
 
 Although scikit-learn has gone a long way toward unifying interfaces with many common machine learning methods, it is still quite clunky and frequent users have become aware of some of its limitations. Present shortcomings include:

@@ -1,5 +1,15 @@
 """
 Class for organizing and loading data into machine learning algorithms.
+Data stores the data itself as well as a set of settings and variables about
+the data stored (primarily column data types). Data uses pandas dataframes or
+series for all data, but utilizes faster numpy methods where possible to 
+increase performance.
+
+Data includes some methods which are designed to be more accessible and 
+user-friendly than the commonly-used methods. For example, data can easily be 
+downcast to save memory with the downcast method and smart_fill_na fills na 
+data with appropriate defaults based upon the column datatypes (either provided 
+by the user, via column_dict or through inference).
 """
 from dataclasses import dataclass
 import numpy as np
@@ -7,7 +17,10 @@ import pandas as pd
 
 @dataclass 
 class Data(object):
-    
+    """
+    Primary class for storing and manipulating data used in machine learning
+    projects.
+    """    
     settings : object = None
     df : object = None
     x : object = None
@@ -20,23 +33,44 @@ class Data(object):
     y_val : object = None
     quick_start : bool = False
     filer : object = None
+    seed : int = 999
     
     def __post_init__(self):
-        self.verbose = self.settings['general']['verbose']
-        self.seed = self.settings['general']['seed']
+        self._set_defaults()
         if self.verbose:
             print('Building data container')
-        self.splice_options = {}
-        if self.quick_start:
+        """
+        If quick_start is set to true and a settings dictionary is passed, 
+        data is automatically loaded according to user specifications in the
+        settings file.
+        """
+        if self.quick_start and self.settings:
             self.load(import_path = self.filer.data_file_in,
                       file_format = self.settings['files']['data_in'],
                       test_data = self.settings['files']['test_data'],
                       test_rows = self.settings['files']['test_chunk'],
                       encoding = self.settings['files']['encoding']) 
         self.dropped_columns = []
+        self.splice_options = {}
         return self
-             
+    
+    def _set_defaults(self):
+        """
+        Sets default options if settings is not passed or injected.
+        """
+        if self.settings['general']['verbose']:
+            self.verbose = self.settings['general']['verbose']
+        else:
+            self.verbose = True
+        if self.settings['general']['seed']:
+            self.seed = self.seed = self.settings['general']['seed']
+        return self
+         
     def _get_xy(self, data_to_use):
+        """
+        Returns the appropriate x, y data combination based upon string
+        passed to the method.
+        """
         options = {'full' : [self.x, self.y],
                    'train' : [self.x_train, self.y_train],
                    'test' : [self.x_test, self.y_test],
@@ -44,6 +78,10 @@ class Data(object):
         return options[data_to_use]
     
     def apply(self, df = None, func = None, **kwargs):
+        """
+        Allows users to pass a function to data which will be applied to the
+        passed dataframe (or uses self.df if none is passed).
+        """
         not_df = False
         if not isinstance(df, pd.DataFrame):
             df = self.df
@@ -63,6 +101,12 @@ class Data(object):
                      interact_cols = [], interact_prefixes = [],
                      list_cols = [], list_prefixes = [],
                      str_cols = [], str_prefixes = []):
+        """
+        If the user has preset sets of lists for column datatypes or 
+        datatypes linked to set prefixes, this method converts the column
+        and/or prefix lists to class instance attributes containing complete
+        lists of different types of columns.
+        """
         if not isinstance(df, pd.DataFrame):
             df = self.df
         self.bool_cols = self.create_column_list(df = df, 
@@ -93,11 +137,14 @@ class Data(object):
         self.column_dict.update(dict.fromkeys(self.float_cols, float))
         self.column_dict.update(dict.fromkeys(self.int_cols, int))
         self.column_dict.update(dict.fromkeys(self.interact_cols, 'category'))
-#        self.column_dict.update(dict.fromkeys(self.list_cols, list))
         self.column_dict.update(dict.fromkeys(self.str_cols, str))
         return self
     
     def create_column_list(self, df = None, prefixes = [], cols = []):
+        """
+        Dynamically creates a new column list from a list of columns and/or
+        lists of prefixes.
+        """
         if not isinstance(df, pd.DataFrame):
             df = self.df
         temp_list = []
@@ -136,7 +183,9 @@ class Data(object):
     
     def downcast(self, df = None, ints = [], floats = [], cats = []):
         """
-        Method to decrease memory usage by downcasting datatypes.
+        Method to decrease memory usage by downcasting datatypes. For
+        numerical datatypes, the method attempts to cast the data to unsigned
+        integers if possible. 
         """
         print('Downcasting data to decrease memory usage')
         not_df = False
@@ -166,8 +215,11 @@ class Data(object):
     
     def smart_fill_na(self, df = None):
         """
-        Fills na values in dataframe to defaults based upon the 
-        datatype listed in the columns dictionary.
+        Fills na values in dataframe to defaults based upon the datatype listed 
+        in the columns dictionary. If the dictionary of datatypes does not 
+        exist, the method fills columns based upon the current datatype
+        inferred by pandas. Because their is no good default category, the 
+        method uses an empty string ('').
         """
         not_df = False
         if not isinstance(df, pd.DataFrame):
@@ -214,6 +266,11 @@ class Data(object):
             return df
     
     def convert_rare_categories(self, df = None, cats = [], threshold = 0):
+        """
+        The method converts categories rarely appearing within categorical
+        data columns to empty string if they appear below the passed threshold.
+        Threshold is defined as the percentage of total rows.
+        """
         not_df = False
         if not isinstance(df, pd.DataFrame):
             df = self.df
@@ -233,6 +290,14 @@ class Data(object):
             return df
     
     def drop_infrequent_cols(self, df = None, bools = [], threshold = 0):
+        """
+        This method drops boolean columns that rarely have True. This differs
+        from the sklearn VarianceThreshold class because it is only 
+        concerned with rare instances of True and not False. This enables
+        users to set a different variance threshold for rarely appearing 
+        information. Threshold is defined as the percentage of total rows (and
+        not the typical variance formulas).
+        """
         not_df = False
         if not isinstance(df, pd.DataFrame):
             df = self.df
@@ -254,6 +319,9 @@ class Data(object):
                                     threshold = 0.95):
         """
         Drops all but one column from highly correlated groups of columns.
+        Threshold is based upon the .corr() method in pandas. Cols can include
+        any datatype accepted by .corr(). If cols is set to 'all', all columns
+        in the dataframe are tested.
         """
         not_df = False
         if not isinstance(df, pd.DataFrame):
@@ -261,6 +329,8 @@ class Data(object):
             not_df = True
         if self.verbose:
             print('Removing highly correlated columns')
+        if cols == 'all':
+            cols = df.columns
         for col in cols:
             corr_matrix = df.corr().abs()
             upper = corr_matrix.where(np.triu(np.ones(
@@ -277,6 +347,10 @@ class Data(object):
         
     def reshape_long(self, df = None, stubs = [], id_col = '', new_col = '', 
                      sep = ''):
+        """
+        A simple wrapper method for pandas wide_to_long method using more 
+        intuitive parameter names than 'i' and 'j'.
+        """
         not_df = False
         if not isinstance(df, pd.DataFrame):
             df = self.df
@@ -295,6 +369,10 @@ class Data(object):
             return df
     
     def reshape_wide(self, df = None, df_index = '', cols = [], values = []):
+        """
+        A simple wrapper method for pandas pivot method named as corresponding
+        method to reshape_long.
+        """
         not_df = False
         if not isinstance(df, pd.DataFrame):
             df = self.df
@@ -311,6 +389,12 @@ class Data(object):
             return df
     
     def summarize(self, df = None, export_path = ''):
+        """
+        Creates a dataframe of common summary data. It is more inclusive than
+        describe() and includes boolean and numerical columns by default.
+        If an export_path is passed, the summary table is automatically saved
+        to disc.
+        """
         if not isinstance(df, pd.DataFrame):
             df = self.df
         summary_cols = ['variable', 'data_type', 'count', 'min', 'q1', 
@@ -344,6 +428,9 @@ class Data(object):
         return self
     
     def split_xy(self, df = None, label = 'label'):
+        """
+        Splits data into x and y based upon the label passed.
+        """
         not_df = False
         if not isinstance(df, pd.DataFrame):
             df = self.df
@@ -358,6 +445,10 @@ class Data(object):
             return x, y
         
     def add_splice(self, group_name, prefixes = [], columns = []):
+        """
+        For the splicers in ml_funnel, this method alows users to manually
+        add a new splice group to the splicer dictionary.
+        """
         temp_list = self.create_column_list(prefixes = prefixes, 
                                             cols = columns)
         self.splice_options.update({group_name : temp_list})

@@ -9,7 +9,7 @@ setup(
     name='ml_funnel',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description="ml_funnel offers flexible, accessible tools for parsing and analysis of court opinions",
+    description="ml_funnel is a high-level pipeline and grid creation tool for machine learning",
     author="Corey Rayburn Yung",
     author_email='coreyyung@ku.edu',
     url='https://github.com/with_precedent/ml_funnel',
