@@ -27,6 +27,7 @@ class Funnel(object):
     import_folder : str = ''
     export_folder : str = ''
     use_settings_file : bool = True
+    settings_path : str = ''
     settings : object = None
     col_groups : object = None 
     new_methods : object = None
@@ -37,8 +38,11 @@ class Funnel(object):
         Loads settings from an .ini file if not passed when class is instanced.
         """
         if self.use_settings_file:
-            self.load_settings()
-        if not self.pandas_warnings:
+            if not self.settings_path:
+                self.settings_path = os.path.join('..', 'settings.ini')
+            self.settings = Settings(self.settings_path)
+        self._simplify_settings()
+        if not self.settings.pandas_warnings:
             warnings.filterwarnings('ignore')
         """
         Adds a filer if one is not passed when class is instanced.
@@ -69,18 +73,13 @@ class Funnel(object):
         self._set_plotter()
         return self
         
-    def load_settings(self, settings_path = ''):
+    def _simplify_settings(self):
         """
         Stores variables from the settings file in succint variable names
-        for use by the Funnel. Settings will be loaded from the file if 
-        a Settings dictionary is not passed when an instance of Funnel is 
-        created.
+        for use by the Funnel. 
         """
-        if not settings_path:
-            settings_path = os.path.join('ml_funnel', 'ml_settings.ini')
-        self.settings = Settings(settings_path)
         self.verbose = self.settings['defaults']['verbose']
-        self.pandas_warnings = self.settings['defaults']['warnings']
+        self.pandas_warnings = self.settings['defaults']['pandas_warnings']
         self.gpu = self.settings['defaults']['gpu']
         self.seed = self.settings['defaults']['seed']
         self.file_encoding = self.settings['files']['encoding']
