@@ -9,7 +9,7 @@ Data includes some methods which are designed to be more accessible and
 user-friendly than the commonly-used methods. For example, data can easily be 
 downcast to save memory with the downcast method and smart_fill_na fills na 
 data with appropriate defaults based upon the column datatypes (either provided 
-by the user, via column_dict or through inference).
+by the user via column_dict or through inference).
 """
 from dataclasses import dataclass
 import numpy as np
@@ -309,6 +309,7 @@ class Data(object):
                 df.drop(col, 
                         axis = 'columns', 
                         inplace = True)
+                self.dropped_columns.append(col)
         if not_df:
             self.df = df
             return self
@@ -319,7 +320,7 @@ class Data(object):
                                     threshold = 0.95):
         """
         Drops all but one column from highly correlated groups of columns.
-        Threshold is based upon the .corr() method in pandas. Cols can include
+        Threshold is based upon the .corr() method in pandas. cols can include
         any datatype accepted by .corr(). If cols is set to 'all', all columns
         in the dataframe are tested.
         """
@@ -339,6 +340,32 @@ class Data(object):
         df.drop(drop_cols,
                 axis = 'columns', 
                 inplace = True)
+        self.dropped_columns.extend(drop_cols)
+        if not_df:
+            self.df = df
+            return self
+        else: 
+            return df
+    
+    def drop_cols(self, df = None, prefixes = [], cols = []):
+        """
+        Drops list of columns and columns with prefixes listed. In addition,
+        any dropped columns are stored in the cumulative dropped_columns
+        list.
+        """
+        not_df = False
+        if not isinstance(df, pd.DataFrame):
+            df = self.df
+            not_df = True
+        if self.verbose:
+            print('Removing selected columns')
+        cols = self.create_column_list(df = df,
+                                       prefixes = prefixes,
+                                       cols = cols)
+        df.drop(cols,
+                axis = 'columns', 
+                inplace = True)
+        self.dropped_columns.extend(cols)
         if not_df:
             self.df = df
             return self

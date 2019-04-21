@@ -1,7 +1,86 @@
 """
-Primary file for the ml_funnel package. It contains the Funnel class, which
-handles the funnel construction and application, and the Tube class, which 
-contains a single "test tube" of tools to be tested.
+The ml_funnel package allows users to create dynamic experiments that mix
+feature engineering and modeling methods based upon easy-to-use selections. 
+
+ml_funnel divides the feature engineering and modeling process into ten major 
+method groups:
+
+    Scalers: convert numerical features into a common scale, using scikit-learn 
+        methods.
+    Splitters: divides data into train, test, and/or validation sets once or 
+        through k-folds cross-validation.
+    Encoders: convert categorical features into numerical ones, using 
+        category-encoders methods.
+    Interactors: convert selected categorical features into new polynomial 
+        features, using PolynomialEncoder from category-encoders.
+    Splicers: create different subgroups of features to allow for easy 
+        comparison between them.
+    Samplers: synthetically resample training data for imbalanced data, 
+        using imblearn methods, for use with algorithms that struggle with 
+        imbalanced data.
+    Selectors: select features recursively or as one-shot based upon user 
+        criteria, using scikit-learn methods.
+    Models: implement machine learning algorithms, currently includes 
+        xgboost and scikit-learn methods).
+    Grids: test different hyperparameters for the models selected,
+        currently includes RandomizedSearchCV and GridSearchCV - Bayesian 
+        methods coming soon.
+    Plots: produce helpful graphical representations based upon the model 
+        selected, includes shap, seaborn, and matplotlib methods.
+        
+ml_funnel contains the following accessible classes:
+    Funnel: containing the methods needed to create dynamic experiments and
+        stores the different test tubes in Funnel.tubes. For that reason, 
+        the Tube class does not need to be instanced directly.
+    Tube: if the user wants to manually create a single test tube, the Tube
+        class is made public for this purpose. This Tube can then be passed
+        to various methods of other classes.
+    Data: includes methods for creating and modifying pandas dataframes used
+        by the funnel. As the data is split into features, labels, test, 
+        train, etc. dataframes, they are all created as attributes to an 
+        instance of the Data class.
+    Scalers, Splitters, Encoders, Interactors, Splicers, Samplers, and 
+        Selectors: child classes of Methods which contain the different
+        algorithms for each step a test tube.
+    Models: contains different machine learning algorithms divided into three
+        major algorithm_type: classifier, regressor, and grouper. It is also
+        a child class of Methods.
+    Grids: contains the method and parameters for different hyperparameter
+        search methods as a Methods child class. If the user includes two 
+        values for any hyperparameter, the Grid method is automatically
+        implemented. In such cases, the best hyperparameter set is stored
+        in Funnel.best.
+    Plotter: another Methods child class that prepares and exports plots based 
+        upon the model algorithm_type. Users can directly access the three
+        major graphing method groups: ClassifierPlotter, GrouperPlotter, 
+        LinearPlotter.
+    Results: another Methods child class that applies user-selected or default
+        metrics for each test tube and stores the results in a dataframe
+        (.table). Each row of the results table stores each of the methods 
+        used, the folder in which the relevant files are stored, and all of
+        the metrics for that test tube. 
+    Filer: creates and contains the path structure for loading data and 
+        settings as well as saving results, data, and plots.
+    Settings: contains the methods for parsing the settings file to create
+        a nested dictionary used by the other classes.
+        
+If the user opts to use the settings.ini file, the only classes that absolutely
+needs to be used is Funnel. Nonetheless, the rest of the classes and attributes
+are still available even when only using the Funnel directly. All other
+classes will be created as lower-case named attributes of the funnel instance
+(e.g. Funnel.scaler, Funnel.data, Funnel.plotter, etc.).
+
+If a Filer instance is not passed to Funnel when it instanced, an import_folder 
+and export_folder must be passed. Then the Funnel will create an instance of 
+Filer as an attribute of the Funnel (Funnel.filer). 
+If an instance of settings is not passed when the Funnel is instanced, a 
+settings file will be loaded automatically.
+"""
+
+"""
+funnel.py is the primary control file for the ml_funnel package. It contains 
+the Funnel class, which handles the funnel construction and application, and 
+the Tube class, which contains a single "test tube" of tools to be tested.
 """
 from dataclasses import dataclass
 import datetime
@@ -20,7 +99,7 @@ from ml_funnel.settings import Settings
 class Funnel(object):
     """
     Class for creating dynamic test tubes for preprocessing, machine learning, 
-    and data analysis using a unified architecture.
+    and data analysis using a unified interface and architecture.
     """  
     data : object
     filer : object = None
@@ -66,7 +145,7 @@ class Funnel(object):
         self._set_splicers()
         """
         Data is split in oder for certain values to be computed that require
-        a separate x and y.
+        features and the label to be split.
         """
         self.data.split_xy(label = self.label)
         self._compute_values()
@@ -362,9 +441,9 @@ class Funnel(object):
         self.save_results(export_path = os.path.join(self.filer.results_folder,
                                                      'results_table.csv'))
         if self.best:
-            self.save_tube(export_path = os.path.join(self.filer.results_folder,
-                                                      'best_tube.pkl'), 
-                           tube = self.best)
+            self.save_tube(export_path = os.path.join(
+                    self.filer.results_folder, 'best_tube.pkl'), 
+                        tube = self.best)
         return self
     
     def load_funnel(self, import_path = None, return_funnel = False):
@@ -412,7 +491,9 @@ class Funnel(object):
                      float_format = '%.4f', message = 'Importing results',
                      return_results = False):
         """
-        Imports results table file from disc.
+        Imports results table file from disc. This method can be used if
+        the user wants to reconstruct parts of tubes with loading the entire
+        funnel or individual tubes.
         """
         if not import_path:
             import_path = self.filer.import_folder
@@ -532,7 +613,7 @@ class Tube(Methods):
                                               self.data.y_train))
         if self.selector.name != 'none':
             self.selector.fit(self.data.x_train, self.data.y_train)
-            self.data.x_train = self.selector.fit(self.data.x_train)
+            self.data.x_train = self.selector.transform(self.data.x_train)
         if self.model.name != 'none':
             if self.model.use_grid and self.grid.name != 'none':
                 self.grid.search(self.data.x_train, self.data.y_train)

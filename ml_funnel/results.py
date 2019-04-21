@@ -39,13 +39,17 @@ class Results(Methods):
         """
         if step.name in ['none', 'all']:
             return step.name
+        elif not step.name:
+            return 'none'
         else:
             return step.method
         
     def _set_metrics(self, x, y):
         """
         Sets default metrics for the results table based upon the type of
-        model used.
+        model used. For metrics were lower values indicate better results,
+        the returned result is the 1 - the metric value. For example,
+        'neg_log_loss' = 1 - the sklearn log_loss metric.
         """
         if self.algorithm_type == 'classifier':
             self.metrics_dict = {

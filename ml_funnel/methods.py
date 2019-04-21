@@ -75,7 +75,7 @@ class Methods(object):
                 if key in params_to_use:
                     new_params.update({key : value})
             self.params = new_params
-        return self            
+        return self    
             
     def initialize(self):
         self._check_params()
