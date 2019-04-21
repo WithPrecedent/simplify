@@ -371,31 +371,21 @@ class Decomposer(Methods):
                         'spca' : SparsePCA, 
                         'tsvd' : TruncatedSVD}
         self.defaults = {}
-        self.scorers = {'f_classif' : f_classif,
-                        'chi2' : chi2,
-                        'mutual_class' : mutual_info_classif,
-                        'mutual_regress' : mutual_info_regression}
+        self.scorers = {}
         self.runtime_params = {'random_state' : self.seed} 
         self._set_param_groups()       
         self.initialize()
         return self
     
     def _set_param_groups(self):
-        if self.name == 'rfe':
+        if self.name == 'fa':
             self.defaults = {'n_features_to_select' : 30,
                              'step' : 1}
             self.runtime_params = {'estimator' : self.model.method}
-        elif self.name == 'kbest':
+        elif self.name == 'ica':
             self.defaults = {'k' : 30,
                              'score_func' : f_classif}
             self.runtime_params = {}   
-        elif self.name in ['fdr', 'fpr']:
-            self.defaults = {'alpha' : 0.05,
-                             'score_func' : f_classif}
-            self.runtime_params = {}  
-        elif self.name == 'custom':
-            self.defaults = {'threshold' : 'mean'}
-            self.runtime_params = {'estimator' : self.model.method}
         self._select_params(params_to_use = self.defaults.keys())
         return self
     

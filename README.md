@@ -6,13 +6,13 @@
 The Machine Learning Funnel is a high-level set of tools that allows users to mix and match various preprocessing methods and statistical models. Integrating scikit-learn, category-encoders, imblearn, xgboost, shap, and other modules, users are able to test and implement different "test tubes" in a machine learning funnel and export results for each option selected.
 
 Although scikit-learn has gone a long way toward unifying interfaces with many common machine learning methods, it is still quite clunky in many situations. Present shortcomings include:
-1) There is a needlessly convoluted process for implementing transformers on a subset of columns. Whereas many packages include a "cols" argument, scikit-learn does not.
-2) .fit methods do not always work with certain forms of encoding (e.g., target encoding in category-encoders) because it does not allow the label data to be passed.
-3) Pipeline and FeatureUnion lack a mix-and-match type grid-search system for preprocessing, only for hyperparameter searches.
-4) It doesn't directly use pandas dataframes despite various attempts to bridge the gap (e.g., ml_pandas). This can cause confusion and difficulty in keeping feature names attached to columns of data because numpy arrays do not incorporate string names of columns. This is why, for example, default feature_importances graphs do not include the actual feature names.
-5) There is a reasonably high learning curve for new programmers or those coming from R, Stata, or other statistical packages.
-6) The structuring of scikit-learn compatible preprocessing algorithms to comply with the rigid .fit and .transform methods makes their use sometimes unintuitive.
-7) The process for implementing different transformers on different groups of data (test, train, full, validation, etc.) within a Pipeline is messy and difficult.
+1) There is [a needlessly convoluted process](https://github.com/scikit-learn-contrib/sklearn-pandas#transformation-mapping) for implementing transformers on a subset of columns. Whereas many packages include a "cols" argument, [scikit-learn does not](https://medium.com/vickdata/easier-machine-learning-with-the-new-column-transformer-from-scikit-learn-c2268ea9564c).
+2) .fit methods do not always work with certain forms of encoding (e.g., [target encoding in category-encoders](https://github.com/scikit-learn-contrib/categorical-encoding/issues/104) because it does not allow the label data to be passed.
+3) Pipeline and FeatureUnion [lack a mix-and-match type grid-search system](https://buildmedia.readthedocs.org/media/pdf/scikit-learn-enhancement-proposals/latest/scikit-learn-enhancement-proposals.pdf for preprocessing, only for hyperparameter searches.
+4) It doesn't directly use pandas dataframes despite various attempts to bridge the gap (e.g., [sklearn_pandas](https://github.com/scikit-learn-contrib/sklearn-pandas). This can cause confusion and difficulty in keeping feature names attached to columns of data because numpy arrays do not incorporate string names of columns. This is why, for example, default feature_importances graphs do not include the actual feature names.
+5) The structuring of scikit-learn compatible preprocessing algorithms to comply with the rigid .fit and .transform methods makes their use sometimes unintuitive.
+6) The process for implementing different transformers on different groups of data (test, train, full, validation, etc.) within a Pipeline is [often messy and difficult](https://towardsdatascience.com/preprocessing-with-sklearn-a-complete-and-comprehensive-guide-670cb98fcfb9).
+7) Scikit-learn has [no plans to offer GPU support](https://scikit-learn.org/stable/faq.html#will-you-add-gpu-support).
 
 ml_funnel provides a cleaner, universal set of tools to access scikit-learns many useful methods as well as other open-source packages. The goal is to make machine learning more accessible to a wider user base.
 
