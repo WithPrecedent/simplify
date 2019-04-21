@@ -1,16 +1,21 @@
 """
-Parent and child clases for implementing the different steps in the 
-ml_funnel pipeline.
+Parent and child clases for implementing the different steps in ml_funnel test 
+tubes.
 """
 from dataclasses import dataclass
 import pickle
+
 from scipy.stats import randint, uniform
 from sklearn.cluster import AffinityPropagation, Birch, KMeans
+from sklearn.decomposition import FactorAnalysis, FastICA, IncrementalPCA
+from sklearn.decomposition import KernelPCA, LatentDirichletAllocation, NMF 
+from sklearn.decomposition import PCA, SparsePCA, TruncatedSVD
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.feature_selection import chi2, f_classif, mutual_info_classif
-from sklearn.feature_selection import mutual_info_regression, RFE, SelectKBest
-from sklearn.feature_selection import SelectFdr, SelectFpr, SelectFromModel
+from sklearn.feature_selection import mutual_info_regression, RFE, RFECV
+from sklearn.feature_selection import SelectKBest, SelectFdr, SelectFpr
+from sklearn.feature_selection import SelectFromModel
 from sklearn.linear_model import BayesianRidge, Lasso, LassoLars
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.linear_model import Ridge
@@ -311,7 +316,8 @@ class Selector(Methods):
                         'fdr' : SelectFdr, 
                         'fpr' : SelectFpr,
                         'custom' : SelectFromModel,
-                        'rfe' : RFE}
+                        'rfe' : RFE,
+                        'rfecv' : RFECV}
         self.defaults = {}
         self.scorers = {'f_classif' : f_classif,
                         'chi2' : chi2,
@@ -346,7 +352,59 @@ class Selector(Methods):
             return self.method.transform(x)
         else:
             return x
+
+@dataclass
+class Decomposer(Methods):
     
+    name : str = ''
+    model : object = None
+    params : object = None
+    
+    def __post_init__(self):
+        self.options = {'fa' : FactorAnalysis, 
+                        'ica' : FastICA, 
+                        'ipca' : IncrementalPCA,
+                        'kpca' : KernelPCA, 
+                        'lda' : LatentDirichletAllocation, 
+                        'nmf' : NMF, 
+                        'pca' : PCA, 
+                        'spca' : SparsePCA, 
+                        'tsvd' : TruncatedSVD}
+        self.defaults = {}
+        self.scorers = {'f_classif' : f_classif,
+                        'chi2' : chi2,
+                        'mutual_class' : mutual_info_classif,
+                        'mutual_regress' : mutual_info_regression}
+        self.runtime_params = {'random_state' : self.seed} 
+        self._set_param_groups()       
+        self.initialize()
+        return self
+    
+    def _set_param_groups(self):
+        if self.name == 'rfe':
+            self.defaults = {'n_features_to_select' : 30,
+                             'step' : 1}
+            self.runtime_params = {'estimator' : self.model.method}
+        elif self.name == 'kbest':
+            self.defaults = {'k' : 30,
+                             'score_func' : f_classif}
+            self.runtime_params = {}   
+        elif self.name in ['fdr', 'fpr']:
+            self.defaults = {'alpha' : 0.05,
+                             'score_func' : f_classif}
+            self.runtime_params = {}  
+        elif self.name == 'custom':
+            self.defaults = {'threshold' : 'mean'}
+            self.runtime_params = {'estimator' : self.model.method}
+        self._select_params(params_to_use = self.defaults.keys())
+        return self
+    
+    def transform(self, x):
+        if len(x.columns) > self.params['n_features_to_select']:
+            return self.method.transform(x)
+        else:
+            return x
+        
 @dataclass
 class Model(Methods):
     
