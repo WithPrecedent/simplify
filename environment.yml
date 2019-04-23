@@ -16,8 +16,8 @@ dependencies:
 - more-itertools
 - numpy
 - pandas
-- pip
-- py-xgboost
+- pip:
+    - xgboost
 - scikit-learn
 - scipy
 - seaborn

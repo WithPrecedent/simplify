@@ -1,85 +1,85 @@
 """
 The ml_funnel package allows users to create dynamic experiments that mix
-feature engineering and modeling methods based upon easy-to-use selections. 
+feature engineering and modeling methods based upon easy-to-use selections.
 
-ml_funnel divides the feature engineering and modeling process into ten major 
+ml_funnel divides the feature engineering and modeling process into ten major
 method groups:
 
-    Scalers: convert numerical features into a common scale, using scikit-learn 
+    Scalers: convert numerical features into a common scale, using scikit-learn
         methods.
-    Splitters: divides data into train, test, and/or validation sets once or 
+    Splitters: divides data into train, test, and/or validation sets once or
         through k-folds cross-validation.
-    Encoders: convert categorical features into numerical ones, using 
+    Encoders: convert categorical features into numerical ones, using
         category-encoders methods.
-    Interactors: convert selected categorical features into new polynomial 
+    Interactors: convert selected categorical features into new polynomial
         features, using PolynomialEncoder from category-encoders.
-    Splicers: create different subgroups of features to allow for easy 
+    Splicers: create different subgroups of features to allow for easy
         comparison between them.
-    Samplers: synthetically resample training data for imbalanced data, 
-        using imblearn methods, for use with algorithms that struggle with 
+    Samplers: synthetically resample training data for imbalanced data,
+        using imblearn methods, for use with algorithms that struggle with
         imbalanced data.
-    Selectors: select features recursively or as one-shot based upon user 
+    Selectors: select features recursively or as one-shot based upon user
         criteria, using scikit-learn methods.
-    Models: implement machine learning algorithms, currently includes 
+    Models: implement machine learning algorithms, currently includes
         xgboost and scikit-learn methods).
     Grids: test different hyperparameters for the models selected,
-        currently includes RandomizedSearchCV and GridSearchCV - Bayesian 
+        currently includes RandomizedSearchCV and GridSearchCV - Bayesian
         methods coming soon.
-    Plots: produce helpful graphical representations based upon the model 
+    Plots: produce helpful graphical representations based upon the model
         selected, includes shap, seaborn, and matplotlib methods.
-        
+
 ml_funnel contains the following accessible classes:
     Funnel: containing the methods needed to create dynamic experiments and
-        stores the different test tubes in Funnel.tubes. For that reason, 
+        stores the different test tubes in Funnel.tubes. For that reason,
         the Tube class does not need to be instanced directly.
     Tube: if the user wants to manually create a single test tube, the Tube
         class is made public for this purpose. This Tube can then be passed
         to various methods of other classes.
     Data: includes methods for creating and modifying pandas dataframes used
-        by the funnel. As the data is split into features, labels, test, 
-        train, etc. dataframes, they are all created as attributes to an 
+        by the funnel. As the data is split into features, labels, test,
+        train, etc. dataframes, they are all created as attributes to an
         instance of the Data class.
-    Scalers, Splitters, Encoders, Interactors, Splicers, Samplers, and 
+    Scalers, Splitters, Encoders, Interactors, Splicers, Samplers, and
         Selectors: child classes of Methods which contain the different
         algorithms for each step a test tube.
     Models: contains different machine learning algorithms divided into three
         major algorithm_type: classifier, regressor, and grouper. It is also
         a child class of Methods.
     Grids: contains the method and parameters for different hyperparameter
-        search methods as a Methods child class. If the user includes two 
+        search methods as a Methods child class. If the user includes two
         values for any hyperparameter, the Grid method is automatically
         implemented. In such cases, the best hyperparameter set is stored
         in Funnel.best.
-    Plotter: another Methods child class that prepares and exports plots based 
+    Plotter: another Methods child class that prepares and exports plots based
         upon the model algorithm_type. Users can directly access the three
-        major graphing method groups: ClassifierPlotter, GrouperPlotter, 
+        major graphing method groups: ClassifierPlotter, GrouperPlotter,
         LinearPlotter.
     Results: another Methods child class that applies user-selected or default
         metrics for each test tube and stores the results in a dataframe
-        (.table). Each row of the results table stores each of the methods 
+        (.table). Each row of the results table stores each of the methods
         used, the folder in which the relevant files are stored, and all of
-        the metrics for that test tube. 
-    Filer: creates and contains the path structure for loading data and 
+        the metrics for that test tube.
+    Filer: creates and contains the path structure for loading data and
         settings as well as saving results, data, and plots.
     Settings: contains the methods for parsing the settings file to create
         a nested dictionary used by the other classes.
-        
+
 If the user opts to use the settings.ini file, the only classes that absolutely
 needs to be used is Funnel. Nonetheless, the rest of the classes and attributes
 are still available even when only using the Funnel directly. All other
 classes will be created as lower-case named attributes of the funnel instance
 (e.g. Funnel.scaler, Funnel.data, Funnel.plotter, etc.).
 
-If a Filer instance is not passed to Funnel when it instanced, an import_folder 
-and export_folder must be passed. Then the Funnel will create an instance of 
-Filer as an attribute of the Funnel (Funnel.filer). 
-If an instance of settings is not passed when the Funnel is instanced, a 
+If a Filer instance is not passed to Funnel when it instanced, an import_folder
+and export_folder must be passed. Then the Funnel will create an instance of
+Filer as an attribute of the Funnel (Funnel.filer).
+If an instance of settings is not passed when the Funnel is instanced, a
 settings file will be loaded automatically.
 """
 
 """
-funnel.py is the primary control file for the ml_funnel package. It contains 
-the Funnel class, which handles the funnel construction and application, and 
+funnel.py is the primary control file for the ml_funnel package. It contains
+the Funnel class, which handles the funnel construction and application, and
 the Tube class, which contains a single "test tube" of tools to be tested.
 """
 from dataclasses import dataclass
@@ -91,16 +91,16 @@ import warnings
 from ml_funnel.filer import Filer
 from ml_funnel.methods import Encoder, Grid, Interactor, Methods, Model
 from ml_funnel.methods import Sampler, Scaler, Selector, Splicer, Splitter
-from ml_funnel.plot import ClassifierPlotter, GrouperPlotter, LinearPlotter   
+from ml_funnel.plot import ClassifierPlotter, GrouperPlotter, LinearPlotter
 from ml_funnel.results import Results
 from ml_funnel.settings import Settings
 
-@dataclass   
+@dataclass
 class Funnel(object):
     """
-    Class for creating dynamic test tubes for preprocessing, machine learning, 
+    Class for creating dynamic test tubes for preprocessing, machine learning,
     and data analysis using a unified interface and architecture.
-    """  
+    """
     data : object
     filer : object = None
     import_folder : str = ''
@@ -108,11 +108,11 @@ class Funnel(object):
     use_settings_file : bool = True
     settings_path : str = ''
     settings : object = None
-    col_groups : object = None 
+    col_groups : object = None
     new_methods : object = None
     best : object = None
-        
-    def __post_init__(self):    
+
+    def __post_init__(self):
         """
         Loads settings from an .ini file if not passed when class is instanced.
         """
@@ -121,7 +121,7 @@ class Funnel(object):
                 self.settings_path = os.path.join('..', 'settings.ini')
             self.settings = Settings(self.settings_path)
         self._simplify_settings()
-        if not self.settings.pandas_warnings:
+        if not self.pandas_warnings:
             warnings.filterwarnings('ignore')
         """
         Adds a filer if one is not passed when class is instanced.
@@ -151,16 +151,16 @@ class Funnel(object):
         self._compute_values()
         self._set_plotter()
         return self
-        
+
     def _simplify_settings(self):
         """
         Stores variables from the settings file in succint variable names
-        for use by the Funnel. 
+        for use by the Funnel.
         """
-        self.verbose = self.settings['defaults']['verbose']
-        self.pandas_warnings = self.settings['defaults']['pandas_warnings']
-        self.gpu = self.settings['defaults']['gpu']
-        self.seed = self.settings['defaults']['seed']
+        self.verbose = self.settings['general']['verbose']
+        self.pandas_warnings = self.settings['general']['pandas_warnings']
+        self.gpu = self.settings['general']['gpu']
+        self.seed = self.settings['general']['seed']
         self.file_encoding = self.settings['files']['encoding']
         self.boolean_out = self.settings['files']['boolean_out']
         self.file_format_in = self.settings['files']['data_in']
@@ -197,15 +197,15 @@ class Funnel(object):
         self.join_pred_probs = self.settings['results']['join_pred_probs']
         self.plot_data_to_use = self.settings['plot']['data_to_use']
         return self
-    
+
     def _set_folders(self):
         """
         Sets and creates folder paths for experimental results to be stored.
         """
         if self.experiment_folder == 'dynamic':
-            subfolder = ('experiment_' 
+            subfolder = ('experiment_'
                          + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
-        else: 
+        else:
             subfolder = self.experiment_folder
         self.filer.results_folder = os.path.join(
                     self.filer.results_folder, subfolder)
@@ -213,9 +213,9 @@ class Funnel(object):
                     folder = self.filer.results_folder,
                     subfolder = 'test_tubes')
         self.filer._make_folder(self.filer.results_folder)
-        self.filer._make_folder(self.filer.test_tubes_folder)           
+        self.filer._make_folder(self.filer.test_tubes_folder)
         return self
-    
+
     def _inject(self):
         """
         Injects filer, random seed, and settings into other classes.
@@ -226,11 +226,11 @@ class Funnel(object):
         self.data.filer = self.filer
         self.data.seed = self.seed
         return self
-    
+
     def _add_new_methods(self):
         """
-        If new methods are passed when an instance of Funnel is created, 
-        this will add those methods to the appropriate dictionaries that 
+        If new methods are passed when an instance of Funnel is created,
+        this will add those methods to the appropriate dictionaries that
         can be used by the user.
         """
         if self.new_methods:
@@ -238,7 +238,7 @@ class Funnel(object):
                 for key, value in method_dict.items():
                     self.add_method(step, key, value)
         return self
-    
+
     def _set_splicers(self):
         """
         If user wants to test different combinations of features ("splices"),
@@ -247,35 +247,35 @@ class Funnel(object):
         if self.data.splice_options:
             self.splicers = list(self.data.splice_options.keys())
         else:
-            self.splicers = []  
+            self.splicers = []
         return self
-        
+
     def _compute_values(self):
         """
         This method contains any hyperparameters that are computed based
         upon the source data.
         """
         if self.compute_scale_pos_weight:
-            Model.scale_pos_weight = (len(self.data.y.index) / 
+            Model.scale_pos_weight = (len(self.data.y.index) /
                                       ((self.data.y == 1).sum())) - 1
         return self
-    
+
     def _set_plotter(self):
         """
         Chooses the appropriate Plotter based upon the type of model used.
         """
-        
+
         if self.plots:
             if self.algorithm_type == 'classifier':
                 self.plotter = ClassifierPlotter
             elif self.algorithm_type == 'regressor':
-                self.plotter = LinearPlotter    
+                self.plotter = LinearPlotter
             elif self.algorithm_type == 'grouper':
                 self.plotter = GrouperPlotter
         else:
             self.plotter = None
         return self
-    
+
     def add_method(self, step, name, method):
         """
         Allows user to manually add an algorithm to the varios methods
@@ -283,11 +283,11 @@ class Funnel(object):
         """
         self.steps[step].options.update({name : method})
         return self
-    
+
     def create(self):
         """
         This method creates the funnel with all possible selected preprocessing
-        and modelling methods. Each set of methods is stored in a list of 
+        and modelling methods. Each set of methods is stored in a list of
         instances of Tube (self.tubes).
         """
         if self.verbose:
@@ -298,7 +298,7 @@ class Funnel(object):
         for scaler in self._check_list(self.scalers):
             for encoder in self._check_list(self.encoders):
                 for interactor in self._check_list(self.interactors):
-                    for splicer in self._check_list(self.splicers): 
+                    for splicer in self._check_list(self.splicers):
                         for sampler in self._check_list(self.samplers):
                             for selector in self._check_list(self.selectors):
                                 for algorithm in self._check_list(
@@ -309,12 +309,12 @@ class Funnel(object):
                                                   self.algorithm_type,
                                                   model_params,
                                                   self.gpu)
-                                    tube = Tube(Scaler(scaler, 
+                                    tube = Tube(Scaler(scaler,
                                                        self.scaler_params),
                                                 Splitter(self.splitter,
                                                          self.splitter_params),
                                                 Encoder(encoder,
-                                                        self.encoder_params, 
+                                                        self.encoder_params,
                                                         self.data.cat_cols),
                                                 Interactor(interactor,
                                                     self.interactor_params,
@@ -331,13 +331,13 @@ class Funnel(object):
                                                      model,
                                                      self.grid_params),
                                                 self.plotter(
-                                                        plots = self.plots))                          
+                                                        plots = self.plots))
                                     self.tubes.append(tube)
         return self
-        
+
     def _check_list(self, variable):
         """
-        Checks to see if the methods are stored in a list. If not, the 
+        Checks to see if the methods are stored in a list. If not, the
         methods are converted to a list or a list of 'none' is created.
         """
         if not variable:
@@ -345,21 +345,21 @@ class Funnel(object):
         elif isinstance(variable, list):
             return variable
         else:
-            return [variable]         
- 
+            return [variable]
+
     def iterate(self):
         """
         This method iterates through each of the possible test tubes. The
         best overall test tube is stored in self.best.
         """
         if self.verbose:
-            print('Testing tubes')        
+            print('Testing tubes')
         self.best = None
         self._one_loop()
         if self.splitter_params['val_size'] > 0:
             self._one_loop(use_val_set = True)
         return self
-    
+
     def _one_loop(self, use_val_set = False):
         """
         Completes one iteration of a Tube, storing the results in the results
@@ -369,24 +369,24 @@ class Funnel(object):
         self._set_folders()
         for i, tube in enumerate(self.tubes):
             if self.verbose:
-                print('Testing tube ' + str(i + 1))  
+                print('Testing tube ' + str(i + 1))
             self.data.split_xy(label = self.label)
             tube.apply(tube_num = str(i + 1),
-                       data = self.data, 
+                       data = self.data,
                        use_val_set = use_val_set)
-            self.results.add_result(tube = tube, 
+            self.results.add_result(tube = tube,
                                     use_val_set = use_val_set)
             self._check_best(tube)
             file_name = 'tube' + tube.tube_num + '_' + tube.model.name
-            export_path = self.filer._iter_path(model = tube.model, 
-                                                tube_num = tube.tube_num, 
+            export_path = self.filer._iter_path(model = tube.model,
+                                                tube_num = tube.tube_num,
                                                 splicer = tube.splicer,
                                                 file_name = file_name,
                                                 file_type = 'pickle')
             self.save_tube(tube, export_path = export_path)
             del(tube)
         return self
-    
+
     def _check_best(self, tube):
         """
         Checks if the current Tube is better than the current best Tube.
@@ -395,20 +395,20 @@ class Funnel(object):
             self.best = tube
             self.best_score = self.results.table.loc[
                     self.results.table.index[-1], self.key_metric]
-        elif (self.results.table.loc[self.results.table.index[-1], 
+        elif (self.results.table.loc[self.results.table.index[-1],
                                      self.key_metric] > self.best_score):
             self.best = tube
             self.best_score = self.results.table.loc[
                     self.results.table.index[-1], self.key_metric]
         return self
-    
+
     def add_plot(self, name, method):
         """
         Allows user to manually add a plot option.
         """
         self.plotter.options.update({name : method})
         return self
-    
+
     def visualize(self, tube = None, funnel = None):
         """
         Allows user to manually create plots for a single tube or funnel.
@@ -417,9 +417,9 @@ class Funnel(object):
             self._visualize_tube(tube)
         else:
             for tube in funnel.pipes:
-                self._visualize_tube(tube)              
+                self._visualize_tube(tube)
         return self
-    
+
     def _visualize_tube(self, tube):
         """
         Iterates through all selected plots for a single test tube.
@@ -428,24 +428,24 @@ class Funnel(object):
             plots = list(self.plotter.options.keys())
         else:
             plots = self._check_list(self.visuals)
-        self.plotter._one_cycle(plots = plots, 
+        self.plotter._one_cycle(plots = plots,
                                 model = tube.model)
         return self
-    
+
     def save_everything(self):
         """
         Automatically saves the funnel, results table, and best tube.
         """
-        self.save_funnel(export_path = os.path.join(self.filer.results_folder, 
+        self.save_funnel(export_path = os.path.join(self.filer.results_folder,
                                                     'funnel.pkl'))
         self.save_results(export_path = os.path.join(self.filer.results_folder,
                                                      'results_table.csv'))
         if self.best:
             self.save_tube(export_path = os.path.join(
-                    self.filer.results_folder, 'best_tube.pkl'), 
+                    self.filer.results_folder, 'best_tube.pkl'),
                         tube = self.best)
         return self
-    
+
     def load_funnel(self, import_path = None, return_funnel = False):
         """
         Imports a single pickled funnel from disc.
@@ -458,7 +458,7 @@ class Funnel(object):
         else:
             self.tubes = tubes
             return self
-    
+
     def save_funnel(self, export_path = None):
         """
         Exports a funnel to disc.
@@ -467,7 +467,7 @@ class Funnel(object):
             export_path = self.filer.results_folder
         pickle.dump(self.tubes, open(export_path, 'wb'))
         return self
-    
+
     def load_tube(self, import_path = None):
         """
         Imports a single tube from disc.
@@ -476,7 +476,7 @@ class Funnel(object):
             import_path = self.filer.import_folder
         tube = pickle.load(open(import_path, 'rb'))
         return tube
-    
+
     def save_tube(self, tube, export_path = None):
         """
         Exports a tube to disc.
@@ -485,9 +485,9 @@ class Funnel(object):
             export_path = self.filer.results_folder
         pickle.dump(tube, open(export_path, 'wb'))
         return self
-    
+
     def load_results(self, import_path = None, file_name = 'results_table',
-                     file_format = 'csv', encoding = 'windows-1252', 
+                     file_format = 'csv', encoding = 'windows-1252',
                      float_format = '%.4f', message = 'Importing results',
                      return_results = False):
         """
@@ -503,15 +503,15 @@ class Funnel(object):
         results = self.data.load(import_path = results_path,
                                  encoding = encoding,
                                  float_format = float_format,
-                                 message = message)      
+                                 message = message)
         if return_results:
             return results
         else:
             self.results.table = results
             return self
-    
+
     def save_results(self, export_path = None, file_name = 'results_table',
-                     file_format = 'csv', encoding = 'windows-1252', 
+                     file_format = 'csv', encoding = 'windows-1252',
                      float_format = '%.4f', message = 'Exporting results'):
         """
         Exports results table to disc.
@@ -521,18 +521,18 @@ class Funnel(object):
             export_path = self.filer.make_path(folder = export_path,
                                                name = file_name,
                                                file_type = file_format)
-        self.data.save(df = self.results.table, 
+        self.data.save(df = self.results.table,
                        export_path = export_path,
                        encoding = encoding,
                        float_format = float_format,
                        message = message)
         return self
 
-@dataclass 
+@dataclass
 class Tube(Methods):
     """
     Class containing single test tube of methods.
-    """    
+    """
     scaler : object = None
     splitter : object = None
     encoder : object = None
@@ -544,18 +544,18 @@ class Tube(Methods):
     grid : object = None
     plotter : object = None
     settings : object = None
-    
-    def apply(self, data, tube_num = 1, use_full_set = False, 
+
+    def apply(self, data, tube_num = 1, use_full_set = False,
               use_val_set = False):
         """
-        Applies the Tube methods to the passed data. If use_full_set is 
+        Applies the Tube methods to the passed data. If use_full_set is
         selected, methods are applied to entire x and y. If use_val_set
         is selected, methods are applied to x_val and y_val (which are
-        created by the data splitter according to user specifications). 
+        created by the data splitter according to user specifications).
         Otherwise, x_test and y_test are used. With either the test or val
-        sets selected, x_train and y_train are used for training. With the 
+        sets selected, x_train and y_train are used for training. With the
         full set, x and y are used for both training and testing (which will
-        ordinarily lead to a much higher level of accuracy). The full set 
+        ordinarily lead to a much higher level of accuracy). The full set
         option should, accordingly, not be used for testing the model's
         performance.
         Scaling is performed on the entire x data regardless of the option
@@ -567,21 +567,21 @@ class Tube(Methods):
             self.data.x[self.data.num_cols] = (
                     self.scaler.apply(self.data.x[self.data.num_cols]))
         if self.splitter.name != 'none':
-            self.data = self.splitter.apply(self.data)  
+            self.data = self.splitter.apply(self.data)
         if use_val_set:
-            (self.data.x_train, self.data.y_train, self.data.x_test, 
+            (self.data.x_train, self.data.y_train, self.data.x_test,
              self.data.y_test) = (
-                    self._get_data(data = data, data_to_use = 'val', 
+                    self._get_data(data = data, data_to_use = 'val',
                                    train_test = True))
         elif use_full_set:
-            (self.data.x_train, self.data.y_train, self.data.x_test, 
+            (self.data.x_train, self.data.y_train, self.data.x_test,
              self.data.y_test) = (
-                    self._get_data(data = data, data_to_use = 'full', 
+                    self._get_data(data = data, data_to_use = 'full',
                                    train_test = True))
         else:
-            (self.data.x_train, self.data.y_train, self.data.x_test, 
+            (self.data.x_train, self.data.y_train, self.data.x_test,
              self.data.y_test) = (
-                    self._get_data(data = data, data_to_use = 'test', 
+                    self._get_data(data = data, data_to_use = 'test',
                                    train_test = True))
         if self.encoder.name != 'none':
             self.encoder.fit(self.data.x_train, self.data.y_train)
@@ -609,7 +609,7 @@ class Tube(Methods):
             self.data.x_test = self.splicer.transform(self.data.x_test)
         if self.sampler.name != 'none':
             self.data.x_train, self.data.y_train = (
-                    self.sampler.fit_resample(self.data.x_train, 
+                    self.sampler.fit_resample(self.data.x_train,
                                               self.data.y_train))
         if self.selector.name != 'none':
             self.selector.fit(self.data.x_train, self.data.y_train)
@@ -621,9 +621,8 @@ class Tube(Methods):
             else:
                 self.model.method.fit(self.data.x_train, self.data.y_train)
         if self.plotter:
-            self.plotter.apply(data = self.data, 
+            self.plotter.apply(data = self.data,
                                model = self.model,
                                tube_num = self.tube_num,
                                splicer = self.splicer)
         return self
-        

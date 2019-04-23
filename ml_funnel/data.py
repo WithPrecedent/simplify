@@ -2,25 +2,25 @@
 Class for organizing and loading data into machine learning algorithms.
 Data stores the data itself as well as a set of settings and variables about
 the data stored (primarily column data types). Data uses pandas dataframes or
-series for all data, but utilizes faster numpy methods where possible to 
+series for all data, but utilizes faster numpy methods where possible to
 increase performance.
 
-Data includes some methods which are designed to be more accessible and 
-user-friendly than the commonly-used methods. For example, data can easily be 
-downcast to save memory with the downcast method and smart_fill_na fills na 
-data with appropriate defaults based upon the column datatypes (either provided 
+Data includes some methods which are designed to be more accessible and
+user-friendly than the commonly-used methods. For example, data can easily be
+downcast to save memory with the downcast method and smart_fill_na fills na
+data with appropriate defaults based upon the column datatypes (either provided
 by the user via column_dict or through inference).
 """
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-@dataclass 
+@dataclass
 class Data(object):
     """
     Primary class for storing and manipulating data used in machine learning
     projects.
-    """    
+    """
     settings : object = None
     df : object = None
     x : object = None
@@ -34,13 +34,13 @@ class Data(object):
     quick_start : bool = False
     filer : object = None
     seed : int = 999
-    
+
     def __post_init__(self):
         self._set_defaults()
         if self.verbose:
             print('Building data container')
         """
-        If quick_start is set to true and a settings dictionary is passed, 
+        If quick_start is set to true and a settings dictionary is passed,
         data is automatically loaded according to user specifications in the
         settings file.
         """
@@ -49,11 +49,11 @@ class Data(object):
                       file_format = self.settings['files']['data_in'],
                       test_data = self.settings['files']['test_data'],
                       test_rows = self.settings['files']['test_chunk'],
-                      encoding = self.settings['files']['encoding']) 
+                      encoding = self.settings['files']['encoding'])
         self.dropped_columns = []
         self.splice_options = {}
         return self
-    
+
     def _set_defaults(self):
         """
         Sets default options if settings is not passed or injected.
@@ -65,7 +65,7 @@ class Data(object):
         if self.settings['general']['seed']:
             self.seed = self.seed = self.settings['general']['seed']
         return self
-         
+
     def _get_xy(self, data_to_use):
         """
         Returns the appropriate x, y data combination based upon string
@@ -76,7 +76,7 @@ class Data(object):
                    'test' : [self.x_test, self.y_test],
                    'val' : [self.x_val, self.y_val]}
         return options[data_to_use]
-    
+
     def apply(self, df = None, func = None, **kwargs):
         """
         Allows users to pass a function to data which will be applied to the
@@ -91,10 +91,10 @@ class Data(object):
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
 
-    def column_types(self, df = None, cat_cols = [], cat_prefixes = [], 
+    def column_types(self, df = None, cat_cols = [], cat_prefixes = [],
                      float_cols = [], float_prefixes = [],
                      int_cols = [], int_prefixes = [],
                      bool_cols = [], bool_prefixes = [],
@@ -102,33 +102,33 @@ class Data(object):
                      list_cols = [], list_prefixes = [],
                      str_cols = [], str_prefixes = []):
         """
-        If the user has preset sets of lists for column datatypes or 
+        If the user has preset sets of lists for column datatypes or
         datatypes linked to set prefixes, this method converts the column
         and/or prefix lists to class instance attributes containing complete
         lists of different types of columns.
         """
         if not isinstance(df, pd.DataFrame):
             df = self.df
-        self.bool_cols = self.create_column_list(df = df, 
-                                                 prefixes = bool_prefixes, 
-                                                 cols = bool_cols) 
-        self.cat_cols = self.create_column_list(df = df, 
-                                                prefixes = cat_prefixes, 
-                                                cols = cat_cols) 
-        self.float_cols = self.create_column_list(df = df, 
-                                                  prefixes = float_prefixes, 
-                                                  cols = float_cols) 
-        self.int_cols = self.create_column_list(df = df, 
-                                                prefixes = int_prefixes, 
-                                                cols = int_cols) 
-        self.interact_cols = self.create_column_list(df = df, 
-                                                     prefixes = interact_prefixes, 
+        self.bool_cols = self.create_column_list(df = df,
+                                                 prefixes = bool_prefixes,
+                                                 cols = bool_cols)
+        self.cat_cols = self.create_column_list(df = df,
+                                                prefixes = cat_prefixes,
+                                                cols = cat_cols)
+        self.float_cols = self.create_column_list(df = df,
+                                                  prefixes = float_prefixes,
+                                                  cols = float_cols)
+        self.int_cols = self.create_column_list(df = df,
+                                                prefixes = int_prefixes,
+                                                cols = int_cols)
+        self.interact_cols = self.create_column_list(df = df,
+                                                     prefixes = interact_prefixes,
                                                      cols = interact_cols)
-        self.list_cols = self.create_column_list(df = df, 
-                                                 prefixes = list_prefixes, 
+        self.list_cols = self.create_column_list(df = df,
+                                                 prefixes = list_prefixes,
                                                  cols = list_cols)
-        self.str_cols = self.create_column_list(df = df, 
-                                                prefixes = str_prefixes, 
+        self.str_cols = self.create_column_list(df = df,
+                                                prefixes = str_prefixes,
                                                 cols = str_cols)
         self.num_cols = self.float_cols + self.int_cols
         self.all_cols = df.columns
@@ -139,7 +139,7 @@ class Data(object):
         self.column_dict.update(dict.fromkeys(self.interact_cols, 'category'))
         self.column_dict.update(dict.fromkeys(self.str_cols, str))
         return self
-    
+
     def create_column_list(self, df = None, prefixes = [], cols = []):
         """
         Dynamically creates a new column list from a list of columns and/or
@@ -152,12 +152,12 @@ class Data(object):
         for prefix in prefixes:
             temp_list = [x for x in df if x.startswith(prefix)]
             prefixes_list.extend(temp_list)
-        col_list = cols + prefixes_list 
-        return col_list 
-    
+        col_list = cols + prefixes_list
+        return col_list
+
     def initialize_series(self, df = None, column_dict = None):
         """
-        Initializes values in multi-type series to defaults based upon the 
+        Initializes values in multi-type series to defaults based upon the
         datatype listed in the columns dictionary.
         """
         not_df = False
@@ -172,20 +172,20 @@ class Data(object):
             if column_dict[key] == list:
                 df[key] = []
             if column_dict[key] == str:
-                df[key] = '' 
+                df[key] = ''
             if column_dict[key] == float:
                 df[key] = np.nan
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-    
+
     def downcast(self, df = None, ints = [], floats = [], cats = []):
         """
         Method to decrease memory usage by downcasting datatypes. For
         numerical datatypes, the method attempts to cast the data to unsigned
-        integers if possible. 
+        integers if possible.
         """
         print('Downcasting data to decrease memory usage')
         not_df = False
@@ -210,15 +210,15 @@ class Data(object):
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-    
+
     def smart_fill_na(self, df = None):
         """
-        Fills na values in dataframe to defaults based upon the datatype listed 
-        in the columns dictionary. If the dictionary of datatypes does not 
+        Fills na values in dataframe to defaults based upon the datatype listed
+        in the columns dictionary. If the dictionary of datatypes does not
         exist, the method fills columns based upon the current datatype
-        inferred by pandas. Because their is no good default category, the 
+        inferred by pandas. Because their is no good default category, the
         method uses an empty string ('').
         """
         not_df = False
@@ -258,13 +258,13 @@ class Data(object):
                 elif df[col].dtype == str:
                     df[col].fillna('', inplace = True)
                 elif df[col].dtype == 'category':
-                    df[col].fillna('', inplace = True) 
+                    df[col].fillna('', inplace = True)
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-    
+
     def convert_rare_categories(self, df = None, cats = [], threshold = 0):
         """
         The method converts categories rarely appearing within categorical
@@ -276,25 +276,25 @@ class Data(object):
             df = self.df
             not_df = True
         if self.verbose:
-            print('Replacing infrequently appearing categories')   
+            print('Replacing infrequently appearing categories')
         for col in cats:
             df['value_freq'] = df[col].value_counts() / len(df[col])
-            df[col] = np.where(df['value_freq'] <= threshold, '', df[col]) 
-        df.drop('value_freq', 
-                axis = 'columns', 
+            df[col] = np.where(df['value_freq'] <= threshold, '', df[col])
+        df.drop('value_freq',
+                axis = 'columns',
                 inplace = True)
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-    
+
     def drop_infrequent_cols(self, df = None, bools = [], threshold = 0):
         """
         This method drops boolean columns that rarely have True. This differs
-        from the sklearn VarianceThreshold class because it is only 
+        from the sklearn VarianceThreshold class because it is only
         concerned with rare instances of True and not False. This enables
-        users to set a different variance threshold for rarely appearing 
+        users to set a different variance threshold for rarely appearing
         information. Threshold is defined as the percentage of total rows (and
         not the typical variance formulas).
         """
@@ -306,17 +306,17 @@ class Data(object):
             print('Removing boolean variables with low variability')
         for col in bools:
             if df[col].mean() < threshold:
-                df.drop(col, 
-                        axis = 'columns', 
+                df.drop(col,
+                        axis = 'columns',
                         inplace = True)
                 self.dropped_columns.append(col)
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-    
-    def drop_highly_correlated_cols(self, df = None, cols = [], 
+
+    def drop_highly_correlated_cols(self, df = None, cols = [],
                                     threshold = 0.95):
         """
         Drops all but one column from highly correlated groups of columns.
@@ -338,15 +338,15 @@ class Data(object):
                     corr_matrix.shape), k = 1).astype(np.bool))
         drop_cols = [c for c in upper.columns if any(upper[c] > threshold)]
         df.drop(drop_cols,
-                axis = 'columns', 
+                axis = 'columns',
                 inplace = True)
         self.dropped_columns.extend(drop_cols)
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-    
+
     def drop_cols(self, df = None, prefixes = [], cols = []):
         """
         Drops list of columns and columns with prefixes listed. In addition,
@@ -363,19 +363,19 @@ class Data(object):
                                        prefixes = prefixes,
                                        cols = cols)
         df.drop(cols,
-                axis = 'columns', 
+                axis = 'columns',
                 inplace = True)
         self.dropped_columns.extend(cols)
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-        
-    def reshape_long(self, df = None, stubs = [], id_col = '', new_col = '', 
+
+    def reshape_long(self, df = None, stubs = [], id_col = '', new_col = '',
                      sep = ''):
         """
-        A simple wrapper method for pandas wide_to_long method using more 
+        A simple wrapper method for pandas wide_to_long method using more
         intuitive parameter names than 'i' and 'j'.
         """
         not_df = False
@@ -384,17 +384,17 @@ class Data(object):
             not_df = True
         if self.verbose:
             print('Reshaping data to long format')
-        df = (pd.wide_to_long(df, 
-                              stubnames = stubs, 
-                              i = id_col, 
-                              j = new_col, 
+        df = (pd.wide_to_long(df,
+                              stubnames = stubs,
+                              i = id_col,
+                              j = new_col,
                               sep = sep).reset_index())
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-    
+
     def reshape_wide(self, df = None, df_index = '', cols = [], values = []):
         """
         A simple wrapper method for pandas pivot method named as corresponding
@@ -406,15 +406,15 @@ class Data(object):
             not_df = True
         if self.verbose:
             print('Reshaping data to wide format')
-        df = (df.pivot(index = df_index, 
-                       columns = cols, 
+        df = (df.pivot(index = df_index,
+                       columns = cols,
                        values = values).reset_index())
         if not_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-    
+
     def summarize(self, df = None, export_path = ''):
         """
         Creates a dataframe of common summary data. It is more inclusive than
@@ -424,8 +424,8 @@ class Data(object):
         """
         if not isinstance(df, pd.DataFrame):
             df = self.df
-        summary_cols = ['variable', 'data_type', 'count', 'min', 'q1', 
-                        'median', 'q3', 'max', 'mad', 'mean', 'stan_dev', 
+        summary_cols = ['variable', 'data_type', 'count', 'min', 'q1',
+                        'median', 'q3', 'max', 'mad', 'mean', 'stan_dev',
                         'mode', 'sum']
         self.summary = pd.DataFrame(columns = summary_cols)
         for i, col in enumerate(df.columns):
@@ -449,11 +449,11 @@ class Data(object):
             self.summary.loc[len(self.summary)] = new_row
         self.summary.sort_values('variable', inplace = True)
         if export_path:
-            self.save(df = self.summary, 
-                      export_path = export_path, 
-                      file_format = 'csv')          
+            self.save(df = self.summary,
+                      export_path = export_path,
+                      file_format = 'csv')
         return self
-    
+
     def split_xy(self, df = None, label = 'label'):
         """
         Splits data into x and y based upon the label passed.
@@ -463,27 +463,27 @@ class Data(object):
             df = self.df
             not_df = True
         x = df.drop(label, axis = 'columns')
-        y = df[label] 
+        y = df[label]
         if not_df:
             self.x = x
             self.y = y
             return self
-        else: 
+        else:
             return x, y
-        
+
     def add_splice(self, group_name, prefixes = [], columns = []):
         """
         For the splicers in ml_funnel, this method alows users to manually
         add a new splice group to the splicer dictionary.
         """
-        temp_list = self.create_column_list(prefixes = prefixes, 
+        temp_list = self.create_column_list(prefixes = prefixes,
                                             cols = columns)
         self.splice_options.update({group_name : temp_list})
         return self
-                
+
     def load(self, import_folder = '', file_name = 'data', import_path = '',
-             file_format = 'csv', usecols = None, index = False, 
-             encoding = 'windows-1252', test_data = False, test_rows = 500, 
+             file_format = 'csv', usecols = None, index = False,
+             encoding = 'windows-1252', test_data = False, test_rows = 500,
              return_df = False, message = 'Importing data'):
         """
         Method to import pandas dataframes from different file formats.
@@ -501,7 +501,7 @@ class Data(object):
         else:
             nrows = None
         if file_format == 'csv':
-            df = pd.read_csv(import_path, 
+            df = pd.read_csv(import_path,
                              index_col = index,
                              nrows = nrows,
                              usecols = usecols,
@@ -512,28 +512,28 @@ class Data(object):
             """
             df.replace('Â', '', inplace = True)
         elif file_format == 'h5':
-            df = pd.read_hdf(import_path, 
+            df = pd.read_hdf(import_path,
                              chunksize = nrows)
         elif file_format == 'feather':
-            df = pd.read_feather(import_path, 
+            df = pd.read_feather(import_path,
                                  nthreads = -1)
         if not return_df:
             self.df = df
             return self
-        else: 
+        else:
             return df
-    
-    def save(self, df = None, export_folder = '', file_name = 'data', 
-             export_path = '', file_format = 'csv', index = False, 
-             encoding = 'windows-1252', float_format = '%.4f', 
+
+    def save(self, df = None, export_folder = '', file_name = 'data',
+             export_path = '', file_format = 'csv', index = False,
+             encoding = 'windows-1252', float_format = '%.4f',
              boolean_out = True, message = 'Exporting data'):
         """
-        Method to export pandas dataframes to different file formats and 
+        Method to export pandas dataframes to different file formats and
         encoding of boolean variables as True/False or 1/0
         """
         if not export_path:
             if not export_folder:
-                export_folder = self.filer.export_folder    
+                export_folder = self.filer.export_folder
             export_path = self.filer.make_path(folder = export_folder,
                                                name = file_name,
                                                file_type = file_format)
@@ -544,7 +544,7 @@ class Data(object):
         if not boolean_out:
             df.replace({True : 1, False : 0}, inplace = True)
         if file_format == 'csv':
-            df.to_csv(export_path, 
+            df.to_csv(export_path,
                       encoding = encoding,
                       index = index,
                       header = True,
