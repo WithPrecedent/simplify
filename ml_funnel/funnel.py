@@ -7,7 +7,7 @@ method groups:
 
     Scalers: convert numerical features into a common scale, using scikit-learn
         methods.
-    Splitters: divides data into train, test, and/or validation sets once or
+    Splitter: divides data into train, test, and/or validation sets once or
         through k-folds cross-validation.
     Encoders: convert categorical features into numerical ones, using
         category-encoders methods.
@@ -16,15 +16,17 @@ method groups:
     Splicers: create different subgroups of features to allow for easy
         comparison between them.
     Samplers: synthetically resample training data for imbalanced data,
-        using imblearn methods, for use with algorithms that struggle with
+        using imblearn methods, for use with models that struggle with
         imbalanced data.
     Selectors: select features recursively or as one-shot based upon user
         criteria, using scikit-learn methods.
+    Customs: allow users to add any scikit-learn or ml_funnel compatible
+        method to be added into an experiment.
     Models: implement machine learning algorithms, currently includes
-        xgboost and scikit-learn methods).
-    Grids: test different hyperparameters for the models selected,
-        currently includes RandomizedSearchCV and GridSearchCV - Bayesian
-        methods coming soon.
+        xgboost and scikit-learn methods. The user can opt to either test
+        different hyperparameters for the models selected or a single set
+        of hyperparameters. Search methods currently include
+        RandomizedSearchCV and GridSearchCV - Bayesian methods coming soon.
     Plots: produce helpful graphical representations based upon the model
         selected, includes shap, seaborn, and matplotlib methods.
 
@@ -39,19 +41,19 @@ ml_funnel contains the following accessible classes:
         by the funnel. As the data is split into features, labels, test,
         train, etc. dataframes, they are all created as attributes to an
         instance of the Data class.
-    Scalers, Splitters, Encoders, Interactors, Splicers, Samplers, and
-        Selectors: child classes of Methods which contain the different
-        algorithms for each step a test tube.
-    Models: contains different machine learning algorithms divided into three
-        major algorithm_type: classifier, regressor, and grouper. It is also
+    Scaler, Splitter, Encoder, Interactor, Splicer, Sampler, and Selector:
+        child classes of Methods which contain the different algorithms for
+        each step in a test tube.
+    Model: contains different machine learning algorithms divided into three
+        major model_type: classifier, regressor, and grouper. It is also
         a child class of Methods.
-    Grids: contains the method and parameters for different hyperparameter
+    Grid: contains the method and parameters for different hyperparameter
         search methods as a Methods child class. If the user includes two
         values for any hyperparameter, the Grid method is automatically
         implemented. In such cases, the best hyperparameter set is stored
         in Funnel.best.
     Plotter: another Methods child class that prepares and exports plots based
-        upon the model algorithm_type. Users can directly access the three
+        upon the model model_type. Users can directly access the three
         major graphing method groups: ClassifierPlotter, GrouperPlotter,
         LinearPlotter.
     Results: another Methods child class that applies user-selected or default
@@ -79,21 +81,23 @@ settings file will be loaded automatically.
 
 """
 funnel.py is the primary control file for the ml_funnel package. It contains
-the Funnel class, which handles the funnel construction and application, and
-the Tube class, which contains a single "test tube" of tools to be tested.
+the Funnel class, which handles the funnel construction and application.
 """
 from dataclasses import dataclass
 import datetime
+from itertools import product
 import os
 import pickle
 import warnings
 
 from ml_funnel.filer import Filer
-from ml_funnel.methods import Encoder, Grid, Interactor, Methods, Model
+from ml_funnel.methods import Custom, Encoder, Interactor, Methods, Model
 from ml_funnel.methods import Sampler, Scaler, Selector, Splicer, Splitter
-from ml_funnel.plot import ClassifierPlotter, GrouperPlotter, LinearPlotter
+from ml_funnel.plotter import ClassifierPlotter, GrouperPlotter, LinearPlotter
+from ml_funnel.plotter import Plotter
 from ml_funnel.results import Results
 from ml_funnel.settings import Settings
+from ml_funnel.test_tube import Tube
 
 @dataclass
 class Funnel(object):
@@ -103,99 +107,132 @@ class Funnel(object):
     """
     data : object
     filer : object = None
-    import_folder : str = ''
-    export_folder : str = ''
-    use_settings_file : bool = True
-    settings_path : str = ''
+    data_folder : str = ''
+    results_folder : str = ''
     settings : object = None
-    col_groups : object = None
+    settings_path : str = ''
+    splicers : object = None
     new_methods : object = None
     best : object = None
 
     def __post_init__(self):
         """
         Loads settings from an .ini file if not passed when class is instanced.
+        Otherwise an empty
         """
-        if self.use_settings_file:
+        if not self.settings:
             if not self.settings_path:
-                self.settings_path = os.path.join('..', 'settings.ini')
-            self.settings = Settings(self.settings_path)
-        self._simplify_settings()
+                self.settings_path = os.path.join('..', 'settings',
+                                                  'ml_funnel_settings.ini')
+            self.settings = Settings(file_path = self.settings_path)
+        self.settings.simplify(class_instance = self,
+                               sections = ['general', 'files', 'methods'])
+        """
+        Removes the numerous pandas warnings from console output if option
+        selected by user.
+        """
         if not self.pandas_warnings:
             warnings.filterwarnings('ignore')
         """
-        Adds a filer if one is not passed when class is instanced.
+        Adds a Filer instance if one is not passed when class is instanced.
         """
         if not self.filer:
-            self.filer = Filer(root_import = self.import_folder,
-                               root_export = self.export_folder,
+            self.filer = Filer(root_import = self.data_folder,
+                               root_export = self.results_folder,
                                experiment_folder = self.experiment_folder,
                                settings = self.settings)
         """
-        Instances a results class for storing results of each Tube.apply.
+        Instances a Results class for storing results of each Tube.apply.
         """
-        self.results = Results(settings = self.settings['results'],
-                               algorithm_type = self.algorithm_type,
-                               verbose = self.verbose)
+        self.results = Results(settings = self.settings)
         """
-        Performs several initalizations for funnel creation.
+        Sets key scoring metric for tools that require a single scoring metric.
         """
-        self._inject()
-        self._add_new_methods()
-        self._set_splicers()
+        self.key_metric = self._listify(self.settings['results']['metrics'])[0]
+        """
+        Assigns appropriate plotter class based upon model_type.
+        """
+        Plotter.params = self.settings['plotters_params']
+        self.plotter = self._set_plotter(plotter_type = self.model_type)
+        """
+        Creates empty lists and dictionary for custom methods and splicers
+        to be added by user.
+        """
+        self.customs = []
+        self.customs_params = {}
+        self.splicers = []
+        """
+        Declares possible methods classes and steps in funnel.
+        """
+        self.method_classes = {'scalers' : Scaler,
+                               'splitter' : Splitter,
+                               'encoders' : Encoder,
+                               'interactors' : Interactor,
+                               'splicers' : Splicer,
+                               'samplers' : Sampler,
+                               'selectors' : Selector,
+                               'customs' : Custom,
+                               'models' : Model,
+                               'plotters' : self.plotter}
+        self.steps = list(self.method_classes.keys())
+        """
+        Adds any new methods passed in Funnel instance.
+        """
+        if self.new_methods:
+            for step, nested_dict in self.new_methods.items():
+                for key, value in nested_dict.items():
+                    self.method_classes[step].options.update({key, value})
         """
         Data is split in oder for certain values to be computed that require
         features and the label to be split.
         """
-        self.data.split_xy(label = self.label)
-        self._compute_values()
-        self._set_plotter()
+        if self.compute_hyperparameters:
+            self.data.split_xy(label = self.label)
+            self._compute_hyperparameters()
         return self
 
-    def _simplify_settings(self):
-        """
-        Stores variables from the settings file in succint variable names
-        for use by the Funnel.
-        """
-        self.verbose = self.settings['general']['verbose']
-        self.pandas_warnings = self.settings['general']['pandas_warnings']
-        self.gpu = self.settings['general']['gpu']
-        self.seed = self.settings['general']['seed']
-        self.file_encoding = self.settings['files']['encoding']
-        self.boolean_out = self.settings['files']['boolean_out']
-        self.file_format_in = self.settings['files']['data_in']
-        self.file_format_out = self.settings['files']['data_out']
-        self.experiment_folder = self.settings['files']['experiment_folder']
-        self.scalers = self.settings['funnel']['scaler']
-        self.scaler_params = self.settings['scaler_params']
-        self.splitter = self.settings['funnel']['splitter']
-        self.splitter_params = self.settings['splitter_params']
-        self.encoders = self.settings['funnel']['encoder']
-        self.encoder_params = self.settings['encoder_params']
-        self.interactors = self.settings['funnel']['interactor']
-        self.interactor_params = self.settings['interactor_params']
-        self.use_splicers = self.settings['funnel']['splicer']
-        self.include_all = self.settings['splicer_params']['include_all']
-        self.samplers = self.settings['funnel']['sampler']
-        self.sampler_params = self.settings['sampler_params']
-        self.selectors = self.settings['funnel']['selector']
-        self.selector_params = self.settings['selector_params']
-        self.grid_search = self.settings['funnel']['grid_search']
-        self.search_method = self.settings['funnel']['search_method']
-        self.grid_params = self.settings['grid_params']
-        self.export_methods = self.settings['funnel']['export_methods']
-        self.algorithm_type = self.settings['funnel']['algorithm_type']
-        self.algorithms = self.settings['funnel']['algorithms']
-        self.label = self.settings['funnel']['label']
-        self.plots = self.settings['funnel']['plots']
-        self.compute_scale_pos_weight = (
-                self.settings['funnel']['compute_scale_pos_weight'])
-        self.model_data_to_use = self.settings['funnel']['data_to_use']
-        self.metrics = self.settings['results']['metrics']
-        self.key_metric = self._check_list(self.metrics)[0]
-        self.join_predictions = self.settings['results']['join_predictions']
-        self.join_pred_probs = self.settings['results']['join_pred_probs']
-        self.plot_data_to_use = self.settings['plot']['data_to_use']
+    def __getitem__(self, value):
+        step, name = value
+        if step in self.method_classes:
+            return self.class_methods[step][name]
+        else:
+            error_message = step + ' or ' + name + ' not found'
+            raise KeyError(error_message)
+            return
+
+    def __setitem__(self, value):
+        steps, names, methods = value
+        if isinstance(steps, str) or isinstance(steps, list):
+            if isinstance(names, str) or isinstance(names, list):
+                if isinstance(methods, object) or isinstance(methods, list):
+                    steps = self._listify(steps)
+                    names = self._listify(names)
+                    steps = self._listify(steps)
+                    new_methods = zip(steps, names, methods)
+                    for step, name, method in new_methods.items():
+                        self.class_methods[step][name][method]
+                else:
+                    error_message = name + ' must be an object of list of objects'
+                    raise TypeError(error_message)
+            else:
+                error_message = name + ' must be a string or list of strings'
+                raise TypeError(error_message)
+        else:
+            error_message = step + ' must be a string or list of strings'
+            raise TypeError(error_message)
+        return self
+
+    def __delitem__(self, value):
+        steps, names = value
+        steps = self._listify(steps)
+        names = self._listify(names)
+        del_methods = zip(steps, names)
+        for step, name in del_methods.items():
+            if name in self.class_methods[step].options:
+                self.class_methods[step][name]
+            else:
+                error_message = name + ' is not in ' + step + ' method'
+                raise KeyError(error_message)
         return self
 
     def _set_folders(self):
@@ -207,47 +244,58 @@ class Funnel(object):
                          + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
         else:
             subfolder = self.experiment_folder
-        self.filer.results_folder = os.path.join(
-                    self.filer.results_folder, subfolder)
-        self.filer.test_tubes_folder = self.filer.make_path(
-                    folder = self.filer.results_folder,
-                    subfolder = 'test_tubes')
-        self.filer._make_folder(self.filer.results_folder)
-        self.filer._make_folder(self.filer.test_tubes_folder)
+        self.filer.results = os.path.join(self.filer.results, subfolder)
+        self.filer.test_tubes = self.filer.make_path(
+                folder = self.filer.results,
+                subfolder = 'test_tubes')
+        self.filer._make_folder(self.filer.results)
+        self.filer._make_folder(self.filer.test_tubes)
         return self
 
-    def _inject(self):
+    def _prepare_methods(self):
+        for step in self.steps:
+            setattr(self, step, self._listify(getattr(self, step)))
+            if not step in ['models']:
+                param_var = step + '_params'
+                setattr(self, param_var, self.settings[param_var])
         """
-        Injects filer, random seed, and settings into other classes.
+        Injects filer, random seed, settings, and column lists into Methods
+        classes.
         """
         Methods.filer = self.filer
         Methods.seed = self.seed
         Methods.settings = self.settings
-        self.data.filer = self.filer
-        self.data.seed = self.seed
+        Methods._listify = self._listify
         return self
 
-    def _add_new_methods(self):
+    def _compute_hyperparameters(self):
         """
-        If new methods are passed when an instance of Funnel is created,
-        this will add those methods to the appropriate dictionaries that
-        can be used by the user.
+        This method contains any hyperparameters that are computed based
+        upon the source data.
         """
-        if self.new_methods:
-            for step, method_dict in self.new_methods.items():
-                for key, value in method_dict.items():
-                    self.add_method(step, key, value)
+        Model.scale_pos_weight = (len(self.data.y.index) /
+                                  ((self.data.y == 1).sum())) - 1
         return self
 
-    def _set_splicers(self):
+    def _listify(self, variable):
         """
-        If user wants to test different combinations of features ("splices"),
-        this method sets the splicer options into a list.
+        Checks to see if the methods are stored in a list. If not, the
+        methods are converted to a list or a list of 'none' is created.
         """
-        if self.data.splice_options:
-            self.splicers = list(self.data.splice_options.keys())
+        if not variable:
+            return ['none']
+        elif isinstance(variable, list):
+            return variable
         else:
-            self.splicers = []
+            return [variable]
+
+    def _select_params(self, params_to_use = []):
+        new_params = {}
+        if self.params:
+            for key, value in self.params.items():
+                if key in params_to_use:
+                    new_params.update({key : value})
+            self.params = new_params
         return self
 
     def _compute_values(self):
@@ -260,105 +308,11 @@ class Funnel(object):
                                       ((self.data.y == 1).sum())) - 1
         return self
 
-    def _set_plotter(self):
-        """
-        Chooses the appropriate Plotter based upon the type of model used.
-        """
-
-        if self.plots:
-            if self.algorithm_type == 'classifier':
-                self.plotter = ClassifierPlotter
-            elif self.algorithm_type == 'regressor':
-                self.plotter = LinearPlotter
-            elif self.algorithm_type == 'grouper':
-                self.plotter = GrouperPlotter
-        else:
-            self.plotter = None
-        return self
-
-    def add_method(self, step, name, method):
-        """
-        Allows user to manually add an algorithm to the varios methods
-        dictionaries.
-        """
-        self.steps[step].options.update({name : method})
-        return self
-
-    def create(self):
-        """
-        This method creates the funnel with all possible selected preprocessing
-        and modelling methods. Each set of methods is stored in a list of
-        instances of Tube (self.tubes).
-        """
-        if self.verbose:
-            print('Creating all possible preprocessing test tubes')
-        self.tubes = []
-        if self.include_all:
-            self.splicers.append('all')
-        for scaler in self._check_list(self.scalers):
-            for encoder in self._check_list(self.encoders):
-                for interactor in self._check_list(self.interactors):
-                    for splicer in self._check_list(self.splicers):
-                        for sampler in self._check_list(self.samplers):
-                            for selector in self._check_list(self.selectors):
-                                for algorithm in self._check_list(
-                                        self.algorithms):
-                                    model_params = (
-                                        self.settings[algorithm + '_params'])
-                                    model = Model(algorithm,
-                                                  self.algorithm_type,
-                                                  model_params,
-                                                  self.gpu)
-                                    tube = Tube(Scaler(scaler,
-                                                       self.scaler_params),
-                                                Splitter(self.splitter,
-                                                         self.splitter_params),
-                                                Encoder(encoder,
-                                                        self.encoder_params,
-                                                        self.data.cat_cols),
-                                                Interactor(interactor,
-                                                    self.interactor_params,
-                                                    self.data.interact_cols),
-                                                Splicer(splicer,
-                                                    self.data.splice_options,
-                                                    self.include_all),
-                                                Sampler(sampler,
-                                                        self.sampler_params),
-                                                Selector(selector,
-                                                         self.selector_params),
-                                                model,
-                                                Grid(self.search_method,
-                                                     model,
-                                                     self.grid_params),
-                                                self.plotter(
-                                                        plots = self.plots))
-                                    self.tubes.append(tube)
-        return self
-
-    def _check_list(self, variable):
-        """
-        Checks to see if the methods are stored in a list. If not, the
-        methods are converted to a list or a list of 'none' is created.
-        """
-        if not variable:
-            return ['none']
-        elif isinstance(variable, list):
-            return variable
-        else:
-            return [variable]
-
-    def iterate(self):
-        """
-        This method iterates through each of the possible test tubes. The
-        best overall test tube is stored in self.best.
-        """
-        if self.verbose:
-            print('Testing tubes')
-        self.best = None
-        self._one_loop()
-        if self.splitter_params['val_size'] > 0:
-            self._one_loop(use_val_set = True)
-        return self
+    def _set_plotter(self, plotter_type):
+        options = {'classifier' : ClassifierPlotter,
+                   'regressor' : LinearPlotter,
+                   'grouper' : GrouperPlotter}
+        return options[plotter_type]
 
     def _one_loop(self, use_val_set = False):
         """
@@ -402,23 +356,6 @@ class Funnel(object):
                     self.results.table.index[-1], self.key_metric]
         return self
 
-    def add_plot(self, name, method):
-        """
-        Allows user to manually add a plot option.
-        """
-        self.plotter.options.update({name : method})
-        return self
-
-    def visualize(self, tube = None, funnel = None):
-        """
-        Allows user to manually create plots for a single tube or funnel.
-        """
-        if tube:
-            self._visualize_tube(tube)
-        else:
-            for tube in funnel.pipes:
-                self._visualize_tube(tube)
-        return self
 
     def _visualize_tube(self, tube):
         """
@@ -427,23 +364,111 @@ class Funnel(object):
         if self.visuals == 'default':
             plots = list(self.plotter.options.keys())
         else:
-            plots = self._check_list(self.visuals)
+            plots = self._listify(self.visuals)
         self.plotter._one_cycle(plots = plots,
                                 model = tube.model)
+        return self
+
+    def add_methods(self, steps, names, methods):
+        """
+        Allows user to manually add an algorithm to the varios methods
+        dictionaries.
+        """
+        steps = self._listify(steps)
+        names = self._listify(names)
+        methods = self._listify(methods)
+        new_methods = zip(steps, names, methods)
+        for step, name, method in new_methods.items():
+            self.method_classes[step].options.update({name, method})
+        return self
+
+    def add_splice(self, splice, prefixes = [], columns = []):
+        self.splicer.add_splice(splice = splice, prefixes = prefixes,
+                                columns = columns)
+        self.splicers.append(splice)
+        return self
+
+    def create(self):
+        """
+        This method creates the funnel with all possible selected preprocessing
+        and modelling methods. Each set of methods is stored in a list of
+        instances of Tube (self.tubes).
+        """
+        if self.verbose:
+            print('Creating all possible preprocessing test tubes')
+        self._prepare_methods()
+        self.tubes = []
+        all_methods = product(self.scalers, self.splitter, self.encoders,
+                              self.interactors, self.splicers, self.samplers,
+                              self.customs, self.selectors, self.models)
+        for (scaler, splitter, encoder, interactor, splicer, sampler, custom,
+             selector, algorithm) in all_methods:
+            model_params = (self.settings[algorithm + '_params'])
+            model = Model(algorithm, self.model_type, model_params, self.gpu)
+            tube = Tube(self.steps,
+                        Scaler(scaler, self.scalers_params),
+                        Splitter(splitter, self.splitter_params),
+                        Encoder(encoder, self.encoders_params,
+                                self.data.cat_cols),
+                        Interactor(interactor, self.interactors_params,
+                                   self.data.interact_cols),
+                        Splicer(splicer, self.splicers_params),
+                        Sampler(sampler, self.samplers_params),
+                        Custom(custom, self.customs_params),
+                        Selector(selector, self.selectors_params),
+                        model,
+                        self.plotter(self.plotters, self.plotters_params))
+            self.tubes.append(tube)
+        return self
+
+    def iterate(self):
+        """
+        This method iterates through each of the possible test tubes. The
+        best overall test tube is stored in self.best.
+        """
+        if self.verbose:
+            print('Testing tubes')
+        self.best = None
+        self._one_loop()
+        if self.splitter_params['val_size'] > 0:
+            self._one_loop(use_val_set = True)
+        return self
+
+    def add_plot(self, name, method):
+        """
+        Allows user to manually add a plot option.
+        """
+        self.plotter.options.update({name : method})
+        return self
+
+    def del_plot(self, name):
+        self.plotter.options.pop(name)
+        return self
+
+    def visualize(self, tube = None, funnel = None):
+        """
+        Allows user to manually create plots for a single test tube or funnel.
+        """
+        if tube:
+            self._visualize_tube(tube)
+        else:
+            if not funnel:
+                funnel = self
+            for tube in funnel.pipes:
+                self._visualize_tube(tube)
         return self
 
     def save_everything(self):
         """
         Automatically saves the funnel, results table, and best tube.
         """
-        self.save_funnel(export_path = os.path.join(self.filer.results_folder,
+        self.save_funnel(export_path = os.path.join(self.filer.results,
                                                     'funnel.pkl'))
-        self.save_results(export_path = os.path.join(self.filer.results_folder,
+        self.save_results(export_path = os.path.join(self.filer.results,
                                                      'results_table.csv'))
         if self.best:
             self.save_tube(export_path = os.path.join(
-                    self.filer.results_folder, 'best_tube.pkl'),
-                        tube = self.best)
+                    self.filer.results, 'best_tube.pkl'), tube = self.best)
         return self
 
     def load_funnel(self, import_path = None, return_funnel = False):
@@ -526,103 +551,4 @@ class Funnel(object):
                        encoding = encoding,
                        float_format = float_format,
                        message = message)
-        return self
-
-@dataclass
-class Tube(Methods):
-    """
-    Class containing single test tube of methods.
-    """
-    scaler : object = None
-    splitter : object = None
-    encoder : object = None
-    interactor : object = None
-    splicer : object = None
-    sampler : object = None
-    selector : object = None
-    model : object = None
-    grid : object = None
-    plotter : object = None
-    settings : object = None
-
-    def apply(self, data, tube_num = 1, use_full_set = False,
-              use_val_set = False):
-        """
-        Applies the Tube methods to the passed data. If use_full_set is
-        selected, methods are applied to entire x and y. If use_val_set
-        is selected, methods are applied to x_val and y_val (which are
-        created by the data splitter according to user specifications).
-        Otherwise, x_test and y_test are used. With either the test or val
-        sets selected, x_train and y_train are used for training. With the
-        full set, x and y are used for both training and testing (which will
-        ordinarily lead to a much higher level of accuracy). The full set
-        option should, accordingly, not be used for testing the model's
-        performance.
-        Scaling is performed on the entire x data regardless of the option
-        selected because it does not create exogenity issues for the model.
-        """
-        self.data = data
-        self.tube_num = tube_num
-        if self.scaler.name != 'none':
-            self.data.x[self.data.num_cols] = (
-                    self.scaler.apply(self.data.x[self.data.num_cols]))
-        if self.splitter.name != 'none':
-            self.data = self.splitter.apply(self.data)
-        if use_val_set:
-            (self.data.x_train, self.data.y_train, self.data.x_test,
-             self.data.y_test) = (
-                    self._get_data(data = data, data_to_use = 'val',
-                                   train_test = True))
-        elif use_full_set:
-            (self.data.x_train, self.data.y_train, self.data.x_test,
-             self.data.y_test) = (
-                    self._get_data(data = data, data_to_use = 'full',
-                                   train_test = True))
-        else:
-            (self.data.x_train, self.data.y_train, self.data.x_test,
-             self.data.y_test) = (
-                    self._get_data(data = data, data_to_use = 'test',
-                                   train_test = True))
-        if self.encoder.name != 'none':
-            self.encoder.fit(self.data.x_train, self.data.y_train)
-            self.data.x_train = (
-                    self.encoder.transform(self.data.x_train.reset_index(
-                    drop = True)))
-            self.data.x_test = (
-                    self.encoder.transform(self.data.x_test.reset_index(
-                    drop = True)))
-            self.data.x = (self.encoder.transform(self.data.x.reset_index(
-                    drop = True)))
-        if self.interactor.name != 'none':
-            self.interactor.fit(self.data.x_train, self.data.y_train)
-            self.data.x_train = (
-                    self.interactor.transform(self.data.x_train.reset_index(
-                    drop = True)))
-            self.data.x_test = (
-                    self.interactor.transform(self.data.x_test.reset_index(
-                    drop = True)))
-            self.data.x = (
-                    self.interactor.transform(self.data.x.reset_index(
-                    drop = True)))
-        if self.splicer.name != 'none':
-            self.data.x_train = self.splicer.transform(self.data.x_train)
-            self.data.x_test = self.splicer.transform(self.data.x_test)
-        if self.sampler.name != 'none':
-            self.data.x_train, self.data.y_train = (
-                    self.sampler.fit_resample(self.data.x_train,
-                                              self.data.y_train))
-        if self.selector.name != 'none':
-            self.selector.fit(self.data.x_train, self.data.y_train)
-            self.data.x_train = self.selector.transform(self.data.x_train)
-        if self.model.name != 'none':
-            if self.model.use_grid and self.grid.name != 'none':
-                self.grid.search(self.data.x_train, self.data.y_train)
-                self.model.method = self.grid.best
-            else:
-                self.model.method.fit(self.data.x_train, self.data.y_train)
-        if self.plotter:
-            self.plotter.apply(data = self.data,
-                               model = self.model,
-                               tube_num = self.tube_num,
-                               splicer = self.splicer)
         return self

@@ -21,7 +21,8 @@ class Data(object):
     Primary class for storing and manipulating data used in machine learning
     projects.
     """
-    settings : object = None
+    settings : object
+    filer : object
     df : object = None
     x : object = None
     y : object = None
@@ -32,11 +33,9 @@ class Data(object):
     x_val : object = None
     y_val : object = None
     quick_start : bool = False
-    filer : object = None
-    seed : int = 999
 
     def __post_init__(self):
-        self._set_defaults()
+        self.settings.simplify(class_instance = self, sections = ['general'])
         if self.verbose:
             print('Building data container')
         """
@@ -44,38 +43,76 @@ class Data(object):
         data is automatically loaded according to user specifications in the
         settings file.
         """
-        if self.quick_start and self.settings:
-            self.load(import_path = self.filer.data_file_in,
-                      file_format = self.settings['files']['data_in'],
-                      test_data = self.settings['files']['test_data'],
-                      test_rows = self.settings['files']['test_chunk'],
-                      encoding = self.settings['files']['encoding'])
+        if self.quick_start:
+            if self.filer:
+                self.load(import_path = self.filer.import_path,
+                          test_data = self.filer.test_data,
+                          test_rows = self.filer.test_chunk,
+                          encoding = self.filer.encoding)
+            else:
+                error_message = 'Data quick_start requires a Filer object'
+                raise AttributeError(error_message)
         self.dropped_columns = []
         self.splice_options = {}
         return self
 
-    def _set_defaults(self):
-        """
-        Sets default options if settings is not passed or injected.
-        """
-        if self.settings['general']['verbose']:
-            self.verbose = self.settings['general']['verbose']
+    def __getitem__(self, value):
+        data_to_use, train_test = value
+        if train_test:
+            options = {'full' : [self.x, self.y, self.x, self.y],
+                       'test' : [self.x_train, self.y_train, self.x_test,
+                                 self.y_test],
+                       'val' : [self.x_train, self.y_train, self.x_val,
+                                self.y_val]}
         else:
-            self.verbose = True
-        if self.settings['general']['seed']:
-            self.seed = self.seed = self.settings['general']['seed']
+            options = {'full' : [self.x, self.y],
+                       'train' : [self.x_train, self.y_train],
+                       'test' : [self.x_test, self.y_test],
+                       'val' : [self.x_val, self.y_val]}
+        return options[data_to_use]
+
+    def __setitem__(self, name, df):
+        setattr(self, name, df)
         return self
 
-    def _get_xy(self, data_to_use):
-        """
-        Returns the appropriate x, y data combination based upon string
-        passed to the method.
-        """
-        options = {'full' : [self.x, self.y],
-                   'train' : [self.x_train, self.y_train],
-                   'test' : [self.x_test, self.y_test],
-                   'val' : [self.x_val, self.y_val]}
-        return options[data_to_use]
+    def __delitem__(self, name):
+        delattr(self, name)
+        return self
+
+    def __len__(self, name):
+        return len(getattr(self, name))
+
+    def __contains__(self, name):
+        if getattr(self, name):
+            return True
+        else:
+            return False
+
+    def _col_type_list(self, df, cols = [], prefixes = [], data_type = str):
+        column_list = []
+        if cols or prefixes:
+            column_list = self.create_column_list(df = df,
+                                                  prefixes = prefixes,
+                                                  cols = cols)
+        else:
+            for col in df.columns:
+                if df[col].dtype == data_type:
+                    column_list.append(col)
+        return column_list
+
+#    def df_check(self, func, df, **kwargs):
+#        not_df = False
+#        if not isinstance(df, pd.DataFrame):
+#            df = self.df
+#            not_df = True
+#        def decorated(func, df, **kwargs):
+#            result = func(df, **kwargs)
+#            return result
+#        if not_df:
+#            self.df = result
+#            return self
+#        else:
+#            return result
 
     def apply(self, df = None, func = None, **kwargs):
         """
@@ -94,6 +131,22 @@ class Data(object):
         else:
             return df
 
+    def create_column_list(self, df = None, prefixes = [], cols = []):
+        """
+        Dynamically creates a new column list from a list of columns and/or
+        lists of prefixes.
+        """
+        if not isinstance(df, pd.DataFrame):
+            df = self.df
+        temp_list = []
+        prefixes_list = []
+        for prefix in prefixes:
+            temp_list = [x for x in df if x.startswith(prefix)]
+            prefixes_list.extend(temp_list)
+        column_list = cols + prefixes_list
+        return column_list
+
+
     def column_types(self, df = None, cat_cols = [], cat_prefixes = [],
                      float_cols = [], float_prefixes = [],
                      int_cols = [], int_prefixes = [],
@@ -109,27 +162,27 @@ class Data(object):
         """
         if not isinstance(df, pd.DataFrame):
             df = self.df
-        self.bool_cols = self.create_column_list(df = df,
-                                                 prefixes = bool_prefixes,
-                                                 cols = bool_cols)
-        self.cat_cols = self.create_column_list(df = df,
-                                                prefixes = cat_prefixes,
-                                                cols = cat_cols)
-        self.float_cols = self.create_column_list(df = df,
-                                                  prefixes = float_prefixes,
-                                                  cols = float_cols)
-        self.int_cols = self.create_column_list(df = df,
-                                                prefixes = int_prefixes,
-                                                cols = int_cols)
-        self.interact_cols = self.create_column_list(df = df,
-                                                     prefixes = interact_prefixes,
-                                                     cols = interact_cols)
-        self.list_cols = self.create_column_list(df = df,
-                                                 prefixes = list_prefixes,
-                                                 cols = list_cols)
-        self.str_cols = self.create_column_list(df = df,
-                                                prefixes = str_prefixes,
-                                                cols = str_cols)
+        self.bool_cols = self._col_type_list(df = df,
+                                             prefixes = bool_prefixes,
+                                             cols = bool_cols)
+        self.cat_cols = self._col_type_list(df = df,
+                                            prefixes = cat_prefixes,
+                                            cols = cat_cols)
+        self.float_cols = self._col_type_list(df = df,
+                                              prefixes = float_prefixes,
+                                              cols = float_cols)
+        self.int_cols = self._col_type_list(df = df,
+                                            prefixes = int_prefixes,
+                                            cols = int_cols)
+        self.interact_cols = self._col_type_list(df = df,
+                                                 prefixes = interact_prefixes,
+                                                 cols = interact_cols)
+        self.list_cols = self._col_type_list(df = df,
+                                             prefixes = list_prefixes,
+                                             cols = list_cols)
+        self.str_cols = self._col_type_list(df = df,
+                                            prefixes = str_prefixes,
+                                            cols = str_cols)
         self.num_cols = self.float_cols + self.int_cols
         self.all_cols = df.columns
         self.column_dict = dict.fromkeys(self.bool_cols, bool)
@@ -140,21 +193,7 @@ class Data(object):
         self.column_dict.update(dict.fromkeys(self.str_cols, str))
         return self
 
-    def create_column_list(self, df = None, prefixes = [], cols = []):
-        """
-        Dynamically creates a new column list from a list of columns and/or
-        lists of prefixes.
-        """
-        if not isinstance(df, pd.DataFrame):
-            df = self.df
-        temp_list = []
-        prefixes_list = []
-        for prefix in prefixes:
-            temp_list = [x for x in df if x.startswith(prefix)]
-            prefixes_list.extend(temp_list)
-        col_list = cols + prefixes_list
-        return col_list
-
+#    @df_check(df)
     def initialize_series(self, df = None, column_dict = None):
         """
         Initializes values in multi-type series to defaults based upon the
@@ -213,7 +252,7 @@ class Data(object):
         else:
             return df
 
-    def smart_fill_na(self, df = None):
+    def smart_fillna(self, df = None):
         """
         Fills na values in dataframe to defaults based upon the datatype listed
         in the columns dictionary. If the dictionary of datatypes does not
@@ -265,7 +304,7 @@ class Data(object):
         else:
             return df
 
-    def convert_rare_categories(self, df = None, cats = [], threshold = 0):
+    def convert_rare(self, df = None, cats = [], threshold = 0):
         """
         The method converts categories rarely appearing within categorical
         data columns to empty string if they appear below the passed threshold.
@@ -289,7 +328,7 @@ class Data(object):
         else:
             return df
 
-    def drop_infrequent_cols(self, df = None, bools = [], threshold = 0):
+    def drop_infrequent(self, df = None, bools = [], threshold = 0):
         """
         This method drops boolean columns that rarely have True. This differs
         from the sklearn VarianceThreshold class because it is only
@@ -316,8 +355,7 @@ class Data(object):
         else:
             return df
 
-    def drop_highly_correlated_cols(self, df = None, cols = [],
-                                    threshold = 0.95):
+    def decorrelate(self, df = None, cols = [], threshold = 0.95):
         """
         Drops all but one column from highly correlated groups of columns.
         Threshold is based upon the .corr() method in pandas. cols can include
@@ -347,7 +385,7 @@ class Data(object):
         else:
             return df
 
-    def drop_cols(self, df = None, prefixes = [], cols = []):
+    def drop_columns(self, df = None, prefixes = [], cols = []):
         """
         Drops list of columns and columns with prefixes listed. In addition,
         any dropped columns are stored in the cumulative dropped_columns
@@ -451,7 +489,7 @@ class Data(object):
         if export_path:
             self.save(df = self.summary,
                       export_path = export_path,
-                      file_format = 'csv')
+                      file_format = self.filer.results_format)
         return self
 
     def split_xy(self, df = None, label = 'label'):
@@ -470,16 +508,6 @@ class Data(object):
             return self
         else:
             return x, y
-
-    def add_splice(self, group_name, prefixes = [], columns = []):
-        """
-        For the splicers in ml_funnel, this method alows users to manually
-        add a new splice group to the splicer dictionary.
-        """
-        temp_list = self.create_column_list(prefixes = prefixes,
-                                            cols = columns)
-        self.splice_options.update({group_name : temp_list})
-        return self
 
     def load(self, import_folder = '', file_name = 'data', import_path = '',
              file_format = 'csv', usecols = None, index = False,

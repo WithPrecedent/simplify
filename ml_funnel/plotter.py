@@ -6,7 +6,6 @@ machine learning model used.
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 import pandas as pd
 
 import shap
@@ -21,26 +20,23 @@ class Plotter(Methods):
         return self
 
     def _check_plots(self):
-        if not self.plots or self.plots == 'default':
-            self.plots = self.defaults
-        return self
-
-    def apply(self, data, model, tube_num, splicer = ''):
-        self.x, self.y = self._get_data(
-                data = data,
-                data_to_use = self.settings['plot']['data_to_use'],
-                train_test = False)
-        self.model = model
-        self.tube_num = tube_num
-        self.splicer = splicer
-        self._iter_plots()
+        if not self.plotters or self.plotters == 'default':
+            self.plotters = self.defaults
         return self
 
     def _iter_plots(self):
         self._compute_values()
         self._check_plots()
-        for plot in self.plots:
+        for plot in self.plotters:
             self.options[plot]()
+        return self
+
+    def apply(self, data, model, tube_num, splicer = ''):
+        self.x, self.y = data[self.params['data_to_use'], False]
+        self.model = model
+        self.tube_num = tube_num
+        self.splicer = splicer
+        self._iter_plots()
         return self
 
     def save(self, file_name):
@@ -65,7 +61,6 @@ class ClassifierPlotter(Plotter):
                         'summary' : self.summary,
                         'interactions' : self.interactions}
         self.defaults = list(self.options.keys())
-        self._check_plots()
         return self
 
     def _compute_values(self):
@@ -109,7 +104,7 @@ class ClassifierPlotter(Plotter):
         tmp = np.abs(self.interaction_values).sum(0)
         for i in range(tmp.shape[0]):
             tmp[i, i] = 0
-        inds = np.argsort(-tmp.sum(0))[:50]
+        inds = np.argsort(-tmp.sum(0))[:20]
         tmp2 = tmp[inds,:][:,inds]
         plt.figure(figsize = (12, 12))
         plt.imshow(tmp2)
@@ -147,6 +142,7 @@ class ClassifierPlotter(Plotter):
 class LinearPlotter(Plotter):
 
     plots : object = None
+    results : object = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -159,6 +155,7 @@ class LinearPlotter(Plotter):
 class GrouperPlotter(Plotter):
 
     plots : object = None
+    results : object = None
 
     def __post_init__(self):
         super().__post_init__()

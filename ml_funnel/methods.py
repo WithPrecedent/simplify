@@ -4,12 +4,8 @@ tubes.
 """
 from dataclasses import dataclass
 import pickle
-
 from scipy.stats import randint, uniform
 from sklearn.cluster import AffinityPropagation, Birch, KMeans
-from sklearn.decomposition import FactorAnalysis, FastICA, IncrementalPCA
-from sklearn.decomposition import KernelPCA, LatentDirichletAllocation, NMF
-from sklearn.decomposition import PCA, SparsePCA, TruncatedSVD
 from sklearn.ensemble import AdaBoostClassifier, AdaBoostRegressor
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.feature_selection import chi2, f_classif, mutual_info_classif
@@ -42,44 +38,51 @@ class Methods(object):
     """
     Parent class for preprocessing and modeling methods in the ml_funnel.
     The Methods class allows for shared initialization, loading, and saving
-    methods to be accessed by all child classes.
-    The 'use' method applies sklearn fit and transform methods for transformers
-    that are wholly compatible with sklearn. For non-compatible parts of the
-    funnel, specific 'use methods are included with the child classes.
+    methods to be accessed by all child machine learning and preprocessing
+    methods.
     """
-
     def __post_init__(self):
+        self.settings.simplify(class_instance = self,
+                               sections = ['general', 'methods'])
         return self
+
+    def __getitem__(self, name):
+        if name in self.options:
+            return self.options[name]
+        else:
+            error_message = name + ' is not in ' + self.name + ' method'
+            raise KeyError(error_message)
+            return
+
+    def __setitem__(self, name, method):
+        if isinstance(name, str):
+            if isinstance(method, object):
+                self.options.update({name : method})
+            else:
+                error_message = name + ' must be a method object'
+                raise TypeError(error_message)
+        else:
+            error_message = name + ' must be a string type'
+            raise TypeError(error_message)
+        return self
+
+    def __delitem__(self, name):
+        if name in self.options:
+            self.options.pop(name)
+        else:
+            error_message = name + ' is not in ' + self.name + ' method'
+            raise KeyError(error_message)
+        return self
+
+    def __contains__(self, name):
+        if name in self.options:
+            return True
+        else:
+            return False
 
     def _check_params(self):
         if not self.params:
             self.params = self.defaults
-        return self
-
-    def _get_data(self, data, data_to_use = 'train', train_test = False):
-        if train_test:
-            options = {'full' : [data.x, data.y, data.x, data.y],
-                       'test' : [data.x_train, data.y_train, data.x_test,
-                                 data.y_test],
-                       'val' : [data.x_train, data.y_train, data.x_val,
-                                data.y_val]}
-        else:
-            options = {'full' : [data.x, data.y],
-                       'train' : [data.x_train, data.y_train],
-                       'test' : [data.x_test, data.y_test],
-                       'val' : [data.x_val, data.y_val]}
-        return options[data_to_use]
-
-    def _no_method(self, data):
-        return data
-
-    def _select_params(self, params_to_use = []):
-        new_params = {}
-        if self.params:
-            for key, value in self.params.items():
-                if key in params_to_use:
-                    new_params.update({key : value})
-            self.params = new_params
         return self
 
     def initialize(self):
@@ -92,6 +95,15 @@ class Methods(object):
                 self.method = self.method(**self.params)
             else:
                 self.method = self.method()
+        return self
+
+    def select_params(self, params_to_use = []):
+        new_params = {}
+        if self.params:
+            for key, value in self.params.items():
+                if key in params_to_use:
+                    new_params.update({key : value})
+            self.params = new_params
         return self
 
     def apply(self, x, y = None):
@@ -110,23 +122,23 @@ class Methods(object):
         self.fit(x, y)
         return self.transform(x)
 
-    def load(self, import_folder, name, prefix = '', suffix = ''):
+    def load(self, file_name, import_folder = '', prefix = '', suffix = ''):
         import_path = self.filer.path_join(folder = import_folder,
                                            prefix = prefix,
-                                           file_name = name,
+                                           file_name = file_name,
                                            suffix = suffix,
                                            file_type = 'pickle')
         if self.verbose:
-            print('Importing', name)
+            print('Importing', file_name)
         self.method = pickle.load(open(import_path, 'rb'))
         return self
 
-    def save(self, export_folder, name, prefix = '', suffix = ''):
+    def save(self, file_name, export_folder = '', prefix = '', suffix = ''):
         if self.verbose:
-            print('Exporting', name)
+            print('Exporting', file_name)
         export_path = self.filer.path_join(folder = export_folder,
                                            prefix = prefix,
-                                           file_name = name,
+                                           file_name = file_name,
                                            suffix = suffix,
                                            file_type = 'pickle')
         pickle.dump(self.method, open(export_path, 'wb'))
@@ -139,6 +151,7 @@ class Scaler(Methods):
     params : object = None
 
     def __post_init__(self):
+        super().__post_init__()
         self.options = {'maxabs' : MaxAbsScaler,
                         'minmax' : MinMaxScaler,
                         'normalizer' : Normalizer,
@@ -158,10 +171,11 @@ class Splitter(Methods):
     create_val_set : bool = False
 
     def __post_init__(self):
+        super().__post_init__()
         self.options = {'train_test' : self._split_data,
                         'train_test_val' : self._split_data,
                         'cv' : self._cv_split,
-                        'none' : self._no_method}
+                        'none' : self._no_split}
         self.defaults = {'test_size' : 0.33,
                          'val_size' : 0,
                          'kfolds' : 5,
@@ -195,8 +209,18 @@ class Splitter(Methods):
                                  test_size = split_size))
         return x_train, x_test, y_train, y_test
 
+    def _no_split(self, data):
+        return data
+
     def apply(self, data):
         return self.method(data)
+
+    def fit(self, data):
+        return self
+
+    def transform(self, data):
+        data = self.apply(data)
+        return data
 
 @dataclass
 class Encoder(Methods):
@@ -206,6 +230,7 @@ class Encoder(Methods):
     columns : object = None
 
     def __post_init__(self):
+        super().__post_init__()
         self.options = {'backward' : BackwardDifferenceEncoder,
                         'basen' : BaseNEncoder,
                         'binary' : BinaryEncoder,
@@ -239,6 +264,7 @@ class Interactor(Methods):
     columns : object = None
 
     def __post_init__(self):
+        super().__post_init__()
         self.options = {'polynomial' : PolynomialEncoder,
                         'quotient' : self.quotient_features,
                         'sum' : self.sum_features,
@@ -264,24 +290,53 @@ class Interactor(Methods):
 class Splicer(Methods):
 
     name : str = ''
-    options : object = None
-    include_all : bool = True
+    params : object = None
 
     def __post_init__(self):
-        if self.include_all:
-            self.test_columns = []
-            for group, columns in self.options.items():
-                self.test_columns.extend(columns)
-            self.options.update({'all' : self.test_columns})
-        self.method = self.options[self.name]
+        super().__post_init__()
+        self.options = {}
+        self.method = self.splice()
         return self
 
+    def __getitem__(self, value):
+        """
+        If user wants to test different combinations of features ("splices"),
+        this method returns a list of possible splicers set by user.
+        """
+        if self.options:
+            if self.params['include_all']:
+                test_columns = []
+                for group, columns in self.options.items():
+                    test_columns.extend(columns)
+                self.options.update({'all' : test_columns})
+            splicers = list(self.data.splice_options.keys())
+        else:
+            splicers = ['none']
+        return splicers
+
+    def splice(self):
+        return self
+
+    def add_splice(self, splice, prefixes = [], columns = []):
+        """
+        For the splicers in ml_funnel, this method alows users to manually
+        add a new splice group to the splicer dictionary.
+        """
+        temp_list = self.data.create_column_list(prefixes = prefixes,
+                                                 cols = columns)
+        self.options.update({splice : temp_list})
+        return self
+
+
     def fit(self, x, y):
+        if self.params['include_all']:
+            test_columns = []
+            for group, columns in self.options.items():
+                test_columns.extend(columns)
+            self.options.update({'all' : test_columns})
         return self
 
     def transform(self, x):
-        if not isinstance(self.method, list):
-           self.method = [self.method]
         drop_list = [i for i in self.test_columns if i not in self.method]
         for col in drop_list:
             if col in x.columns:
@@ -295,12 +350,27 @@ class Sampler(Methods):
     params : object = None
 
     def __post_init__(self):
+        super().__post_init__()
         self.options = {'adasyn' : ADASYN,
                         'smote' : SMOTE,
                         'smoteenn' :  SMOTEENN,
                         'smotetomek' : SMOTETomek}
         self.defaults = {}
         self.runtime_params = {'random_state' : self.seed}
+        self.initialize()
+        return self
+
+@dataclass
+class Custom(Methods):
+
+    name : str = ''
+    params : object = None
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.options = {}
+        self.defaults = {}
+        self.runtime_params = {}
         self.initialize()
         return self
 
@@ -312,6 +382,7 @@ class Selector(Methods):
     params : object = None
 
     def __post_init__(self):
+        super().__post_init__()
         self.options = {'kbest' : SelectKBest,
                         'fdr' : SelectFdr,
                         'fpr' : SelectFpr,
@@ -344,59 +415,7 @@ class Selector(Methods):
         elif self.name == 'custom':
             self.defaults = {'threshold' : 'mean'}
             self.runtime_params = {'estimator' : self.model.method}
-        self._select_params(params_to_use = self.defaults.keys())
-        return self
-
-    def transform(self, x):
-        if len(x.columns) > self.params['n_features_to_select']:
-            return self.method.transform(x)
-        else:
-            return x
-
-@dataclass
-class Decomposer(Methods):
-
-    name : str = ''
-    model : object = None
-    params : object = None
-
-    def __post_init__(self):
-        self.options = {'fa' : FactorAnalysis,
-                        'ica' : FastICA,
-                        'ipca' : IncrementalPCA,
-                        'kpca' : KernelPCA,
-                        'lda' : LatentDirichletAllocation,
-                        'nmf' : NMF,
-                        'pca' : PCA,
-                        'spca' : SparsePCA,
-                        'tsvd' : TruncatedSVD}
-        self.param_lists = {'fa' : FactorAnalysis,
-                            'ica' : ['max_iter',
-                            'ipca' : IncrementalPCA,
-                            'kpca' : KernelPCA,
-                            'lda' : LatentDirichletAllocation,
-                            'nmf' : NMF,
-                            'pca' : PCA,
-                            'spca' : SparsePCA,
-                            'tsvd' : TruncatedSVD}
-        self.defaults = {}
-        self.scorers = {}
-        self.runtime_params = {'random_state' : self.seed}
-        self._set_param_groups()
-        self.initialize()
-        return self
-
-    def _set_param_groups(self):
-
-        if self.name == 'fa':
-            self.defaults = {'n_features_to_select' : 30,
-                             'step' : 1}
-            self.runtime_params = {'estimator' : self.model.method}
-        elif self.name == 'ica':
-            self.defaults = {'k' : 30,
-                             'score_func' : f_classif}
-            self.runtime_params = {}
-        self._select_params(params_to_use = self.defaults.keys())
+        self.select_params(params_to_use = self.defaults.keys())
         return self
 
     def transform(self, x):
@@ -414,6 +433,7 @@ class Model(Methods):
     use_gpu : bool = False
 
     def __post_init__(self):
+        super().__post_init__()
         if self.algorithm_type == 'classifier':
             self.options = {'ada' : AdaBoostClassifier,
                             'logit' : LogisticRegression,
@@ -436,6 +456,24 @@ class Model(Methods):
                             'kmeans' : KMeans}
         self._parse_params()
         self.initialize()
+        if self.hyperparameter_search:
+            self._setup_search()
+        return self
+
+    def _setup_search(self):
+        self.search_options = {'random' : RandomizedSearchCV,
+                               'fixed' : GridSearchCV,
+                               'bayes' : 'none'}
+        self.search_runtime_params = {'estimator' : self.method,
+                                      'param_distributions' : self.grid,
+                                      'random_state' : self.seed}
+        self.search_params = self.settings['search_params']
+        if self.search_params['refit']:
+            self.search_params['scoring'] = self._listify(
+                    self.search_params['scoring'])[0]
+        self.search_params.update(self.search_runtime_params)
+        self.search_method = self.search_options[self.search_algorithm](
+                **self.search_params)
         return self
 
     def _parse_params(self):
@@ -467,30 +505,14 @@ class Model(Methods):
                         {'scale_pos_weight' : self.scale_pos_weight})
         return self
 
-@dataclass
-class Grid(Methods):
-
-    name : str = ''
-    model : object = None
-    params : object = None
-
-    def __post_init__(self):
-        self.options = {'random' : RandomizedSearchCV,
-                        'fixed' : GridSearchCV,
-                        'bayes' : None}
-        self.runtime_params = {'estimator' : self.model.method,
-                               'param_distributions' : self.model.grid,
-                               'scoring' : self.params['scoring'],
-                               'refit' : self.params['scoring'][0],
-                               'random_state' : self.seed}
-        self.params.update(self.runtime_params)
-        self.initialize()
-        return self
-
     def search(self, x, y):
-        self.method.fit(x, y)
-        self.best = self.method.best_estimator_
-        print('The', self.params['scoring'][0],
-              'score of the best estimator for the', self.model.name,
-              'model is', str(self.method.best_score_))
+        if self.verbose:
+            print('Searching for best hyperparameters for the',
+                  self.name, 'model using', self.search_algorithm,
+                  'search method')
+        self.search_method.fit(x, y)
+        self.best = self.search_method.best_estimator_
+        print('The', self.search_params['scoring'],
+              'score of the best estimator for the', self.name,
+              'model is', str(self.search_method.best_score_))
         return self

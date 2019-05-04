@@ -1,7 +1,7 @@
 # ml_funnel
 
 ![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)
-[![Build Status](https://img.shields.io/travis/with_precedent/ml_funnel.svg)](https://travis-ci.org/with_precedent/ml_funnel) 
+[![Build Status](https://img.shields.io/travis/with_precedent/ml_funnel.svg)](https://travis-ci.org/with_precedent/ml_funnel)
 
 The Machine Learning Funnel is a high-level set of tools that allows users to mix and match various preprocessing methods and statistical models. Integrating scikit-learn, category-encoders, imblearn, xgboost, shap, and other modules, users are able to test and implement different "test tubes" in a machine learning funnel and export results for each option selected.
 
@@ -24,7 +24,7 @@ To that end, ml_funnel divides the feature engineering and modeling process into
 * Interactor: converts selected categorical features into new polynomial features, using PolynomialEncoder from category-encoders.
 * Splicer: creates different subgroups of features to allow for easy comparison between them using a custom method.
 * Sampler: synthetically resamples training data for imbalanced data, using imblearn methods, in applying algorithms that struggle with imbalanced data
-* Decomposer: reduces features through matrix decomposition and related techniques, using scikit-learn methods.
+* Custom: allows user to pass a custom scikit-learn-compatible transformer which will be applied to the data.
 * Selector: selects features recursively or as one-shot based upon user criteria, using scikit-learn methods.
 * Model: implements machine learning algorithms, currently includes xgboost (with GPU optional support) and scikit-learn methods.
 * Grid: tests different hyperparameters for the models selected, currently includes RandomizedSearchCV and GridSearchCV (Bayesian methods coming soon).
@@ -44,8 +44,8 @@ For example, using the settings file, a user could implement a funnel of differe
     splicer = none
     encoder = target, helmert
     interactor = polynomial
-    sampler = smote   
-    decomposer = none
+    sampler = smote
+    custom = False
     selector = none
     algorithm_type = classifier
     algorithms = xgb, random_forest, logit
