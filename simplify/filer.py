@@ -1,5 +1,5 @@
 """
-Class and methods used by ml_funnel to store data and results in consistent
+Class and methods used by siMpLify to store data and results in consistent
 path structure based upon user options.
 """
 from dataclasses import dataclass
@@ -14,7 +14,7 @@ class Filer(object):
     root : str = ''
     data : str = ''
     results : str = ''
-    experiment_folder : str = ''
+    recipe_folder : str = ''
     import_file : str = ''
     export_file : str = ''
     import_format : str = ''
@@ -35,8 +35,8 @@ class Filer(object):
                 self.import_format = 'csv'
             if not self.export_format:
                 self.export_format = 'csv'
-            if not self.experiment_folder:
-                self.experiment_folder = 'dynamic'
+            if not self.recipe_folder:
+                self.recipe_folder = 'dynamic'
         self._make_folder(self.data)
         self._make_folder(self.results)
         self._make_io_paths()
@@ -44,27 +44,15 @@ class Filer(object):
 
     def _make_io_paths(self):
         self.import_path = self.make_path(folder = self.data,
-                                          name = self.import_file,
+                                          file_name = self.import_file,
                                           file_type = self.import_format)
         self.export_path = self.make_path(folder = self.data,
-                                          name = self.export_file,
+                                          file_name = self.export_file,
                                           file_type = self.export_format)
         return self
 
-    def make_path(self, folder = '', subfolder = '', prefix = '',
-                  name = '', suffix = '', file_type = 'csv'):
-        if subfolder:
-            folder = os.path.join(folder, subfolder)
-        if name:
-            file_name = self._file_name(prefix = prefix,
-                                        name = name,
-                                        suffix = suffix,
-                                        file_type = file_type)
-            return os.path.join(folder, file_name)
-        else:
-            return folder
-
-    def _file_name(self, prefix = '', name = '', suffix = '', file_type = ''):
+    def _file_name(self, prefix = '', file_name = '', suffix = '',
+                   file_type = ''):
         extensions = {'csv' : '.csv',
                       'pickle' : '.pkl',
                       'feather' : '.ftr',
@@ -80,16 +68,30 @@ class Filer(object):
              os.makedirs(folder)
         return self
 
-    def _iter_path(self, model, tube_num, splicer = '', file_name = '',
+    def _iter_path(self, model, recipe_number, splicer = '', file_name = '',
                    file_type = ''):
         if splicer:
-            subfolder = model.name + '_' + splicer.name + tube_num
+            subfolder = model.name + '_' + splicer.name + recipe_number
         else:
-            subfolder = model.name + tube_num
+            subfolder = model.name + recipe_number
         self._make_folder(folder = self.make_path(
-                folder = self.test_tubes,
+                folder = self.recipes,
                 subfolder = subfolder))
-        return self.make_path(folder = self.test_tubes,
+        return self.make_path(folder = self.recipes,
                               subfolder = subfolder,
-                              name = file_name,
+                              file_name = file_name,
                               file_type = file_type)
+
+
+    def make_path(self, folder = '', subfolder = '', prefix = '',
+                  file_name = '', suffix = '', file_type = 'csv'):
+        if subfolder:
+            folder = os.path.join(folder, subfolder)
+        if file_name:
+            file_name = self._file_name(prefix = prefix,
+                                        file_name = file_name,
+                                        suffix = suffix,
+                                        file_type = file_type)
+            return os.path.join(folder, file_name)
+        else:
+            return folder

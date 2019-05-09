@@ -1,8 +1,8 @@
 """
-Class and methods for ml_funnel which creates a results table and other
+Results is a class which creates and stores a results table and other
 general scorers/metrics for machine learning based upon the type of model
-used. Users can manually add metrics not already included in the metrics
-dictionary by passing them to add_metric.
+used in the siMpLify package. Users can manually add metrics not already
+included in the metrics dictionary by passing them to add_metric.
 """
 from dataclasses import dataclass
 import pandas as pd
@@ -10,10 +10,10 @@ import sklearn.metrics as met
 
 #import eli5
 
-from ml_funnel.methods import Methods
+from simplify.step import Step
 
 @dataclass
-class Results(Methods):
+class Results(Step):
     """
     Class for storing machine learning experiment results.
     """
@@ -21,7 +21,7 @@ class Results(Methods):
 
     def __post_init__(self):
         super().__post_init__()
-        self.settings.simplify(class_instance = self, sections = ['results'])
+        self.settings.localize(class_instance = self, sections = ['results'])
         self.step_columns = ['tube_number', 'step_order', 'predictors',
                              'scaler', 'splitter', 'splicer', 'encoder',
                              'interactor', 'sampler', 'custom', 'selector',
@@ -36,14 +36,14 @@ class Results(Methods):
     def _check_none(step):
         """
         Checks if metric listed is either 'none' or 'all.' Otherwise, it
-        returns the name of the method selected.
+        returns the name of the Step selected.
         """
         if step.name in ['none', 'all']:
             return step.name
         elif not step.name:
             return 'none'
         else:
-            return step.method
+            return step.Step
 
     def _set_metrics(self):
         """
@@ -101,8 +101,8 @@ class Results(Methods):
         """
         Adds the results of a single tube application to the results table.
         """
-        self.predictions = tube.model.method.predict(tube.data.x_test)
-        self.pred_probs = tube.model.method.predict_proba(tube.data.x_test)
+        self.predictions = tube.model.Step.predict(tube.data.x_test)
+        self.pred_probs = tube.model.Step.predict_proba(tube.data.x_test)
         new_row = pd.Series(index = self.columns)
         tube_cols = {'tube_number' : tube.tube_num,
                      'step_order' : self.steps,
@@ -151,7 +151,7 @@ class Results(Methods):
                                                       self.predictions)
         self.feature_list = list(tube.data.x_test.columns)
         self.feature_import = pd.Series(
-                data = tube.model.method.feature_importances_,
+                data = tube.model.Step.feature_importances_,
                 index = self.feature_list)
         self.feature_import.sort_values(ascending = False,
                                         inplace = True)

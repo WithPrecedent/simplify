@@ -4,14 +4,14 @@ in a machine learning experiment.
 """
 from dataclasses import dataclass
 
-from ml_funnel.methods import Methods
 
 @dataclass
-class Tube(object):
+class Recipe(object):
     """
     Class containing single test tube of methods.
     """
-    steps : object = None
+    number : int = 0
+    order : object = None
     scaler : object = None
     splitter : object = None
     encoder : object = None
@@ -34,13 +34,13 @@ class Tube(object):
 
     def _scalers(self):
         if self.scaler:
-            self.data.x[self.data.num_cols] = (
-                    self.scaler.apply(self.data.x[self.data.num_cols]))
+            self.data.x[self.data.num_cols] = (self.scaler.mix(
+                    self.data.x[self.data.num_cols]))
         return self
 
     def _splitter(self):
         if self.splitter:
-            self.data = self.splitter.apply(self.data)
+            self.data = self.splitter.mix(self.data)
         if self.use_val_set:
             (self.data.x_train, self.data.y_train, self.data.x_test,
              self.data.y_test) = self.data['val', True]
@@ -94,7 +94,7 @@ class Tube(object):
 
     def _customs(self):
         if self.custom.name != 'none':
-            self.custom.apply(self.data.x_train, self.data.y_train)
+            self.custom.mix(self.data.x_train, self.data.y_train)
         return self
 
     def _selectors(self):
@@ -112,16 +112,13 @@ class Tube(object):
                 self.model.method.fit(self.data.x_train, self.data.y_train)
         return self
 
-    def _plotters(self):
+    def _plotter(self):
         if self.plotter:
-            self.plotter.apply(data = self.data,
-                               model = self.model,
-                               tube_num = self.tube_num,
-                               splicer = self.splicer)
+            self.plotter.visualize(data = self.data,
+                                   receipe = self)
         return self
 
-    def apply(self, data, tube_num = 1, use_full_set = False,
-              use_val_set = False):
+    def bake(self, data, use_full_set = False, use_val_set = False):
         """
         Applies the Tube methods to the passed data. If use_full_set is
         selected, methods are applied to entire x and y. If use_val_set
@@ -137,10 +134,9 @@ class Tube(object):
         selected because it does not create exogenity issues for the model.
         """
         self.data = data
-        self.tube_num = tube_num
         self.use_full_set = use_full_set
         self.use_val_set = use_val_set
-        for step in self.steps:
+        for step in self.order:
             step_name = '_' + step
             method = getattr(self, step_name)
             method()
