@@ -14,8 +14,8 @@ class Step(object):
     methods to be accessed by all machine learning and preprocessing steps.
     """
     def __post_init__(self):
-        self.settings.localize(class_instance = self,
-                               sections = ['general', 'algorithms'])
+        self.settings.localize(instance = self,
+                               sections = ['general', 'steps'])
         return self
 
     def __getitem__(self, ingredient):

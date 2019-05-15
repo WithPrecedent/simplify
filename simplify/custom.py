@@ -1,7 +1,7 @@
 
 from dataclasses import dataclass
 
-from ml_funnel.step import Step
+from simplify.step import Step
 
 @dataclass
 class Custom(Step):

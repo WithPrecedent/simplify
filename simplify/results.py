@@ -21,8 +21,8 @@ class Results(Step):
 
     def __post_init__(self):
         super().__post_init__()
-        self.settings.localize(class_instance = self, sections = ['results'])
-        self.step_columns = ['tube_number', 'step_order', 'predictors',
+        self.settings.localize(instance = self, sections = ['results'])
+        self.step_columns = ['recipe_number', 'step_order', 'predictors',
                              'scaler', 'splitter', 'splicer', 'encoder',
                              'interactor', 'sampler', 'custom', 'selector',
                              'model', 'seed', 'validation_set']
@@ -36,14 +36,14 @@ class Results(Step):
     def _check_none(step):
         """
         Checks if metric listed is either 'none' or 'all.' Otherwise, it
-        returns the name of the Step selected.
+        returns the name of the algorithm selected.
         """
         if step.name in ['none', 'all']:
             return step.name
         elif not step.name:
             return 'none'
         else:
-            return step.Step
+            return step.algorithm
 
     def _set_metrics(self):
         """
@@ -97,39 +97,39 @@ class Results(Step):
         self.metric_dict.update({name : metric})
         return self
 
-    def add_result(self, tube, use_val_set = False):
+    def add_result(self, recipe, use_val_set = False):
         """
-        Adds the results of a single tube application to the results table.
+        Adds the results of a single recipe application to the results table.
         """
-        self.predictions = tube.model.Step.predict(tube.data.x_test)
-        self.pred_probs = tube.model.Step.predict_proba(tube.data.x_test)
+        self.predictions = recipe.model.algorithm.predict(recipe.data.x_test)
+        self.pred_probs = recipe.model.algorithm.predict_proba(recipe.data.x_test)
         new_row = pd.Series(index = self.columns)
-        tube_cols = {'tube_number' : tube.tube_num,
-                     'step_order' : self.steps,
-                     'predictors' : tube.splicer,
-                     'scaler' : tube.scaler,
-                     'splitter' : tube.splitter,
-                     'encoder' : tube.encoder,
-                     'interactor' : tube.interactor,
-                     'splicer' : tube.splicer,
-                     'sampler' : tube.sampler,
-                     'custom' : tube.custom,
-                     'selector' : tube.selector,
-                     'model' : tube.model,
-                     'seed' : tube.model.seed,
+        recipe_cols = {'recipe_number' : recipe.number,
+                     'step_order' : self.order,
+                     'predictors' : recipe.splicer,
+                     'scaler' : recipe.scaler,
+                     'splitter' : recipe.splitter,
+                     'encoder' : recipe.encoder,
+                     'interactor' : recipe.interactor,
+                     'splicer' : recipe.splicer,
+                     'sampler' : recipe.sampler,
+                     'custom' : recipe.custom,
+                     'selector' : recipe.selector,
+                     'model' : recipe.model,
+                     'seed' : recipe.model.seed,
                      'validation_set' : use_val_set}
-        for key, value in tube_cols.items():
+        for key, value in recipe_cols.items():
             new_row[key] = value
         for key, value in self.options.items():
             if key in self.metrics:
                 if key in self.prob_options:
-                    params = {'y_true' : tube.data.y_test,
+                    params = {'y_true' : recipe.data.y_test,
                               'y_prob' : self.pred_probs[:, 1]}
                 elif key in self.score_options:
-                    params = {'y_true' : tube.data.y_test,
+                    params = {'y_true' : recipe.data.y_test,
                               'y_score' : self.pred_probs[:, 1]}
                 else:
-                    params = {'y_true' : tube.data.y_test,
+                    params = {'y_true' : recipe.data.y_test,
                               'y_pred' : self.predictions}
                 if key in self.spec_metrics:
                     params.update({key : self.spec_metrics[key]})
@@ -138,27 +138,27 @@ class Results(Step):
                     result = -1 * result
                 new_row[key] = result
         self.table.loc[len(self.table)] = new_row
-        self._other_results(tube)
+        self._other_results(recipe)
         return self
 
-    def _other_results(self, tube):
+    def _other_results(self, recipe):
         """
         Creates attributes storing other common metrics and tables.
         """
-        self.confusion = met.confusion_matrix(tube.data.y_test,
+        self.confusion = met.confusion_matrix(recipe.data.y_test,
                                               self.predictions)
-        self.class_report = met.classification_report(tube.data.y_test,
+        self.class_report = met.classification_report(recipe.data.y_test,
                                                       self.predictions)
-        self.feature_list = list(tube.data.x_test.columns)
+        self.feature_list = list(recipe.data.x_test.columns)
         self.feature_import = pd.Series(
-                data = tube.model.Step.feature_importances_,
+                data = recipe.model.algorithm.feature_importances_,
                 index = self.feature_list)
         self.feature_import.sort_values(ascending = False,
                                         inplace = True)
         if self.verbose:
-            print('These are the results using the', tube.model.name,
+            print('These are the results using the', recipe.model.name,
                   'model')
-            print('Testing', tube.splicer.name, 'predictors')
+            print('Testing', recipe.splicer.name, 'predictors')
             print('Confusion Matrix:')
             print(self.confusion)
             print('Classification Report:')

@@ -29,9 +29,14 @@ methods. Current data formats supported are csv, feather, and hdf5.
 A Settings object needs to be passed when a Data instance is created. If
 the quick_start option is selected, a Filer object must be passed as well.
 """
+import csv
+from datetime import timedelta
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
+from pandas.api.types import CategoricalDtype
+
+from  more_itertools import unique_everseen
 
 @dataclass
 class Data(object):
@@ -52,9 +57,10 @@ class Data(object):
     y_val : object = None
     quick_start : bool = False
     default_df = str = 'df'
+    column_dict : object = None
 
     def __post_init__(self):
-        self.settings.localize(class_instance = self, sections = ['general'])
+        self.settings.localize(instance = self, sections = ['general'])
         if self.verbose:
             print('Building data container')
         """
@@ -69,211 +75,274 @@ class Data(object):
                           test_rows = self.filer.test_chunk,
                           encoding = self.filer.encoding)
             else:
-                error_message = 'Data quick_start requires a Filer object'
-                raise AttributeError(error_message)
-        self.df_options = {'df' : self.df,
-                           'full' : [self.x, self.y],
-                           'train_test' : [self.x_train, self.y_train,
-                                           self.x_test, self.y_test],
-                            'train_val' : [self.x_train, self.y_train,
-                                           self.x_val, self.y_val],
-                            'train_test_val' : [self.x_train, self.y_train,
-                                                self.x_test, self.y_test,
-                                                self.x_val, self.y_val],
-                            'train' : [self.x_train, self.y_train],
-                            'test' : [self.x_test, self.y_test],
-                            'val' : [self.x_val, self.y_val]}
+                error = 'Data quick_start requires a Filer object'
+                raise AttributeError(error)
+        self.column_type_dicts = {bool : [],
+                                  float : [],
+                                  int : [],
+                                  object : [],
+                                  CategoricalDtype : [],
+                                  'interactor' : [],
+                                  list : [],
+                                  np.datetime64 : [],
+                                  timedelta : []}
+        self.default_values = {bool : False,
+                               float : 0.0,
+                               int : 0,
+                               object : '',
+                               CategoricalDtype : '',
+                               'interactor' : '',
+                               list : [],
+                               np.datetime64 : 1/1/1990,
+                               timedelta : 0}
         self.dropped_columns = []
+        self.initialize_column_types()
         return self
+
+    @property
+    def bool_columns(self):
+        return self.column_type_dicts[bool]
+
+    @property
+    def float_columns(self):
+        return self.column_type_dicts[float]
+
+    @property
+    def int_columns(self):
+        return self.column_type_dicts[int]
+
+    @property
+    def str_columns(self):
+        return self.column_type_dicts[object]
+
+    @property
+    def category_columns(self):
+        return self.column_type_dicts[CategoricalDtype]
+
+    @property
+    def interactor_columns(self):
+        return self.column_type_dicts['interactor']
+
+    @property
+    def list_columns(self):
+        return self.column_type_dicts[list]
+
+    @property
+    def datetime_columns(self):
+        return self.column_type_dicts[np.datetime64]
+
+    @property
+    def timedelta_columns(self):
+        return self.column_type_dicts[timedelta]
+
+    @property
+    def number_columns(self):
+        return self.float_columns + self.int_columns
+
+    @property
+    def full(self):
+        return self.x, self.y
+
+    @property
+    def train_test(self):
+        return self.x_train, self.y_train, self.x_test, self.y_test
+
+    @property
+    def train_val(self):
+        return self.x_train, self.y_train, self.x_val, self.y_val
+
+    @property
+    def train_test_val(self):
+        return (self.x_train, self.y_train, self.x_test, self.y_test,
+                self.x_val, self.y_val)
+
+    @property
+    def train(self):
+        return self.x_train, self.y_train
+
+    @property
+    def test(self):
+        return self.x_test, self.y_test
+
+    @property
+    def val(self):
+        return self.x_val, self.y_val
 
     def __str__(self):
         return getattr(self, self.default_df)
 
     def __getitem__(self, name):
-        if name in self.df_options:
-            return self.df_options[name]
+        if hasattr(self, name):
+            return getattr(self, name)
         else:
-            error_message = name + ' does not exist in Data instance'
-            raise KeyError(error_message)
+            error = name + ' does not exist in Data instance'
+            raise KeyError(error)
             return self
 
     def __setitem__(self, name, value):
-        setattr(self, self.df_options[name], value)
+        setattr(self, name, value)
         return self
 
     def __delitem__(self, name):
-        delattr(self, self.df_options[name])
+        delattr(self, name)
         return self
 
-    def _col_type_list(self, df, columns = [], prefixes = [], data_type = str):
-        column_list = []
-        if columns or prefixes:
-            column_list = self.create_column_list(df = df,
-                                                  prefixes = prefixes,
-                                                  columns = columns)
+    def _check_df(self, df):
+        if isinstance(df, pd.DataFrame):
+            return df
+        elif not df:
+            return getattr(self, self.default_df)
         else:
-            for column in df.columns:
-                if df[column].dtype == data_type:
-                    column_list.append(column)
+            return self[df]
+
+    def _check_columns(self, df, columns):
+        if not columns:
+            return df.columns
+        else:
+            return columns
+
+    def _crosscheck_columns(self, df = None):
+        df = self._check_df(df = df)
+        for data_type, column_list in self.column_type_dicts.items():
+            if column_list:
+                for column in column_list:
+                    if not column in df.columns:
+                        self.column_type_dicts[data_type].remove(column)
+        dict_keys = list(self.column_dict.keys())
+        for column in dict_keys:
+            if not column in df.columns:
+                self.column_dict.pop(column)
+                self.dropped_columns.append(column)
+        return self
+
+    def _remove_from_column_list(self, column_list, new_columns):
+        column_list = [col for col in column_list if col not in new_columns]
         return column_list
 
-#    def df_check(self, func, df, **kwargs):
-#        not_df = False
-#        if not isinstance(df, pd.DataFrame):
-#            df = getattr(self, self.default_df)
-#            not_df = True
-#        def decorated(func, df, **kwargs):
-#            result = func(df, **kwargs)
-#            return result
-#        if not_df:
-#            self.df = result
-#            return self
-#        else:
-#            return result
+    def _listify(self, variable):
+        """
+        Checks to see if the variable is currently a list type. If the variable
+        is None, it is converted to a list with the string 'none'. If it is a
+        string, it is converted to a list with that string. If the variable
+        is already a list, it is returned unchanged.
+        """
+        if not variable:
+            return ['none']
+        elif isinstance(variable, list):
+            return variable
+        else:
+            return [variable]
+
+    def apply(self, df = None, func = None, **kwargs):
+        """
+        Allows users to pass a function to data which will be applied to the
+        passed dataframe (or uses df if none is passed).
+        """
+        df = self._check_df(df = df)
+        df = func(df, **kwargs)
+        return self
+
+    def initialize_column_types(self, df = None):
+        df = self._check_df(df = df)
+        self.column_dict = {}
+        for data_type, column_list in self.column_type_dicts.items():
+            if not data_type in ['interactor']:
+                columns = df.select_dtypes(
+                        include = [data_type]).columns.to_list()
+                if columns:
+                    self.column_type_dicts[data_type].extend(columns)
+                self.column_dict.update(dict.fromkeys(columns, data_type))
+        return self
 
     def add_df_group(self, group_name, df_list):
         return self.df_options.update(
                 {group_name : self.settings._listify(df_list)})
 
-    def apply(self, df = None, func = None, **kwargs):
-        """
-        Allows users to pass a function to data which will be applied to the
-        passed dataframe (or uses self.df if none is passed).
-        """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        if func:
-            df = func(df, **kwargs)
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
-
-    def create_column_list(self, df = None, prefixes = [], columns = []):
+    def create_column_list(self, df = None, columns = None, prefixes = None):
         """
         Dynamically creates a new column list from a list of columns and/or
         lists of prefixes.
         """
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-        temp_list = []
-        prefixes_list = []
-        for prefix in prefixes:
-            temp_list = [x for x in df if x.startswith(prefix)]
-            prefixes_list.extend(temp_list)
-        column_list = columns + prefixes_list
+        df = self._check_df(df = df)
+        if prefixes:
+            temp_list = []
+            prefixes_list = []
+            for prefix in prefixes:
+                temp_list = [x for x in df if x.startswith(prefix)]
+                prefixes_list.extend(temp_list)
+        if columns:
+            if prefixes:
+                column_list = columns + prefixes_list
+            else:
+                column_list = columns
+        else:
+            column_list = prefixes_list
         return column_list
 
-    def column_types(self, df = None, cat_columns = [], cat_prefixes = [],
-                     float_columns = [], float_prefixes = [],
-                     int_columns = [], int_prefixes = [],
-                     bool_columns = [], bool_prefixes = [],
-                     interact_columns = [], interact_prefixes = [],
-                     list_columns = [], list_prefixes = [],
-                     str_columns = [], str_prefixes = []):
-        """
-        If the user has preset sets of lists for column datatypes or
-        datatypes linked to set prefixes, this method converts the column
-        and/or prefix lists to class instance attributes containing complete
-        lists of different types of columns.
-        """
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-        self.bool_columns = self._col_type_list(df = df,
-                                             prefixes = bool_prefixes,
-                                             columns = bool_columns)
-        self.cat_columns = self._col_type_list(df = df,
-                                            prefixes = cat_prefixes,
-                                            columns = cat_columns)
-        self.float_columns = self._col_type_list(df = df,
-                                              prefixes = float_prefixes,
-                                              columns = float_columns)
-        self.int_columns = self._col_type_list(df = df,
-                                            prefixes = int_prefixes,
-                                            columns = int_columns)
-        self.interact_columns = self._col_type_list(df = df,
-                                                 prefixes = interact_prefixes,
-                                                 columns = interact_columns)
-        self.list_columns = self._col_type_list(df = df,
-                                             prefixes = list_prefixes,
-                                             columns = list_columns)
-        self.str_columns = self._col_type_list(df = df,
-                                            prefixes = str_prefixes,
-                                            columns = str_columns)
-        self.num_columns = self.float_columns + self.int_columns
-        self.all_columns = df.columns
-        self.column_dict = dict.fromkeys(self.bool_columns, bool)
-        self.column_dict.update(dict.fromkeys(self.cat_columns, 'category'))
-        self.column_dict.update(dict.fromkeys(self.float_columns, float))
-        self.column_dict.update(dict.fromkeys(self.int_columns, int))
-        self.column_dict.update(dict.fromkeys(self.interact_columns,
-                                              'category'))
-        self.column_dict.update(dict.fromkeys(self.str_columns, str))
+    def change_column_type(self, df = None, columns = None, prefixes = None,
+                           data_type = str):
+        df = self._check_df(df = df)
+        columns = self.create_column_list(prefixes = prefixes,
+                                          columns = columns)
+        self.column_dict.update(dict.fromkeys(columns, data_type))
+        for d_type, column_list in self.column_type_dicts.items():
+            if d_type == data_type:
+                self.column_type_dicts[data_type].extend(columns)
+            else:
+                self.column_type_dicts[d_type] = (
+                        self._remove_from_column_list(column_list, columns))
         return self
 
-#    @df_check(df)
-    def initialize_series(self, df = None, column_dict = None):
-        """
-        Initializes values in multi-type series to defaults based upon the
-        datatype listed in the columns dictionary.
-        """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        for key, value in column_dict.items():
-            if column_dict[key] == bool:
-                df[key] = False
-            if column_dict[key] == int:
-                df[key] = 0
-            if column_dict[key] == list:
-                df[key] = []
-            if column_dict[key] == str:
-                df[key] = ''
-            if column_dict[key] == float:
-                df[key] = np.nan
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
-
-    def downcast(self, df = None, ints = [], floats = [], cats = []):
+    def downcast(self, df = None, columns = None):
         """
         Method to decrease memory usage by downcasting datatypes. For
         numerical datatypes, the method attempts to cast the data to unsigned
         integers if possible.
         """
-        print('Downcasting data to decrease memory usage')
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        if not ints:
-            ints = self.int_columns
-        if not floats:
-            floats = self.float_columns
-        if not cats:
-            cats = self.cat_columns
-        for col in ints:
-            if min(df[col] >= 0):
-                df[col] = pd.to_numeric(df[col], downcast = 'unsigned')
+        df = self._check_df(df = df)
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                if self.column_dict[column] in [bool]:
+                    df[column] = df[column].astype(bool)
+                elif self.column_dict[column] in [int, float]:
+                    try:
+                        df[column] = pd.to_numeric(df[column],
+                                                   downcast = 'integer')
+                        if min(df[column] >= 0):
+                            df[column] = pd.to_numeric(df[column],
+                                                       downcast = 'unsigned')
+                    except ValueError:
+                        df[column] = pd.to_numeric(df[column],
+                                                   downcast = 'float')
+                elif self.column_dict[column] in [CategoricalDtype]:
+                    df[column] = df[column].astype('category')
+                elif self.column_dict[column] in [list]:
+                    df[column].apply(self._listify,
+                                     axis = 'columns',
+                                     inplace = True)
+                elif self.column_dict[column] in [np.datetime64]:
+                    df[column] = pd.to_datetime(df[column])
+                elif self.column_dict[column] in [timedelta]:
+                    df[column] = pd.to_timedelta(df[column])
             else:
-                df[col] = pd.to_numeric(df[col], downcast = 'integer')
-        for col in floats:
-            df[col] = pd.to_numeric(df[col], downcast = 'float')
-        for col in cats:
-            df[col] = df[col].astype('category')
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
+        return self
 
-    def smart_fillna(self, df = None):
+    def auto_categorize(self, df = None, columns = None, threshold = 500):
+        df = self._check_df(df = df)
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                if df[column].nunique() < threshold:
+                    df[column] = df[column].astype('category')
+            else:
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
+        return self
+
+    def smart_fillna(self, df = None, columns = None):
         """
         Fills na values in dataframe to defaults based upon the datatype listed
         in the columns dictionary. If the dictionary of datatypes does not
@@ -281,75 +350,39 @@ class Data(object):
         inferred by pandas. Because their is no good default category, the
         method uses an empty string ('').
         """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        if self.verbose:
-            print('Replacing empty cells with default values')
-        if self.column_dict:
-            for col, col_type in self.column_dict.items():
-                if col in df.columns:
-                    if col_type == bool:
-                        df[col].fillna(False, inplace = True)
-                        df[col].astype(bool, inplace = True)
-                    elif col_type == int:
-                        df[col].fillna(0, inplace = True, downcast = int)
-                    elif col_type == float:
-                        df[col].fillna(0.0, inplace = True, downcast  = int)
-                    elif col_type == list:
-                        df[col].fillna([''], inplace = True)
-                    elif col_type == str:
-                        df[col].fillna('', inplace = True)
-                        df[col].astype(str, inplace = True)
-                    elif col_type == 'category':
-                        df[col].fillna('', inplace = True)
-                        df[col].astype('category', inplace = True)
-        else:
-            for col in df.columns:
-                if df[col].dtype == bool:
-                    df[col].fillna(False, inplace = True)
-                elif df[col].dtype == int:
-                    df[col].fillna(0, inplace = True, downcast = int)
-                elif df[col].dtype == float:
-                    df[col].fillna(0, inplace = True, downcast  = int)
-                elif df[col].dtype == list:
-                    df[col].fillna('', inplace = True)
-                elif df[col].dtype == str:
-                    df[col].fillna('', inplace = True)
-                elif df[col].dtype == 'category':
-                    df[col].fillna('', inplace = True)
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
+        df = self._check_df(df = df)
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                default_value = self.default_values[self.column_dict[column]]
+                df[column].fillna(default_value, inplace = True)
+            else:
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
+        return self
 
-    def convert_rare(self, df = None, categoricals = [], threshold = 0):
+    def convert_rare(self, df = None, columns = None, threshold = 0):
         """
         The method converts categories rarely appearing within categorical
         data columns to empty string if they appear below the passed threshold.
         Threshold is defined as the percentage of total rows.
         """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        if self.verbose:
-            print('Replacing infrequently appearing categories')
-        for col in categoricals:
-            df['value_freq'] = df[col].value_counts() / len(df[col])
-            df[col] = np.where(df['value_freq'] <= threshold, '', df[col])
-        df.drop('value_freq',
-                axis = 'columns',
-                inplace = True)
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
+        df = self._check_df(df = df)
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                default_value = self.default_values(CategoricalDtype)
+                df['value_freq'] = (df[column].value_counts()
+                                    / len(df[column]))
+                df[column] = np.where(df['value_freq'] <= threshold,
+                                      default_value, df[column])
+            else:
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
+        df.drop('value_freq', axis = 'columns', inplace = True)
+        return self
 
-    def drop_infrequent(self, df = None, booleans = [], threshold = 0):
+    def drop_infrequent(self, df = None, columns = None, threshold = 0):
         """
         This method drops boolean columns that rarely have True. This differs
         from the sklearn VarianceThreshold class because it is only
@@ -358,122 +391,73 @@ class Data(object):
         information. Threshold is defined as the percentage of total rows (and
         not the typical variance formulas).
         """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        if self.verbose:
-            print('Removing boolean variables with low variability')
-        for col in booleans:
-            if df[col].mean() < threshold:
-                df.drop(col,
-                        axis = 'columns',
-                        inplace = True)
-                self.dropped_columns.append(col)
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
+        cols = []
+        df = self._check_df(df = df)
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                if df[column].mean() < threshold:
+                    df.drop(column, axis = 'columns', inplace = True)
+                    cols.append(column)
+            else:
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
+        self.drop_columns(columns = cols)
+        return self
 
-    def decorrelate(self, df = None, columns = [], threshold = 0.95):
+    def decorrelate(self, df = None, threshold = 0.95):
         """
         Drops all but one column from highly correlated groups of columns.
         Threshold is based upon the .corr() method in pandas. columns can
         include any datatype accepted by .corr(). If columns is set to 'all',
         all columns in the dataframe are tested.
         """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        if self.verbose:
-            print('Removing highly correlated columns')
-        if columns == 'all':
-            columns = df.columns
-        for col in columns:
-            corr_matrix = df.corr().abs()
-            upper = corr_matrix.where(np.triu(np.ones(
-                    corr_matrix.shape), k = 1).astype(np.bool))
-        drop_columns = [c for c in upper.columns if any(upper[c] > threshold)]
-        df.drop(drop_columns,
-                axis = 'columns',
-                inplace = True)
-        self.dropped_columns.extend(drop_columns)
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
+        df = self._check_df(df = df)
+        corr_matrix = df.corr().abs()
+        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape),
+                                          k = 1).astype(np.bool))
+        columns = [col for col in upper.columns if any(upper[col] > threshold)]
+        self.drop_columns(columns = columns)
+        return self
 
-    def drop_columns(self, df = None, prefixes = [], columns = []):
+    def drop_columns(self, df = None, columns = None, prefixes = None):
         """
         Drops list of columns and columns with prefixes listed. In addition,
         any dropped columns are stored in the cumulative dropped_columns
         list.
         """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        if self.verbose:
-            print('Removing selected columns')
-        columns = self.create_column_list(df = df,
-                                       prefixes = prefixes,
-                                       columns = columns)
-        df.drop(columns,
-                axis = 'columns',
-                inplace = True)
+        df = self._check_df(df = df)
+        columns = self.create_column_list(columns = columns,
+                                          prefixes = prefixes)
+        df.drop(columns, axis = 'columns', inplace = True)
         self.dropped_columns.extend(columns)
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
+        return self
 
-    def reshape_long(self, df = None, stubs = [], id_col = '', new_col = '',
+    def reshape_long(self, df = None, stubs = None, id_col = '', new_col = '',
                      sep = ''):
         """
         A simple wrapper method for pandas wide_to_long method using more
         intuitive parameter names than 'i' and 'j'.
         """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        if self.verbose:
-            print('Reshaping data to long format')
+        df = self._check_df(df = df)
         df = (pd.wide_to_long(df,
                               stubnames = stubs,
                               i = id_col,
                               j = new_col,
                               sep = sep).reset_index())
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
+        return self
 
-    def reshape_wide(self, df = None, df_index = '', columns = [],
-                     values = []):
+    def reshape_wide(self, df = None, df_index = '', columns = None,
+                     values = None):
         """
         A simple wrapper method for pandas pivot method named as corresponding
         method to reshape_long.
         """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        if self.verbose:
-            print('Reshaping data to wide format')
+        df = self._check_df(df = df)
         df = (df.pivot(index = df_index,
                        columns = columns,
                        values = values).reset_index())
-        if not_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
+        return self
 
     def summarize(self, df = None, export_path = ''):
         """
@@ -482,8 +466,7 @@ class Data(object):
         If an export_path is passed, the summary table is automatically saved
         to disc.
         """
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
+        df = self._check_df(df = df)
         summary_columns = ['variable', 'data_type', 'count', 'min', 'q1',
                            'median', 'q3', 'max', 'mad', 'mean', 'stan_dev',
                            'mode', 'sum']
@@ -511,60 +494,50 @@ class Data(object):
         if export_path:
             self.save(df = self.summary,
                       export_path = export_path,
-                      file_format = self.filer.results_format)
+                      file_type = self.filer.results_format)
         return self
 
     def split_xy(self, df = None, label = 'label'):
         """
         Splits data into x and y based upon the label passed.
         """
-        not_df = False
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
-            not_df = True
-        x = df.drop(label, axis = 'columns')
-        y = df[label]
-        if not_df:
-            self.x = x
-            self.y = y
-            return self
-        else:
-            return x, y
+        df = self._check_df(df = df)
+        self.x = df.drop(label, axis = 'columns')
+        self.y = df[label]
+        self._crosscheck_columns(df = self.x)
+        return self
 
     def load(self, import_folder = '', file_name = 'data', import_path = '',
-             file_format = 'csv', usecolumns = None, index = False,
+             file_type = 'csv', usecolumns = None, index = False,
              encoding = 'windows-1252', test_data = False, test_rows = 500,
              return_df = False, message = 'Importing data'):
         """
-        Method to import pandas dataframes from different file formats.
+        Imports pandas dataframes from different file formats.
         """
         if not import_path:
             if not import_folder:
                 import_folder = self.filer.import_folder
             import_path = self.filer.make_path(folder = import_folder,
                                                file_name = file_name,
-                                               file_type = file_format)
+                                               file_type = file_type)
         if self.verbose:
             print(message)
         if test_data:
             nrows = test_rows
         else:
             nrows = None
-        if file_format == 'csv':
+        if file_type == 'csv':
             df = pd.read_csv(import_path,
                              index_col = index,
                              nrows = nrows,
-                             usecolumns = usecolumns,
+                             usecols = usecolumns,
                              encoding = encoding,
                              low_memory = False)
-            """
-            Removes a common encoding error character from the dataframe.
-            """
-            df.replace('Â', '', inplace = True)
-        elif file_format == 'h5':
+
+        elif file_type == 'h5':
             df = pd.read_hdf(import_path,
                              chunksize = nrows)
-        elif file_format == 'feather':
+        elif file_type == 'feather':
             df = pd.read_feather(import_path,
                                  nthreads = -1)
         if not return_df:
@@ -574,35 +547,51 @@ class Data(object):
             return df
 
     def save(self, df = None, export_folder = '', file_name = 'data',
-             export_path = '', file_format = 'csv', index = False,
+             export_path = '', file_type = 'csv', index = False,
              encoding = 'windows-1252', float_format = '%.4f',
              boolean_out = True, message = 'Exporting data'):
         """
-        Method to export pandas dataframes to different file formats and
-        encoding of boolean variables as True/False or 1/0.
+        Exports pandas dataframes to different file formats an encoding of
+        boolean variables as True/False or 1/0.
         """
+        df = self._check_df(df = df)
         if not export_path:
             if not export_folder:
-                export_folder = self.filer.export_folder
+                export_folder = self.filer.data
             export_path = self.filer.make_path(folder = export_folder,
-                                               name = file_name,
-                                               file_type = file_format)
+                                               file_name = file_name,
+                                               file_type = file_type)
         if not isinstance(df, pd.DataFrame):
             df = getattr(self, self.default_df)
         if self.verbose:
             print(message)
         if not boolean_out:
             df.replace({True : 1, False : 0}, inplace = True)
-        if file_format == 'csv':
+        if file_type == 'csv':
             df.to_csv(export_path,
                       encoding = encoding,
                       index = index,
                       header = True,
                       float_format = float_format)
-        elif file_format == 'h5':
+        elif file_type == 'h5':
             df.to_hdf(export_path)
-        elif file_format == 'feather':
+        elif file_type == 'feather':
             if isinstance(df, pd.DataFrame):
                 df.reset_index(inplace = True)
                 df.to_feather(export_path)
+        return
+
+    def save_drops(self, file_name = 'dropped_columns', export_path = ''):
+        """
+        Saves dropped_columns into a .csv file.
+        """
+        self.dropped_columns = list(unique_everseen(self.dropped_columns))
+        if not export_path:
+            export_folder = self.filer.results
+            export_path = self.filer.make_path(folder = export_folder,
+                                               file_name = file_name,
+                                               file_type = 'csv')
+        with open(export_path, 'wb') as export_file:
+            csv_writer = csv.writer(export_file)
+            csv_writer.writerow(self.dropped_columns)
         return

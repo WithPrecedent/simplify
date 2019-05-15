@@ -40,7 +40,7 @@ class Selector(Step):
         if self.name == 'rfe':
             self.defaults = {'n_features_to_select' : 30,
                              'step' : 1}
-            self.runtime_params = {'estimator' : self.model.Step}
+            self.runtime_params = {'estimator' : self.model.algorithm}
         elif self.name == 'kbest':
             self.defaults = {'k' : 30,
                              'score_func' : f_classif}
@@ -51,10 +51,10 @@ class Selector(Step):
             self.runtime_params = {}
         elif self.name == 'custom':
             self.defaults = {'threshold' : 'mean'}
-            self.runtime_params = {'estimator' : self.model.Step}
+            self.runtime_params = {'estimator' : self.model.algorithm}
         self.select_params(params_to_use = self.defaults.keys())
-        if 'score_func' in self.params:
-            self.params['score_func'] = self.scorers[self.params['score_func']]
+#        if 'score_func' in self.params:
+#            self.params['score_func'] = self.scorers[self.params['score_func']]
         return self
 
     def transform(self, x):

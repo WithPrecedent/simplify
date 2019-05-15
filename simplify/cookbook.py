@@ -27,7 +27,8 @@ steps that can be sequenced in different orders:
         xgboost and scikit-learn methods. The user can opt to either test
         different hyperparameters for the models selected or a single set
         of hyperparameters. Search methods currently include
-        RandomizedSearchCV and GridSearchCV - Bayesian methods coming soon.
+        RandomizedSearchCV, GridSearchCV, and bayesian optimization through
+        skopt.
     Plotter: produces helpful graphical representations based upon the model
         selected, includes shap, seaborn, and matplotlib methods.
 
@@ -63,12 +64,12 @@ If the user opts to use the settings.ini file, the only classes that absolutely
 need to be used are Cookbook and Data. Nonetheless, the rest of the classes and
 attributes are still available for use. All of the ten step classes are stored
 in a list of recipes (Cookbook.recipes). Cookbook.results collects the results
-from the recipes.
+from the recipes being tested.
 
-If a Filer instance is not passed to Cookbook when it instanced, an import_folder
-and export_folder must be passed. Then the Cookbook will create an instance of
-Filer as an attribute of the Cookbook (Cookbook.filer).
-If an instance of settings is not passed when the Cookbook is instanced, a
+If a Filer instance is not passed to Cookbook when it instanced, an
+import_folder and export_folder must be passed. Then the Cookbook will create
+an instance of Filer as an attribute of the Cookbook (Cookbook.filer).
+If an instance of Settings is not passed when the Cookbook is instanced, a
 settings file will be loaded automatically.
 """
 
@@ -126,7 +127,7 @@ class Cookbook(object):
                 self.settings_path = os.path.join('..', 'settings',
                                                   'simplify_settings.ini')
             self.settings = Settings(file_path = self.settings_path)
-        self.settings.localize(class_instance = self,
+        self.settings.localize(instance = self,
                                sections = ['general', 'files', 'steps'])
         """
         Removes the numerous pandas warnings from console output if option
@@ -138,9 +139,9 @@ class Cookbook(object):
         Adds a Filer instance if one is not passed when class is instanced.
         """
         if not self.filer:
-            self.filer = Filer(root_import = self.data_folder,
-                               root_export = self.results_folder,
-                               recipe_folder = self.recipe_folder,
+            self.filer = Filer(root = self.data_folder,
+                               results = self.results_folder,
+                               recipes = self.recipe_folder,
                                settings = self.settings)
         """
         Instances a Results class for storing results of each Recipe.bake.
@@ -168,7 +169,7 @@ class Cookbook(object):
                              'selectors' : Selector,
                              'customs' : Custom,
                              'models' : Model,
-                             'plotters' : Plotter}
+                             'plotter' : Plotter}
         self.steps = list(self.step_classes.keys())
         """
         Adds any new algorithms passed in Cookbook instance.
@@ -276,6 +277,8 @@ class Cookbook(object):
         Step.seed = self.seed
         Step.settings = self.settings
         Step._listify = self._listify
+        self.data._listify = self._listify
+        self.data.filer = self.filer
         return self
 
     def _compute_hyperparameters(self):
@@ -315,13 +318,13 @@ class Cookbook(object):
             self.results.add_result(recipe = recipe,
                                     use_val_set = use_val_set)
             self._check_best(recipe)
-            file_name = 'recipe' + recipe.number + '_' + recipe.model.name
+            file_name = 'recipe' + str(recipe.number) + '_' + recipe.model.name
             export_path = self.filer._iter_path(model = recipe.model,
-                                                recipe_num = recipe.number,
+                                                recipe_number = recipe.number,
                                                 splicer = recipe.splicer,
                                                 file_name = file_name,
                                                 file_type = 'pickle')
-            self.save_recipe(recipe, export_path = export_path)
+#            self.save_recipe(recipe, export_path = export_path)
             """
             To conserve memory, each recipe is deleted after being exported.
             """
@@ -395,21 +398,26 @@ class Cookbook(object):
         for i, (scaler, splitter, encoder, interactor, splicer, sampler,
                 custom, selector, algorithm, plotter) in enumerate(all_steps):
             model_params = (self.settings[algorithm + '_params'])
-            recipe = Recipe(i + 1,
-                            self.order,
-                            Scaler(scaler, self.scalers_params),
-                            Splitter(splitter, self.splitter_params),
-                            Encoder(encoder, self.encoders_params,
-                                    self.data.cat_cols),
-                            Interactor(interactor, self.interactors_params,
-                                       self.data.interact_cols),
-                            Splicer(splicer, self.splicers_params),
-                            Sampler(sampler, self.samplers_params),
-                            Custom(custom, self.customs_params),
-                            Selector(selector, self.selectors_params),
-                            Model(algorithm, self.model_type, model_params),
-                            Plotter(self.plotters_params),
-                            self.settings)
+            model = Model(algorithm, model_params)
+            recipe = Recipe(number = i + 1,
+                            order = self.order,
+                            scaler = Scaler(scaler, self.scalers_params),
+                            splitter = Splitter(splitter,
+                                                self.splitter_params),
+                            encoder = Encoder(encoder, self.encoders_params,
+                                              self.data.category_columns),
+                            interactor = Interactor(interactor,
+                                                self.interactors_params,
+                                                self.data.interactor_columns),
+                            splicer = Splicer(splicer, self.splicers_params),
+                            sampler = Sampler(sampler, self.samplers_params),
+                            custom = Custom(custom, self.customs_params),
+                            selector = Selector(selector,
+                                                self.selectors_params),
+                            model = model,
+                            plotter = Plotter(self.plotter,
+                                              self.plotter_params, model),
+                            settings = self.settings)
             self.recipes.append(recipe)
         return self
 
@@ -440,6 +448,14 @@ class Cookbook(object):
                 self._visualize_recipe(recipe)
         return self
 
+    def print_best(self):
+        if self.verbose:
+            print('The best test tube, based upon the',
+                  self.key_metric, 'metric with a score of',
+                  self.best_recipe_score, 'is:')
+            print(self.best_recipe)
+        return
+
     def save_everything(self):
         """
         Automatically saves the cookbook, results table, and best recipe.
@@ -448,9 +464,11 @@ class Cookbook(object):
                                                       'cookbook.pkl'))
         self.save_results(export_path = os.path.join(self.filer.results,
                                                      'results_table.csv'))
+#        self.data.save_drops()
         if self.best_recipe:
             self.save_recipe(export_path = os.path.join(
-                    self.filer.results, 'best_recipe.pkl'), recipe = self.best_recipe)
+                    self.filer.results, 'best_recipe.pkl'),
+                    recipe = self.best_recipe)
         return self
 
     def load_cookbook(self, import_path = None, return_cookbook = False):
@@ -472,7 +490,7 @@ class Cookbook(object):
         """
         if not export_path:
             export_path = self.filer.results_folder
-        pickle.dump(self.recipes, open(export_path, 'wb'))
+#        pickle.dump(self.recipes, open(export_path, 'wb'))
         return self
 
     def load_recipe(self, import_path = None):
@@ -490,7 +508,7 @@ class Cookbook(object):
         """
         if not export_path:
             export_path = self.filer.results_folder
-        pickle.dump(recipe, open(export_path, 'wb'))
+#        pickle.dump(recipe, open(export_path, 'wb'))
         return self
 
     def load_results(self, import_path = None, file_name = 'results_table',

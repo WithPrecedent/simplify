@@ -24,8 +24,7 @@ class Plotter(Step):
 
     def __post_init__(self):
         super().__post_init__()
-        self.settings.localize(class_instance = self,
-                               sections = ['plotter_params'])
+        self.settings.localize(instance = self, sections = ['plotter_params'])
         if self.model_type in ['classifier']:
             self.options = {'heat_map' : self.heat_map,
                             'summary' : self.summary,
@@ -54,35 +53,35 @@ class Plotter(Step):
         return self
 
     def _check_plots(self):
-        if self.plotters in ['default']:
+        if self.plotter in ['default']:
             self.plots = self.options.keys()
         return self
 
-    def _add_dependency_plots(self):
-        if self.dependency_plots in ['splices']:
-
-        return self
+#    def _add_dependency_plots(self):
+#        if self.dependency_plots in ['splices']:
+#
+#        return self
 
     def _iter_plots(self):
         self._compute_shap_values()
         self._check_plots()
-        if self.dependency_plots != 'none':
-            self._add_dependency_plots()
+#        if self.dependency_plots != 'none':
+#            self._add_dependency_plots()
         for plot in self.plots:
             self.options[plot]()
         return self
 
     def _compute_shap_values(self):
         self.shap_values = self.explainer(
-                    self.model.method).shap_values(self.x)
+                    self.recipe.model.algorithm).shap_values(self.x)
         self.interaction_values = self.explainer(
-                    self.model.method).shap_interaction_values(
+                    self.recipe.model.algorithm).shap_interaction_values(
                             pd.DataFrame(self.x, columns = self.x.columns))
         return self
 
-    def visualize(self, data, recipe):
+    def visualize(self, recipe):
         self.recipe = recipe
-        self.x, self.y = data[self.data_to_use]
+        self.x, self.y = self.recipe.data[self.data_to_use]
         self._iter_plots()
         return self
 
@@ -127,8 +126,7 @@ class Plotter(Step):
         if max_display == 0:
             max_display = self.interactions_display
         summary_plot(self.interaction_values, self.x,
-                     max_display = max_display, show = False,
-                     matplotlib = True)
+                     max_display = max_display, show = False)
         self.save(file_name)
         return self
 
@@ -136,14 +134,14 @@ class Plotter(Step):
         if max_display == 0:
             max_display = self.summary_display
         summary_plot(self.shap_values, self.x, max_display = max_display,
-                     show = False, matplotlib = True)
+                     show = False)
         self.save(file_name)
         return self
 
     def save(self, file_name):
-        export_path = self.filer._iter_path(model = self.model,
-                                            tube_num = self.tube_num,
-                                            splicer = self.splicer,
+        export_path = self.filer._iter_path(model = self.recipe.model,
+                                            recipe_number = self.recipe.number,
+                                            splicer = self.recipe.splicer,
                                             file_name = file_name,
                                             file_type = 'png')
         plt.savefig(export_path, bbox_inches = 'tight')

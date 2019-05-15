@@ -14,7 +14,7 @@ class Filer(object):
     root : str = ''
     data : str = ''
     results : str = ''
-    recipe_folder : str = ''
+    recipes : str = ''
     import_file : str = ''
     export_file : str = ''
     import_format : str = ''
@@ -23,7 +23,7 @@ class Filer(object):
 
     def __post_init__(self):
         if self.settings:
-            self.settings.simplify(class_instance = self, sections = ['files'])
+            self.settings.localize(instance = self, sections = ['files'])
         if self.use_defaults:
             if not self.root:
                 self.root = '..'
@@ -35,8 +35,8 @@ class Filer(object):
                 self.import_format = 'csv'
             if not self.export_format:
                 self.export_format = 'csv'
-            if not self.recipe_folder:
-                self.recipe_folder = 'dynamic'
+            if not self.recipes:
+                self.recipes = 'dynamic'
         self._make_folder(self.data)
         self._make_folder(self.results)
         self._make_io_paths()
@@ -61,7 +61,7 @@ class Filer(object):
                       'text' : '.txt',
                       'xml' : '.xml',
                       'png' : '.png'}
-        return prefix + name + suffix + extensions[file_type]
+        return prefix + file_name + suffix + extensions[file_type]
 
     def _make_folder(self, folder):
         if not os.path.exists(folder):
@@ -70,18 +70,16 @@ class Filer(object):
 
     def _iter_path(self, model, recipe_number, splicer = '', file_name = '',
                    file_type = ''):
-        if splicer:
-            subfolder = model.name + '_' + splicer.name + recipe_number
+        if splicer != 'none':
+            subfolder = model.name + '_' + splicer.name + str(recipe_number)
         else:
-            subfolder = model.name + recipe_number
-        self._make_folder(folder = self.make_path(
-                folder = self.recipes,
-                subfolder = subfolder))
+            subfolder = model.name + str(recipe_number)
+        self._make_folder(folder = self.make_path(folder = self.recipes,
+                                                  subfolder = subfolder))
         return self.make_path(folder = self.recipes,
                               subfolder = subfolder,
                               file_name = file_name,
                               file_type = file_type)
-
 
     def make_path(self, folder = '', subfolder = '', prefix = '',
                   file_name = '', suffix = '', file_type = 'csv'):

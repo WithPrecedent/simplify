@@ -28,28 +28,29 @@ class Recipe(object):
         default_order = ['scaler', 'splitter', 'encoder', 'interactor',
                          'splicer', 'sampler', 'selector', 'custom', 'model',
                          'plotter']
-        if not self.steps:
-            self.steps = default_order
+        if not self.order:
+            self.order = default_order
         return self
 
     def _scalers(self):
         if self.scaler:
-            self.data.x[self.data.num_cols] = (self.scaler.mix(
-                    self.data.x[self.data.num_cols]))
+            self.data.x[self.data.number_columns] = (self.scaler.mix(
+                    self.data.x[self.data.number_columns]))
         return self
 
     def _splitter(self):
         if self.splitter:
             self.data = self.splitter.mix(self.data)
-        if self.use_val_set:
-            (self.data.x_train, self.data.y_train, self.data.x_test,
-             self.data.y_test) = self.data['val', True]
-        elif self.use_full_set:
-            (self.data.x_train, self.data.y_train, self.data.x_test,
-             self.data.y_test) = self.data[ 'full', True]
-        else:
-            (self.data.x_train, self.data.y_train, self.data.x_test,
-             self.data.y_test) = self.data['test', True]
+#        if self.use_val_set:
+#            (self.data.x_train, self.data.y_train, self.data.x_test,
+#             self.data.y_test) = self.data.val
+#        elif self.use_full_set:
+#            self.data.x_train, self.data.y_train = self.data.full
+#            self.data.x_test, self.data.y_test = (
+#                    self.data.x_train, self.data.y_train)
+#        else:
+#            (self.data.x_train, self.data.y_train, self.data.x_test,
+#             self.data.y_test) = self.data.train_test
         return self
 
     def _encoders(self):
@@ -88,8 +89,8 @@ class Recipe(object):
     def _samplers(self):
         if self.sampler.name != 'none':
             self.data.x_train, self.data.y_train = (
-                    self.sampler.method.fit_resample(self.data.x_train,
-                                                     self.data.y_train))
+                    self.sampler.fit_resample(self.data.x_train,
+                                              self.data.y_train))
         return self
 
     def _customs(self):
@@ -107,15 +108,14 @@ class Recipe(object):
         if self.model.name != 'none':
             if self.model.hyperparameter_search:
                 self.model.search(self.data.x_train, self.data.y_train)
-                self.model.method = self.model.best
+                self.model.algorithm = self.model.best
             else:
-                self.model.method.fit(self.data.x_train, self.data.y_train)
+                self.model.fit(self.data.x_train, self.data.y_train)
         return self
 
     def _plotter(self):
         if self.plotter:
-            self.plotter.visualize(data = self.data,
-                                   receipe = self)
+            self.plotter.visualize(recipe = self)
         return self
 
     def bake(self, data, use_full_set = False, use_val_set = False):

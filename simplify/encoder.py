@@ -38,10 +38,10 @@ class Encoder(Step):
         return self
 
     def fit(self, x, y):
-        return self.ingredient.fit(x, y)
+        return self.algorithm.fit(x, y)
 
     def transform(self, x):
-        x = self.ingredient.transform(x)
+        x = self.algorithm.transform(x)
         for column in self.columns:
             if column in x.columns:
                 x[column] = x[column].astype(float, copy = False)

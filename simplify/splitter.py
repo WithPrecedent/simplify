@@ -20,7 +20,9 @@ class Splitter(Step):
                          'kfolds' : 5,
                          'krepeats' : 10}
         self.runtime_params = {'random_state' : self.seed}
-        self.initialize()
+        self._check_params()
+        self.params.update(self.runtime_params)
+        self.algorithm = self.options[self.name]
         return self
 
     def _cv_split(self, data):

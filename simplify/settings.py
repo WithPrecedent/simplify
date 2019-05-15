@@ -8,7 +8,7 @@ The Settings class is largely a wrapper for python's ConfigParser. It seeks
 to cure some of the most significant shortcomings of the base ConfigParser
 package:
     1) All values in ConfigParser are strings by default.
-    2) The nested structure for lookups creates verbose code.
+    2) The nested structure for getting items creates verbose code.
     3) It still uses OrderedDict (even though python 3.6+ has automatically
          orders regular dictionaries).
 
@@ -17,7 +17,7 @@ To use the Settings class, the user can either:
     2) Pass a prebuilt nested dictionary for storage in the Settings class; or
     3) The Settings class will automatically looking for a file called
         settings.ini in the subdfolder 'settings' off of the working
-        directory's parent directory.
+        directory.
 
 Whichever option is chosen, the nested settings dictionary is stored in the
 attribute .config. Users can store any section of the config dictionary as
@@ -55,7 +55,6 @@ The result will be that an instance of Fakeclass will contain .verbose and
 Because Settings uses ConfigParser, it only allows 2-level settings
 dictionaries. The desire for accessibility and simplicity dictated this
 limitation.
-
 """
 
 from configparser import ConfigParser
@@ -63,33 +62,28 @@ from dataclasses import dataclass
 import os
 import re
 
+
 @dataclass
 class Settings(object):
 
     file_path : str = ''
-    settings_dict : object = None
+    config : object = None
     set_types : bool = True
     no_lists : bool = False
 
     def __post_init__(self):
-        self.config = {}
-        if not self.settings_dict:
+        if not self.config:
             config = ConfigParser(dict_type = dict)
             config.optionxform = lambda option : option
             if not self.file_path:
-                self.file_path = os.path.join('..', 'settings', 'settings.ini')
+                self.file_path = os.path.join('settings',
+                                              'simplify_settings.ini')
             config.read(self.file_path)
             self.config = dict(config._sections)
-        else:
-            self.config = self.settings_dict
-        if self.config:
-            if self.set_types:
-                for section, nested_dict in self.config.items():
-                    for key, value in nested_dict.items():
-                        self.config[section][key] = self._typify(value)
-        else:
-            error_message = 'Settings requires a file_path or settings_dict'
-            raise AttributeError(error_message)
+        if self.set_types:
+            for section, nested_dict in self.config.items():
+                for key, value in nested_dict.items():
+                    self.config[section][key] = self._typify(value)
         return self
 
     def __getitem__(self, value):
@@ -185,7 +179,8 @@ class Settings(object):
         """
         Adds a new nested dictionary to the config dictionary.
         """
-        if isinstance(new_settings, dict):
+        if (isinstance(new_settings, dict)
+                or isinstance(new_settings.config, dict)):
             self.config.update(new_settings.config)
         else:
             error_message = 'new_settings must be a 2-level nested dict'

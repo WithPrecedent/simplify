@@ -16,6 +16,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.svm import OneClassSVM, SVC, SVR
 
+#from skopt import BayesSearchCV
 #from keras.wrappers.scikit_learn import KerasClassifier, KerasRegressor
 #from pystan import StanModel
 #from skorch import NeuralNetClassifier, NeuralNetRegressor
@@ -87,9 +88,9 @@ class Model(Step):
 
     def _setup_search(self):
         self.search_options = {'random' : RandomizedSearchCV,
-                               'fixed' : GridSearchCV,
-                               'bayes' : 'none'}
-        self.search_runtime_params = {'estimator' : self.Step,
+                               'fixed' : GridSearchCV}
+#                               'bayes' : BayesSearchCV}
+        self.search_runtime_params = {'estimator' : self.algorithm,
                                       'param_distributions' : self.grid,
                                       'random_state' : self.seed}
         self.search_params = self.settings['search_params']
@@ -97,7 +98,7 @@ class Model(Step):
             self.search_params['scoring'] = self._listify(
                     self.search_params['scoring'])[0]
         self.search_params.update(self.search_runtime_params)
-        self.search_Step = self.search_options[self.search_algorithm](
+        self.search_method = self.search_options[self.search_algorithm](
                 **self.search_params)
         return self
 
@@ -121,12 +122,12 @@ class Model(Step):
         if self.name == 'xgb':
             if not hasattr(self, 'scale_pos_weight'):
                 self.scale_pos_weight = 1
-            if self.use_gpu:
+            if self.gpu:
                 self.runtime_params.update({'tree_Step' : 'gpu_exact'})
             if self.use_grid:
                 self.grid.update({'scale_pos_weight' :
-                                  uniform(self.scale_pos_weight / 1.5,
-                                  self.scale_pos_weight * 1.5)})
+                                  uniform(self.scale_pos_weight / 2,
+                                  self.scale_pos_weight * 2)})
             else:
                 self.params.update(
                         {'scale_pos_weight' : self.scale_pos_weight})
@@ -136,10 +137,10 @@ class Model(Step):
         if self.verbose:
             print('Searching for best hyperparameters for the',
                   self.name, 'model using', self.search_algorithm,
-                  'search Step')
-        self.search_Step.fit(x, y)
-        self.best = self.search_Step.best_estimator_
+                  'search algorithm')
+        self.search_method.fit(x, y)
+        self.best = self.search_method.best_estimator_
         print('The', self.search_params['scoring'],
               'score of the best estimator for the', self.name,
-              'model is', str(self.search_Step.best_score_))
+              'model is', str(self.search_method.best_score_))
         return self
