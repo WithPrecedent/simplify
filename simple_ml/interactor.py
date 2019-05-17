@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from category_encoders import PolynomialEncoder
 
-from simplify.step import Step
+from step import Step
 
 
 @dataclass

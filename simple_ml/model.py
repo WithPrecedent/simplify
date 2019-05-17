@@ -22,7 +22,7 @@ from sklearn.svm import OneClassSVM, SVC, SVR
 #from skorch import NeuralNetClassifier, NeuralNetRegressor
 from xgboost import XGBClassifier, XGBRegressor
 
-from simplify.step import Step
+from step import Step
 
 @dataclass
 class Model(Step):

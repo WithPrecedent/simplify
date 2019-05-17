@@ -12,7 +12,7 @@ import pandas as pd
 from shap import dependence_plot, force_plot, summary_plot
 from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
-from simplify.step import Step
+from step import Step
 
 @dataclass
 class Plotter(Step):

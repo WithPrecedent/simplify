@@ -84,21 +84,21 @@ import os
 import pickle
 import warnings
 
-from simplify.custom import Custom
-from simplify.encoder import Encoder
-from simplify.filer import Filer
-from simplify.interactor import Interactor
-from simplify.model import Model
-from simplify.plotter import Plotter
-from simplify.recipe import Recipe
-from simplify.results import Results
-from simplify.sampler import Sampler
-from simplify.scaler import Scaler
-from simplify.selector import Selector
-from simplify.splicer import Splicer
-from simplify.splitter import Splitter
-from simplify.step import Step
-from simplify.settings import Settings
+from custom import Custom
+from encoder import Encoder
+from filer import Filer
+from interactor import Interactor
+from model import Model
+from plotter import Plotter
+from recipe import Recipe
+from results import Results
+from sampler import Sampler
+from scaler import Scaler
+from selector import Selector
+from splicer import Splicer
+from splitter import Splitter
+from step import Step
+from settings import Settings
 
 
 @dataclass

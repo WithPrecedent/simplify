@@ -8,7 +8,7 @@ from sklearn.feature_selection import mutual_info_regression, RFE, RFECV
 from sklearn.feature_selection import SelectKBest, SelectFdr, SelectFpr
 from sklearn.feature_selection import SelectFromModel
 
-from simplify.step import Step
+from step import Step
 
 
 @dataclass

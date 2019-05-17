@@ -47,14 +47,6 @@ class Data(object):
     settings : object
     filer : object = None
     df : object = None
-    x : object = None
-    y : object = None
-    x_train : object = None
-    y_train : object = None
-    x_test : object = None
-    y_test : object = None
-    x_val : object = None
-    y_val : object = None
     quick_start : bool = False
     default_df = str = 'df'
     column_dict : object = None
@@ -257,6 +249,14 @@ class Data(object):
     def add_df_group(self, group_name, df_list):
         return self.df_options.update(
                 {group_name : self.settings._listify(df_list)})
+
+    def add_unique_index(self, df = None, column = 'index_universal',
+                         make_index = False):
+        df = self._check_df(df = df)
+        df[column] = range(1, len(df.index) + 1)
+        if make_index:
+            df.set_index(column, inplace = True)
+        return self
 
     def create_column_list(self, df = None, columns = None, prefixes = None):
         """

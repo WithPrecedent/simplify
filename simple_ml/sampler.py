@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from imblearn.combine import SMOTEENN, SMOTETomek
 from imblearn.over_sampling import ADASYN, SMOTE
 
-from simplify.step import Step
+from step import Step
 
 @dataclass
 class Sampler(Step):

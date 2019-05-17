@@ -7,7 +7,7 @@ from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler, Normalizer
 from sklearn.preprocessing import QuantileTransformer, RobustScaler
 from sklearn.preprocessing import StandardScaler
 
-from simplify.step import Step
+from step import Step
 
 
 @dataclass

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from sklearn.model_selection import train_test_split
 
-from simplify.step import Step
+from step import Step
 
 @dataclass
 class Splitter(Step):

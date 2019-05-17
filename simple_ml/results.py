@@ -10,7 +10,7 @@ import sklearn.metrics as met
 
 #import eli5
 
-from simplify.step import Step
+from step import Step
 
 @dataclass
 class Results(Step):

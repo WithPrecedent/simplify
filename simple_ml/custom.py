@@ -1,7 +1,7 @@
 
 from dataclasses import dataclass
 
-from simplify.step import Step
+from step import Step
 
 @dataclass
 class Custom(Step):
