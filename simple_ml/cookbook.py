@@ -511,7 +511,7 @@ class Cookbook(object):
 #        pickle.dump(recipe, open(export_path, 'wb'))
         return self
 
-    def load_results(self, import_path = None, file_name = 'results_table',
+    def load_results(self, import_folder = None, file_name = 'results_table',
                      file_format = 'csv', encoding = 'windows-1252',
                      float_format = '%.4f', message = 'Importing results',
                      return_results = False):
@@ -520,19 +520,17 @@ class Cookbook(object):
         the user wants to reconstruct parts of recipes with loading the entire
         cookbook or individual recipes.
         """
-        if not import_path:
-            import_path = self.filer.import_folder
-        results_path = self.filer.path_join(folder = import_path,
+        results_path = self.filer.make_path(folder = import_folder,
                                             file_name = file_name,
                                             file_type = file_format)
-        results = self.data.load(import_path = results_path,
-                                 encoding = encoding,
-                                 float_format = float_format,
-                                 message = message)
+        results_table = self.data.load(import_path = results_path,
+                                       encoding = encoding,
+                                       float_format = float_format,
+                                       message = message)
         if return_results:
-            return results
+            return results_table
         else:
-            self.results.table = results
+            self.results.table = results_table
             return self
 
     def save_results(self, export_path = None, file_name = 'results_table',

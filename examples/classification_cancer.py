@@ -25,7 +25,7 @@ cookbook = Cookbook(data = data, settings = settings)
 # Automatically creates list of recipes cookbook.recipes based upon settings
 # file.
 cookbook.create()
-# Iterates through every recipe and exports results and plots from each recipe.
+# Iterates through every recipe and exports plots from each recipe.
 cookbook.iterate()
 # Saves the recipes, results, and cookbook.
 cookbook.save_everything()

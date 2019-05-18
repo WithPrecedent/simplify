@@ -6,11 +6,25 @@ included in the metrics dictionary by passing them to add_metric.
 """
 from dataclasses import dataclass
 import pandas as pd
+import re
 import sklearn.metrics as met
 
 #import eli5
 
+from custom import Custom
+from encoder import Encoder
+from filer import Filer
+from interactor import Interactor
+from model import Model
+from plotter import Plotter
+from recipe import Recipe
+from sampler import Sampler
+from scaler import Scaler
+from selector import Selector
+from splicer import Splicer
+from splitter import Splitter
 from step import Step
+
 
 @dataclass
 class Results(Step):
@@ -23,9 +37,9 @@ class Results(Step):
         super().__post_init__()
         self.settings.localize(instance = self, sections = ['results'])
         self.step_columns = ['recipe_number', 'step_order', 'predictors',
-                             'scaler', 'splitter', 'splicer', 'encoder',
-                             'interactor', 'sampler', 'custom', 'selector',
-                             'model', 'seed', 'validation_set']
+                             'scaler', 'splitter', 'encoder', 'interactor',
+                             'sampler', 'custom', 'selector', 'model', 'seed',
+                             'validation_set']
         self.columns = self.step_columns
         self._set_metrics()
         self.columns.extend(self.metrics)
@@ -72,7 +86,6 @@ class Results(Step):
                     'precision_weighted' :  met.precision_score,
                     'recall' :  met.recall_score,
                     'recall_weighted' :  met.recall_score,
-
                     'zero_one' : met.zero_one_loss}
             self.prob_options = {
                     'brier_score_loss' : met.brier_score_loss}
@@ -90,6 +103,41 @@ class Results(Step):
         self.options.update(self.score_options)
         return self
 
+    def _parse_step(self, step, return_cols = False):
+        if step == 'none':
+            name = 'none'
+            params = {}
+        else:
+            name = re.search('^\D*.?(?=\, parameters)', step)[0]
+            params = re.search('\{.*?\}', step)[0]
+        if return_cols:
+            step = re.sub('\{.*?\}', '')
+            cols = re.search('\[.*', step)[0]
+            return name, params, cols
+        else:
+            return name, params
+
+    def _parse_result(self, row):
+        model = Mode(self._parse_step(row['model']))
+        recipe = Recipe(row['recipe_number'],
+                        order = row['step_order'].split(),
+                        scaler = Scaler(self._parse_step(row['scaler'],
+                                                    return_columns = True)),
+                        splitter = Splitter(self._parse_step(row['splitter'])),
+                        encoder = Encoder(self._parse_step(row['encoder'],
+                                                    return_cols = True)),
+                        interactor = Interactor(self._parse_step(
+                                row['interactor'], return_cols = True)),
+                        splicer = Splicer(self._parse_step(row['splicer'])),
+                        sampler = Sampler(self._parse_step(row['sampler'])),
+                        custom = Custom(self._parse_step(row['custom'])),
+                        selector = Selector(self._parse_step(row['selector'])),
+                        model = model,
+                        plotter = Plotter(self._parse_step(row['plotter']),
+                                          model),
+                        settings = self.settings)
+        return recipe
+
     def add_metric(self, name, metric):
         """
         Allows user to manually add a metric to the results table.
@@ -102,24 +150,39 @@ class Results(Step):
         Adds the results of a single recipe application to the results table.
         """
         self.predictions = recipe.model.algorithm.predict(recipe.data.x_test)
-        self.pred_probs = recipe.model.algorithm.predict_proba(recipe.data.x_test)
+        self.pred_probs = recipe.model.algorithm.predict_proba(
+                recipe.data.x_test)
         new_row = pd.Series(index = self.columns)
         recipe_cols = {'recipe_number' : recipe.number,
-                     'step_order' : self.order,
-                     'predictors' : recipe.splicer,
-                     'scaler' : recipe.scaler,
-                     'splitter' : recipe.splitter,
-                     'encoder' : recipe.encoder,
-                     'interactor' : recipe.interactor,
-                     'splicer' : recipe.splicer,
-                     'sampler' : recipe.sampler,
-                     'custom' : recipe.custom,
-                     'selector' : recipe.selector,
-                     'model' : recipe.model,
-                     'seed' : recipe.model.seed,
-                     'validation_set' : use_val_set}
+                       'step_order' : self.order,
+                       'predictors' : recipe.splicer,
+                       'scaler' : recipe.scaler,
+                       'splitter' : recipe.splitter,
+                       'encoder' : recipe.encoder,
+                       'interactor' : recipe.interactor,
+                       'sampler' : recipe.sampler,
+                       'custom' : recipe.custom,
+                       'selector' : recipe.selector,
+                       'model' : recipe.model,
+                       'seed' : recipe.model.seed,
+                       'validation_set' : use_val_set}
+        print(recipe)
         for key, value in recipe_cols.items():
-            new_row[key] = value
+            if key in ['recipe_number', 'step_order', 'validation_set',
+                       'seed']:
+                new_row[key] = value
+            else:
+                name = value.name
+                params = value.params
+                if hasattr(value, 'columns'):
+                    cols = value.columns
+                else:
+                    cols = ['all']
+                if name in ['none']:
+                    new_row[key] = name
+                else:
+                    new_row[key] = (
+                        f'{name}, parameters = {params}, columns = {cols}')
         for key, value in self.options.items():
             if key in self.metrics:
                 if key in self.prob_options:
@@ -164,3 +227,22 @@ class Results(Step):
             print('Classification Report:')
             print(self.class_report)
         return self
+
+    def get_best_recipe(self):
+        recipe_row = self.table[self.metrics[0]].argmax()
+        recipe = self._parse_result(recipe_row)
+        return recipe
+
+    def get_recipe(self, recipe_number = None, scorer = None):
+        if recipe_number:
+            recipe_row = self.table.iloc[recipe_number - 1]
+        elif scorer:
+            recipe_row = self.table[scorer].argmax()
+        recipe = self._parse_result(recipe_row)
+        return recipe
+
+    def get_all_recipes(self):
+        recipes = []
+        for row in self.table.iterrows():
+            recipes.append(self._parse_result(self.table[row]))
+        return recipes
