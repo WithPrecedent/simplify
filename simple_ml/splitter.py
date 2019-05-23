@@ -57,7 +57,7 @@ class Splitter(Step):
     def mix(self, data):
         if self.name != 'none':
             if self.verbose:
-                print('Using', self.name, 'for feature reduction')
+                print('Splitting data')
             self.runtime_params = {'random_state' : self.seed}
             self._check_params()
             self.params.update(self.runtime_params)

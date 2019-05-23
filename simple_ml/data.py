@@ -636,6 +636,8 @@ class Data(object):
                                                file_name = file_name,
                                                file_type = 'csv')
         if self.dropped_columns:
+            if self.verbose:
+                print('Exporting dropped feature list')
             with open(export_path, 'wb') as export_file:
                 csv_writer = csv.writer(export_file)
                 csv_writer.writerow(self.dropped_columns)

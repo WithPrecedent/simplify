@@ -35,6 +35,7 @@ class Model(Step):
         super().__post_init__()
         self.settings.localize(instance = self, sections = ['recipes'])
         self._set_options()
+        self.defaults = {}
         self._parse_params()
         self.initialize()
         if self.hyperparameter_search:
@@ -43,7 +44,7 @@ class Model(Step):
 
     def _set_options(self):
         if self.model_type in ['classifier']:
-            self.options = {'ada' : AdaBoostClassifier,
+            self.options = {'adaboost' : AdaBoostClassifier,
                             'baseline_classifier' : DummyClassifier,
                             'logit' : LogisticRegression,
                             'random_forest' : RandomForestClassifier,
@@ -56,7 +57,7 @@ class Model(Step):
 #                            'torch' : NeuralNetClassifier,
                             'xgb' : XGBClassifier}
         elif self.model_type in ['regressor']:
-            self.options = {'ada' : AdaBoostRegressor,
+            self.options = {'adaboost' : AdaBoostRegressor,
                             'baseline_regressor' : DummyRegressor,
                             'bayes_ridge' : BayesianRidge,
                             'lasso' : Lasso,

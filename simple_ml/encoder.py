@@ -38,7 +38,7 @@ class Encoder(Step):
     def mix(self, data, columns = None):
         if self.name != 'none':
             if self.verbose:
-                print('Encoding categorical data with', self.name, 'algorithm')
+                print('Encoding categorical data with', self.name, 'encoder')
             if columns:
                 self.runtime_params.update({'cols' : columns})
             self.initialize()

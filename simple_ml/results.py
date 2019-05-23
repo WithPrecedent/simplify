@@ -184,8 +184,6 @@ class Results(Step):
         """
         Exports results scores to disc.
         """
-        if self.verbose:
-            print(message)
         if not export_path:
             export_path = self.filer.results_folder
             export_path = self.filer.make_path(folder = export_path,

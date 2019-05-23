@@ -9,6 +9,7 @@ import pandas as pd
 import seaborn
 from sklearn.metrics import precision_recall_curve, roc_curve
 
+import shap
 from shap import dependence_plot, force_plot, summary_plot
 
 from step import Step
@@ -83,14 +84,14 @@ class Plotter(Step):
                    show = False, matplotlib = True)
         return self
 
-    def heat_map(self, file_name = 'heat_map.png', max_display = 20):
+    def heat_map(self, file_name = 'shap_heat_map.png', max_display = 10):
         max_display = self._check_length(self.x, max_display)
         tmp = np.abs(self.evaluator.shap_interactions).sum(0)
         for i in range(tmp.shape[0]):
             tmp[i, i] = 0
-        inds = np.argsort(-tmp.sum(0))[:max_display]
+        inds = np.argsort(-tmp.sum(0))[:30]
         tmp2 = tmp[inds,:][:,inds]
-        plt.figure(figsize = (12, 12))
+        plt.figure(figsize = (max_display, max_display))
         plt.imshow(tmp2)
         plt.yticks(range(tmp2.shape[0]),
                    self.x.columns[inds],

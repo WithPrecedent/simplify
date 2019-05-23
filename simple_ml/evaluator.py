@@ -120,7 +120,7 @@ class Evaluator(Step):
 
     def _feature_summaries(self, recipe):
         self.feature_list = list(recipe.data.x_test.columns)
-        if 'svm_' in recipe.model.name:
+        if 'svm_' in recipe.model.name or 'baseline_' in recipe.model.name:
             self.feature_import = None
         else:
             self.feature_import = pd.Series(
@@ -140,7 +140,7 @@ class Evaluator(Step):
         if self.model_type in ['classifier']:
             if recipe.model.name in ['xgb', 'random_forest']:
                 self.method = TreeExplainer
-            elif recipe.model.name in ['logit']:
+            elif recipe.model.name in ['logit', 'svm_linear']:
                 self.method = LinearExplainer
             elif recipe.model.name in ['torch', 'tensor_flow']:
                 self.method = DeepExplainer
@@ -157,11 +157,15 @@ class Evaluator(Step):
                            'test' : recipe.data.x_test,
                            'full' : recipe.data.x}
         df = data_to_explain[self.data_to_explain]
-        self.explained = self.method(model = recipe.model.algorithm,
-                                     data = recipe.data.x_train)
-        self.shap_values = self.explained.shap_values(df)
-        self.shap_interactions = self.explained.shap_interaction_values(
-                        pd.DataFrame(df, columns = df.columns))
+        if not 'baseline_' in recipe.model.name:
+#            recipe.model.algorithm.fit(recipe.data.x_train,
+#                                       recipe.data.y_train)
+            self.explainer = self.method(
+                    model = recipe.model.algorithm,
+                    data = recipe.data.x_train)
+            self.shap_values = self.explainer.shap_values(df)
+            self.shap_interactions = self.explainer.shap_interaction_values(
+                            pd.DataFrame(df, columns = df.columns))
         return self
 
     def _eli5_explainer(self, recipe):
@@ -175,7 +179,8 @@ class Evaluator(Step):
     def _print_results(self, recipe):
         print('These are the results using the', recipe.model.name,
               'model')
-        print('Testing', recipe.splicer.name, 'predictors')
+        if recipe.splicer.name != 'none':
+            print('Testing', recipe.splicer.name, 'predictors')
         print('Confusion Matrix:')
         print(self.confusion)
         print('Classification Report:')

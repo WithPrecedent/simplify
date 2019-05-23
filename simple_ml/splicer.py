@@ -43,13 +43,15 @@ class Splicer(Step):
 
     def mix(self, data):
         self._prepare_splices()
-        if self.name not in ['none', 'all']:
+        if self.name != 'none':
             if self.verbose:
                 print('Testing', self.name, 'predictors')
-            splice = self.options[self.name]
-            drop_list = [i for i in self.test_columns if i not in splice]
-            for col in drop_list:
-                if col in data.x_train.columns:
-                    data.x_train.drop(col, axis = 'columns', inplace = True)
-                    data.x_test.drop(col, axis = 'columns', inplace = True)
+            if self.name != 'all':
+                splice = self.options[self.name]
+                drop_list = [i for i in self.test_columns if i not in splice]
+                for col in drop_list:
+                    if col in data.x_train.columns:
+                        data.x_train.drop(col, axis = 'columns',
+                                          inplace = True)
+                        data.x_test.drop(col, axis = 'columns', inplace = True)
         return data
