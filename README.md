@@ -16,16 +16,17 @@ Although scikit-learn has gone a long way toward unifying interfaces with many c
 8) Scikit-learn does not offer clear guidance to new users about how to sequence and combine [its many methods into a preprocessing and machine learning workflow](https://scikit-learn.org/stable/modules/classes.html).
 
 siMpLify provides a cleaner, universal set of tools to access the many useful methods from scikit-learn and other python open-source packages. The goal is to make machine learning more accessible to a wider user base. Simplify also adds numerous unique methods and functions for common machine learning and feature engineering tasks. In addition to those custom scripts, siMpLify incorporates and provides a universal API for methods and classes from the following packages:
-    sklearn
-    xgboost
-    imblearn
-    category_encoders
-    skopt
-    seaborn
-    shap
-    matplotlib
-    eli5
-    lime
+
+* [sklearn](https://github.com/scikit-learn/scikit-learn)
+* [xgboost](https://github.com/dmlc/xgboost)
+* [imbalanced-learn](https://github.com/scikit-learn-contrib/imbalanced-learn/tree/master/imblearn)
+* [categorical-encoding](https://github.com/scikit-learn-contrib/categorical-encoding)
+* [scikit-optimize](https://github.com/scikit-optimize/scikit-optimize/tree/master/skopt)
+* [seaborn](https://github.com/mwaskom/seaborn)
+* [shap](https://github.com/slundberg/shap)
+* [matplotlib](https://github.com/matplotlib/matplotlib)
+* [eli5](https://github.com/TeamHG-Memex/eli5)
+* [lime](https://github.com/marcotcr/lime)
 
 The siMpLify package allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling ingredients based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
 
