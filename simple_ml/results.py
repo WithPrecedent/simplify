@@ -2,18 +2,15 @@
 Results is a class which creates and stores a results table and other
 general scorers/metrics for machine learning based upon the type of model
 used in the siMpLify package. Users can manually add metrics not already
-included in the metrics dictionary by passing them to add_metric.
+included in the metrics dictionary by passing them to Results.include.
 """
 from dataclasses import dataclass
 import pandas as pd
 import re
 import sklearn.metrics as met
 
-#import eli5
-
 from custom import Custom
 from encoder import Encoder
-from filer import Filer
 from interactor import Interactor
 from model import Model
 from plotter import Plotter
@@ -31,46 +28,32 @@ class Results(Step):
     """
     Class for storing machine learning experiment results.
     """
-    settings : object
+    name : str = 'results'
+    params : object = None
 
     def __post_init__(self):
         super().__post_init__()
-        self.settings.localize(instance = self, sections = ['results'])
-        self.step_columns = ['recipe_number', 'step_order', 'predictors',
-                             'scaler', 'splitter', 'encoder', 'interactor',
+        self.settings.localize(instance = self, sections = ['recipes'])
+        self.step_columns = ['recipe_number', 'step_order', 'scaler',
+                             'splitter', 'encoder', 'interactor', 'splicer',
                              'sampler', 'custom', 'selector', 'model', 'seed',
                              'validation_set']
         self.columns = self.step_columns
-        self._set_metrics()
-        self.columns.extend(self.metrics)
+        self._set_options()
+        self.columns.extend(self._listify(self.metrics))
         self.table = pd.DataFrame(columns = self.columns)
         return self
 
-    @staticmethod
-    def _check_none(step):
+    def _set_options(self):
         """
-        Checks if metric listed is either 'none' or 'all.' Otherwise, it
-        returns the name of the algorithm selected.
-        """
-        if step.name in ['none', 'all']:
-            return step.name
-        elif not step.name:
-            return 'none'
-        else:
-            return step.algorithm
-
-    def _set_metrics(self):
-        """
-        Sets default metrics for the results table based upon the type of
-        model used. For metrics were lower values indicate better results,
-        the returned result is the 1 - the metric value. For example,
-        'neg_log_loss' = 1 - the sklearn log_loss metric.
+        Sets default metrics for scores dataframe based upon the type of
+        model used.
         """
         self.spec_metrics = {'fbeta' : {'beta' : 1},
                              'f1_weighted' : {'average' : 'weighted'},
                              'precision_weighted' : {'average' : 'weighted'},
                              'recall_weighted' : {'average' : 'weighted'}}
-        self.neg_metrics = ['brier_loss_score', 'neg_log_loss']
+        self.neg_metrics = ['brier_loss_score', 'neg_log_loss', 'zero_one']
         if self.model_type in ['classifier']:
             self.options = {
                     'accuracy' : met.accuracy_score,
@@ -87,23 +70,41 @@ class Results(Step):
                     'recall' :  met.recall_score,
                     'recall_weighted' :  met.recall_score,
                     'zero_one' : met.zero_one_loss}
-            self.prob_options = {
-                    'brier_score_loss' : met.brier_score_loss}
-            self.score_options = {
-                    'roc_auc' :  met.roc_auc_score}
+            self.prob_options = {'brier_score_loss' : met.brier_score_loss}
+            self.score_options = {'roc_auc' :  met.roc_auc_score}
         elif self.model_type in ['regressor']:
-            self.options = {}
+            self.options = {
+                    'explained_variance' : met.explained_variance_score,
+                    'max_error' : met.max_error,
+                    'absolute_error' : met.absolute_error,
+                    'mse' : met.mean_squared_error,
+                    'msle' : met.mean_squared_log_error,
+                    'mae' : met.median_absolute_error,
+                    'r2' : met.r2_score}
             self.prob_options = {}
             self.score_options = {}
-        elif self.model_type in ['grouper']:
-            self.options = {}
+        elif self.model_type in ['clusterer']:
+            self.options = {
+                    'adjusted_mutual_info' : met.adjusted_mutual_info_score,
+                    'adjusted_rand' : met.adjusted_rand_score,
+                    'calinski' : met.calinski_harabasz_score,
+                    'davies' : met.davies_bouldin_score,
+                    'completeness' : met.completeness_score,
+                    'contingency_matrix' : met.cluster.contingency_matrix,
+                    'fowlkes' : met.fowlkes_mallows_score,
+                    'h_completness' : met.homogeneity_completeness_v_measure,
+                    'homogeniety' : met.homogeneity_score,
+                    'mutual_info' : met.mutual_info_score,
+                    'norm_mutual_info' : met.normalized_mutual_info_score,
+                    'silhouette' : met.silhouette_score,
+                    'v_measure' : met.v_measure_score}
             self.prob_options = {}
             self.score_options = {}
         self.options.update(self.prob_options)
         self.options.update(self.score_options)
         return self
 
-    def _parse_step(self, step, return_cols = False):
+    def _parse_step(step, return_cols = False):
         if step == 'none':
             name = 'none'
             params = {}
@@ -118,7 +119,7 @@ class Results(Step):
             return name, params
 
     def _parse_result(self, row):
-        model = Mode(self._parse_step(row['model']))
+        model = Model(self._parse_step(row['model']))
         recipe = Recipe(row['recipe_number'],
                         order = row['step_order'].split(),
                         scaler = Scaler(self._parse_step(row['scaler'],
@@ -138,94 +139,66 @@ class Results(Step):
                         settings = self.settings)
         return recipe
 
-    def add_metric(self, name, metric):
+    def include(self, name, metric, special_type = None, special_params = None,
+                negative_metric = False):
         """
-        Allows user to manually add a metric to the results table.
+        Allows user to manually add a metric to the scores dataframe.
         """
-        self.metric_dict.update({name : metric})
+        self.options.update({name : metric})
+        if special_type in ['probability']:
+            self.prob_options.update({name : metric})
+        elif special_type in ['scorer']:
+            self.score_options.update({name : metric})
+        if special_params:
+           self.spec_metrics.update({name : special_params})
+        if negative_metric:
+           self.spec_metrics.append[name]
+        self._set_options()
+        self.table = pd.DataFrame(columns = self.columns)
         return self
 
-    def add_result(self, recipe, use_val_set = False):
+    def load(self, import_folder = None, file_name = 'results_table',
+             file_format = 'csv', import_path = '', encoding = 'windows-1252',
+             message = 'Importing results'):
         """
-        Adds the results of a single recipe application to the results table.
+        Imports results scores file from disc. This method is used if the user
+        wants to reconstruct recipes or cookbooks from past experiments
         """
-        self.predictions = recipe.model.algorithm.predict(recipe.data.x_test)
-        self.pred_probs = recipe.model.algorithm.predict_proba(
-                recipe.data.x_test)
-        new_row = pd.Series(index = self.columns)
-        recipe_cols = {'recipe_number' : recipe.number,
-                       'step_order' : self.order,
-                       'predictors' : recipe.splicer,
-                       'scaler' : recipe.scaler,
-                       'splitter' : recipe.splitter,
-                       'encoder' : recipe.encoder,
-                       'interactor' : recipe.interactor,
-                       'sampler' : recipe.sampler,
-                       'custom' : recipe.custom,
-                       'selector' : recipe.selector,
-                       'model' : recipe.model,
-                       'seed' : recipe.model.seed,
-                       'validation_set' : use_val_set}
-        print(recipe)
-        for key, value in recipe_cols.items():
-            if key in ['recipe_number', 'step_order', 'validation_set',
-                       'seed']:
-                new_row[key] = value
-            else:
-                name = value.name
-                params = value.params
-                if hasattr(value, 'columns'):
-                    cols = value.columns
-                else:
-                    cols = ['all']
-                if name in ['none']:
-                    new_row[key] = name
-                else:
-                    new_row[key] = (
-                        f'{name}, parameters = {params}, columns = {cols}')
-        for key, value in self.options.items():
-            if key in self.metrics:
-                if key in self.prob_options:
-                    params = {'y_true' : recipe.data.y_test,
-                              'y_prob' : self.pred_probs[:, 1]}
-                elif key in self.score_options:
-                    params = {'y_true' : recipe.data.y_test,
-                              'y_score' : self.pred_probs[:, 1]}
-                else:
-                    params = {'y_true' : recipe.data.y_test,
-                              'y_pred' : self.predictions}
-                if key in self.spec_metrics:
-                    params.update({key : self.spec_metrics[key]})
-                result = value(**params)
-                if key in self.neg_metrics:
-                    result = -1 * result
-                new_row[key] = result
-        self.table.loc[len(self.table)] = new_row
-        self._other_results(recipe)
-        return self
-
-    def _other_results(self, recipe):
-        """
-        Creates attributes storing other common metrics and tables.
-        """
-        self.confusion = met.confusion_matrix(recipe.data.y_test,
-                                              self.predictions)
-        self.class_report = met.classification_report(recipe.data.y_test,
-                                                      self.predictions)
-        self.feature_list = list(recipe.data.x_test.columns)
-        self.feature_import = pd.Series(
-                data = recipe.model.algorithm.feature_importances_,
-                index = self.feature_list)
-        self.feature_import.sort_values(ascending = False,
-                                        inplace = True)
         if self.verbose:
-            print('These are the results using the', recipe.model.name,
-                  'model')
-            print('Testing', recipe.splicer.name, 'predictors')
-            print('Confusion Matrix:')
-            print(self.confusion)
-            print('Classification Report:')
-            print(self.class_report)
+            print(message)
+        if import_path:
+            results_path = import_path
+        elif self.results_path:
+            results_path = self.results_path
+        else:
+            results_path = self.filer.make_path(folder = import_folder,
+                                                file_name = file_name,
+                                                file_type = file_format)
+        self.table = self.filer.load(results_path,
+                                     encoding = encoding)
+        return self
+
+    def save(self, export_path = None, file_name = 'results_table',
+             file_format = 'csv', encoding = 'windows-1252',
+             float_format = '%.4f', message = 'Exporting results'):
+        """
+        Exports results scores to disc.
+        """
+        if self.verbose:
+            print(message)
+        if not export_path:
+            export_path = self.filer.results_folder
+            export_path = self.filer.make_path(folder = export_path,
+                                               name = file_name,
+                                               file_type = file_format)
+        self.table.to_csv(export_path,
+                          encoding = encoding,
+                          float_format = float_format)
+        self.filer.save(df = self.table,
+                        export_path = export_path,
+                        encoding = encoding,
+                        float_format = float_format,
+                        message = message)
         return self
 
     def get_best_recipe(self):

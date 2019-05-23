@@ -15,42 +15,55 @@ Although scikit-learn has gone a long way toward unifying interfaces with many c
 7) Scikit-learn has [no plans to offer GPU support](https://scikit-learn.org/stable/faq.html#will-you-add-gpu-support).
 8) Scikit-learn does not offer clear guidance to new users about how to sequence and combine [its many methods into a preprocessing and machine learning workflow](https://scikit-learn.org/stable/modules/classes.html).
 
-siMpLify provides a cleaner, universal set of tools to access the many useful methods from scikit-learn and other python open-source packages. The goal is to make machine learning more accessible to a wider user base.
+siMpLify provides a cleaner, universal set of tools to access the many useful methods from scikit-learn and other python open-source packages. The goal is to make machine learning more accessible to a wider user base. Simplify also adds numerous unique methods and functions for common machine learning and feature engineering tasks. In addition to those custom scripts, siMpLify incorporates and provides a universal API for methods and classes from the following packages:
+    sklearn
+    xgboost
+    imblearn
+    category_encoders
+    skopt
+    seaborn
+    shap
+    matplotlib
+    eli5
+    lime
 
-To that end, siMpLify divides the feature engineering and modeling process into ten major method steps:
+The siMpLify package allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling ingredients based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
 
-* Scaler: converts numerical features into a common scale, using scikit-learn methods.
-* Splitter: divides data into train, test, and/or validation sets once or through k-folds cross-validation, using custom and scikit-learn methods.
-* Encoder: converts categorical features into numerical ones, using category-encoders and custom methods.
-* Interactor: converts selected categorical features into new polynomial features, using PolynomialEncoder from category-encoders.
-* Splicer: creates different subgroups of features to allow for easy comparison between them using a custom method.
-* Sampler: synthetically resamples training data for imbalanced data, using imblearn methods, in applying algorithms that struggle with imbalanced data
-* Custom: allows user to pass a custom scikit-learn- or siMpLify-compatible transformer which will be applied to the data.
-* Selector: selects features recursively or as one-shot based upon user criteria, using scikit-learn methods.
-* Model: implements machine learning algorithms, currently includes xgboost (with GPU optional support) and scikit-learn methods. Users can also test different hyperparameters for the models selected, currently includes RandomizedSearchCV and GridSearchCV (Bayesian methods coming soon).
-* Plotter: produces helpful graphical representations based upon the model selected, including shap, seaborn, and matplotlib methods.
+siMpLify divides the feature engineering and modeling process into eleven major steps that can be sequenced in different orders:
+
+    Scaler: converts numerical features into a common scale, using scikit-learn methods.
+    Splitter: divides data into train, test, and/or validation sets once or iteratively through k-folds cross-validation.
+    Encoder: converts categorical features into numerical ones, using category-encoders methods.
+    Interactor: converts selected categorical features into new polynomial features, using PolynomialEncoder from category-encoders or other mathmatical combinations.
+    Splicer: creates different subgroups of features to allow for easy comparison between them.
+    Sampler: synthetically resamples training data for imbalanced data, using imblearn methods, for use with models that struggle with imbalanced data.
+    Selector: selects features recursively or as one-shot based upon user criteria, using scikit-learn methods.
+    Custom: allows users to add any scikit-learn or siMpLify compatible method to be added into a recipe.
+    Model: implements machine learning algorithms, currently includes xgboost and scikit-learn methods. The user can opt to either test different hyperparameters for the models selected or a single set of hyperparameters. Hyperparameter earch methods currently include RandomizedSearchCV, GridSearchCV, and bayesian optimization through skopt.
+    Evaluator: tests the models using user-selected or default metrics and explainers from sklearn, shap, eli5, and lime.
+    Plotter: produces helpful graphical representations based upon the model selected and evaluator and explainers used, utilizing seaborn and matplotlib methods.
 
 Users can easily select to use some or all of the above steps in specific cases with one or more methods selected at each stage. The order is also largely dynamic so that steps can be rearranged based upon user choice.
 
 In addition to the algorithms included, users can easily add additional algorithms at any stage by calling easy-to-use class methods.
 
-Users can easily select different options using a text settings file (simplify_settings.ini) or passing appropriate dictionaries to Cookbook. This allows siMpLify to be used by beginner and advanced python programmers equally.
+Users can easily select different options using a text settings file (siMpLify_settings.ini) or passing appropriate dictionaries to Cookbook. This allows siMpLify to be used by beginner and advanced python programmers equally.
 
 For example, using the settings file, a user could create a cookbook of recipes simply by listing the strings mapped to different methods:
 
-    [steps]
-    order = scalers, splitter, encoders, interactors, splicers, samplers, models, plotter
+    [recipes]
+    order = scalers, splitter, encoders, interactors, samplers, selectors, models, evaluator, plotter
     scalers = minmax, robust
     splitter = train_test
-    splicers = none
-    encoders = target, helmert
+    encoders = target
     interactors = polynomial
-    samplers = smote
-    customs = False
-    selectors = none
-    models = xgb, random_forest, logit
+    splicers = none
+    samplers = smote, knn
+    selectors = kbest
+    models = xgb
+    evaluator = default
     plotter = default
-    hyperparameter_search = True
+    metrics = roc_auc, f1, accuracy, balanced_accuracy, brier_score_loss, hamming, jaccard, neg_log_loss, matthews_corrcoef, precision, recall, zero_one
     search_algorithm = random
 
 With the above settings, all possible recipes are automatically created using either default or user-specified parameters.
@@ -60,20 +73,62 @@ siMpLify can import hyperparameters (and/or hyperparameter searches) based upon 
     [xgb_params]
     booster = gbtree
     objective = binary:logistic
-    eval_metric = logloss
+    eval_metric = aucpr
     silent = True
-    n_estimators = 100, 1000
-    max_depth = 5, 30
+    n_estimators = 50, 500
+    max_depth = 3, 30
     learning_rate = 0.001, 1.0
-    subsample = 0.4, 0.6
-    colsample_bytree = 0.4, 0.6
-    colsample_bylevel = 0.4, 0.6
+    subsample = 0.2, 0.8
+    colsample_bytree = 0.2, 0.8
+    colsample_bylevel = 0.2, 0.8
     min_child_weight = 0.5, 1.5
     gamma = 0.0, 0.1
-    alpha = 0.5, 1
+    alpha = 0.0, 1
 
 In the above case, anywhere two values are listed separated by a comma, siMpLify automatically implements a hyperparameter search between those values (using either randint or uniform from scipy.stats, depending upon the data type). If just one hyperparameter is listed, it stays fixed throughout the tests. Further, the hyperparameters are automatically linked to the 'xgb' model by including that prefix to '_params' in the settings file.
 
 siMpLify currently supports NVIDIA GPU modeling for xgboost and will implement it for other incorporated models with built-in GPU support.
 
 In addition to the implementation of the steps above, summary statistics and results (appropriate to the models) are exported to user-selected formats in either dynamically created or selected paths.
+
+The examples folder, from which the above settings are taken, currently shows how simplify works in analyzing the Wisconsin breast cancer database. The code for the analysis is relatively straightforward and simple:
+
+    import pandas as pd
+    import numpy as np
+
+    from sklearn.datasets import load_breast_cancer
+
+    from cookbook import Cookbook
+    from data import Data
+    from settings import Settings
+
+    # Loads cancer data and convert from numpy arrays to pandas dataframe.
+    cancer = load_breast_cancer()
+    df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
+                      columns = np.append(cancer['feature_names'], ['target']))
+    # Loads settings file.
+    settings = Settings(file_path = 'cancer_settings.ini')
+    # Create instance of data with the cancer dataframe.
+    data = Data(settings = settings, df = df)
+    # Converts label to boolean type - conversion from numpy arrays leaves all
+    # columns as float type.
+    data.change_column_type(columns = ['target'], data_type = bool)
+    # Fills missing data with appropriate default values based on column type.
+    data.smart_fillna()
+    # Creates instance of Cookbook.
+    cookbook = Cookbook(data = data, settings = settings)
+    # Automatically creates list of recipes cookbook.recipes based upon settings
+    # file.
+    cookbook.create()
+    # Iterates through every recipe and exports plots from each recipe.
+    cookbook.bake()
+    # Creates and exports a table of summary statistics from the dataframe.
+    data.summarize(transpose = True)
+    # Saves the recipes, results, and cookbook.
+    cookbook.save_everything()
+    # Outputs information about the best recipe.
+    cookbook.print_best()
+    # Saves data file.
+    data.save(file_name = 'cancer_df')
+
+That's it. From that, all possible recipes are created (four permutations exist in the above example). Each recipe gets its own folder within the results folder with relevant plots, a confusion matrix, and a classification report. A complete results file (results_table.csv) and summary statistics from the data (data_summary.csv) are stored in the results folder.

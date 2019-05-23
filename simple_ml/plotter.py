@@ -1,88 +1,69 @@
 """
 Class for visualizing data analysis based upon the nature of the machine
-learning model used.
+learning model used in the siMpLify package.
 """
-
-
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn
+from sklearn.metrics import precision_recall_curve, roc_curve
 
 from shap import dependence_plot, force_plot, summary_plot
-from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
 from step import Step
 
 @dataclass
 class Plotter(Step):
 
-    name : str = 'default'
+    name : str = 'none'
     params : object = None
-    model : object = None
-    export_path : str = ''
 
     def __post_init__(self):
         super().__post_init__()
         self.settings.localize(instance = self, sections = ['plotter_params'])
-        if self.model_type in ['classifier']:
-            self.options = {'heat_map' : self.heat_map,
-                            'summary' : self.summary,
-                            'interactions' : self.interactions}
-            if self.model.name in ['xgb', 'random_forest']:
-                self.explainer = TreeExplainer
-            elif self.model.name in ['logit']:
-                self.explainer = LinearExplainer
-            elif self.model.name in ['torch', 'tensor_flow']:
-                self.explainer = DeepExplainer
-            else:
-                self.explainer = KernelExplainer
-        elif self.model_type in ['regressor']:
-            self.options = {'heat_map' : self.heat_map,
-                            'summary' : self.summary,
-                            'interactions' : self.interactions}
-            if self.model.name in ['torch', 'tensor_flow']:
-                self.explainer = DeepExplainer
-            else:
-                self.explainer = LinearExplainer
-        else:
-            self.options = {'heat_map' : self.heat_map,
-                            'summary' : self.summary,
-                            'interactions' : self.interactions}
-            self.explainer = KernelExplainer
+        seaborn.set_style(style = self.seaborn_style)
+        self._set_options()
+        self._check_plots()
         return self
 
     def _check_plots(self):
         if self.plotter in ['default']:
-            self.plots = self.options.keys()
+            self.plots = self.default_plots
         return self
+
+    def _check_length(self, df, max_display):
+        if max_display > len(df.columns):
+            max_display = len(df.columns)
+        return max_display
+
+    def _set_options(self):
+        self.options = {'dependency' : self.dependency,
+                        'force_plot' : self.force_plot,
+                        'heat_map' : self.heat_map,
+                        'histogram' : self.histogram,
+                        'interactions' : self.interactions,
+                        'summary' : self.summary}
+        if self.model_type in ['classifier']:
+            self.options.update({'confusion' : self.confusion,
+                                 'pr_curve' : self.pr_plot,
+                                 'roc_curve' : self.roc_plot})
+            self.default_plots = ['confusion', 'heat_map', 'interactions',
+                                  'pr_curve', 'roc_curve', 'summary']
+        elif self.model_type in ['regressor']:
+            self.default_plots = ['heat_map', 'interactions', 'summary']
+        elif self.model_type in ['clusterer']:
+            self.default_plots = ['heat_map', 'interactions', 'summary']
+        return self
+
 
 #    def _add_dependency_plots(self):
 #        if self.dependency_plots in ['splices']:
 #
 #        return self
 
-    def _iter_plots(self):
-        self._compute_shap_values()
-        self._check_plots()
-#        if self.dependency_plots != 'none':
-#            self._add_dependency_plots()
-        for plot in self.plots:
-            self.options[plot]()
-        return self
+    def confusion(self, file_name = 'confusion_matrix.png'):
 
-    def _compute_shap_values(self):
-        self.shap_values = self.explainer(
-                    self.recipe.model.algorithm).shap_values(self.x)
-        self.interaction_values = self.explainer(
-                    self.recipe.model.algorithm).shap_interaction_values(
-                            pd.DataFrame(self.x, columns = self.x.columns))
-        return self
-
-    def visualize(self, recipe):
-        self.recipe = recipe
-        self.x, self.y = self.recipe.data[self.data_to_use]
-        self._iter_plots()
         return self
 
     def dependency(self, model, var1, var2 = None, x = None,
@@ -102,11 +83,12 @@ class Plotter(Step):
                    show = False, matplotlib = True)
         return self
 
-    def heat_map(self, file_name = 'heat_map.png'):
-        tmp = np.abs(self.interaction_values).sum(0)
+    def heat_map(self, file_name = 'heat_map.png', max_display = 20):
+        max_display = self._check_length(self.x, max_display)
+        tmp = np.abs(self.evaluator.shap_interactions).sum(0)
         for i in range(tmp.shape[0]):
             tmp[i, i] = 0
-        inds = np.argsort(-tmp.sum(0))[:20]
+        inds = np.argsort(-tmp.sum(0))[:max_display]
         tmp2 = tmp[inds,:][:,inds]
         plt.figure(figsize = (12, 12))
         plt.imshow(tmp2)
@@ -122,18 +104,33 @@ class Plotter(Step):
         self.save(file_name)
         return self
 
+    def histogram(self, file_name = 'histogram.png'):
+
+        return self
+
     def interactions(self, file_name = 'interactions.png',  max_display = 0):
         if max_display == 0:
             max_display = self.interactions_display
-        summary_plot(self.interaction_values, self.x,
+        max_display = self._check_length(self.x, max_display)
+        summary_plot(self.evaluator.shap_interactions, self.x,
                      max_display = max_display, show = False)
         self.save(file_name)
+        return self
+
+    def pr_plot(self, file_name = 'pr_curve.png'):
+
+        return self
+
+    def roc_plot(self, file_name = 'roc_curve.png'):
+
         return self
 
     def summary(self, file_name = 'shap_summary.png', max_display = 0):
         if max_display == 0:
             max_display = self.summary_display
-        summary_plot(self.shap_values, self.x, max_display = max_display,
+        summary_plot(self.evaluator.shap_values,
+                     self.x,
+                     max_display = max_display,
                      show = False)
         self.save(file_name)
         return self
@@ -146,4 +143,16 @@ class Plotter(Step):
                                             file_type = 'png')
         plt.savefig(export_path, bbox_inches = 'tight')
         plt.close()
+        return self
+
+    def mix(self, recipe, evaluator):
+        if self.verbose:
+            print('Creating and exporting visuals')
+        self.recipe = recipe
+        self.evaluator = evaluator
+        self.x, self.y = self.recipe.data[self.data_to_plot]
+#        if self.dependency_plots != 'none':
+#            self._add_dependency_plots()
+        for plot in self.plots:
+            self.options[plot]()
         return self

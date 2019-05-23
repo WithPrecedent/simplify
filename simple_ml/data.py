@@ -33,6 +33,7 @@ import csv
 from datetime import timedelta
 from dataclasses import dataclass
 import numpy as np
+import os
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
@@ -74,21 +75,26 @@ class Data(object):
                                   int : [],
                                   object : [],
                                   CategoricalDtype : [],
-                                  'interactor' : [],
                                   list : [],
                                   np.datetime64 : [],
-                                  timedelta : []}
+                                  timedelta : [],
+                                  'interactor' : [],
+                                  'scaler' : [],
+                                  'encoder' : []}
         self.default_values = {bool : False,
                                float : 0.0,
                                int : 0,
                                object : '',
                                CategoricalDtype : '',
-                               'interactor' : '',
                                list : [],
                                np.datetime64 : 1/1/1990,
-                               timedelta : 0}
+                               timedelta : 0,
+                               'interactor' : '',
+                               'scaler' : 0,
+                               'encoder' : ''}
+        self.custom_columns = []
         self.dropped_columns = []
-        self.initialize_column_types()
+        self.auto_column_types()
         return self
 
     @property
@@ -112,10 +118,6 @@ class Data(object):
         return self.column_type_dicts[CategoricalDtype]
 
     @property
-    def interactor_columns(self):
-        return self.column_type_dicts['interactor']
-
-    @property
     def list_columns(self):
         return self.column_type_dicts[list]
 
@@ -128,8 +130,29 @@ class Data(object):
         return self.column_type_dicts[timedelta]
 
     @property
-    def number_columns(self):
+    def numeric_columns(self):
         return self.float_columns + self.int_columns
+
+    @property
+    def interactor_columns(self):
+        if not 'encoder' in self.column_dict:
+            return self.category_columns
+        else:
+            return self.column_type_dicts['encoder']
+
+    @property
+    def encoder_columns(self):
+        if not 'interactor' in self.column_dict:
+            return self.category_columns
+        else:
+            return self.column_type_dicts['interactor']
+
+    @property
+    def scaler_columns(self):
+        if not 'scaler' in self.column_dict:
+            return self.numeric_columns
+        else:
+            self.column_type_dicts['scaler']
 
     @property
     def full(self):
@@ -204,7 +227,8 @@ class Data(object):
         for column in dict_keys:
             if not column in df.columns:
                 self.column_dict.pop(column)
-                self.dropped_columns.append(column)
+                if column != self.label:
+                    self.dropped_columns.append(column)
         return self
 
     def _remove_from_column_list(self, column_list, new_columns):
@@ -234,11 +258,11 @@ class Data(object):
         df = func(df, **kwargs)
         return self
 
-    def initialize_column_types(self, df = None):
+    def auto_column_types(self, df = None):
         df = self._check_df(df = df)
         self.column_dict = {}
         for data_type, column_list in self.column_type_dicts.items():
-            if not data_type in ['interactor']:
+            if not data_type in ['interactor', 'scaler', 'encoder']:
                 columns = df.select_dtypes(
                         include = [data_type]).columns.to_list()
                 if columns:
@@ -330,13 +354,19 @@ class Data(object):
                 raise KeyError(error)
         return self
 
-    def auto_categorize(self, df = None, columns = None, threshold = 500):
+    def auto_categorize(self, df = None, columns = None, threshold = 10):
+        """
+        Automatically assesses each column to determine if it has less than
+        threshold unique values and is not boolean. If so, that column is
+        converted to categorical type.
+        """
         df = self._check_df(df = df)
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
             if column in df.columns:
-                if df[column].nunique() < threshold:
-                    df[column] = df[column].astype('category')
+                if not column in self.column_type_dicts[bool]:
+                    if df[column].nunique() < threshold:
+                        df[column] = df[column].astype('category')
             else:
                 error = column + ' is not in DataFrame'
                 raise KeyError(error)
@@ -459,7 +489,18 @@ class Data(object):
                        values = values).reset_index())
         return self
 
-    def summarize(self, df = None, export_path = ''):
+    def split_xy(self, df = None, label = 'label'):
+        """
+        Splits data into x and y based upon the label passed.
+        """
+        df = self._check_df(df = df)
+        self.x = df.drop(label, axis = 'columns')
+        self.y = df[label]
+        self._crosscheck_columns(df = self.x)
+        return self
+
+    def summarize(self, df = None, export_path = '', export_summary = True,
+                  transpose = False):
         """
         Creates a dataframe of common summary data. It is more inclusive than
         describe() and includes boolean and numerical columns by default.
@@ -491,20 +532,23 @@ class Data(object):
                 new_row['sum'] = df[col].sum()
             self.summary.loc[len(self.summary)] = new_row
         self.summary.sort_values('variable', inplace = True)
-        if export_path:
+        if transpose:
+            self.summary = self.summary.transpose()
+            df_header = False
+            df_index = True
+        else:
+            df_header = True
+            df_index = False
+        if export_summary:
+            if not export_path:
+                export_path = os.path.join(self.filer.results,
+                                           'data_summary.csv')
             self.save(df = self.summary,
+                      index = df_index,
+                      header = df_header,
                       export_path = export_path,
-                      file_type = self.filer.results_format)
-        return self
-
-    def split_xy(self, df = None, label = 'label'):
-        """
-        Splits data into x and y based upon the label passed.
-        """
-        df = self._check_df(df = df)
-        self.x = df.drop(label, axis = 'columns')
-        self.y = df[label]
-        self._crosscheck_columns(df = self.x)
+                      file_type = self.filer.results_format,
+                      message = 'Exporting summary data')
         return self
 
     def load(self, import_folder = '', file_name = 'data', import_path = '',
@@ -547,7 +591,7 @@ class Data(object):
             return df
 
     def save(self, df = None, export_folder = '', file_name = 'data',
-             export_path = '', file_type = 'csv', index = False,
+             export_path = '', file_type = 'csv', index = False, header = True,
              encoding = 'windows-1252', float_format = '%.4f',
              boolean_out = True, message = 'Exporting data'):
         """
@@ -571,7 +615,7 @@ class Data(object):
             df.to_csv(export_path,
                       encoding = encoding,
                       index = index,
-                      header = True,
+                      header = header,
                       float_format = float_format)
         elif file_type == 'h5':
             df.to_hdf(export_path)
@@ -591,7 +635,8 @@ class Data(object):
             export_path = self.filer.make_path(folder = export_folder,
                                                file_name = file_name,
                                                file_type = 'csv')
-        with open(export_path, 'wb') as export_file:
-            csv_writer = csv.writer(export_file)
-            csv_writer.writerow(self.dropped_columns)
+        if self.dropped_columns:
+            with open(export_path, 'wb') as export_file:
+                csv_writer = csv.writer(export_file)
+                csv_writer.writerow(self.dropped_columns)
         return

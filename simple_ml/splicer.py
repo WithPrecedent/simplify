@@ -1,5 +1,5 @@
 """
-Splkcer is a class containing different groups of features (to allow comparison
+Splicer is a class containing different groups of features (to allow comparison
 among them) used in the siMpLify package.
 """
 
@@ -7,10 +7,11 @@ from dataclasses import dataclass
 
 from step import Step
 
+
 @dataclass
 class Splicer(Step):
 
-    name : str = ''
+    name : str = 'none'
     params : object = None
 
     def __post_init__(self):
@@ -19,46 +20,36 @@ class Splicer(Step):
         self.algorithm = self.splice
         return self
 
-    def __getitem__(self, value):
-        """
-        If user wants to test different combinations of features ("splices"),
-        this Step returns a list of possible splicers set by user.
-        """
-        if self.options:
-            if self.params['include_all']:
-                test_columns = []
-                for group, columns in self.options.items():
-                    test_columns.extend(columns)
-                self.options.update({'all' : test_columns})
-            splicers = list(self.data.splice_options.keys())
-        else:
-            splicers = ['none']
-        return splicers
-
-    def splice(self):
+    def _prepare_splices(self):
+        for group, columns in self.options.items():
+            self.test_columns.extend(columns)
+        if self.params['include_all']:
+            self.options.update({'all' : self.test_columns})
         return self
 
-    def add_splice(self, splice, prefixes = [], columns = []):
+    def splice(self):
+        pass
+        return self
+
+    def add_splice(self, splice_label, prefixes = [], columns = []):
         """
         For the splicers in siMpLify, this step alows users to manually
         add a new splice group to the splicer dictionary.
         """
         temp_list = self.data.create_column_list(prefixes = prefixes,
                                                  cols = columns)
-        self.options.update({splice : temp_list})
+        self.options.update({splice_label : temp_list})
         return self
 
-    def fit(self, x, y):
-        if self.params['include_all']:
-            test_columns = []
-            for group, columns in self.options.items():
-                test_columns.extend(columns)
-            self.options.update({'all' : test_columns})
-        return self
-
-    def transform(self, x):
-        drop_list = [i for i in self.test_columns if i not in self.Step]
-        for col in drop_list:
-            if col in x.columns:
-                x.drop(col, axis = 'columns', inplace = True)
-        return x
+    def mix(self, data):
+        self._prepare_splices()
+        if self.name not in ['none', 'all']:
+            if self.verbose:
+                print('Testing', self.name, 'predictors')
+            splice = self.options[self.name]
+            drop_list = [i for i in self.test_columns if i not in splice]
+            for col in drop_list:
+                if col in data.x_train.columns:
+                    data.x_train.drop(col, axis = 'columns', inplace = True)
+                    data.x_test.drop(col, axis = 'columns', inplace = True)
+        return data

@@ -90,9 +90,10 @@ class Settings(object):
         if value in self.config:
             return self.config[value]
         else:
-            error_message = value + ' not found in settings dictionary'
-            raise KeyError(error_message)
-            return
+            return {}
+#            error_message = value + ' not found in settings dictionary'
+#            raise KeyError(error_message)
+#            return
 
     def __setitem__(self, section, nested_dict):
         if isinstance(section, str):
@@ -165,14 +166,15 @@ class Settings(object):
         else:
             return value
 
-    def localize(self, instance, sections):
+    def localize(self, instance, sections, override = False):
         """
         Stores the section or sections of the config dictionary in the passed
         class instance as attributes to that class instance.
         """
         for section in self._listify(sections):
             for key, value in self.config[section].items():
-                setattr(instance, key, value)
+                if not hasattr(instance, key) or override:
+                    setattr(instance, key, value)
         return
 
     def update(self, new_settings):

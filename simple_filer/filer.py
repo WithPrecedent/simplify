@@ -4,6 +4,7 @@ path structure based upon user options.
 """
 from dataclasses import dataclass
 import os
+import pandas as pd
 
 @dataclass
 class Filer(object):
@@ -93,3 +94,52 @@ class Filer(object):
             return os.path.join(folder, file_name)
         else:
             return folder
+
+    def load(self, import_folder = '', file_name = 'data', import_path = '',
+             file_type = 'csv', usecolumns = None, index = False,
+             encoding = 'windows-1252', message = None):
+        if message:
+            print(message)
+        if not import_path:
+            import_path = self.make_path(folder = import_folder,
+                                         file_name = file_name,
+                                         file_type = file_type)
+        if file_type == 'csv':
+            df = pd.read_csv(import_path,
+                             index_col = index,
+                             usecols = usecolumns,
+                             encoding = encoding,
+                             low_memory = False)
+
+        elif file_type == 'h5':
+            df = pd.read_hdf(import_path)
+        elif file_type == 'feather':
+            df = pd.read_feather(import_path,
+                                 nthreads = -1)
+        return df
+
+    def save(self, df, export_folder = '', file_name = 'data',
+             export_path = '', file_type = 'csv', index = False, header = True,
+             encoding = 'windows-1252', float_format = '%.4f',
+             boolean_out = True, message = None):
+        if message:
+            print(message)
+        if not export_path:
+            export_path = self.make_path(folder = export_folder,
+                                         file_name = file_name,
+                                         file_type = file_type)
+        if not boolean_out:
+            df.replace({True : 1, False : 0}, inplace = True)
+        if file_type == 'csv':
+            df.to_csv(export_path,
+                      encoding = encoding,
+                      index = index,
+                      header = header,
+                      float_format = float_format)
+        elif file_type == 'h5':
+            df.to_hdf(export_path)
+        elif file_type == 'feather':
+            if isinstance(df, pd.DataFrame):
+                df.reset_index(inplace = True)
+                df.to_feather(export_path)
+        return

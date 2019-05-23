@@ -18,7 +18,6 @@ class Encoder(Step):
 
     name : str = ''
     params : object = None
-    columns : object = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -33,16 +32,21 @@ class Encoder(Step):
                         'sum' : SumEncoder,
                         'target' : TargetEncoder}
         self.defaults = {}
-        self.runtime_params = {'cols' : self.columns}
-        self.initialize()
+        self.runtime_params = {}
         return self
 
-    def fit(self, x, y):
-        return self.algorithm.fit(x, y)
-
-    def transform(self, x):
-        x = self.algorithm.transform(x)
-        for column in self.columns:
-            if column in x.columns:
-                x[column] = x[column].astype(float, copy = False)
-        return x
+    def mix(self, data, columns = None):
+        if self.name != 'none':
+            if self.verbose:
+                print('Encoding categorical data with', self.name, 'algorithm')
+            if columns:
+                self.runtime_params.update({'cols' : columns})
+            self.initialize()
+            self.algorithm.fit(data.x, data.y)
+            data.x_train = self.algorithm.transform(
+                    data.x_train.reset_index(drop = True))
+            data.x_test = self.algorithm.transform(
+                    data.x_test.reset_index(drop = True))
+            data.x = self.algorithm.transform(
+                    data.x.reset_index(drop = True))
+        return data

@@ -26,7 +26,9 @@ cookbook = Cookbook(data = data, settings = settings)
 # file.
 cookbook.create()
 # Iterates through every recipe and exports plots from each recipe.
-cookbook.iterate()
+cookbook.bake()
+# Creates and exports a table of summary statistics from the dataframe.
+data.summarize(transpose = True)
 # Saves the recipes, results, and cookbook.
 cookbook.save_everything()
 # Outputs information about the best recipe.
