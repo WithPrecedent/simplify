@@ -31,17 +31,17 @@ The siMpLify package allows users to create a cookbook of dynamic recipes that m
 
 siMpLify divides the feature engineering and modeling process into eleven major steps that can be sequenced in different orders:
 
-    Scaler: converts numerical features into a common scale, using scikit-learn methods.
-    Splitter: divides data into train, test, and/or validation sets once or iteratively through k-folds cross-validation.
-    Encoder: converts categorical features into numerical ones, using category-encoders methods.
-    Interactor: converts selected categorical features into new polynomial features, using PolynomialEncoder from category-encoders or other mathmatical combinations.
-    Splicer: creates different subgroups of features to allow for easy comparison between them.
-    Sampler: synthetically resamples training data for imbalanced data, using imblearn methods, for use with models that struggle with imbalanced data.
-    Selector: selects features recursively or as one-shot based upon user criteria, using scikit-learn methods.
-    Custom: allows users to add any scikit-learn or siMpLify compatible method to be added into a recipe.
-    Model: implements machine learning algorithms, currently includes xgboost and scikit-learn methods. The user can opt to either test different hyperparameters for the models selected or a single set of hyperparameters. Hyperparameter earch methods currently include RandomizedSearchCV, GridSearchCV, and bayesian optimization through skopt.
-    Evaluator: tests the models using user-selected or default metrics and explainers from sklearn, shap, eli5, and lime.
-    Plotter: produces helpful graphical representations based upon the model selected and evaluator and explainers used, utilizing seaborn and matplotlib methods.
+* Scaler: converts numerical features into a common scale, using scikit-learn methods.
+* Splitter: divides data into train, test, and/or validation sets once or iteratively through k-folds cross-validation.
+* Encoder: converts categorical features into numerical ones, using category-encoders methods.
+* Interactor: converts selected categorical features into new polynomial features, using PolynomialEncoder from category-encoders or other mathmatical combinations.
+* Splicer: creates different subgroups of features to allow for easy comparison between them.
+* Sampler: synthetically resamples training data for imbalanced data, using imblearn methods, for use with models that struggle with imbalanced data.
+* Selector: selects features recursively or as one-shot based upon user criteria, using scikit-learn methods.
+* Custom: allows users to add any scikit-learn or siMpLify compatible method to be added into a recipe.
+* Model: implements machine learning algorithms, currently includes xgboost and scikit-learn methods. The user can opt to either test different hyperparameters for the models selected or a single set of hyperparameters. Hyperparameter earch methods currently include RandomizedSearchCV, GridSearchCV, and bayesian optimization through skopt.
+* Evaluator: tests the models using user-selected or default metrics and explainers from sklearn, shap, eli5, and lime.
+* Plotter: produces helpful graphical representations based upon the model selected and evaluator and explainers used, utilizing seaborn and matplotlib methods.
 
 Users can easily select to use some or all of the above steps in specific cases with one or more methods selected at each stage. The order is also largely dynamic so that steps can be rearranged based upon user choice.
 
@@ -102,33 +102,30 @@ The examples folder, from which the above settings are taken, currently shows ho
     from data import Data
     from settings import Settings
 
-    # Loads cancer data and convert from numpy arrays to pandas dataframe.
+    # Loads cancer data and converts from numpy arrays to pandas dataframe.
     cancer = load_breast_cancer()
     df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                       columns = np.append(cancer['feature_names'], ['target']))
-    # Loads settings file.
+
+    # Creates instances of Settings and Data and uses the custom method
+    # smart_fillna to intelligently replace empty cells.
     settings = Settings(file_path = 'cancer_settings.ini')
-    # Create instance of data with the cancer dataframe.
     data = Data(settings = settings, df = df)
-    # Converts label to boolean type - conversion from numpy arrays leaves all
-    # columns as float type.
     data.change_column_type(columns = ['target'], data_type = bool)
-    # Fills missing data with appropriate default values based on column type.
     data.smart_fillna()
-    # Creates instance of Cookbook.
+
+    # Instances Cookbook, creates list of recipes, and "bakes" all of those
+    # recipes.
     cookbook = Cookbook(data = data, settings = settings)
-    # Automatically creates list of recipes cookbook.recipes based upon settings
-    # file.
     cookbook.create()
-    # Iterates through every recipe and exports plots from each recipe.
     cookbook.bake()
-    # Creates and exports a table of summary statistics from the dataframe.
+
+    # Exports summary data, the best recipe, and other results. Prints to the
+    # console the basic outline of the best recipe (specific parameters are in
+    # the results_table.csv file)
     data.summarize(transpose = True)
-    # Saves the recipes, results, and cookbook.
     cookbook.save_everything()
-    # Outputs information about the best recipe.
     cookbook.print_best()
-    # Saves data file.
     data.save(file_name = 'cancer_df')
 
 That's it. From that, all possible recipes are created (four permutations exist in the above example). Each recipe gets its own folder within the results folder with relevant plots, a confusion matrix, and a classification report. A complete results file (results_table.csv) and summary statistics from the data (data_summary.csv) are stored in the results folder.
