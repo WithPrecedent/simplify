@@ -27,6 +27,7 @@ siMpLify provides a cleaner, universal set of tools to access the many useful me
 * [matplotlib](https://github.com/matplotlib/matplotlib)
 * [eli5](https://github.com/TeamHG-Memex/eli5)
 * [lime](https://github.com/marcotcr/lime)
+* [scikitplot](https://github.com/reiinakano/scikit-plot)
 
 The siMpLify package allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling ingredients based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
 
