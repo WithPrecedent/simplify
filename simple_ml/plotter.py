@@ -3,6 +3,8 @@ Class for visualizing data analysis based upon the nature of the machine
 learning model used in the siMpLify package.
 """
 from dataclasses import dataclass
+from functools import wraps
+from inspect import getfullargspec, signature
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -23,30 +25,17 @@ class Plotter(Step):
         self.settings.localize(instance = self, sections = ['plotter_params'])
         sns.set_style(style = self.seaborn_style)
         self._set_options()
-        self._check_plots()
+        self._set_plots()
         return self
-
-    def _check_plots(self):
-        if self.plotter in ['default']:
-            self.plots = self.default_plots
-        return self
-
-    def _check_length(self, df, max_display):
-        if max_display > len(df.columns):
-            max_display = len(df.columns)
-        return max_display
 
     def _set_options(self):
         self.options = {'calibration' : self.calibration,
                         'cluster_tree' : self.cluster_tree,
                         'confusion' : self.confusion,
                         'cumulative_gain' : self.cumulative,
-                        'dependency' : self.dependency,
                         'elbow' : self.elbow_curve,
-                        'force_plot' : self.force_plot,
                         'heat_map' : self.heat_map,
                         'histogram' : self.histogram,
-                        'interactions' : self.interactions,
                         'kde' : self.kde_plot,
                         'ks_statistic' : self.ks_stat,
                         'lift' : self.lift_curve,
@@ -56,145 +45,205 @@ class Plotter(Step):
                         'pr_curve' : self.pr_plot,
                         'residuals' : self.residuals,
                         'roc_curve' : self.roc_plot,
-                        'silhouette' : self.silhouette,
-                        'summary' : self.summary}
+                        'shap_dependency' : self.shap_dependency,
+                        'shap_force' : self.shap_force_plot,
+                        'shap_heat_map' : self.shap_heat_map,
+                        'shap_interactions' : self.shap_interactions,
+                        'shap_summary' : self.shap_summary,
+                        'silhouette' : self.silhouette}
         if self.model_type in ['classifier']:
-            self.default_plots = ['confusion', 'heat_map',
-                                  'interactions', 'ks_statistic', 'pr_curve',
-                                  'roc_curve', 'summary']
+            self.default_plots = ['confusion', 'heat_map','ks_statistic',
+                                  'pr_curve', 'roc_curve']
         elif self.model_type in ['regressor']:
-            self.default_plots = ['heat_map', 'interactions', 'linear',
-                                  'residuals', 'summary']
+            self.default_plots = ['heat_map', 'linear', 'residuals']
         elif self.model_type in ['clusterer']:
             self.default_plots = ['cluster_tree', 'elbow', 'silhouette']
         return self
 
+    def _check_length(self, df, max_display):
+        if max_display > len(df.columns):
+            max_display = len(df.columns)
+        return max_display
 
 #    def _add_dependency_plots(self):
 #        if self.dependency_plots in ['splices']:
 #
 #        return self
 
-    def calibration(self, file_name = 'calibration.png', probs_list = None,
-                    model_list = None):
-        if model_list:
-            skplt.metrics.plot_calibration_curve(
-                    self.y, probs_list, model_list)
-        else:
-            skplt.metrics.plot_calibration_curve(
-                    self.y, self.recipe.evaluator.predicted_probs)
+    def _set_plots(self):
+        if self.plotter in ['default']:
+            self.plots = self.default_plots
+        return self
+
+    def set_defaults(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            argspec = getfullargspec(func)
+            test_vars = ['recipe', 'x', 'y', 'predicted_probs', 'estimator']
+            unpassed_args = argspec.args[len(args):]
+            sig = dict(signature(func).bind(test_vars).arguments)
+            if 'recipe' in unpassed_args:
+                for test_var in test_vars:
+                    if test_var in argspec.args and test_var in unpassed_args:
+                        kwargs.update({test_var : getattr(self, test_var)})
+            elif 'recipe' in argspec.args:
+                kwargs.update({'recipe' : sig['recipe']})
+                x, y = sig['recipe'].data[self.data_to_plot]
+                if 'x' in argspec.args and 'x' in unpassed_args:
+                    kwargs.update({'x' : x})
+                if 'y' in argspec.args and 'y' in unpassed_args:
+                    kwargs.update({'y' : y})
+                if ('predicted_probs' in argspec.args
+                        and 'predicted_probs' in unpassed_args):
+                    new_param = getattr(sig['recipe'],
+                                        'evalutor.predicted_probs')
+                    kwargs.update({'predicted_probs' : new_param})
+                if ('estimator' in argspec.args
+                        and 'predicted_probs' in unpassed_args):
+                    new_param = getattr(sig['recipe'], 'model.algorithm')
+                    kwargs.update({'estimator' : new_param})
+            return func(self, *args, **kwargs)
+        return wrapper
+
+    @set_defaults
+    def calibration(self, recipe = None, y = None, probs_list = None,
+                    model_list = None, file_name = 'calibration.png'):
+        skplt.metrics.plot_calibration_curve(y, probs_list, model_list)
         self.save(file_name)
         return self
 
-    def cluster_tree(self, file_name = 'cluster_tree.png', **kwargs):
-        sns.clustermap(self.x, **kwargs)
+    @set_defaults
+    def cluster_tree(self, recipe = None, x = None,
+                     file_name = 'cluster_tree.png', **kwargs):
+        sns.clustermap(x, **kwargs)
         self.save(file_name)
         return self
 
-    def confusion(self, file_name = 'confusion_matrix.png'):
-
-        return self
-
-    def cumulative(self, file_name = 'cumulative_gain.png'):
-        skplt.metrics.plot_cumulative_gain(
-                self.y, self.recipe.evaluator.predicted_probs)
+    @set_defaults
+    def confusion(self, recipe = None, file_name = 'confusion_matrix.png'):
+        sns.heatmap(recipe.evaluator.confusion, annot = True)
         self.save(file_name)
         return self
 
-    def dependency(self, model, var1, var2 = None, x = None,
-                   file_name = 'shap_dependency.png'):
+    @set_defaults
+    def cumulative(self, recipe = None, y = None, predicted_probs = None,
+                   file_name = 'cumulative_gain.png'):
+        skplt.metrics.plot_cumulative_gain(y, predicted_probs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def elbow_curve(self, recipe = None, x = None, estimator = None,
+                    file_name = 'elbow_curve.png'):
+        skplt.metrics.plot_elbow_curve(estimator, x)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def histogram(self, recipe = None, x = None, feature = None,
+                  file_name = 'histogram.png', **kwargs):
+        sns.distplot(x[feature], feature, **kwargs)
+        return self
+
+    @set_defaults
+    def heat_map(self, recipe = None, x = None, file_name = 'heat_map.png',
+                 **kwargs):
+        sns.heatmap(x, **kwargs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def kde_plot(self, recipe = None, x = None, file_name = 'kde_plot.png',
+                 **kwargs):
+        sns.kdeplot(x, shade = True, **kwargs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def ks_stat(self, recipe = None, y = None, predicted_probs = None,
+                file_name = 'ks_stat.png'):
+        print(predicted_probs)
+        skplt.metrics.plot_ks_statistic(y, predicted_probs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def lift_curve(self, recipe = None, y = None, predicted_probs = None,
+                   file_name = 'lift_curve.png'):
+        skplt.metrics.plot_lift_curve(y, predicted_probs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def linear_regress(self, recipe = None, x = None, y = None,
+                       file_name = 'linear_regression.png', **kwargs):
+        sns.regplot(x, y, **kwargs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def logistic_regress(self, recipe = None, x = None, y = None,
+                         file_name = 'logit.png', **kwargs):
+        sns.regplot(x, y, logistic = True, n_boot = 500, y_jitter = .03,
+                    **kwargs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def pair_plot(self, recipe = None, x = None, features = None,
+                  file_name = 'pair_plot.png', **kwargs):
+        sns.pairplot(x, vars = features, **kwargs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def pr_plot(self, recipe = None, y = None, predicted_probs = None,
+                file_name = 'pr_curve.png'):
+        skplt.metrics.plot_precision_recall_curve(y, predicted_probs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def residuals(self, recipe = None, x = None, y = None,
+                  file_name = 'residuals.png', **kwargs):
+        sns.residplot(x, y, **kwargs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def roc_plot(self, recipe = None, y = None, predicted_probs = None,
+                 file_name = 'roc_curve.png'):
+        skplt.metrics.plot_roc(y, predicted_probs)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def shap_dependency(self, recipe = None, x = None, var1 = None,
+                        var2 = None, file_name = 'shap_dependency.png'):
         if var2:
-            dependence_plot(var1, self.shap_values, x,
+            dependence_plot(var1, recipe.evaluator.shap_values, x,
                             interaction_index = 'var2', show = False,
                             matplotlib = True)
         else:
-            dependence_plot(var1, self.shap_values, x, show = False,
-                            matplotlib = True)
+            dependence_plot(var1, recipe.evaluator.shap_values, x,
+                            show = False, matplotlib = True)
         self.save(file_name)
         return self
 
-    def elbow_curve(self, file_name = 'elbow_curve.png'):
-        skplt.metrics.plot_elbow_curve(self.recipe.model.algorithm, self.x)
+    @set_defaults
+    def shap_force_plot(self, recipe = None, x = None,
+                        file_name = 'shap_force_plot.png'):
+        force_plot(recipe.evaluator.explainer.expected_value,
+                   recipe.evaluator.shap_values, x, show = False,
+                   matplotlib = True)
         self.save(file_name)
         return self
 
-    def force_plot(self, file_name = 'force_plot.png'):
-        force_plot(self.evaluator.explainer.expected_value, self.shap_values,
-                   self.x, show = False, matplotlib = True)
-        self.save(file_name)
-        return self
-
-    def histogram(self, feature, file_name = 'histogram.png', **kwargs):
-        sns.distplot(self.x[feature], feature, **kwargs)
-        return self
-
-    def heat_map(self, file_name = 'heat_map.png', **kwargs):
-        sns.heatmap(self.x, **kwargs)
-        self.save(file_name)
-        return self
-
-    def interactions(self, file_name = 'interactions.png',  max_display = 0):
-        if max_display == 0:
-            max_display = self.interactions_display
-        max_display = self._check_length(self.x, max_display)
-        summary_plot(self.evaluator.shap_interactions, self.x,
-                     max_display = max_display, show = False)
-        self.save(file_name)
-        return self
-
-    def kde_plot(self, file_name = 'kde_plot.png', **kwargs):
-        sns.kdeplot(self.x, shade = True, **kwargs)
-        self.save(file_name)
-        return self
-
-    def ks_stat(self, file_name = 'ks_stat.png'):
-        skplt.metrics.plot_ks_statistic(
-                self.y, self.recipe.evaluator.predicted_probs)
-        self.save(file_name)
-        return self
-
-    def lift_curve(self, file_name = 'lift_curve.png'):
-        skplt.metrics.plot_lift_curve(
-                self.y, self.recipe.evaluator.predicted_probs)
-        self.save(file_name)
-        return self
-
-    def linear_regress(self, file_name = 'linear_regression.png', **kwargs):
-        sns.regplot(self.x, self.y, **kwargs)
-        self.save(file_name)
-        return self
-
-    def logistic_regress(self, file_name = 'logit.png', **kwargs):
-        sns.regplot(self.x, self.y, logistic = True, n_boot = 500,
-                    y_jitter = .03, **kwargs)
-        self.save(file_name)
-        return self
-
-    def pair_plot(self, features, file_name = 'pair_plot.png', **kwargs):
-        sns.pairplot(self.x, vars = features, **kwargs)
-        self.save(file_name)
-        return self
-
-    def pr_plot(self, file_name = 'pr_curve.png'):
-        skplt.metrics.plot_precision_recall_curve(
-                self.y, self.recipe.evaluator.predicted_probs)
-        self.save(file_name)
-        return self
-
-    def residuals(self, file_name = 'residuals.png', **kwargs):
-        sns.residplot(self.x, self.y, **kwargs)
-        self.save(file_name)
-        return self
-
-    def roc_plot(self, file_name = 'roc_curve.png'):
-        skplt.metrics.plot_roc(
-                self.y, self.recipe.evaluator.predicted_probs)
-        self.save(file_name)
-        return self
-
-    def shap_heat_map(self, file_name = 'shap_heat_map.png', max_display = 10):
-        max_display = self._check_length(self.x, max_display)
-        tmp = np.abs(self.evaluator.shap_interactions).sum(0)
+    @set_defaults
+    def shap_heat_map(self, recipe = None, x = None,
+                      file_name = 'shap_heat_map.png', max_display = 10):
+        max_display = self._check_length(x, max_display)
+        tmp = np.abs(recipe.evaluator.shap_interactions).sum(0)
         for i in range(tmp.shape[0]):
             tmp[i, i] = 0
         inds = np.argsort(-tmp.sum(0))[:30]
@@ -202,30 +251,43 @@ class Plotter(Step):
         plt.figure(figsize = (max_display, max_display))
         plt.imshow(tmp2)
         plt.yticks(range(tmp2.shape[0]),
-                   self.x.columns[inds],
+                   x.columns[inds],
                    rotation = 50.4,
                    horizontalalignment = 'right')
         plt.xticks(range(tmp2.shape[0]),
-                   self.x.columns[inds],
+                   x.columns[inds],
                    rotation = 50.4,
                    horizontalalignment = 'left')
         plt.gca().xaxis.tick_top()
         self.save(file_name)
         return self
 
-    def silhouette(self, file_name = 'silhouette.png'):
-        skplt.metrics.plot_silhouette(
-                self.x, self.recipe.model.algorithm.labels_)
+    @set_defaults
+    def shap_interactions(self, recipe = None, x = None,
+                          file_name = 'shap_interactions.png',
+                          max_display = 0):
+        if max_display == 0:
+            max_display = self.interactions_display
+        max_display = self._check_length(x, max_display)
+        summary_plot(recipe.evaluator.shap_interactions, x,
+                     max_display = max_display, show = False)
         self.save(file_name)
         return self
 
-    def summary(self, file_name = 'shap_summary.png', max_display = 0):
+    @set_defaults
+    def shap_summary(self, recipe = None, x = None,
+                     file_name = 'shap_summary.png', max_display = 0):
         if max_display == 0:
             max_display = self.summary_display
-        summary_plot(self.evaluator.shap_values,
-                     self.x,
-                     max_display = max_display,
-                     show = False)
+        summary_plot(recipe.evaluator.shap_values, x,
+                     max_display = max_display, show = False)
+        self.save(file_name)
+        return self
+
+    @set_defaults
+    def silhouette(self, recipe = None, estimator = None, x = None,
+                   file_name = 'silhouette.png'):
+        skplt.metrics.plot_silhouette(x, estimator.labels_)
         self.save(file_name)
         return self
 
@@ -239,12 +301,21 @@ class Plotter(Step):
         plt.close()
         return self
 
-    def mix(self, recipe, evaluator):
+    def mix(self, recipe, plot_list = None):
         if self.verbose:
             print('Creating and exporting visuals')
         self.recipe = recipe
-        self.evaluator = evaluator
+        self.estimator = self.recipe.model.algorithm
+        if hasattr(self.recipe.evaluator, 'predicted_probs'):
+            self.predicted_probs = self.recipe.evaluator.predicted_probs
+        else:
+            self.predicted_probs = None
         self.x, self.y = self.recipe.data[self.data_to_plot]
+        if ('shap' in self.settings['evaluator_params']['explainers']
+            and self.name == 'default'):
+            self.plots.extend(['shap_heat_map', 'shap_summary'])
+            if self.recipe.evaluator.shap_method_type == 'tree':
+                self.plots.append('shap_interactions')
 #        if self.dependency_plots != 'none':
 #            self._add_dependency_plots()
         for plot in self.plots:

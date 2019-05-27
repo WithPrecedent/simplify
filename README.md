@@ -36,7 +36,7 @@ siMpLify divides the feature engineering and modeling process into eleven major 
 * Scaler: converts numerical features into a common scale, using scikit-learn methods.
 * Splitter: divides data into train, test, and/or validation sets once or iteratively through k-folds cross-validation.
 * Encoder: converts categorical features into numerical ones, using category-encoders methods.
-* Interactor: converts selected categorical features into new polynomial features, using PolynomialEncoder from category-encoders or other mathmatical combinations.
+* Interactor: converts selected features into new polynomial features, using PolynomialEncoder from category-encoders or other mathmatical combinations.
 * Splicer: creates different subgroups of features to allow for easy comparison between them.
 * Sampler: synthetically resamples training data for imbalanced data, using imblearn methods, for use with models that struggle with imbalanced data.
 * Selector: selects features recursively or as one-shot based upon user criteria, using scikit-learn methods.

@@ -11,7 +11,8 @@ dependencies:
 - dataclasses
 - eli5
 - git
-- imbalanced-learn 
+- imbalanced-learn
+- lime
 - matplotlib
 - more-itertools
 - numpy
@@ -19,6 +20,7 @@ dependencies:
 - pip:
     - xgboost
 - scikit-learn
+- scikitplot
 - scipy
 - seaborn
 - shap

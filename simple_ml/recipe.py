@@ -97,8 +97,7 @@ class Recipe(object):
         return self
 
     def _plotter(self):
-        self.plotter.mix(recipe = self,
-                         evaluator = self.evaluator)
+        self.plotter.mix(recipe = self)
         return self
 
     def load(self, import_path = None):

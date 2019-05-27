@@ -29,6 +29,23 @@ class Evaluator(Step):
         self.explainer_options = {'shap' : self._shap_explainer,
                                   'eli5' : self._eli5_explainer,
                                   'lime' : self._lime_explainer}
+        self.shap_models = {'catboost' : 'tree',
+                            'decision_tree' : 'tree',
+                            'lasso' : 'linear',
+                            'lasso_lars' : 'linear',
+                            'light_gbm' : 'tree',
+                            'logit' : 'linear',
+                            'ols' : 'linear',
+                            'random_forest' : 'tree',
+                            'ridge' : 'linear',
+                            'svm_linear' : 'linear',
+                            'tensor_flow' : 'deep',
+                            'torch' : 'deep',
+                            'xgb' : 'tree'}
+        self.shap_options = {'deep' : DeepExplainer,
+                             'kernel' : KernelExplainer,
+                             'linear' : LinearExplainer,
+                             'tree' : TreeExplainer}
         return self
 
     @staticmethod
@@ -137,35 +154,31 @@ class Evaluator(Step):
         return self
 
     def _shap_explainer(self, recipe):
-        if self.model_type in ['classifier']:
-            if recipe.model.name in ['xgb', 'random_forest']:
-                self.method = TreeExplainer
-            elif recipe.model.name in ['logit', 'svm_linear']:
-                self.method = LinearExplainer
-            elif recipe.model.name in ['torch', 'tensor_flow']:
-                self.method = DeepExplainer
-            else:
-                self.method = KernelExplainer
-        elif self.model_type in ['regressor']:
-            if recipe.model.name in ['torch', 'tensor_flow']:
-                self.method = DeepExplainer
-            else:
-                self.method = LinearExplainer
+        if recipe.model.name in self.shap_models:
+            self.shap_method_type = self.shap_models[recipe.model.name]
+            self.shap_method = self.shap_options[self.shap_method_type]
+        elif 'baseline_' in recipe.model.name:
+            self.shap_method_type = 'none'
         else:
-            self.method = KernelExplainer
+            self.shap_method_type = 'kernel'
+            self.shap_method = KernelExplainer
         data_to_explain = {'train' : recipe.data.x_train,
                            'test' : recipe.data.x_test,
                            'full' : recipe.data.x}
         df = data_to_explain[self.data_to_explain]
-        if not 'baseline_' in recipe.model.name:
+        if self.shap_method_type != 'none':
 #            recipe.model.algorithm.fit(recipe.data.x_train,
 #                                       recipe.data.y_train)
-            self.explainer = self.method(
+            self.shap_explainer = self.shap_method(
                     model = recipe.model.algorithm,
                     data = recipe.data.x_train)
-            self.shap_values = self.explainer.shap_values(df)
-            self.shap_interactions = self.explainer.shap_interaction_values(
-                            pd.DataFrame(df, columns = df.columns))
+            self.shap_values = self.shap_explainer.shap_values(df)
+            if self.shap_method_type == 'tree':
+                self.shap_interactions = (
+                        self.shap_explainer.shap_interaction_values(
+                                pd.DataFrame(df, columns = df.columns)))
+            else:
+                self.shap_interactions = None
         return self
 
     def _eli5_explainer(self, recipe):
