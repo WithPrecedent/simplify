@@ -3,9 +3,7 @@ import numpy as np
 
 from sklearn.datasets import load_breast_cancer
 
-from cookbook import Cookbook
-from data import Data
-from settings import Settings
+from simplify import Cookbook, Data, Settings
 
 # Loads cancer data and convert from numpy arrays to pandas dataframe.
 cancer = load_breast_cancer()

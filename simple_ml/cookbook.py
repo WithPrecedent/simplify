@@ -101,7 +101,6 @@ import warnings
 from custom import Custom
 from encoder import Encoder
 from evaluator import Evaluator
-from filer import Filer
 from interactor import Interactor
 from model import Model
 from plotter import Plotter
@@ -110,10 +109,12 @@ from results import Results
 from sampler import Sampler
 from scaler import Scaler
 from selector import Selector
+from simple_filer.filer import Filer
+from simple_settings.settings import Settings
 from splicer import Splicer
 from splitter import Splitter
 from step import Step
-from settings import Settings
+
 
 
 @dataclass

@@ -121,7 +121,7 @@ class Plotter(Step):
 
     @set_defaults
     def confusion(self, recipe = None, file_name = 'confusion_matrix.png'):
-        sns.heatmap(recipe.evaluator.confusion, annot = True)
+        sns.heatmap(recipe.evaluator.confusion, annot = True, fmt = 'g')
         self.save(file_name)
         return self
 
@@ -140,16 +140,16 @@ class Plotter(Step):
         return self
 
     @set_defaults
-    def histogram(self, recipe = None, x = None, feature = None,
-                  file_name = 'histogram.png', **kwargs):
-        sns.distplot(x[feature], feature, **kwargs)
+    def heat_map(self, recipe = None, x = None, file_name = 'heat_map.png',
+                 **kwargs):
+        sns.heatmap(x, fmt = '.3%', **kwargs)
+        self.save(file_name)
         return self
 
     @set_defaults
-    def heat_map(self, recipe = None, x = None, file_name = 'heat_map.png',
-                 **kwargs):
-        sns.heatmap(x, **kwargs)
-        self.save(file_name)
+    def histogram(self, recipe = None, x = None, feature = None,
+                  file_name = 'histogram.png', **kwargs):
+        sns.distplot(x[feature], feature, **kwargs)
         return self
 
     @set_defaults
@@ -162,7 +162,6 @@ class Plotter(Step):
     @set_defaults
     def ks_stat(self, recipe = None, y = None, predicted_probs = None,
                 file_name = 'ks_stat.png'):
-        print(predicted_probs)
         skplt.metrics.plot_ks_statistic(y, predicted_probs)
         self.save(file_name)
         return self

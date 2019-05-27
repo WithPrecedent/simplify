@@ -32,12 +32,14 @@ the quick_start option is selected, a Filer object must be passed as well.
 import csv
 from datetime import timedelta
 from dataclasses import dataclass
+from functools import wraps
+from inspect import getfullargspec
+from more_itertools import unique_everseen
 import numpy as np
 import os
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from  more_itertools import unique_everseen
 
 @dataclass
 class Data(object):
@@ -202,22 +204,25 @@ class Data(object):
         delattr(self, name)
         return self
 
-    def _check_df(self, df):
-        if isinstance(df, pd.DataFrame):
-            return df
-        elif not df:
-            return getattr(self, self.default_df)
-        else:
-            return self[df]
+    def check_df(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            argspec = getfullargspec(func)
+            unpassed_args = argspec.args[len(args):]
+            if 'df' in argspec.args and 'df' in unpassed_args:
+                kwargs.update({'df' : getattr(self, self.default_df)})
+            return func(self, *args, **kwargs)
+        return wrapper
 
-    def _check_columns(self, df, columns):
+    @check_df
+    def _check_columns(self, df = None, columns = None):
         if not columns:
             return df.columns
         else:
             return columns
 
+    @check_df
     def _crosscheck_columns(self, df = None):
-        df = self._check_df(df = df)
         for data_type, column_list in self.column_type_dicts.items():
             if column_list:
                 for column in column_list:
@@ -249,17 +254,18 @@ class Data(object):
         else:
             return [variable]
 
+    @check_df
     def apply(self, df = None, func = None, **kwargs):
         """
         Allows users to pass a function to data which will be applied to the
         passed dataframe (or uses df if none is passed).
         """
-        df = self._check_df(df = df)
+
         df = func(df, **kwargs)
         return self
 
+    @check_df
     def auto_column_types(self, df = None):
-        df = self._check_df(df = df)
         self.column_dict = {}
         for data_type, column_list in self.column_type_dicts.items():
             if not data_type in ['interactor', 'scaler', 'encoder']:
@@ -274,20 +280,20 @@ class Data(object):
         return self.df_options.update(
                 {group_name : self.settings._listify(df_list)})
 
+    @check_df
     def add_unique_index(self, df = None, column = 'index_universal',
                          make_index = False):
-        df = self._check_df(df = df)
         df[column] = range(1, len(df.index) + 1)
         if make_index:
             df.set_index(column, inplace = True)
         return self
 
+    @check_df
     def create_column_list(self, df = None, columns = None, prefixes = None):
         """
         Dynamically creates a new column list from a list of columns and/or
         lists of prefixes.
         """
-        df = self._check_df(df = df)
         if prefixes:
             temp_list = []
             prefixes_list = []
@@ -303,9 +309,9 @@ class Data(object):
             column_list = prefixes_list
         return column_list
 
+    @check_df
     def change_column_type(self, df = None, columns = None, prefixes = None,
                            data_type = str):
-        df = self._check_df(df = df)
         columns = self.create_column_list(prefixes = prefixes,
                                           columns = columns)
         self.column_dict.update(dict.fromkeys(columns, data_type))
@@ -317,13 +323,13 @@ class Data(object):
                         self._remove_from_column_list(column_list, columns))
         return self
 
+    @check_df
     def downcast(self, df = None, columns = None):
         """
         Method to decrease memory usage by downcasting datatypes. For
         numerical datatypes, the method attempts to cast the data to unsigned
         integers if possible.
         """
-        df = self._check_df(df = df)
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
             if column in df.columns:
@@ -354,13 +360,13 @@ class Data(object):
                 raise KeyError(error)
         return self
 
+    @check_df
     def auto_categorize(self, df = None, columns = None, threshold = 10):
         """
         Automatically assesses each column to determine if it has less than
         threshold unique values and is not boolean. If so, that column is
         converted to categorical type.
         """
-        df = self._check_df(df = df)
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
             if column in df.columns:
@@ -372,6 +378,7 @@ class Data(object):
                 raise KeyError(error)
         return self
 
+    @check_df
     def smart_fillna(self, df = None, columns = None):
         """
         Fills na values in dataframe to defaults based upon the datatype listed
@@ -380,7 +387,6 @@ class Data(object):
         inferred by pandas. Because their is no good default category, the
         method uses an empty string ('').
         """
-        df = self._check_df(df = df)
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
             if column in df.columns:
@@ -391,13 +397,13 @@ class Data(object):
                 raise KeyError(error)
         return self
 
+    @check_df
     def convert_rare(self, df = None, columns = None, threshold = 0):
         """
         The method converts categories rarely appearing within categorical
         data columns to empty string if they appear below the passed threshold.
         Threshold is defined as the percentage of total rows.
         """
-        df = self._check_df(df = df)
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
             if column in df.columns:
@@ -412,6 +418,7 @@ class Data(object):
         df.drop('value_freq', axis = 'columns', inplace = True)
         return self
 
+    @check_df
     def drop_infrequent(self, df = None, columns = None, threshold = 0):
         """
         This method drops boolean columns that rarely have True. This differs
@@ -422,7 +429,6 @@ class Data(object):
         not the typical variance formulas).
         """
         cols = []
-        df = self._check_df(df = df)
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
             if column in df.columns:
@@ -435,6 +441,7 @@ class Data(object):
         self.drop_columns(columns = cols)
         return self
 
+    @check_df
     def decorrelate(self, df = None, threshold = 0.95):
         """
         Drops all but one column from highly correlated groups of columns.
@@ -442,7 +449,6 @@ class Data(object):
         include any datatype accepted by .corr(). If columns is set to 'all',
         all columns in the dataframe are tested.
         """
-        df = self._check_df(df = df)
         corr_matrix = df.corr().abs()
         upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape),
                                           k = 1).astype(np.bool))
@@ -450,26 +456,26 @@ class Data(object):
         self.drop_columns(columns = columns)
         return self
 
+    @check_df
     def drop_columns(self, df = None, columns = None, prefixes = None):
         """
         Drops list of columns and columns with prefixes listed. In addition,
         any dropped columns are stored in the cumulative dropped_columns
         list.
         """
-        df = self._check_df(df = df)
         columns = self.create_column_list(columns = columns,
                                           prefixes = prefixes)
         df.drop(columns, axis = 'columns', inplace = True)
         self.dropped_columns.extend(columns)
         return self
 
+    @check_df
     def reshape_long(self, df = None, stubs = None, id_col = '', new_col = '',
                      sep = ''):
         """
         A simple wrapper method for pandas wide_to_long method using more
         intuitive parameter names than 'i' and 'j'.
         """
-        df = self._check_df(df = df)
         df = (pd.wide_to_long(df,
                               stubnames = stubs,
                               i = id_col,
@@ -477,28 +483,29 @@ class Data(object):
                               sep = sep).reset_index())
         return self
 
+    @check_df
     def reshape_wide(self, df = None, df_index = '', columns = None,
                      values = None):
         """
         A simple wrapper method for pandas pivot method named as corresponding
         method to reshape_long.
         """
-        df = self._check_df(df = df)
         df = (df.pivot(index = df_index,
                        columns = columns,
                        values = values).reset_index())
         return self
 
+    @check_df
     def split_xy(self, df = None, label = 'label'):
         """
         Splits data into x and y based upon the label passed.
         """
-        df = self._check_df(df = df)
         self.x = df.drop(label, axis = 'columns')
         self.y = df[label]
         self._crosscheck_columns(df = self.x)
         return self
 
+    @check_df
     def summarize(self, df = None, export_path = '', export_summary = True,
                   transpose = False):
         """
@@ -507,7 +514,6 @@ class Data(object):
         If an export_path is passed, the summary table is automatically saved
         to disc.
         """
-        df = self._check_df(df = df)
         summary_columns = ['variable', 'data_type', 'count', 'min', 'q1',
                            'median', 'q3', 'max', 'mad', 'mean', 'stan_dev',
                            'mode', 'sum']
@@ -590,6 +596,7 @@ class Data(object):
         else:
             return df
 
+    @check_df
     def save(self, df = None, export_folder = '', file_name = 'data',
              export_path = '', file_type = 'csv', index = False, header = True,
              encoding = 'windows-1252', float_format = '%.4f',
@@ -598,7 +605,6 @@ class Data(object):
         Exports pandas dataframes to different file formats an encoding of
         boolean variables as True/False or 1/0.
         """
-        df = self._check_df(df = df)
         if not export_path:
             if not export_folder:
                 export_folder = self.filer.data
