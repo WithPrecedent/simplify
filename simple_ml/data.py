@@ -76,6 +76,7 @@ class Data(object):
                                   float : [],
                                   int : [],
                                   object : [],
+                                  str : [],
                                   CategoricalDtype : [],
                                   list : [],
                                   np.datetime64 : [],
@@ -87,6 +88,7 @@ class Data(object):
                                float : 0.0,
                                int : 0,
                                object : '',
+                               str : '',
                                CategoricalDtype : '',
                                list : [],
                                np.datetime64 : 1/1/1990,
@@ -96,7 +98,8 @@ class Data(object):
                                'encoder' : ''}
         self.custom_columns = []
         self.dropped_columns = []
-        self.auto_column_types()
+        if self.quick_start:
+            self.auto_column_types()
         return self
 
     @property
@@ -185,6 +188,16 @@ class Data(object):
     def val(self):
         return self.x_val, self.y_val
 
+    def check_df(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            argspec = getfullargspec(func)
+            unpassed_args = argspec.args[len(args):]
+            if 'df' in argspec.args and 'df' in unpassed_args:
+                kwargs.update({'df' : getattr(self, self.default_df)})
+            return func(self, *args, **kwargs)
+        return wrapper
+
     def __str__(self):
         return getattr(self, self.default_df)
 
@@ -203,16 +216,6 @@ class Data(object):
     def __delitem__(self, name):
         delattr(self, name)
         return self
-
-    def check_df(func):
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            argspec = getfullargspec(func)
-            unpassed_args = argspec.args[len(args):]
-            if 'df' in argspec.args and 'df' in unpassed_args:
-                kwargs.update({'df' : getattr(self, self.default_df)})
-            return func(self, *args, **kwargs)
-        return wrapper
 
     @check_df
     def _check_columns(self, df = None, columns = None):
@@ -254,6 +257,18 @@ class Data(object):
         else:
             return [variable]
 
+    def add_df_group(self, group_name, df_list):
+        return self.df_options.update(
+                {group_name : self.settings._listify(df_list)})
+
+    @check_df
+    def add_unique_index(self, df = None, column = 'index_universal',
+                         make_index = False):
+        df[column] = range(1, len(df.index) + 1)
+        if make_index:
+            df.set_index(column, inplace = True)
+        return self
+
     @check_df
     def apply(self, df = None, func = None, **kwargs):
         """
@@ -276,16 +291,22 @@ class Data(object):
                 self.column_dict.update(dict.fromkeys(columns, data_type))
         return self
 
-    def add_df_group(self, group_name, df_list):
-        return self.df_options.update(
-                {group_name : self.settings._listify(df_list)})
-
     @check_df
-    def add_unique_index(self, df = None, column = 'index_universal',
-                         make_index = False):
-        df[column] = range(1, len(df.index) + 1)
-        if make_index:
-            df.set_index(column, inplace = True)
+    def auto_categorize(self, df = None, columns = None, threshold = 10):
+        """
+        Automatically assesses each column to determine if it has less than
+        threshold unique values and is not boolean. If so, that column is
+        converted to categorical type.
+        """
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                if not column in self.column_type_dicts[bool]:
+                    if df[column].nunique() < threshold:
+                        df[column] = df[column].astype('category')
+            else:
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
         return self
 
     @check_df
@@ -321,6 +342,42 @@ class Data(object):
             else:
                 self.column_type_dicts[d_type] = (
                         self._remove_from_column_list(column_list, columns))
+        return self
+
+    @check_df
+    def convert_rare(self, df = None, columns = None, threshold = 0):
+        """
+        The method converts categories rarely appearing within categorical
+        data columns to empty string if they appear below the passed threshold.
+        Threshold is defined as the percentage of total rows.
+        """
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                default_value = self.default_values(CategoricalDtype)
+                df['value_freq'] = (df[column].value_counts()
+                                    / len(df[column]))
+                df[column] = np.where(df['value_freq'] <= threshold,
+                                      default_value, df[column])
+            else:
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
+        df.drop('value_freq', axis = 'columns', inplace = True)
+        return self
+
+    @check_df
+    def decorrelate(self, df = None, threshold = 0.95):
+        """
+        Drops all but one column from highly correlated groups of columns.
+        Threshold is based upon the .corr() method in pandas. columns can
+        include any datatype accepted by .corr(). If columns is set to 'all',
+        all columns in the dataframe are tested.
+        """
+        corr_matrix = df.corr().abs()
+        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape),
+                                          k = 1).astype(np.bool))
+        columns = [col for col in upper.columns if any(upper[col] > threshold)]
+        self.drop_columns(columns = columns)
         return self
 
     @check_df
@@ -361,61 +418,16 @@ class Data(object):
         return self
 
     @check_df
-    def auto_categorize(self, df = None, columns = None, threshold = 10):
+    def drop_columns(self, df = None, columns = None, prefixes = None):
         """
-        Automatically assesses each column to determine if it has less than
-        threshold unique values and is not boolean. If so, that column is
-        converted to categorical type.
+        Drops list of columns and columns with prefixes listed. In addition,
+        any dropped columns are stored in the cumulative dropped_columns
+        list.
         """
-        columns = self._check_columns(df = df, columns = columns)
-        for column in columns:
-            if column in df.columns:
-                if not column in self.column_type_dicts[bool]:
-                    if df[column].nunique() < threshold:
-                        df[column] = df[column].astype('category')
-            else:
-                error = column + ' is not in DataFrame'
-                raise KeyError(error)
-        return self
-
-    @check_df
-    def smart_fillna(self, df = None, columns = None):
-        """
-        Fills na values in dataframe to defaults based upon the datatype listed
-        in the columns dictionary. If the dictionary of datatypes does not
-        exist, the method fills columns based upon the current datatype
-        inferred by pandas. Because their is no good default category, the
-        method uses an empty string ('').
-        """
-        columns = self._check_columns(df = df, columns = columns)
-        for column in columns:
-            if column in df.columns:
-                default_value = self.default_values[self.column_dict[column]]
-                df[column].fillna(default_value, inplace = True)
-            else:
-                error = column + ' is not in DataFrame'
-                raise KeyError(error)
-        return self
-
-    @check_df
-    def convert_rare(self, df = None, columns = None, threshold = 0):
-        """
-        The method converts categories rarely appearing within categorical
-        data columns to empty string if they appear below the passed threshold.
-        Threshold is defined as the percentage of total rows.
-        """
-        columns = self._check_columns(df = df, columns = columns)
-        for column in columns:
-            if column in df.columns:
-                default_value = self.default_values(CategoricalDtype)
-                df['value_freq'] = (df[column].value_counts()
-                                    / len(df[column]))
-                df[column] = np.where(df['value_freq'] <= threshold,
-                                      default_value, df[column])
-            else:
-                error = column + ' is not in DataFrame'
-                raise KeyError(error)
-        df.drop('value_freq', axis = 'columns', inplace = True)
+        columns = self.create_column_list(columns = columns,
+                                          prefixes = prefixes)
+        df.drop(columns, axis = 'columns', inplace = True)
+        self.dropped_columns.extend(columns)
         return self
 
     @check_df
@@ -441,33 +453,54 @@ class Data(object):
         self.drop_columns(columns = cols)
         return self
 
-    @check_df
-    def decorrelate(self, df = None, threshold = 0.95):
-        """
-        Drops all but one column from highly correlated groups of columns.
-        Threshold is based upon the .corr() method in pandas. columns can
-        include any datatype accepted by .corr(). If columns is set to 'all',
-        all columns in the dataframe are tested.
-        """
-        corr_matrix = df.corr().abs()
-        upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape),
-                                          k = 1).astype(np.bool))
-        columns = [col for col in upper.columns if any(upper[col] > threshold)]
-        self.drop_columns(columns = columns)
-        return self
+    def initialize_series(self, df = None):
+        row = pd.Series(index = self.column_dict.keys())
+        for column, data_type in self.column_dict.items():
+            row[column] = self.default_values[data_type]
+        if not df:
+            setattr(self, self.default_df, row)
+            return self
+        else:
+            return row
 
-    @check_df
-    def drop_columns(self, df = None, columns = None, prefixes = None):
+    def load(self, import_folder = '', file_name = 'data', import_path = '',
+             file_type = 'csv', usecolumns = None, index = False,
+             encoding = 'windows-1252', test_data = False, test_rows = 500,
+             return_df = False, message = 'Importing data'):
         """
-        Drops list of columns and columns with prefixes listed. In addition,
-        any dropped columns are stored in the cumulative dropped_columns
-        list.
+        Imports pandas dataframes from different file formats.
         """
-        columns = self.create_column_list(columns = columns,
-                                          prefixes = prefixes)
-        df.drop(columns, axis = 'columns', inplace = True)
-        self.dropped_columns.extend(columns)
-        return self
+        if not import_path:
+            if not import_folder:
+                import_folder = self.filer.import_folder
+            import_path = self.filer.make_path(folder = import_folder,
+                                               file_name = file_name,
+                                               file_type = file_type)
+        if self.verbose:
+            print(message)
+        if test_data:
+            nrows = test_rows
+        else:
+            nrows = None
+        if file_type == 'csv':
+            df = pd.read_csv(import_path,
+                             index_col = index,
+                             nrows = nrows,
+                             usecols = usecolumns,
+                             encoding = encoding,
+                             low_memory = False)
+
+        elif file_type == 'h5':
+            df = pd.read_hdf(import_path,
+                             chunksize = nrows)
+        elif file_type == 'feather':
+            df = pd.read_feather(import_path,
+                                 nthreads = -1)
+        if not return_df:
+            setattr(self, self.default_df, df)
+            return self
+        else:
+            return df
 
     @check_df
     def reshape_long(self, df = None, stubs = None, id_col = '', new_col = '',
@@ -493,6 +526,25 @@ class Data(object):
         df = (df.pivot(index = df_index,
                        columns = columns,
                        values = values).reset_index())
+        return self
+
+    @check_df
+    def smart_fillna(self, df = None, columns = None):
+        """
+        Fills na values in dataframe to defaults based upon the datatype listed
+        in the columns dictionary. If the dictionary of datatypes does not
+        exist, the method fills columns based upon the current datatype
+        inferred by pandas. Because their is no good default category, the
+        method uses an empty string ('').
+        """
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                default_value = self.default_values[self.column_dict[column]]
+                df[column].fillna(default_value, inplace = True)
+            else:
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
         return self
 
     @check_df
@@ -556,45 +608,6 @@ class Data(object):
                       file_type = self.filer.results_format,
                       message = 'Exporting summary data')
         return self
-
-    def load(self, import_folder = '', file_name = 'data', import_path = '',
-             file_type = 'csv', usecolumns = None, index = False,
-             encoding = 'windows-1252', test_data = False, test_rows = 500,
-             return_df = False, message = 'Importing data'):
-        """
-        Imports pandas dataframes from different file formats.
-        """
-        if not import_path:
-            if not import_folder:
-                import_folder = self.filer.import_folder
-            import_path = self.filer.make_path(folder = import_folder,
-                                               file_name = file_name,
-                                               file_type = file_type)
-        if self.verbose:
-            print(message)
-        if test_data:
-            nrows = test_rows
-        else:
-            nrows = None
-        if file_type == 'csv':
-            df = pd.read_csv(import_path,
-                             index_col = index,
-                             nrows = nrows,
-                             usecols = usecolumns,
-                             encoding = encoding,
-                             low_memory = False)
-
-        elif file_type == 'h5':
-            df = pd.read_hdf(import_path,
-                             chunksize = nrows)
-        elif file_type == 'feather':
-            df = pd.read_feather(import_path,
-                                 nthreads = -1)
-        if not return_df:
-            setattr(self, self.default_df, df)
-            return self
-        else:
-            return df
 
     @check_df
     def save(self, df = None, export_folder = '', file_name = 'data',

@@ -116,7 +116,6 @@ from splitter import Splitter
 from step import Step
 
 
-
 @dataclass
 class Cookbook(object):
     """
