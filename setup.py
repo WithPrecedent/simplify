@@ -1,14 +1,18 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
-setup(name = 'ml_funnel',
-      description = "ml_funnel is a high-level pipeline and grid creation tool for machine learning",
+__version__ = '0.1.0'
+
+setup(name = 'siMpLify',
+      description = "Making machine learning simple",
       author = "Corey Rayburn Yung",
-      author_email = 'coreyyung@ku.edu',
-      url = 'https://github.com/with_precedent/ml_funnel',
-      packages = ['ml_funnel'],
-      entry_points = {'console_scripts': ['ml_funnel = ml_funnel.cli:cli']},
+      author_email = 'coreyrayburnyung@gmail.com',
+      url = 'https://github.com/with_precedent/simplify',
+      packages = find_packages(exclude = ['tests*']),
+      include_package_data = True,
+      version = __version__,
+      entry_points = {'console_scripts': ['simplify = simplify.cli:cli']},
       python_requires = '>= 3.6',
       install_requires = open('requirements.txt').readlines(),
-      keywords = 'ml_funnel data science machine learning pandas sklearn',
+      keywords = 'data science machine learning pandas sklearn',
       classifiers = ['Programming Language :: Python :: 3.6',
                      'Programming Language :: Python :: 3.7'])

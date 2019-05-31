@@ -1,9 +1,9 @@
-.. siMpLify documentation master file, created by
-   sphinx-quickstart on Thu May 30 09:30:35 2019.
+.. simplify documentation master file, created by
+   sphinx-quickstart on Thu May 30 14:13:50 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to siMpLify's documentation!
+Welcome to simplify's documentation!
 ====================================
 
 .. toctree::

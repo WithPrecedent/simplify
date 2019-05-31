@@ -14,21 +14,18 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(0, os.path.abspath('../../'))
-
+sys.path.insert(0, os.path.abspath('../simplify'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'siMpLify'
+project = 'simplify'
 copyright = '2019, Corey Rayburn Yung'
 author = 'Corey Rayburn Yung'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.1.0'
+release = '0.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -41,9 +38,9 @@ release = '0.1.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
-    'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
@@ -72,7 +69,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -110,7 +107,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'siMpLifydoc'
+htmlhelp_basename = 'simplifydoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -137,7 +134,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'siMpLify.tex', 'siMpLify Documentation',
+    (master_doc, 'simplify.tex', 'simplify Documentation',
      'Corey Rayburn Yung', 'manual'),
 ]
 
@@ -147,7 +144,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'simplify', 'siMpLify Documentation',
+    (master_doc, 'simplify', 'simplify Documentation',
      [author], 1)
 ]
 
@@ -158,8 +155,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'siMpLify', 'siMpLify Documentation',
-     author, 'siMpLify', 'One line description of project.',
+    (master_doc, 'simplify', 'simplify Documentation',
+     author, 'simplify', 'One line description of project.',
      'Miscellaneous'),
 ]
 

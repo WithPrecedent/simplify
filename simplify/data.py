@@ -76,7 +76,6 @@ class Data(object):
                                   float : [],
                                   int : [],
                                   object : [],
-                                  str : [],
                                   CategoricalDtype : [],
                                   list : [],
                                   np.datetime64 : [],
@@ -88,7 +87,6 @@ class Data(object):
                                float : 0.0,
                                int : 0,
                                object : '',
-                               str : '',
                                CategoricalDtype : '',
                                list : [],
                                np.datetime64 : 1/1/1990,
@@ -98,7 +96,7 @@ class Data(object):
                                'encoder' : ''}
         self.custom_columns = []
         self.dropped_columns = []
-        if self.quick_start:
+        if isinstance(self.df, pd.DataFrame):
             self.auto_column_types()
         return self
 
