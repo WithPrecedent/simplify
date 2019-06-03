@@ -3,6 +3,8 @@
 ![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)
 [![Build Status](https://img.shields.io/travis/with_precedent/siMpLify.svg)](https://travis-ci.org/with_precedent/siMpLify)
 
+![siMpLify](visuals/siMpLify.png?raw=true "siMpLify")
+
 siMpLify is a high-level set of tools that allows users to mix and match various preprocessing methods and statistical models. Integrating scikit-learn, category-encoders, imblearn, xgboost, shap, and other modules, users are able to test and implement different recipes in a machine learning cookbook and export results for each option selected.
 
 Although scikit-learn has gone a long way toward unifying interfaces with many common machine learning methods, it is still quite clunky in many situations. Present shortcomings include:
