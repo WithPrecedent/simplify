@@ -1,8 +1,5 @@
+#siMpLify
 
-<p align="center">
-  <img src="https://github.com/WithPrecedent/simplify/tree/master/visuals/siMpLify.png" width="400" />
-</p>
----
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)
 [![Build Status](https://img.shields.io/travis/with_precedent/siMpLify.svg)](https://travis-ci.org/with_precedent/siMpLify)
 
