@@ -1,14 +1,10 @@
-"""
-The Recipe class, which contains a single recipe of methods to be applied in a
-machine learning experiment.
-"""
+
 from dataclasses import dataclass
 import pickle
 
 @dataclass
 class Recipe(object):
-    """
-    Class containing single recipe of methods.
+    """Class containing a single recipe of methods.
     """
     number : int = 0
     order : object = None
@@ -101,25 +97,19 @@ class Recipe(object):
         return self
 
     def load(self, import_path = None):
-        """
-        Imports a single recipe from disc.
-        """
+        """Imports a single recipe from disc."""
         recipe = pickle.load(open(import_path, 'rb'))
         return recipe
 
     def save(self, recipe, export_path = None):
-        """
-        Exports a recipe to disc.
-        """
+        """Exports a recipe to disc."""
         if not export_path:
             export_path = self.filer.results_folder
 #        pickle.dump(recipe, open(export_path, 'wb'))
         return self
 
     def bake(self, data, data_to_use = 'train_test', runtime_params = None):
-        """
-        Applies the Recipe methods to the passed data.
-        """
+        """Applies the Recipe methods to the passed data."""
         self.data = data
         self.data_to_use = data_to_use
         self.runtime_params = runtime_params
@@ -130,9 +120,8 @@ class Recipe(object):
         return self
 
     def apply(self, data, use_full_set = False, use_val_set = False):
-        """
-        Applies the Recipe methods using a more generic method name for those
-        who prefer less cooking-oriented terminology.
+        """Applies the Recipe methods using a more generic method name for
+        those who prefer less cooking-oriented terminology.
         """
         self.bake(data, use_full_set, use_val_set)
         return self

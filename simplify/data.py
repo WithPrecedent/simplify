@@ -1,34 +1,4 @@
-"""
-Class for organizing and loading data into machine learning algorithms. Data
-uses pandas dataframes or series for all data, but utilizes faster numpy
-methods where possible to increase performance. It is part of the siMpLify
-package which is designed to make python machine learning more accessible and
-easier to use.
 
-Data stores the data itself as well as a set of settings and variables about
-the data stored (primarily column data types).
-
-Data incorporates easy-to-use methods for common feature engineering techniques
-such as converting rarely appearing categories to a default value
-(convert_rare), dropping boolean columns with infrequent True values
-(drop_infrequent), and reshaping dataframes (reshape_wide and reshape_long).
-There are methods for creating column dictionaries for the different
-data types commonly appearing in machine learning scripts (column_types and
-create_column_list). Any function can be applied to a dataframe contained
-in Data by using the apply method.
-
-Data also includes some methods which are designed to be more accessible and
-user-friendly than the commonly-used methods. For example, data can easily be
-downcast to save memory with the downcast method and smart_fill_na fills na
-data with appropriate defaults based upon the column datatypes (either provided
-by the user via column_dict or through inference).
-
-Dataframes stored in data can be imported and exported using the load and save
-methods. Current data formats supported are csv, feather, and hdf5.
-
-A Settings object needs to be passed when a Data instance is created. If
-the quick_start option is selected, a Filer object must be passed as well.
-"""
 import csv
 from datetime import timedelta
 from dataclasses import dataclass
@@ -46,7 +16,48 @@ class Data(object):
     """
     Primary class for storing and manipulating data used in machine learning
     projects.
+
+    Data uses pandas dataframes or series for all data, but utilizes faster
+    numpy methods where possible to increase performance. Data stores the data
+    itself as well as a set of settings and variables about the data stored
+    (primarily column data types).
+
+    Data incorporates easy-to-use methods for common feature engineering
+    techniques such as converting rarely appearing categories to a default
+    value (convert_rare), dropping boolean columns with infrequent True values
+    (drop_infrequent), and reshaping dataframes (reshape_wide and
+    reshape_long). There are methods for creating column dictionaries for the
+    different data types commonly appearing in machine learning scripts
+    (column_types and create_column_list). Any function can be applied to a
+    dataframe contained in Data by using the apply method.
+
+    Data also includes some methods which are designed to be more accessible
+    and user-friendly than the commonly-used methods. For example, data can
+    easily be downcast to save memory with the downcast method and
+    smart_fill_na fills na data with appropriate defaults based upon the column
+    datatypes (either provided by the user via column_dict or through
+    inference).
+
+    Dataframes stored in data can be imported and exported using the load and
+    save methods. Current data formats supported are csv, feather, and hdf5.
+
+    A Settings object needs to be passed when a Data instance is created. If
+    the quick_start option is selected, a Filer object must be passed as well.
+
+    Attributes:
+        settings: an instance of Settings.
+        filer: an instance of Filer.
+        df: a pandas dataframe or series.
+        quick_start: a boolean variable indicating whether data should
+            automatically be loaded into the df attribute.
+        default_df: the current default dataframe or series attribute that will
+            be used when a specific dataframe is not passed to a class method.
+            The value is a string corresponding to the attribute dataframe
+            name and is initially set to 'df.'
+        column_dict: a dictionary containing the names and datatypes of
+            columns.
     """
+
     settings : object
     filer : object = None
     df : object = None
@@ -58,11 +69,9 @@ class Data(object):
         self.settings.localize(instance = self, sections = ['general'])
         if self.verbose:
             print('Building data container')
-        """
-        If quick_start is set to true and a settings dictionary is passed,
-        data is automatically loaded according to user specifications in the
-        settings file.
-        """
+        # If quick_start is set to true and a settings dictionary is passed,
+        # data is automatically loaded according to user specifications in the
+        # settings file.
         if self.quick_start:
             if self.filer:
                 self.load(import_path = self.filer.import_path,
@@ -102,49 +111,64 @@ class Data(object):
 
     @property
     def bool_columns(self):
+        """Returns boolean columns."""
         return self.column_type_dicts[bool]
 
     @property
     def float_columns(self):
+        """Returns float columns."""
         return self.column_type_dicts[float]
 
     @property
     def int_columns(self):
+        """Returns int columns."""
         return self.column_type_dicts[int]
 
     @property
     def str_columns(self):
+        """Returns str (object type) columns."""
         return self.column_type_dicts[object]
 
     @property
     def category_columns(self):
+        """Returns caterogical columns."""
         return self.column_type_dicts[CategoricalDtype]
 
     @property
     def list_columns(self):
+        """Returns list columns."""
         return self.column_type_dicts[list]
 
     @property
     def datetime_columns(self):
+        """Returns datetime columns."""
         return self.column_type_dicts[np.datetime64]
 
     @property
     def timedelta_columns(self):
+        """Returns timedelata columns."""
         return self.column_type_dicts[timedelta]
 
     @property
     def numeric_columns(self):
+        """Returns float and int columns."""
         return self.float_columns + self.int_columns
 
     @property
-    def interactor_columns(self):
+    def encoder_columns(self):
+        """Returns columns with 'encoder' datatype or, if none exist,
+        categorical datatype.
+        """
         if not 'encoder' in self.column_dict:
             return self.category_columns
         else:
             return self.column_type_dicts['encoder']
 
     @property
-    def encoder_columns(self):
+    def interactor_columns(self):
+        """Returns columns with 'interactor' datatype or, if none exist,
+        categorical datatype.
+        """
         if not 'interactor' in self.column_dict:
             return self.category_columns
         else:
@@ -152,6 +176,9 @@ class Data(object):
 
     @property
     def scaler_columns(self):
+        """Returns columns with 'scaler' datatype or, if none exist, numeric
+        datatype.
+        """
         if not 'scaler' in self.column_dict:
             return self.numeric_columns
         else:
@@ -159,34 +186,44 @@ class Data(object):
 
     @property
     def full(self):
+        """Returns the full data divided into x and y."""
         return self.x, self.y
 
     @property
     def train_test(self):
+        """Returns the training and testing data."""
         return self.x_train, self.y_train, self.x_test, self.y_test
 
     @property
     def train_val(self):
+        """Returns the training and validation data."""
         return self.x_train, self.y_train, self.x_val, self.y_val
 
     @property
     def train_test_val(self):
+        """Returns the training, test, and validation data."""
         return (self.x_train, self.y_train, self.x_test, self.y_test,
                 self.x_val, self.y_val)
 
     @property
     def train(self):
+        """Returns the training data."""
         return self.x_train, self.y_train
 
     @property
     def test(self):
+        """Returns the test data."""
         return self.x_test, self.y_test
 
     @property
     def val(self):
+        """Returns the validation data."""
         return self.x_val, self.y_val
 
     def check_df(func):
+        """Decorator which automatically uses the default dataframe if one
+        is not passed to the decorated method.
+        """
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             argspec = getfullargspec(func)
@@ -242,11 +279,8 @@ class Data(object):
         return column_list
 
     def _listify(self, variable):
-        """
-        Checks to see if the variable is currently a list type. If the variable
-        is None, it is converted to a list with the string 'none'. If it is a
-        string, it is converted to a list with that string. If the variable
-        is already a list, it is returned unchanged.
+        """Checks to see if the methods are stored in a list. If not, the
+        methods are converted to a list or a list of 'none' is created.
         """
         if not variable:
             return ['none']
@@ -256,12 +290,16 @@ class Data(object):
             return [variable]
 
     def add_df_group(self, group_name, df_list):
+        """Adds a new group for use when users to get different combinations
+        of dataframe attributes.
+        """
         return self.df_options.update(
                 {group_name : self.settings._listify(df_list)})
 
     @check_df
     def add_unique_index(self, df = None, column = 'index_universal',
                          make_index = False):
+        """Creates a unique integer index for each row."""
         df[column] = range(1, len(df.index) + 1)
         if make_index:
             df.set_index(column, inplace = True)
@@ -269,16 +307,16 @@ class Data(object):
 
     @check_df
     def apply(self, df = None, func = None, **kwargs):
+        """Allows users to pass a function to data which will be applied to the
+        passed dataframe (or uses default_df if none is passed).
         """
-        Allows users to pass a function to data which will be applied to the
-        passed dataframe (or uses df if none is passed).
-        """
-
         df = func(df, **kwargs)
         return self
 
     @check_df
     def auto_column_types(self, df = None):
+        """Infers column datatypes and adds those datatypes to column_dict.
+        """
         self.column_dict = {}
         for data_type, column_list in self.column_type_dicts.items():
             if not data_type in ['interactor', 'scaler', 'encoder']:
@@ -291,8 +329,7 @@ class Data(object):
 
     @check_df
     def auto_categorize(self, df = None, columns = None, threshold = 10):
-        """
-        Automatically assesses each column to determine if it has less than
+        """Automatically assesses each column to determine if it has less than
         threshold unique values and is not boolean. If so, that column is
         converted to categorical type.
         """
@@ -309,8 +346,7 @@ class Data(object):
 
     @check_df
     def create_column_list(self, df = None, columns = None, prefixes = None):
-        """
-        Dynamically creates a new column list from a list of columns and/or
+        """Dynamically creates a new column list from a list of columns and/or
         lists of prefixes.
         """
         if prefixes:
@@ -331,6 +367,9 @@ class Data(object):
     @check_df
     def change_column_type(self, df = None, columns = None, prefixes = None,
                            data_type = str):
+        """Changes column datatypes of columns passed or columns with the
+        prefixes passed. data_type becomes the new datatype for the columns.
+        """
         columns = self.create_column_list(prefixes = prefixes,
                                           columns = columns)
         self.column_dict.update(dict.fromkeys(columns, data_type))
@@ -344,10 +383,9 @@ class Data(object):
 
     @check_df
     def convert_rare(self, df = None, columns = None, threshold = 0):
-        """
-        The method converts categories rarely appearing within categorical
-        data columns to empty string if they appear below the passed threshold.
-        Threshold is defined as the percentage of total rows.
+        """Converts categories rarely appearing within categorical data columns
+        to empty string if they appear below the passed threshold. threshold is
+        defined as the percentage of total rows.
         """
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
@@ -365,9 +403,8 @@ class Data(object):
 
     @check_df
     def decorrelate(self, df = None, threshold = 0.95):
-        """
-        Drops all but one column from highly correlated groups of columns.
-        Threshold is based upon the .corr() method in pandas. columns can
+        """Drops all but one column from highly correlated groups of columns.
+        threshold is based upon the .corr() method in pandas. columns can
         include any datatype accepted by .corr(). If columns is set to 'all',
         all columns in the dataframe are tested.
         """
@@ -380,10 +417,9 @@ class Data(object):
 
     @check_df
     def downcast(self, df = None, columns = None):
-        """
-        Method to decrease memory usage by downcasting datatypes. For
-        numerical datatypes, the method attempts to cast the data to unsigned
-        integers if possible.
+        """Decreases memory usage by downcasting datatypes. For numerical
+        datatypes, the method attempts to cast the data to unsigned integers if
+        possible.
         """
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
@@ -417,8 +453,7 @@ class Data(object):
 
     @check_df
     def drop_columns(self, df = None, columns = None, prefixes = None):
-        """
-        Drops list of columns and columns with prefixes listed. In addition,
+        """Drops list of columns and columns with prefixes listed. In addition,
         any dropped columns are stored in the cumulative dropped_columns
         list.
         """
@@ -430,8 +465,7 @@ class Data(object):
 
     @check_df
     def drop_infrequent(self, df = None, columns = None, threshold = 0):
-        """
-        This method drops boolean columns that rarely have True. This differs
+        """Drops boolean columns that rarely have True. This differs
         from the sklearn VarianceThreshold class because it is only
         concerned with rare instances of True and not False. This enables
         users to set a different variance threshold for rarely appearing
@@ -452,6 +486,7 @@ class Data(object):
         return self
 
     def initialize_series(self, df = None):
+        """Creates a series (row) with the datatypes in column_dict."""
         row = pd.Series(index = self.column_dict.keys())
         for column, data_type in self.column_dict.items():
             row[column] = self.default_values[data_type]
@@ -465,8 +500,7 @@ class Data(object):
              file_type = 'csv', usecolumns = None, index = False,
              encoding = 'windows-1252', test_data = False, test_rows = 500,
              return_df = False, message = 'Importing data'):
-        """
-        Imports pandas dataframes from different file formats.
+        """Imports pandas dataframes from different file formats.
         """
         if not import_path:
             if not import_folder:
@@ -503,8 +537,7 @@ class Data(object):
     @check_df
     def reshape_long(self, df = None, stubs = None, id_col = '', new_col = '',
                      sep = ''):
-        """
-        A simple wrapper method for pandas wide_to_long method using more
+        """A simple wrapper method for pandas wide_to_long method using more
         intuitive parameter names than 'i' and 'j'.
         """
         df = (pd.wide_to_long(df,
@@ -517,9 +550,8 @@ class Data(object):
     @check_df
     def reshape_wide(self, df = None, df_index = '', columns = None,
                      values = None):
-        """
-        A simple wrapper method for pandas pivot method named as corresponding
-        method to reshape_long.
+        """A simple wrapper method for pandas pivot method named as
+        corresponding method to reshape_long.
         """
         df = (df.pivot(index = df_index,
                        columns = columns,
@@ -528,12 +560,8 @@ class Data(object):
 
     @check_df
     def smart_fillna(self, df = None, columns = None):
-        """
-        Fills na values in dataframe to defaults based upon the datatype listed
-        in the columns dictionary. If the dictionary of datatypes does not
-        exist, the method fills columns based upon the current datatype
-        inferred by pandas. Because their is no good default category, the
-        method uses an empty string ('').
+        """Fills na values in dataframe to defaults based upon the datatype
+        listed in the columns dictionary.
         """
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
@@ -547,8 +575,7 @@ class Data(object):
 
     @check_df
     def split_xy(self, df = None, label = 'label'):
-        """
-        Splits data into x and y based upon the label passed.
+        """Splits data into x and y based upon the label passed.
         """
         self.x = df.drop(label, axis = 'columns')
         self.y = df[label]
@@ -558,9 +585,8 @@ class Data(object):
     @check_df
     def summarize(self, df = None, export_path = '', export_summary = True,
                   transpose = False):
-        """
-        Creates a dataframe of common summary data. It is more inclusive than
-        describe() and includes boolean and numerical columns by default.
+        """Creates a dataframe of common summary data. It is more inclusive
+        than describe() and includes boolean and numerical columns by default.
         If an export_path is passed, the summary table is automatically saved
         to disc.
         """
@@ -612,8 +638,7 @@ class Data(object):
              export_path = '', file_type = 'csv', index = False, header = True,
              encoding = 'windows-1252', float_format = '%.4f',
              boolean_out = True, message = 'Exporting data'):
-        """
-        Exports pandas dataframes to different file formats an encoding of
+        """Exports pandas dataframes to different file formats an encoding of
         boolean variables as True/False or 1/0.
         """
         if not export_path:
@@ -643,8 +668,7 @@ class Data(object):
         return
 
     def save_drops(self, file_name = 'dropped_columns', export_path = ''):
-        """
-        Saves dropped_columns into a .csv file.
+        """Saves dropped_columns into a .csv file.
         """
         self.dropped_columns = list(unique_everseen(self.dropped_columns))
         if not export_path:

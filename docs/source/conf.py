@@ -14,11 +14,12 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../simplify'))
+sys.path.insert(0, os.path.abspath('..'))
+
 
 # -- Project information -----------------------------------------------------
 
-project = 'simplify'
+project = 'siMpLify'
 copyright = '2019, Corey Rayburn Yung'
 author = 'Corey Rayburn Yung'
 
@@ -41,6 +42,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
+    'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
@@ -107,7 +109,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'simplifydoc'
+htmlhelp_basename = 'siMpLifydoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -134,7 +136,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'simplify.tex', 'simplify Documentation',
+    (master_doc, 'siMpLify.tex', 'siMpLify Documentation',
      'Corey Rayburn Yung', 'manual'),
 ]
 
@@ -144,7 +146,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'simplify', 'simplify Documentation',
+    (master_doc, 'simplify', 'siMpLify Documentation',
      [author], 1)
 ]
 
@@ -155,8 +157,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'simplify', 'simplify Documentation',
-     author, 'simplify', 'One line description of project.',
+    (master_doc, 'siMpLify', 'siMpLify Documentation',
+     author, 'siMpLify', 'One line description of project.',
      'Miscellaneous'),
 ]
 
@@ -180,3 +182,8 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+
+# -- Options for intersphinx extension ---------------------------------------
+
+# Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {'https://docs.python.org/': None}

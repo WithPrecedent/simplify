@@ -4,6 +4,7 @@ package.
 """
 
 from dataclasses import dataclass
+
 from scipy.stats import randint, uniform
 from sklearn.cluster import AffinityPropagation, AgglomerativeClustering
 from sklearn.cluster import Birch, DBSCAN, KMeans, MeanShift
@@ -15,14 +16,12 @@ from sklearn.linear_model import BayesianRidge, Lasso, LassoLars
 from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.svm import OneClassSVM, SVC, SVR
-
 #from skopt import BayesSearchCV
 #from keras.wrappers.scikit_learn import KerasClassifier, KerasRegressor
 #from pystan import StanModel
-#from skorch import NeuralNetClassifier, NeuralNetRegressor
 from xgboost import XGBClassifier, XGBRegressor
 
-from step import Step
+from .step import Step
 
 
 @dataclass

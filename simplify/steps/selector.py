@@ -3,13 +3,14 @@ Selector is a class containing feature selectors used in the siMpLify package.
 """
 
 from dataclasses import dataclass
+
 import pandas as pd
 from sklearn.feature_selection import chi2, f_classif, mutual_info_classif
 from sklearn.feature_selection import mutual_info_regression, RFE, RFECV
 from sklearn.feature_selection import SelectKBest, SelectFdr, SelectFpr
 from sklearn.feature_selection import SelectFromModel
 
-from step import Step
+from .step import Step
 
 
 @dataclass

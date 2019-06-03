@@ -5,14 +5,14 @@ learning model used in the siMpLify package.
 from dataclasses import dataclass
 from functools import wraps
 from inspect import getfullargspec, signature
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from step import Step
+from .step import Step
 
 @dataclass
 class Plotter(Step):

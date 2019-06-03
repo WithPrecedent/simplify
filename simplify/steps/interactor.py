@@ -2,8 +2,7 @@ from dataclasses import dataclass
 
 from category_encoders import PolynomialEncoder
 
-from step import Step
-
+from .step import Step
 
 @dataclass
 class Interactor(Step):

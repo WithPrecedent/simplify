@@ -1,39 +1,40 @@
-"""
-Results is a class which creates and stores a results table and other
-general scorers/metrics for machine learning based upon the type of model
-used in the siMpLify package. Users can manually add metrics not already
-included in the metrics dictionary by passing them to Results.include.
-"""
+
 from dataclasses import dataclass
-import pandas as pd
 import re
+
+import pandas as pd
 import sklearn.metrics as met
 
-from custom import Custom
-from encoder import Encoder
-from interactor import Interactor
-from model import Model
-from plotter import Plotter
-from recipe import Recipe
-from sampler import Sampler
-from scaler import Scaler
-from selector import Selector
-from splicer import Splicer
-from splitter import Splitter
-from step import Step
+from .steps.custom import Custom
+from .steps.encoder import Encoder
+from .steps.interactor import Interactor
+from .steps.model import Model
+from .steps.plotter import Plotter
+from .recipe import Recipe
+from .steps.sampler import Sampler
+from .steps.scaler import Scaler
+from .steps.selector import Selector
+from .steps.splicer import Splicer
+from .steps.splitter import Splitter
+from .steps.step import Step
 
 
 @dataclass
 class Results(Step):
-    """
-    Class for storing machine learning experiment results.
+    """Class for storing machine learning experiment results.
+
+    Results  creates and stores a results table and other general
+    scorers/metrics for machine learning based upon the type of model used in
+    the siMpLify package. Users can manually add metrics not already included
+    in the metrics dictionary by passing them to Results.include.
     """
     name : str = 'results'
     params : object = None
 
     def __post_init__(self):
         super().__post_init__()
-        self.settings.localize(instance = self, sections = ['recipes'])
+        self.settings.localize(instance = self, sections = ['general',
+                                                            'recipes'])
         self.step_columns = ['recipe_number', 'step_order', 'scaler',
                              'splitter', 'encoder', 'interactor', 'splicer',
                              'sampler', 'custom', 'selector', 'model', 'seed',

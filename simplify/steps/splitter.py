@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from sklearn.model_selection import TimeSeriesSplit, train_test_split
 
-from step import Step
+from .step import Step
 
 
 @dataclass

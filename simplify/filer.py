@@ -1,15 +1,12 @@
-"""
-Class and methods used by siMpLify to store data and results in consistent
-path structure based upon user options.
-"""
+
 from dataclasses import dataclass
 import os
 import pandas as pd
 
 @dataclass
 class Filer(object):
-    """
-    Class for dynamically creating file paths.
+    """Class for creating dynamic and static file paths for the siMpLify
+    package.
     """
     settings : object = None
     root : str = ''

@@ -1,18 +1,18 @@
-"""
-Scaler is a class containing numerical scalers used in the siMpLify package.
-"""
+
 
 from dataclasses import dataclass
+
 from sklearn.preprocessing import KBinsDiscretizer, MaxAbsScaler, MinMaxScaler
 from sklearn.preprocessing import Normalizer, QuantileTransformer, RobustScaler
 from sklearn.preprocessing import StandardScaler
 
-from step import Step
+from .step import Step
 
 
 @dataclass
 class Scaler(Step):
-
+    """Contains numerical scaler ingredients and algorithms.
+    """
     name : str = 'none'
     params : object = None
 

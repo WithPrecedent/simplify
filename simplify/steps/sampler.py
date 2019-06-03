@@ -10,7 +10,7 @@ from imblearn.over_sampling import ADASYN, RandomOverSampler, SMOTE, SMOTENC
 from imblearn.under_sampling import AllKNN, ClusterCentroids, NearMiss
 from imblearn.under_sampling import RandomUnderSampler
 
-from step import Step
+from .step import Step
 
 
 @dataclass

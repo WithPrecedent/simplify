@@ -11,7 +11,7 @@ df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
 # Loads settings file.
 settings = Settings(file_path = 'cancer_settings.ini')
-# Create instance of data with the cancer dataframe.
+# Creates instance of data with the cancer dataframe.
 data = Data(settings = settings, df = df)
 # Converts label to boolean type - conversion from numpy arrays leaves all
 # columns as float type.

@@ -10,7 +10,7 @@ from category_encoders import BinaryEncoder, HashingEncoder, HelmertEncoder
 from category_encoders import LeaveOneOutEncoder, OneHotEncoder
 from category_encoders import OrdinalEncoder, SumEncoder, TargetEncoder
 
-from step import Step
+from .step import Step
 
 
 @dataclass

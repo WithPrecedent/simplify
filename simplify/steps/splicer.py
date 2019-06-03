@@ -5,7 +5,7 @@ among them) used in the siMpLify package.
 
 from dataclasses import dataclass
 
-from step import Step
+from .step import Step
 
 
 @dataclass

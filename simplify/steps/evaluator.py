@@ -1,24 +1,19 @@
-"""
-Evaluator is a class which computes scores for machine learning models in the
-siMpLify package.
-"""
+
 from dataclasses import dataclass
+
 import pandas as pd
 import sklearn.metrics as met
-
 from eli5 import explain_prediction_df, explain_weights_df, show_prediction
 from eli5 import show_weights
-import lime
+#import lime
 from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
-from step import Step
+from .step import Step
 
 
 @dataclass
 class Evaluator(Step):
-    """
-    Class for computing machine learning experiment results.
-    """
+    """Computes machine learning experiment scores and metrics."""
     name : str = ''
     params : object = None
 
