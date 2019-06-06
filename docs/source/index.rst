@@ -1,6 +1,7 @@
 .. image:: visuals/siMpLify.png
    :width: 500px
    :align: center
+
 siMpLify Documentation
 ======================
 siMpLify allows users to create a cookbook of dynamic recipes that

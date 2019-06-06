@@ -60,19 +60,6 @@ class Step(object):
             self.params = self.defaults
         return self
 
-    def _get_indices(self, df, columns):
-        col_indices = [df.columns.get_loc(col) for col in columns]
-        return col_indices
-
-    def _list_type(self, test_list, data_type):
-        return any(isinstance(i, data_type) for i in test_list)
-
-    def _store_feature_names(self, x, y = None):
-        self.x_cols = list(x.columns.values)
-        if isinstance(y, pd.Series):
-            self.y_col = self.label
-        return self
-
     def _get_feature_names(self, x, y = None):
         x = pd.DataFrame(x, columns = self.x_cols)
         if isinstance(y, np.ndarray):
@@ -80,6 +67,43 @@ class Step(object):
             return x, y
         else:
             return x
+
+    def _get_indices(self, df, columns):
+        col_indices = [df.columns.get_loc(col) for col in columns]
+        return col_indices
+
+    def _list_type(self, test_list, data_type):
+        return any(isinstance(i, data_type) for i in test_list)
+
+    def _listify(self, variable):
+        """
+        Checks to see if the methods are stored in a list. If not, the
+        methods are converted to a list or a list of 'none' is created.
+        """
+        if not variable:
+            return ['none']
+        elif isinstance(variable, list):
+            return variable
+        else:
+            return [variable]
+
+    def _store_feature_names(self, x, y = None):
+        self.x_cols = list(x.columns.values)
+        if isinstance(y, pd.Series):
+            self.y_col = self.label
+        return self
+
+    def include(self, ingredients, algorithms, **kwargs):
+        """
+        Adds new ingredient name and corresponding algorithm to a step options
+        dictionary.
+        """
+        ingredients = self._listify(ingredients)
+        algorithms = self._listify(algorithms)
+        new_algorithms = zip(ingredients, algorithms)
+        for ingredient, algorithm in new_algorithms.items():
+            self.options.update({ingredient, algorithm})
+        return self
 
     def initialize(self, select_params = False):
         """
@@ -111,17 +135,6 @@ class Step(object):
             self.params = new_params
         return self
 
-    def include(self, ingredients, algorithms, **kwargs):
-        """
-        Adds new ingredient name and corresponding algorithm to a step options
-        dictionary.
-        """
-        ingredients = self._listify(ingredients)
-        algorithms = self._listify(algorithms)
-        new_algorithms = zip(ingredients, algorithms)
-        for ingredient, algorithm in new_algorithms.items():
-            self.options.update({ingredient, algorithm})
-        return self
 
     def mix(self, x, y = None):
         if self.name != 'none':

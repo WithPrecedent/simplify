@@ -8,6 +8,7 @@ from inspect import getfullargspec, signature
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
@@ -23,9 +24,27 @@ class Plotter(Step):
     def __post_init__(self):
         super().__post_init__()
         self.settings.localize(instance = self, sections = ['plotter_params'])
-        sns.set_style(style = self.seaborn_style)
+        self._set_style()
         self._set_options()
         self._set_plots()
+        return self
+
+    def _set_style(self):
+        # List of colorblind colors obtained from here:
+        # https://www.dataquest.io/blog/making-538-plots/.
+        # Thanks to Alex Olteanu.
+        colorblind_colors = [[0,0,0], [230/255,159/255,0],
+                             [86/255,180/255,233/255], [0,158/255,115/255],
+                             [213/255,94/255,0], [0,114/255,178/255]]
+        plt.style.use(style = self.plt_style)
+        plt.rcParams['font.family'] = self.plt_font
+
+        sns.set_style(style = self.seaborn_style)
+        sns.set_context(context = self.seaborn_context)
+        if self.seaborn_palette == 'colorblind':
+            sns.set_palette(color_codes = colorblind_colors)
+        else:
+            sns.set_palette(palette = self.seaborn_palette)
         return self
 
     def _set_options(self):

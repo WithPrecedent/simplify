@@ -71,7 +71,7 @@ class Cookbook(object):
         # instanced. Local attributes are added from the settings instance.
         if not self.settings:
             if not self.settings_path:
-                self.settings_path = Path(os.path.join('..', 'settings',
+                self.settings_path = Path(os.path.join('settings_files',
                                           'simplify_settings.ini'))
             if self.settings_path.is_file():
                 self.settings = Settings(file_path = self.settings_path)
