@@ -5,22 +5,22 @@ import re
 import pandas as pd
 import sklearn.metrics as met
 
-from .steps.custom import Custom
-from .steps.encoder import Encoder
-from .steps.interactor import Interactor
-from .steps.model import Model
-from .steps.plotter import Plotter
+from .ingredients.custom import Custom
+from .ingredients.encoder import Encoder
+from .ingredients.ingredient import Ingredient
+from .ingredients.interactor import Interactor
+from .ingredients.model import Model
+from .ingredients.plotter import Plotter
+from .ingredients.sampler import Sampler
+from .ingredients.scaler import Scaler
+from .ingredients.selector import Selector
+from .ingredients.splicer import Splicer
+from .ingredients.splitter import Splitter
 from .recipe import Recipe
-from .steps.sampler import Sampler
-from .steps.scaler import Scaler
-from .steps.selector import Selector
-from .steps.splicer import Splicer
-from .steps.splitter import Splitter
-from .steps.step import Step
 
 
 @dataclass
-class Results(Step):
+class Results(Ingredient):
     """Class for storing machine learning experiment results.
 
     Results  creates and stores a results table and other general
@@ -28,7 +28,7 @@ class Results(Step):
     the siMpLify package. Users can manually add metrics not already included
     in the metrics dictionary by passing them to Results.include.
     """
-    name : str = 'results'
+    technique : str = 'results'
     params : object = None
 
     def __post_init__(self):
@@ -193,11 +193,11 @@ class Results(Step):
         self.table.to_csv(export_path,
                           encoding = encoding,
                           float_format = float_format)
-        self.filer.save(df = self.table,
-                        export_path = export_path,
-                        encoding = encoding,
-                        float_format = float_format,
-                        message = message)
+#        self.filer.save(df = self.table,
+#                        export_path = export_path,
+#                        encoding = encoding,
+#                        float_format = float_format,
+#                        message = message)
         return self
 
     def get_best_recipe(self):

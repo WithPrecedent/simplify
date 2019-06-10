@@ -4,51 +4,54 @@ from datetime import timedelta
 from dataclasses import dataclass
 from functools import wraps
 from inspect import getfullargspec
+import os
+import re
+import requests
+
 from more_itertools import unique_everseen
 import numpy as np
-import os
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
+from .tools.rematch import ReMatch
 
 @dataclass
-class Data(object):
-    """
-    Primary class for storing and manipulating data used in machine learning
-    projects.
+class Codex(object):
+    """Imports, stores, and exports pandas dataframes and series, as well as
+    related information about those data containers.
 
-    Data uses pandas dataframes or series for all data, but utilizes faster
-    numpy methods where possible to increase performance. Data stores the data
-    itself as well as a set of settings and variables about the data stored
-    (primarily column data types).
+    Codex uses pandas dataframes or series for all data storage, but its
+    subclasses utilize faster numpy methods where possible to increase
+    performance. Codex stores the data itself as well as a set of related
+    settings and variables about the data.
 
-    Data incorporates easy-to-use methods for common feature engineering
-    techniques such as converting rarely appearing categories to a default
-    value (convert_rare), dropping boolean columns with infrequent True values
+    Dataframes stored in codex can be imported and exported using the load and
+    save methods. Current file formats supported are csv, feather, and hdf5.
+
+    A Settings object needs to be passed when a Codex instance is created. If
+    the quick_start option is selected, a Filer object must be passed as well.
+
+    Codex adds easy-to-use methods for common feature engineering techniques.
+    Methods include converting rarely appearing categories to a default value
+    (convert_rare), dropping boolean columns with infrequent True values
     (drop_infrequent), and reshaping dataframes (reshape_wide and
     reshape_long). There are methods for creating column dictionaries for the
     different data types commonly appearing in machine learning scripts
     (column_types and create_column_list). Any function can be applied to a
-    dataframe contained in Data by using the apply method.
+    dataframe contained in Engineer by using the apply method.
 
-    Data also includes some methods which are designed to be more accessible
+    Codex also includes some methods which are designed to be accessible
     and user-friendly than the commonly-used methods. For example, data can
     easily be downcast to save memory with the downcast method and
     smart_fill_na fills na data with appropriate defaults based upon the column
     datatypes (either provided by the user via column_dict or through
     inference).
 
-    Dataframes stored in data can be imported and exported using the load and
-    save methods. Current data formats supported are csv, feather, and hdf5.
-
-    A Settings object needs to be passed when a Data instance is created. If
-    the quick_start option is selected, a Filer object must be passed as well.
-
     Attributes:
         settings: an instance of Settings.
         filer: an instance of Filer.
         df: a pandas dataframe or series.
-        quick_start: a boolean variable indicating whether data should
+        quick_start: a boolean variable indicating whether codex should
             automatically be loaded into the df attribute.
         default_df: the current default dataframe or series attribute that will
             be used when a specific dataframe is not passed to a class method.
@@ -68,18 +71,18 @@ class Data(object):
     def __post_init__(self):
         self.settings.localize(instance = self, sections = ['general'])
         if self.verbose:
-            print('Building data container')
+            print('Building codex')
         # If quick_start is set to true and a settings dictionary is passed,
-        # data is automatically loaded according to user specifications in the
+        # codex is automatically loaded according to user specifications in the
         # settings file.
         if self.quick_start:
             if self.filer:
                 self.load(import_path = self.filer.import_path,
-                          test_data = self.filer.test_data,
+                          test_codex = self.filer.test_codex,
                           test_rows = self.filer.test_chunk,
                           encoding = self.filer.encoding)
             else:
-                error = 'Data quick_start requires a Filer object'
+                error = 'Codex quick_start requires a Filer object'
                 raise AttributeError(error)
         self.column_type_dicts = {bool : [],
                                   float : [],
@@ -108,6 +111,24 @@ class Data(object):
         if isinstance(self.df, pd.DataFrame):
             self.auto_column_types()
         return self
+
+    def __delitem__(self, name):
+        return delattr(self, name)
+
+    def __getitem__(self, name):
+        return getattr(self, name)
+
+    def __len__(self):
+        return len(getattr(self, self.default_df))
+
+    def __setitem__(self, name, value):
+        return setattr(self, name, value)
+
+    def __repr__(self):
+        return getattr(self, self.default_df)
+
+    def __str__(self):
+        return getattr(self, self.default_df)
 
     @property
     def bool_columns(self):
@@ -156,8 +177,8 @@ class Data(object):
 
     @property
     def encoder_columns(self):
-        """Returns columns with 'encoder' datatype or, if none exist,
-        categorical datatype.
+        """Returns columns with 'encoder' datatype or, if none exist, category
+        datatype.
         """
         if not 'encoder' in self.column_dict:
             return self.category_columns
@@ -167,7 +188,7 @@ class Data(object):
     @property
     def interactor_columns(self):
         """Returns columns with 'interactor' datatype or, if none exist,
-        categorical datatype.
+        category datatype.
         """
         if not 'interactor' in self.column_dict:
             return self.category_columns
@@ -186,8 +207,13 @@ class Data(object):
 
     @property
     def full(self):
-        """Returns the full data divided into x and y."""
+        """Returns the full dataset divided into x and y."""
         return self.x, self.y
+
+    @property
+    def test(self):
+        """Returns the test data."""
+        return self.x_test, self.y_test
 
     @property
     def train_test(self):
@@ -195,9 +221,9 @@ class Data(object):
         return self.x_train, self.y_train, self.x_test, self.y_test
 
     @property
-    def train_val(self):
-        """Returns the training and validation data."""
-        return self.x_train, self.y_train, self.x_val, self.y_val
+    def train(self):
+        """Returns the training data."""
+        return self.x_train, self.y_train
 
     @property
     def train_test_val(self):
@@ -206,14 +232,9 @@ class Data(object):
                 self.x_val, self.y_val)
 
     @property
-    def train(self):
-        """Returns the training data."""
-        return self.x_train, self.y_train
-
-    @property
-    def test(self):
-        """Returns the test data."""
-        return self.x_test, self.y_test
+    def train_val(self):
+        """Returns the training and validation data."""
+        return self.x_train, self.y_train, self.x_val, self.y_val
 
     @property
     def val(self):
@@ -233,31 +254,28 @@ class Data(object):
             return func(self, *args, **kwargs)
         return wrapper
 
-    def __str__(self):
-        return getattr(self, self.default_df)
-
-    def __getitem__(self, name):
-        if hasattr(self, name):
-            return getattr(self, name)
-        else:
-            error = name + ' does not exist in Data instance'
-            raise KeyError(error)
-            return self
-
-    def __setitem__(self, name, value):
-        setattr(self, name, value)
-        return self
-
-    def __delitem__(self, name):
-        delattr(self, name)
-        return self
-
     @check_df
     def _check_columns(self, df = None, columns = None):
         if not columns:
             return df.columns
         else:
             return columns
+
+    def _combine_list_all(self, df, in_columns, out_column):
+        df[out_column] = np.where(np.all(df[self._listify(in_columns)]),
+                                         True, False)
+        return self
+
+    def _combine_list_any(self, df, in_columns, out_column):
+        df[out_column] = np.where(np.any(df[self._listify(in_columns)]),
+                                         True, False)
+        return self
+
+    def _combine_list_dict(self, df, in_columns, out_column, combiner):
+        df[out_column] = np.where(np.any(
+                                df[self._listify(in_columns)]),
+                                True, False)
+        return self
 
     @check_df
     def _crosscheck_columns(self, df = None):
@@ -274,10 +292,6 @@ class Data(object):
                     self.dropped_columns.append(column)
         return self
 
-    def _remove_from_column_list(self, column_list, new_columns):
-        column_list = [col for col in column_list if col not in new_columns]
-        return column_list
-
     def _listify(self, variable):
         """Checks to see if the methods are stored in a list. If not, the
         methods are converted to a list or a list of 'none' is created.
@@ -288,6 +302,10 @@ class Data(object):
             return variable
         else:
             return [variable]
+
+    def _remove_from_column_list(self, column_list, new_columns):
+        column_list = [col for col in column_list if col not in new_columns]
+        return column_list
 
     def add_df_group(self, group_name, df_list):
         """Adds a new group for use when users to get different combinations
@@ -307,10 +325,27 @@ class Data(object):
 
     @check_df
     def apply(self, df = None, func = None, **kwargs):
-        """Allows users to pass a function to data which will be applied to the
-        passed dataframe (or uses default_df if none is passed).
+        """Allows users to pass a function to Codex instance which will be
+        applied to the passed dataframe (or uses default_df if none is passed).
         """
         df = func(df, **kwargs)
+        return self
+
+    @check_df
+    def auto_categorize(self, df = None, columns = None, threshold = 10):
+        """Automatically assesses each column to determine if it has less than
+        threshold unique values and is not boolean. If so, that column is
+        converted to category type.
+        """
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                if not column in self.column_type_dicts[bool]:
+                    if df[column].nunique() < threshold:
+                        df[column] = df[column].astype('category')
+            else:
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
         return self
 
     @check_df
@@ -328,20 +363,56 @@ class Data(object):
         return self
 
     @check_df
-    def auto_categorize(self, df = None, columns = None, threshold = 10):
-        """Automatically assesses each column to determine if it has less than
-        threshold unique values and is not boolean. If so, that column is
-        converted to categorical type.
+    def change_column_type(self, df = None, columns = None, prefixes = None,
+                           data_type = str):
+        """Changes column datatypes of columns passed or columns with the
+        prefixes passed. data_type becomes the new datatype for the columns.
+        """
+        columns = self.create_column_list(prefixes = prefixes,
+                                          columns = columns)
+        self.column_dict.update(dict.fromkeys(columns, data_type))
+        for d_type, column_list in self.column_type_dicts.items():
+            if d_type == data_type:
+                self.column_type_dicts[data_type].extend(columns)
+            else:
+                self.column_type_dicts[d_type] = (
+                        self._remove_from_column_list(column_list, columns))
+        return self
+
+    @check_df
+    def combine(self, df = None, in_columns = None, out_column = None,
+                combiner = None):
+        combine_techniques = {'all' : self._combine_list_all,
+                              'any' : self._combine_list_any}
+        if isinstance(combiner, dict):
+            self._combine_list_dict(df = df,
+                                    in_columns = in_columns,
+                                    out_column = out_column,
+                                    combiner = combiner)
+        else:
+            combine_techniques[combiner](df = df,
+                                        in_columns = in_columns,
+                                        out_column = out_column)
+        return self
+
+    @check_df
+    def convert_rare(self, df = None, columns = None, threshold = 0):
+        """Converts categories rarely appearing within categorical columns
+        to empty string if they appear below the passed threshold. threshold is
+        defined as the percentage of total rows.
         """
         columns = self._check_columns(df = df, columns = columns)
         for column in columns:
             if column in df.columns:
-                if not column in self.column_type_dicts[bool]:
-                    if df[column].nunique() < threshold:
-                        df[column] = df[column].astype('category')
+                default_value = self.default_values(CategoricalDtype)
+                df['value_freq'] = (df[column].value_counts()
+                                    / len(df[column]))
+                df[column] = np.where(df['value_freq'] <= threshold,
+                                      default_value, df[column])
             else:
                 error = column + ' is not in DataFrame'
                 raise KeyError(error)
+        df.drop('value_freq', axis = 'columns', inplace = True)
         return self
 
     @check_df
@@ -363,43 +434,6 @@ class Data(object):
         else:
             column_list = prefixes_list
         return column_list
-
-    @check_df
-    def change_column_type(self, df = None, columns = None, prefixes = None,
-                           data_type = str):
-        """Changes column datatypes of columns passed or columns with the
-        prefixes passed. data_type becomes the new datatype for the columns.
-        """
-        columns = self.create_column_list(prefixes = prefixes,
-                                          columns = columns)
-        self.column_dict.update(dict.fromkeys(columns, data_type))
-        for d_type, column_list in self.column_type_dicts.items():
-            if d_type == data_type:
-                self.column_type_dicts[data_type].extend(columns)
-            else:
-                self.column_type_dicts[d_type] = (
-                        self._remove_from_column_list(column_list, columns))
-        return self
-
-    @check_df
-    def convert_rare(self, df = None, columns = None, threshold = 0):
-        """Converts categories rarely appearing within categorical data columns
-        to empty string if they appear below the passed threshold. threshold is
-        defined as the percentage of total rows.
-        """
-        columns = self._check_columns(df = df, columns = columns)
-        for column in columns:
-            if column in df.columns:
-                default_value = self.default_values(CategoricalDtype)
-                df['value_freq'] = (df[column].value_counts()
-                                    / len(df[column]))
-                df[column] = np.where(df['value_freq'] <= threshold,
-                                      default_value, df[column])
-            else:
-                error = column + ' is not in DataFrame'
-                raise KeyError(error)
-        df.drop('value_freq', axis = 'columns', inplace = True)
-        return self
 
     @check_df
     def decorrelate(self, df = None, threshold = 0.95):
@@ -451,6 +485,13 @@ class Data(object):
                 raise KeyError(error)
         return self
 
+    def download(self, file_path, file_url):
+        """Downloads file from a URL if the file is available."""
+        file_response = requests.get(file_url)
+        with open(file_path, 'wb') as a_file:
+            a_file.write(file_response.content)
+        return self
+
     @check_df
     def drop_columns(self, df = None, columns = None, prefixes = None):
         """Drops list of columns and columns with prefixes listed. In addition,
@@ -465,11 +506,11 @@ class Data(object):
 
     @check_df
     def drop_infrequent(self, df = None, columns = None, threshold = 0):
-        """Drops boolean columns that rarely have True. This differs
+        """Drops boolean columns that rarely are True. This differs
         from the sklearn VarianceThreshold class because it is only
         concerned with rare instances of True and not False. This enables
         users to set a different variance threshold for rarely appearing
-        information. Threshold is defined as the percentage of total rows (and
+        information. threshold is defined as the percentage of total rows (and
         not the typical variance formulas).
         """
         cols = []
@@ -496,12 +537,11 @@ class Data(object):
         else:
             return row
 
-    def load(self, import_folder = '', file_name = 'data', import_path = '',
+    def load(self, import_folder = '', file_name = 'codex', import_path = '',
              file_type = 'csv', usecolumns = None, index = False,
-             encoding = 'windows-1252', test_data = False, test_rows = 500,
+             encoding = 'windows-1252', test_codex = False, test_rows = 500,
              return_df = False, message = 'Importing data'):
-        """Imports pandas dataframes from different file formats.
-        """
+        """Imports pandas dataframes from different file formats."""
         if not import_path:
             if not import_folder:
                 import_folder = self.filer.import_folder
@@ -510,7 +550,7 @@ class Data(object):
                                                file_type = file_type)
         if self.verbose:
             print(message)
-        if test_data:
+        if test_codex:
             nrows = test_rows
         else:
             nrows = None
@@ -559,87 +599,15 @@ class Data(object):
         return self
 
     @check_df
-    def smart_fillna(self, df = None, columns = None):
-        """Fills na values in dataframe to defaults based upon the datatype
-        listed in the columns dictionary.
-        """
-        columns = self._check_columns(df = df, columns = columns)
-        for column in columns:
-            if column in df.columns:
-                default_value = self.default_values[self.column_dict[column]]
-                df[column].fillna(default_value, inplace = True)
-            else:
-                error = column + ' is not in DataFrame'
-                raise KeyError(error)
-        return self
-
-    @check_df
-    def split_xy(self, df = None, label = 'label'):
-        """Splits data into x and y based upon the label passed.
-        """
-        self.x = df.drop(label, axis = 'columns')
-        self.y = df[label]
-        self._crosscheck_columns(df = self.x)
-        return self
-
-    @check_df
-    def summarize(self, df = None, export_path = '', export_summary = True,
-                  transpose = False):
-        """Creates a dataframe of common summary data. It is more inclusive
-        than describe() and includes boolean and numerical columns by default.
-        If an export_path is passed, the summary table is automatically saved
-        to disc.
-        """
-        summary_columns = ['variable', 'data_type', 'count', 'min', 'q1',
-                           'median', 'q3', 'max', 'mad', 'mean', 'stan_dev',
-                           'mode', 'sum']
-        self.summary = pd.DataFrame(columns = summary_columns)
-        for i, col in enumerate(df.columns):
-            new_row = pd.Series(index = summary_columns)
-            new_row['variable'] = col
-            new_row['data_type'] = df[col].dtype
-            new_row['count'] = len(df[col])
-            if df[col].dtype == bool:
-                df[col] = df[col].astype(int)
-            if df[col].dtype.kind in 'bifcu':
-                new_row['min'] = df[col].min()
-                new_row['q1'] = df[col].quantile(0.25)
-                new_row['median'] = df[col].median()
-                new_row['q3'] = df[col].quantile(0.75)
-                new_row['max'] = df[col].max()
-                new_row['mad'] = df[col].mad()
-                new_row['mean'] = df[col].mean()
-                new_row['stan_dev'] = df[col].std()
-                new_row['mode'] = df[col].mode()[0]
-                new_row['sum'] = df[col].sum()
-            self.summary.loc[len(self.summary)] = new_row
-        self.summary.sort_values('variable', inplace = True)
-        if transpose:
-            self.summary = self.summary.transpose()
-            df_header = False
-            df_index = True
-        else:
-            df_header = True
-            df_index = False
-        if export_summary:
-            if not export_path:
-                export_path = os.path.join(self.filer.results,
-                                           'data_summary.csv')
-            self.save(df = self.summary,
-                      index = df_index,
-                      header = df_header,
-                      export_path = export_path,
-                      file_type = self.filer.results_format,
-                      message = 'Exporting summary data')
-        return self
-
-    @check_df
-    def save(self, df = None, export_folder = '', file_name = 'data',
+    def save(self, df = None, export_folder = '', file_name = 'codex',
              export_path = '', file_type = 'csv', index = False, header = True,
              encoding = 'windows-1252', float_format = '%.4f',
              boolean_out = True, message = 'Exporting data'):
-        """Exports pandas dataframes to different file formats an encoding of
-        boolean variables as True/False or 1/0.
+        """Exports pandas dataframes to different file formats.
+
+        Attributes:
+            boolean_out: if True, boolean variables are exported sa True/False.
+                If false, boolean variables are exported as 1/0.
         """
         if not export_path:
             if not export_folder:
@@ -668,8 +636,7 @@ class Data(object):
         return
 
     def save_drops(self, file_name = 'dropped_columns', export_path = ''):
-        """Saves dropped_columns into a .csv file.
-        """
+        """Saves dropped_columns into a .csv file."""
         self.dropped_columns = list(unique_everseen(self.dropped_columns))
         if not export_path:
             export_folder = self.filer.results
@@ -683,3 +650,81 @@ class Data(object):
                 csv_writer = csv.writer(export_file)
                 csv_writer.writerow(self.dropped_columns)
         return
+
+    def scrape(self, file_path, file_url):
+        return self
+
+    @check_df
+    def smart_fillna(self, df = None, columns = None):
+        """Fills na values in dataframe to defaults based upon the datatype
+        listed in the columns dictionary.
+        """
+        columns = self._check_columns(df = df, columns = columns)
+        for column in columns:
+            if column in df.columns:
+                default_value = self.default_values[self.column_dict[column]]
+                df[column].fillna(default_value, inplace = True)
+            else:
+                error = column + ' is not in DataFrame'
+                raise KeyError(error)
+        return self
+
+    @check_df
+    def split_xy(self, df = None, label = 'label'):
+        """Splits codex into x and y based upon the label passed."""
+        self.x = df.drop(label, axis = 'columns')
+        self.y = df[label]
+        self._crosscheck_columns(df = self.x)
+        return self
+
+    @check_df
+    def summarize(self, df = None, export_path = '', export_summary = True,
+                  transpose = True):
+        """Creates a dataframe of common summary data.
+
+        summarize is more inclusive than pandas.describe() and includes
+        boolean and numerical columns by default. If an export_path is passed,
+        the summary table is automatically saved to disc.
+        """
+        summary_columns = ['variable', 'data_type', 'count', 'min', 'q1',
+                           'median', 'q3', 'max', 'mad', 'mean', 'stan_dev',
+                           'mode', 'sum']
+        self.summary = pd.DataFrame(columns = summary_columns)
+        for i, col in enumerate(df.columns):
+            new_row = pd.Series(index = summary_columns)
+            new_row['variable'] = col
+            new_row['data_type'] = df[col].dtype
+            new_row['count'] = len(df[col])
+            if df[col].dtype == bool:
+                df[col] = df[col].astype(int)
+            if df[col].dtype.kind in 'bifcu':
+                new_row['min'] = df[col].min()
+                new_row['q1'] = df[col].quantile(0.25)
+                new_row['median'] = df[col].median()
+                new_row['q3'] = df[col].quantile(0.75)
+                new_row['max'] = df[col].max()
+                new_row['mad'] = df[col].mad()
+                new_row['mean'] = df[col].mean()
+                new_row['stan_dev'] = df[col].std()
+                new_row['mode'] = df[col].mode()[0]
+                new_row['sum'] = df[col].sum()
+            self.summary.loc[len(self.summary)] = new_row
+        self.summary.sort_values('variable', inplace = True)
+        if not transpose:
+            self.summary = self.summary.transpose()
+            df_header = False
+            df_index = True
+        else:
+            df_header = True
+            df_index = False
+        if export_summary:
+            if not export_path:
+                export_path = os.path.join(self.filer.results,
+                                           'data_summary.csv')
+            self.save(df = self.summary,
+                      index = df_index,
+                      header = df_header,
+                      export_path = export_path,
+                      file_type = self.filer.results_format,
+                      message = 'Exporting summary data')
+        return self

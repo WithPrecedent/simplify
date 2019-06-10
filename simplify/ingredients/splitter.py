@@ -1,13 +1,14 @@
+
 from dataclasses import dataclass
 from sklearn.model_selection import TimeSeriesSplit, train_test_split
 
-from .step import Step
+from .ingredient import Ingredient
 
 
 @dataclass
-class Splitter(Step):
+class Splitter(Ingredient):
 
-    name : str = 'none'
+    technique : str = 'none'
     params : object = None
 
     def __post_init__(self):
@@ -23,26 +24,26 @@ class Splitter(Step):
                          'krepeats' : 10}
         return self
 
-    def _cv_split(self, data):
-#        for train_index, test_index in self.params['folder'].split(data.x, data.y):
-#            data.x_train, data.x_test = (data.x.iloc[train_index],
-#                                         data.x.iloc[test_index])
-#            data.y_train, data.y_test = (data.y.iloc[train_index],
-#                                         data.y.iloc[test_index])
-        return data
+    def _cv_split(self, codex):
+#        for train_index, test_index in self.params['folder'].split(codex.x, codex.y):
+#            codex.x_train, codex.x_test = (codex.x.iloc[train_index],
+#                                         codex.x.iloc[test_index])
+#            codex.y_train, codex.y_test = (codex.y.iloc[train_index],
+#                                         codex.y.iloc[test_index])
+        return codex
 
-    def _split_data(self, data):
-        data.x_train, data.x_test, data.y_train, data.y_test = (
-                self._one_split(data.x, data.y, self.params['test_size']))
+    def _split_data(self, codex):
+        codex.x_train, codex.x_test, codex.y_train, codex.y_test = (
+                self._one_split(codex.x, codex.y, self.params['test_size']))
         if 'val' in self.data_to_use:
             if self.val_size > 0:
-                data.x_train, data.x_val, data.y_train, data.y_val = (
-                    self._one_split(data.x_train, data.y_train,
+                codex.x_train, codex.x_val, codex.y_train, codex.y_val = (
+                    self._one_split(codex.x_train, codex.y_train,
                                     self.params['val_size']))
             else:
                 error = 'val_size must be > 0 if validation data selected.'
                 raise ValueError(error)
-        return data
+        return codex
 
     def _one_split(self, x, y, split_size):
         x_train, x_test, y_train, y_test = (
@@ -51,26 +52,26 @@ class Splitter(Step):
                                  test_size = split_size))
         return x_train, x_test, y_train, y_test
 
-    def _no_split(self, data):
-        return data
+    def _no_split(self, codex):
+        return codex
 
-    def mix(self, data):
-        if self.name != 'none':
+    def mix(self, codex):
+        if self.technique != 'none':
             if self.verbose:
                 print('Splitting data')
             self.runtime_params = {'random_state' : self.seed}
             self._check_params()
             self.params.update(self.runtime_params)
-            self.algorithm = self.options[self.name]
-        return self.algorithm(data)
+            self.algorithm = self.options[self.technique]
+        return self.algorithm(codex)
 
-    def fit(self, data):
-        self.algorithm = self.options[self.name]
+    def fit(self, codex):
+        self.algorithm = self.options[self.technique]
         return self
 
-    def transform(self, data):
-        return self.algorithm(data)
+    def transform(self, codex):
+        return self.algorithm(codex)
 
-    def fit_transform(self, data):
-        self.fit(data)
-        return self.transform(data)
+    def fit_transform(self, codex):
+        self.fit(codex)
+        return self.transform(codex)

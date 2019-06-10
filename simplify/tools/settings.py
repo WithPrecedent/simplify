@@ -7,14 +7,12 @@ import re
 
 @dataclass
 class Settings(object):
-    """Class for loading and storing user settings.
+    """Loads and/or stores user settings.
 
     Settings creates a nested dictionary, converting dictionary values to
     appropriate data types, enabling nested dictionary lookups by user, and
     storing portions of the configuration dictionary as attributes in other
-    classes.
-
-    The Settings class is largely a wrapper for python's ConfigParser. It seeks
+    classes. Settings is largely a wrapper for python's ConfigParser. It seeks
     to cure some of the most significant shortcomings of the base ConfigParser
     package:
         1) All values in ConfigParser are strings by default.
@@ -26,9 +24,9 @@ class Settings(object):
         1) Pass file_path and the settings file will automatically be loaded;
         2) Pass a prebuilt nested dictionary for storage in the Settings class;
             or
-        3) The Settings class will automatically looking for a file called
-            settings.ini in the subdfolder 'settings' off of the working
-            directory.
+        3) The Settings class will automatically look for a file called
+            simplify_settings.ini in the subdfolder 'settings' off of the
+            working directory.
 
     Whichever option is chosen, the nested settings dictionary is stored in the
     attribute .config. Users can store any section of the config dictionary as
@@ -82,7 +80,7 @@ class Settings(object):
 
     def __post_init__(self):
         """Initializes the config attribute and converts the dictionary values
-        to the proper types if set_types = True.
+        to the proper types if set_types is True.
         """
         if not self.config:
             config = ConfigParser(dict_type = dict)
@@ -96,6 +94,25 @@ class Settings(object):
             for section, nested_dict in self.config.items():
                 for key, value in nested_dict.items():
                     self.config[section][key] = self._typify(value)
+        return self
+
+    def __delitem__(self, name):
+        """Removes a dictionary section if name matches the name of a section.
+        Otherwise, it will remove all entries with name inside the various
+        sections of the config dictionary.
+        """
+        found_value = False
+        if name in self.config:
+            found_value = True
+            self.config.pop(name)
+        else:
+            for key, value in self.config.items():
+                if name in value:
+                    found_value = True
+                    self.config[key].pop(name)
+        if not found_value:
+            error_message = name + ' not found in settings dictionary'
+            raise KeyError(error_message)
         return self
 
     def __getitem__(self, value):
@@ -120,25 +137,6 @@ class Settings(object):
         else:
             error_message = 'section must be str type'
             raise TypeError(error_message)
-        return self
-
-    def __delitem__(self, name):
-        """Removes a dictionary section if name matches the name of a section.
-        Otherwise, it will remove all entries with name inside the various
-        sections of the config dictionary.
-        """
-        found_value = False
-        if name in self.config:
-            found_value = True
-            self.config.pop(name)
-        else:
-            for key, value in self.config.items():
-                if name in value:
-                    found_value = True
-                    self.config[key].pop(name)
-        if not found_value:
-            error_message = name + ' not found in settings dictionary'
-            raise KeyError(error_message)
         return self
 
     def _listify(self, variable):
@@ -177,9 +175,8 @@ class Settings(object):
             return value
 
     def localize(self, instance, sections, override = False):
-        """
-        Stores the section or sections of the config dictionary in the passed
-        class instance as attributes to that class instance.
+        """Stores the section or sections of the config dictionary in the
+        passed class instance as attributes to that class instance.
         """
         for section in self._listify(sections):
             for key, value in self.config[section].items():
@@ -188,13 +185,12 @@ class Settings(object):
         return
 
     def update(self, new_settings):
-        """
-        Adds a new nested dictionary to the config dictionary.
-        """
-        if (isinstance(new_settings, dict)
-                or isinstance(new_settings.config, dict)):
+        """Adds a new settings to the config dictionary."""
+        if isinstance(new_settings, dict):
+            self.config.update(new_settings)
+        elif isinstance(new_settings.config, dict):
             self.config.update(new_settings.config)
         else:
-            error_message = 'new_settings must be a 2-level nested dict'
+            error_message = 'new_settings must be dict or Settings instance'
             raise TypeError(error_message)
         return self

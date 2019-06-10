@@ -1,6 +1,3 @@
-"""
-Selector is a class containing feature selectors used in the siMpLify package.
-"""
 
 from dataclasses import dataclass
 
@@ -10,13 +7,14 @@ from sklearn.feature_selection import mutual_info_regression, RFE, RFECV
 from sklearn.feature_selection import SelectKBest, SelectFdr, SelectFpr
 from sklearn.feature_selection import SelectFromModel
 
-from .step import Step
+from .ingredient import Ingredient
 
 
 @dataclass
-class Selector(Step):
+class Selector(Ingredient):
+    """Contains feature selectors used in the siMpLify package."""
 
-    name : str = 'none'
+    technique : str = 'none'
     params : object = None
 
     def __post_init__(self):
@@ -37,19 +35,19 @@ class Selector(Step):
 
     def _set_param_groups(self, estimator):
 #        self.params.update({'n_features_to_select' : self.params['k']})
-        if self.name == 'rfe':
+        if self.technique == 'rfe':
             self.defaults = {'n_features_to_select' : 10,
                              'step' : 1}
             self.runtime_params = {'estimator' : estimator}
-        elif self.name == 'kbest':
+        elif self.technique == 'kbest':
             self.defaults = {'k' : 10,
                              'score_func' : f_classif}
             self.runtime_params = {}
-        elif self.name in ['fdr', 'fpr']:
+        elif self.technique in ['fdr', 'fpr']:
             self.defaults = {'alpha' : 0.05,
                              'score_func' : f_classif}
             self.runtime_params = {}
-        elif self.name == 'custom':
+        elif self.technique == 'custom':
             self.defaults = {'threshold' : 'mean'}
             self.runtime_params = {'estimator' : estimator}
         self.select_params(params_to_use = self.defaults.keys())
@@ -57,10 +55,10 @@ class Selector(Step):
 #            self.params['score_func'] = self.scorers[self.params['score_func']]
         return self
 
-    def mix(self, data, estimator = None):
-        if self.name != 'none':
+    def mix(self, codex, estimator = None):
+        if self.technique != 'none':
             if self.verbose:
-                print('Using', self.name, 'for feature reduction')
+                print('Using', self.technique, 'for feature reduction')
             self._set_param_groups(estimator)
             if self.params['score_func']:
                 self.params['score_func'] = (
@@ -70,17 +68,17 @@ class Selector(Step):
                 num_features = self.params['k']
             else:
                 num_features = self.params['n_features_to_select']
-            if len(data.x_train.columns) > num_features:
-                self.algorithm.fit(data.x_train, data.y_train)
+            if len(codex.x_train.columns) > num_features:
+                self.algorithm.fit(codex.x_train, codex.y_train)
                 mask = self.algorithm.get_support()
-                new_features = data.x_train.columns[mask]
-                data.x_train = self.algorithm.transform(data.x_train)
-                data.x_train = pd.DataFrame(data.x_train,
+                new_features = codex.x_train.columns[mask]
+                codex.x_train = self.algorithm.transform(codex.x_train)
+                codex.x_train = pd.DataFrame(codex.x_train,
                                             columns = new_features)
-                data.x_test = pd.DataFrame(data.x_test,
+                codex.x_test = pd.DataFrame(codex.x_test,
                                            columns = new_features)
-                data.x = pd.DataFrame(data.x,
+                codex.x = pd.DataFrame(codex.x,
                                       columns = new_features)
             else:
                 print('Selector lacks enough columns to reduce columns')
-        return data
+        return codex

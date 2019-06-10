@@ -1,13 +1,17 @@
+
 from dataclasses import dataclass
 
 from category_encoders import PolynomialEncoder
 
-from .step import Step
+from .ingredient import Ingredient
 
 @dataclass
-class Interactor(Step):
+class Interactor(Ingredient):
+    """Contains algorithms for testing variable interactions in the siMpLify
+    package.
+    """
 
-    name : str = ''
+    technique : str = ''
     params : object = None
 
     def __post_init__(self):
@@ -32,18 +36,18 @@ class Interactor(Step):
         pass
         return self
 
-    def mix(self, data, columns = None):
-        if self.name != 'none':
+    def mix(self, codex, columns = None):
+        if self.technique != 'none':
             if self.verbose:
-                print('Creating variables with', self.name, 'interactions')
+                print('Creating variables with', self.technique, 'interactions')
             if columns:
                 self.runtime_params.update({'cols' : columns})
             self.initialize()
-            self.algorithm.fit(data.x, data.y)
-            data.x_train = self.algorithm.transform(
-                    data.x_train.reset_index(drop = True))
-            data.x_test = self.algorithm.transform(
-                    data.x_test.reset_index(drop = True))
-            data.x = self.algorithm.transform(
-                    data.x.reset_index(drop = True))
-        return data
+            self.algorithm.fit(codex.x, codex.y)
+            codex.x_train = self.algorithm.transform(
+                    codex.x_train.reset_index(drop = True))
+            codex.x_test = self.algorithm.transform(
+                    codex.x_test.reset_index(drop = True))
+            codex.x = self.algorithm.transform(
+                    codex.x.reset_index(drop = True))
+        return codex

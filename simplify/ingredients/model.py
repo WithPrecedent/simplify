@@ -1,7 +1,4 @@
-"""
-Model is a class containing machine learning algorithms used in the siMpLify
-package.
-"""
+
 
 from dataclasses import dataclass
 
@@ -21,13 +18,14 @@ from sklearn.svm import OneClassSVM, SVC, SVR
 #from pystan import StanModel
 from xgboost import XGBClassifier, XGBRegressor
 
-from .step import Step
+from .ingredient import Ingredient
 
 
 @dataclass
-class Model(Step):
+class Model(Ingredient):
+    """Contains machine learning algorithms used in the siMpLify package."""
 
-    name : str = ''
+    technique : str = ''
     params : object = None
 
     def __post_init__(self):
@@ -101,15 +99,15 @@ class Model(Step):
                 new_params.update({param : values})
         self.params = new_params
         self.runtime_params = {'random_state' : self.seed}
-        if 'svm' in self.name:
+        if 'svm' in self.technique:
             self._svm_params()
-        elif 'baseline' in self.name:
+        elif 'baseline' in self.technique:
             self._baseline_params()
-        elif 'xgb' in self.name:
+        elif 'xgb' in self.technique:
             if not hasattr(self, 'scale_pos_weight'):
                 self.scale_pos_weight = 1
             if self.gpu:
-                self.runtime_params.update({'tree_Step' : 'gpu_exact'})
+                self.runtime_params.update({'tree_Ingredient' : 'gpu_exact'})
             if self.hyperparameter_search:
                 self.grid.update({'scale_pos_weight' :
                                   uniform(self.scale_pos_weight / 2,
@@ -124,14 +122,14 @@ class Model(Step):
                       'svm_poly' : 'poly',
                       'svm_rbf' : 'rbf',
                       'svm_sigmoid' : 'sigmoid'}
-        self.params.update({'kernel' : svm_params[self.name],
+        self.params.update({'kernel' : svm_params[self.technique],
                             'probability' : True})
         return self
 
     def _baseline_params(self):
-        if self.name in ['baseline_classifier']:
+        if self.technique in ['baseline_classifier']:
             self.params.update({'strategy' : 'most_frequent'})
-        elif self.name in ['baseline_regressor']:
+        elif self.technique in ['baseline_regressor']:
             self.params.update({'strategy' : 'mean'})
         return self
 
@@ -151,28 +149,28 @@ class Model(Step):
                 **self.search_params)
         return self
 
-    def search(self, data):
+    def search(self, codex):
         if self.verbose:
             print('Searching for best hyperparameters for the',
-                  self.name, 'model using', self.search_algorithm,
+                  self.technique, 'model using', self.search_algorithm,
                   'search algorithm')
-        self.search_method.fit(data.x_train, data.y_train)
+        self.search_method.fit(codex.x_train, codex.y_train)
         self.best_estimator = self.search_method.best_estimator_
         if self.verbose:
             print('The', self.search_params['scoring'],
-                  'score of the best estimator for the', self.name,
+                  'score of the best estimator for the', self.technique,
                   'model is', f'{self.search_method.best_score_ : 4.4f}')
         return self
 
-    def mix(self, data):
-        if self.name != 'none':
+    def mix(self, codex):
+        if self.technique != 'none':
             if self.verbose:
-                print('Applying', self.name, 'model to data')
+                print('Applying', self.technique, 'model to data')
             if self.hyperparameter_search:
-                self.search(data)
+                self.search(codex)
                 self.algorithm = self.best_estimator
             else:
-                self.algorithm.fit(data.x_train, data.y_train)
+                self.algorithm.fit(codex.x_train, codex.y_train)
         return self
 
     def fit(self, x, y):

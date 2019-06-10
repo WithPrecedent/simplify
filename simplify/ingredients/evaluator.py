@@ -8,13 +8,14 @@ from eli5 import show_weights
 #import lime
 from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
-from .step import Step
+from .ingredient import Ingredient
 
 
 @dataclass
-class Evaluator(Step):
+class Evaluator(Ingredient):
     """Computes machine learning experiment scores and metrics."""
-    name : str = ''
+
+    technique : str = ''
     params : object = None
 
     def __post_init__(self):
@@ -47,19 +48,19 @@ class Evaluator(Step):
     def _check_none(step):
         """
         Checks if metric listed is either 'none' or 'all.' Otherwise, it
-        returns the name of the algorithm selected.
+        returns the technique of the algorithm selected.
         """
-        if step.name in ['none', 'all']:
-            return step.name
-        elif not step.name:
+        if step.technique in ['none', 'all']:
+            return step.technique
+        elif not step.technique:
             return 'none'
         else:
             return step.algorithm
 
     def _make_predictions(self, recipe):
-        self.predictions = recipe.model.algorithm.predict(recipe.data.x_test)
+        self.predictions = recipe.model.algorithm.predict(recipe.codex.x_test)
         self.predicted_probs = recipe.model.algorithm.predict_proba(
-                recipe.data.x_test)
+                recipe.codex.x_test)
         return self
 
     def _get_result(self, recipe, use_val_set):
@@ -86,27 +87,27 @@ class Evaluator(Step):
                        'seed']:
                 self.result[key] = value
             else:
-                name = value.name
+                technique = value.technique
                 params = value.params
                 if hasattr(value, 'columns'):
                     cols = value.columns
                 else:
                     cols = ['all']
-                if name in ['none']:
-                    self.result[key] = name
+                if technique in ['none']:
+                    self.result[key] = technique
                 else:
                     self.result[key] = (
-                        f'{name}, parameters = {params}, columns = {cols}')
+                       f'{technique}, parameters = {params}, columns = {cols}')
         for key, value in self.options.items():
             if key in self.metrics:
                 if key in self.prob_options:
-                    params = {'y_true' : recipe.data.y_test,
+                    params = {'y_true' : recipe.codex.y_test,
                               'y_prob' : self.predicted_probs[:, 1]}
                 elif key in self.score_options:
-                    params = {'y_true' : recipe.data.y_test,
+                    params = {'y_true' : recipe.codex.y_test,
                               'y_score' : self.predicted_probs[:, 1]}
                 else:
-                    params = {'y_true' : recipe.data.y_test,
+                    params = {'y_true' : recipe.codex.y_test,
                               'y_pred' : self.predictions}
                 if key in self.spec_metrics:
                     params.update({key : self.spec_metrics[key]})
@@ -116,14 +117,14 @@ class Evaluator(Step):
                 self.result[key] = result
 
     def _confusion(self, recipe):
-        self.confusion = met.confusion_matrix(recipe.data.y_test,
+        self.confusion = met.confusion_matrix(recipe.codex.y_test,
                                               self.predictions)
         return self
 
     def _class_report(self, recipe):
-        self.class_report = met.classification_report(recipe.data.y_test,
+        self.class_report = met.classification_report(recipe.codex.y_test,
                                                       self.predictions)
-        self.class_report_dict = met.classification_report(recipe.data.y_test,
+        self.class_report_dict = met.classification_report(recipe.codex.y_test,
                                                            self.predictions,
                                                            output_dict = True)
 
@@ -131,8 +132,9 @@ class Evaluator(Step):
         return self
 
     def _feature_summaries(self, recipe):
-        self.feature_list = list(recipe.data.x_test.columns)
-        if 'svm_' in recipe.model.name or 'baseline_' in recipe.model.name:
+        self.feature_list = list(recipe.codex.x_test.columns)
+        if ('svm_' in recipe.model.technique
+                or 'baseline_' in recipe.model.technique):
             self.feature_import = None
         else:
             self.feature_import = pd.Series(
@@ -149,24 +151,24 @@ class Evaluator(Step):
         return self
 
     def _shap_explainer(self, recipe):
-        if recipe.model.name in self.shap_models:
-            self.shap_method_type = self.shap_models[recipe.model.name]
+        if recipe.model.technique in self.shap_models:
+            self.shap_method_type = self.shap_models[recipe.model.technique]
             self.shap_method = self.shap_options[self.shap_method_type]
-        elif 'baseline_' in recipe.model.name:
+        elif 'baseline_' in recipe.model.technique:
             self.shap_method_type = 'none'
         else:
             self.shap_method_type = 'kernel'
             self.shap_method = KernelExplainer
-        data_to_explain = {'train' : recipe.data.x_train,
-                           'test' : recipe.data.x_test,
-                           'full' : recipe.data.x}
+        data_to_explain = {'train' : recipe.codex.x_train,
+                           'test' : recipe.codex.x_test,
+                           'full' : recipe.codex.x}
         df = data_to_explain[self.data_to_explain]
         if self.shap_method_type != 'none':
-#            recipe.model.algorithm.fit(recipe.data.x_train,
-#                                       recipe.data.y_train)
+#            recipe.model.algorithm.fit(recipe.codex.x_train,
+#                                       recipe.codex.y_train)
             self.shap_explainer = self.shap_method(
                     model = recipe.model.algorithm,
-                    data = recipe.data.x_train)
+                    data = recipe.codex.x_train)
             self.shap_values = self.shap_explainer.shap_values(df)
             if self.shap_method_type == 'tree':
                 self.shap_interactions = (
@@ -185,10 +187,10 @@ class Evaluator(Step):
         return self
 
     def _print_results(self, recipe):
-        print('These are the results using the', recipe.model.name,
+        print('These are the results using the', recipe.model.technique,
               'model')
-        if recipe.splicer.name != 'none':
-            print('Testing', recipe.splicer.name, 'predictors')
+        if recipe.splicer.technique != 'none':
+            print('Testing', recipe.splicer.technique, 'predictors')
         print('Confusion Matrix:')
         print(self.confusion)
         print('Classification Report:')
@@ -213,8 +215,8 @@ class Evaluator(Step):
         return self
 
     def save_classification_report(self, export_path):
-        self.filer.save(df = self.class_report_df,
-                        export_path = export_path,
-                        header = True,
-                        index = True)
+#        self.filer.save(df = self.class_report_df,
+#                        export_path = export_path,
+#                        header = True,
+#                        index = True)
         return self

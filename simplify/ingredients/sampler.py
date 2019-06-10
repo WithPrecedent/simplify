@@ -1,7 +1,3 @@
-"""
-Sampler is a class containing resampling algorithms used in the siMpLify
-package.
-"""
 
 from dataclasses import dataclass
 
@@ -10,13 +6,14 @@ from imblearn.over_sampling import ADASYN, RandomOverSampler, SMOTE, SMOTENC
 from imblearn.under_sampling import AllKNN, ClusterCentroids, NearMiss
 from imblearn.under_sampling import RandomUnderSampler
 
-from .step import Step
+from .ingredient import Ingredient
 
 
 @dataclass
-class Sampler(Step):
+class Sampler(Ingredient):
+    """Contains resampling algorithms used in the siMpLify package."""
 
-    name : str = 'none'
+    technique : str = 'none'
     params : object = None
 
     def __post_init__(self):
@@ -35,7 +32,7 @@ class Sampler(Step):
         return self
 
     def _add_params(self, x, columns):
-        if self.name in ['smotenc']:
+        if self.technique in ['smotenc']:
             if self.columns:
                 cat_features = self._get_indices(x, columns)
                 self.params.update({'categorical_features' : cat_features})
@@ -44,21 +41,21 @@ class Sampler(Step):
                 raise RuntimeError(error)
         return self
 
-    def mix(self, data, columns = None):
-        if self.name != 'none':
+    def mix(self, codex, columns = None):
+        if self.technique != 'none':
             if self.verbose:
-                print('Resampling data with', self.name, 'technique')
+                print('Resampling data with', self.technique, 'technique')
             if not columns:
                 columns = []
             self.runtime_params = {'random_state' : self.seed}
             self.initialize()
-            self._add_params(data.x, columns)
-            self._store_feature_names(data.x_train, data.y_train)
+            self._add_params(codex.x, columns)
+            self._store_feature_names(codex.x_train, codex.y_train)
             resampled_x, resampled_y = self.algorithm.fit_resample(
-                    data.x_train, data.y_train)
-            data.x_train, data.y_train = self._get_feature_names(
+                    codex.x_train, codex.y_train)
+            codex.x_train, codex.y_train = self._get_feature_names(
                     resampled_x, resampled_y)
-        return data
+        return codex
 
     def fit(self, x, y, columns = None):
         self.initialize()

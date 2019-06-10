@@ -1,7 +1,4 @@
-"""
-Class for visualizing data analysis based upon the nature of the machine
-learning model used in the siMpLify package.
-"""
+
 from dataclasses import dataclass
 from functools import wraps
 from inspect import getfullargspec, signature
@@ -13,12 +10,15 @@ import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from .step import Step
+from .ingredient import Ingredient
 
 @dataclass
-class Plotter(Step):
+class Plotter(Ingredient):
+    """Visualizes data and analysisbased upon the nature of the machine
+    learning model used in the siMpLify package.
+    """
 
-    name : str = 'none'
+    technique : str = 'none'
     params : object = None
 
     def __post_init__(self):
@@ -107,7 +107,7 @@ class Plotter(Step):
                         kwargs.update({test_var : getattr(self, test_var)})
             elif 'recipe' in argspec.args:
                 kwargs.update({'recipe' : sig['recipe']})
-                x, y = sig['recipe'].data[self.data_to_plot]
+                x, y = sig['recipe'].codex[self.data_to_plot]
                 if 'x' in argspec.args and 'x' in unpassed_args:
                     kwargs.update({'x' : x})
                 if 'y' in argspec.args and 'y' in unpassed_args:
@@ -328,9 +328,9 @@ class Plotter(Step):
             self.predicted_probs = self.recipe.evaluator.predicted_probs
         else:
             self.predicted_probs = None
-        self.x, self.y = self.recipe.data[self.data_to_plot]
+        self.x, self.y = self.recipe.codex[self.data_to_plot]
         if ('shap' in self.settings['evaluator_params']['explainers']
-            and self.name == 'default'):
+            and self.technique == 'default'):
             self.plots.extend(['shap_heat_map', 'shap_summary'])
             if self.recipe.evaluator.shap_method_type == 'tree':
                 self.plots.append('shap_interactions')

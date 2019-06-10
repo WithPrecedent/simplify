@@ -1,19 +1,18 @@
 
-
 from dataclasses import dataclass
 
 from sklearn.preprocessing import KBinsDiscretizer, MaxAbsScaler, MinMaxScaler
 from sklearn.preprocessing import Normalizer, QuantileTransformer, RobustScaler
 from sklearn.preprocessing import StandardScaler
 
-from .step import Step
+from .ingredient import Ingredient
 
 
 @dataclass
-class Scaler(Step):
-    """Contains numerical scaler ingredients and algorithms.
-    """
-    name : str = 'none'
+class Scaler(Ingredient):
+    """Contains numerical scaler ingredients and algorithms."""
+
+    technique : str = 'none'
     params : object = None
 
     def __post_init__(self):
@@ -25,7 +24,7 @@ class Scaler(Step):
                         'quantile' : QuantileTransformer,
                         'robust' : RobustScaler,
                         'standard' : StandardScaler}
-        if self.name in ['bins']:
+        if self.technique in ['bins']:
             self.defaults = {'copy' : False,
                              'encode' : 'ordinal',
                              'strategy' : 'uniform',
@@ -35,13 +34,13 @@ class Scaler(Step):
         self.runtime_params = {}
         return self
 
-    def mix(self, data, columns = None):
-        if self.name != 'none':
+    def mix(self, codex, columns = None):
+        if self.technique != 'none':
             if self.verbose:
-                print('Scaling numerical columns with', self.name, 'method')
+                print('Scaling numerical columns with', self.technique, 'method')
             self.initialize(select_params = True)
             if columns:
-                data.x[columns] = self.fit_transform(data.x[columns], data.y)
+                codex.x[columns] = self.fit_transform(codex.x[columns], codex.y)
             else:
-                data.x = self.fit_transform(data.x, data.y)
-        return data
+                codex.x = self.fit_transform(codex.x, codex.y)
+        return codex

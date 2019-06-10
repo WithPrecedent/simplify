@@ -1,12 +1,12 @@
 
 from dataclasses import dataclass
 
-from .step import Step
+from .ingredient import Ingredient
 
 @dataclass
-class Custom(Step):
+class Custom(Ingredient):
 
-    name : str = ''
+    technique : str = ''
     params : object = None
 
     def __post_init__(self):
@@ -16,13 +16,13 @@ class Custom(Step):
         self.runtime_params = {}
         return self
 
-    def mix(self, data, runtime_params = None):
-        if self.name != 'none':
+    def mix(self, codex, runtime_params = None):
+        if self.technique != 'none':
             if self.verbose:
-                print('Applying custom', self.name, 'method')
+                print('Applying custom', self.technique, 'method')
             if runtime_params:
                 self.runtime_params = runtime_params
             self.initialize()
-            data.x_train, data.y_train = self.fit_transform(
-                    data.x_train, data.y_train)
-        return data
+            codex.x_train, codex.y_train = self.fit_transform(
+                    codex.x_train, codex.y_train)
+        return codex

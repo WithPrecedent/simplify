@@ -1,7 +1,4 @@
-"""
-Encoder is a class containing categorical encoders used in the siMpLify
-package.
-"""
+
 
 from dataclasses import dataclass
 
@@ -10,13 +7,14 @@ from category_encoders import BinaryEncoder, HashingEncoder, HelmertEncoder
 from category_encoders import LeaveOneOutEncoder, OneHotEncoder
 from category_encoders import OrdinalEncoder, SumEncoder, TargetEncoder
 
-from .step import Step
+from .ingredient import Ingredient
 
 
 @dataclass
-class Encoder(Step):
+class Encoder(Ingredient):
+    """Contains categorical encoders used in the siMpLify package."""
 
-    name : str = ''
+    technique : str = ''
     params : object = None
 
     def __post_init__(self):
@@ -35,18 +33,18 @@ class Encoder(Step):
         self.runtime_params = {}
         return self
 
-    def mix(self, data, columns = None):
-        if self.name != 'none':
+    def mix(self, codex, columns = None):
+        if self.technique != 'none':
             if self.verbose:
-                print('Encoding categorical data with', self.name, 'encoder')
+                print('Encoding categorical data with', self.technique, 'encoder')
             if columns:
                 self.runtime_params.update({'cols' : columns})
             self.initialize()
-            self.algorithm.fit(data.x, data.y)
-            data.x_train = self.algorithm.transform(
-                    data.x_train.reset_index(drop = True))
-            data.x_test = self.algorithm.transform(
-                    data.x_test.reset_index(drop = True))
-            data.x = self.algorithm.transform(
-                    data.x.reset_index(drop = True))
-        return data
+            self.algorithm.fit(codex.x, codex.y)
+            codex.x_train = self.algorithm.transform(
+                    codex.x_train.reset_index(drop = True))
+            codex.x_test = self.algorithm.transform(
+                    codex.x_test.reset_index(drop = True))
+            codex.x = self.algorithm.transform(
+                    codex.x.reset_index(drop = True))
+        return codex
