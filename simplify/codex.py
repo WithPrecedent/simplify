@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from functools import wraps
 from inspect import getfullargspec
 import os
-import re
 import requests
 
 from more_itertools import unique_everseen
@@ -13,7 +12,8 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from .tools.rematch import ReMatch
+from .tools.matcher import ReMatch
+
 
 @dataclass
 class Codex(object):
