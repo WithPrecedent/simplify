@@ -4,13 +4,15 @@ import numpy as np
 import pandas as pd
 import pickle
 
+from ...implements.implement import Implement
 
 @dataclass
-class Ingredient(object):
+class Step(Implement):
     """Parent class for preprocessing and modeling techniques in siMpLify.
     The Ingredient class allows for shared initialization, loading, and saving
     methods to be accessed by all machine learning and preprocessing steps.
     """
+
     def __post_init__(self):
         """Adds local attributes from settings."""
         self.settings.localize(instance = self,
@@ -18,56 +20,53 @@ class Ingredient(object):
         return self
 
     def __contains__(self, technique):
-        """Checks whether technique name is lists in options."""
-        if technique in self.options:
+        """Checks whether technique is listed in techniques dictionary."""
+        if technique in self.techniques:
             return True
         else:
             return False
 
     def __delitem__(self, technique):
-        """Deletes technique and algorithm if technique in options."""
-        if technique in self.options:
-            self.options.pop(technique)
+        """Deletes technique and algorithm if technique is in techniques
+        dictionary.
+        """
+        if technique in self.techniques:
+            self.techniques.pop(technique)
         else:
-            error_message = (
-                    technique + ' is not in ' + self.__class__.__name__)
-            raise KeyError(error_message)
+            error = technique + ' is not in ' + self.__class__.__name__
+            raise KeyError(error)
         return self
 
     def __getitem__(self, technique):
-        """Gets algorithm from options if technique in options."""
-        if technique in self.options:
-            return self.options[technique]
+        """Gets algorithm if technique is in techniques dictionary."""
+        if technique in self.techniques:
+            return self.techniques[technique]
         else:
             error = technique + ' is not in ' + self.__class__.__name__
             raise KeyError(error)
             return
 
     def __setitem__(self, technique, algorithm):
-        """Adds technique and corresponding algorithm to options."""
+        """Adds technique and algorithm to techniques dictionary."""
         if isinstance(technique, str):
             if isinstance(algorithm, object):
-                self.options.update({technique : algorithm})
+                self.techniques.update({technique : algorithm})
             else:
-                error = technique + ' must be an Ingredient object'
+                error = technique + ' must be an algorithm of object type'
                 raise TypeError(error)
         else:
-            error = algorithm + ' must be a string type'
+            error = technique + ' must be a string type'
             raise TypeError(error)
         return self
 
-    def _add_param(self, param):
-        """Adds a param set to params dictionary."""
-        return self.params.update(param)
-
-    def _check_params(self):
-        """Checks if params exists. If not, defaults are used."""
-        if not self.params:
-            self.params = self.defaults
+    def _check_parameters(self):
+        """Checks if parameters exists. If not, defaults are used."""
+        if not self.parameters:
+            self.parameters = self.defaults
         return self
 
     def _get_feature_names(self, x, y = None):
-        """Gets feature names."""
+        """Gets feature names if previously stored by _store_feature_names."""
         x = pd.DataFrame(x, columns = self.x_cols)
         if isinstance(y, np.ndarray):
             y = pd.Series(y, name = self.y_col)
@@ -77,23 +76,39 @@ class Ingredient(object):
 
     def _get_indices(self, df, columns):
         """Gets column indices for a list of column names."""
-        col_indices = [df.columns.get_loc(col) for col in columns]
-        return col_indices
+        return [df.columns.get_loc(col) for col in columns]
+
+    def _initialize(self, select_parameters = False):
+        """Adds parameters to algorithm."""
+        self._check_parameters()
+        if select_parameters:
+            self._select_parameters(
+                    parameters_to_use = list(self.defaults.keys()))
+        if self.runtime_parameters:
+            self.parameters.update(self.runtime_parameters)
+        if self.technique != 'none':
+            self.algorithm = self.techniques[self.technique]
+            if self.parameters:
+                self.algorithm = self.algorithm(**self.parameters)
+            else:
+                self.algorithm = self.algorithm()
+        return self
 
     def _list_type(self, test_list, data_type):
         """Tests whether any item in a list is of the passed data type."""
         return any(isinstance(i, data_type) for i in test_list)
 
-    def _listify(self, variable):
-        """Checks to see if the methods are stored in a list. If not, the
-        methods are converted to a list or a list of 'none' is created.
+    def _select_parameters(self, parameters_to_use = []):
+        """For subclasses that only need a subset of the parameters stored in
+        settings, this function selects that subset.
         """
-        if not variable:
-            return ['none']
-        elif isinstance(variable, list):
-            return variable
-        else:
-            return [variable]
+        new_parameters = {}
+        if self.parameters:
+            for key, value in self.parameters.items():
+                if key in parameters_to_use:
+                    new_parameters.update({key : value})
+            self.parameters = new_parameters
+        return self
 
     def _store_feature_names(self, x, y = None):
         """Stores feature names."""
@@ -102,47 +117,30 @@ class Ingredient(object):
             self.y_col = self.label
         return self
 
-    def add(self, techniques, algorithms, **kwargs):
-        """Adds new technique name and corresponding algorithm to the subclass
-        options dictionary.
+    def add_parameters(self, parameters):
+        """Adds a param set to parameters dictionary."""
+        if isinstance(parameters, dict):
+            return self.parameters.update(parameters)
+        else:
+            error = 'parameters must be a dictionary type'
+            raise TypeError(error)
+            return self
+
+    def add_techiques(self, techniques, algorithms):
+        """Adds new technique name and corresponding algorithm to the
+        techniques dictionary.
         """
         new_algorithms = zip(self._listify(techniques),
                              self._listify(algorithms))
         for technique, algorithm in new_algorithms.items():
-            self.options.update({technique, algorithm})
+            self.techniques.update({technique : algorithm})
         return self
 
-    def initialize(self, select_params = False):
-        """Adds parameters to ingredient algorithm."""
-        self._check_params()
-        if select_params:
-            self.select_params(params_to_use = list(self.defaults.keys()))
-        if self.runtime_params:
-            self.params.update(self.runtime_params)
-        if self.technique != 'none':
-            self.algorithm = self.options[self.technique]
-            if self.params:
-                self.algorithm = self.algorithm(**self.params)
-            else:
-                self.algorithm = self.algorithm()
-        return self
-
-    def select_params(self, params_to_use = []):
-        """For subclasses that only need a subset of the parameters stored in
-        settings, this function selects that subset.
-        """
-        new_params = {}
-        if self.params:
-            for key, value in self.params.items():
-                if key in params_to_use:
-                    new_params.update({key : value})
-            self.params = new_params
-        return self
-
-    def mix(self, x, y = None):
-        """Generic mix method for adding ingredients into recipe and applying
+    def blend(self, x, y = None):
+        """Generic blend method for adding ingredients into recipe and applying
         the appropriate algorithm.
         """
+        self.initialize()
         if self.algorithm != 'none':
             self.algorithm.fit(x, y)
             x = self.algorithm.transform(x)
@@ -153,12 +151,9 @@ class Ingredient(object):
         self.initialize()
         return self.algorithm.fit(x, y)
 
-    def transform(self, x):
-        """Generic transform method for partial compatibility to sklearn."""
-        return self.algorithm.transform(x)
-
     def fit_transform(self, x, y):
-        """Generic fit_transform method for partial compatibility to sklearn."""
+        """Generic fit_transform method for partial compatibility to sklearn.
+        """
         self.fit(x, y)
         return self.transform(x)
 
@@ -185,3 +180,7 @@ class Ingredient(object):
                                            file_type = 'pickle')
         pickle.dump(self.algorithm, open(export_path, 'wb'))
         return self
+
+    def transform(self, x):
+        """Generic transform method for partial compatibility to sklearn."""
+        return self.algorithm.transform(x)

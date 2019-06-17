@@ -6,13 +6,13 @@ import re
 
 
 @dataclass
-class Settings(object):
+class Menu(object):
     """Loads and/or stores user settings.
 
-    Settings creates a nested dictionary, converting dictionary values to
+    Menu creates a nested dictionary, converting dictionary values to
     appropriate data types, enabling nested dictionary lookups by user, and
     storing portions of the configuration dictionary as attributes in other
-    classes. Settings is largely a wrapper for python's ConfigParser. It seeks
+    classes. Menu is largely a wrapper for python's ConfigParser. It seeks
     to cure some of the most significant shortcomings of the base ConfigParser
     package:
         1) All values in ConfigParser are strings by default.
@@ -20,15 +20,15 @@ class Settings(object):
         3) It still uses OrderedDict (even though python 3.6+ has automatically
              orders regular dictionaries).
 
-    To use the Settings class, the user can either:
-        1) Pass file_path and the settings file will automatically be loaded;
-        2) Pass a prebuilt nested dictionary for storage in the Settings class;
+    To use the Menu class, the user can either:
+        1) Pass file_path and the menu .ini file will automatically be loaded;
+        2) Pass a prebuilt nested dictionary for storage in the Menu class;
             or
-        3) The Settings class will automatically look for a file called
-            simplify_settings.ini in the subdfolder 'settings' off of the
+        3) The Menu class will automatically look for a file called
+            simplify_menu.ini in the subdfolder 'menu' off of the
             working directory.
 
-    Whichever option is chosen, the nested settings dictionary is stored in the
+    Whichever option is chosen, the nested menu dictionary is stored in the
     attribute .config. Users can store any section of the config dictionary as
     attributes in a class instance by using the localize method.
 
@@ -38,7 +38,7 @@ class Settings(object):
     If no_lists is set to True (the default is False), dictionaries containing
     ', ' will be returned as strings instead of lists.
 
-    For example, if the settings file (settings.ini stored in the appropriate
+    For example, if the menu file (simplify_menu.ini stored in the appropriate
     folder) is as follows:
 
     [general]
@@ -49,25 +49,25 @@ class Settings(object):
     file_name = 'test_file'
     iterations = 4
 
-    This code will create the settings file and store the general section as
+    This code will create the menu file and store the general section as
     local attributes in the class:
 
         class FakeClass(object):
 
             def __init__(self):
-                self.settings = Settings()
-                self.settings.localize()
+                self.menu = Menu()
+                self.menu.localize()
 
     The result will be that an instance of Fakeclass will contain .verbose and
     .file_type as attributes that are appropriately typed.
 
-    Because Settings uses ConfigParser, it only allows 2-level settings
+    Because Menu uses ConfigParser, it only allows 2-level menu
     dictionaries. The desire for accessibility and simplicity dictated this
     limitation.
 
     Attributes:
-        file_path: string of where the settings file is located.
-        config: two-level nested dictionary storing settings.
+        file_path: string of where the menu ,ini file is located.
+        config: two-level nested dictionary storing menu.
         set_types: boolean variable determines whether values in config are
             converted to other types (True) or left as strings (False).
         no_list: if set_types = True, sets whether config values can be set
@@ -86,7 +86,7 @@ class Settings(object):
             config = ConfigParser(dict_type = dict)
             config.optionxform = lambda option : option
             if not self.file_path:
-                self.file_path = os.path.join('settings',
+                self.file_path = os.path.join('menu',
                                               'simplify_settings.ini')
             config.read(self.file_path)
             self.config = dict(config._sections)
@@ -111,7 +111,7 @@ class Settings(object):
                     found_value = True
                     self.config[key].pop(name)
         if not found_value:
-            error_message = name + ' not found in settings dictionary'
+            error_message = name + ' not found in menu dictionary'
             raise KeyError(error_message)
         return self
 
@@ -184,13 +184,13 @@ class Settings(object):
                     setattr(instance, key, value)
         return
 
-    def update(self, new_settings):
-        """Adds a new settings to the config dictionary."""
-        if isinstance(new_settings, dict):
-            self.config.update(new_settings)
-        elif isinstance(new_settings.config, dict):
-            self.config.update(new_settings.config)
+    def update(self, new_options):
+        """Adds a new options to the config dictionary."""
+        if isinstance(new_options, dict):
+            self.config.update(new_options)
+        elif isinstance(new_options.config, dict):
+            self.config.update(new_options.config)
         else:
-            error_message = 'new_settings must be dict or Settings instance'
+            error_message = 'new_options must be dict or Menu instance'
             raise TypeError(error_message)
         return self

@@ -7,38 +7,38 @@ from category_encoders import BinaryEncoder, HashingEncoder, HelmertEncoder
 from category_encoders import LeaveOneOutEncoder, OneHotEncoder
 from category_encoders import OrdinalEncoder, SumEncoder, TargetEncoder
 
-from .ingredient import Ingredient
+from .step import Step
 
 
 @dataclass
-class Encoder(Ingredient):
+class Encode(Step):
     """Contains categorical encoders used in the siMpLify package."""
 
     technique : str = ''
-    params : object = None
+    parameters : object = None
 
     def __post_init__(self):
         super().__post_init__()
-        self.options = {'backward' : BackwardDifferenceEncoder,
-                        'basen' : BaseNEncoder,
-                        'binary' : BinaryEncoder,
-                        'dummy' : OneHotEncoder,
-                        'hashing' : HashingEncoder,
-                        'helmert' : HelmertEncoder,
-                        'loo' : LeaveOneOutEncoder,
-                        'ordinal' : OrdinalEncoder,
-                        'sum' : SumEncoder,
-                        'target' : TargetEncoder}
+        self.techniques = {'backward' : BackwardDifferenceEncoder,
+                           'basen' : BaseNEncoder,
+                           'binary' : BinaryEncoder,
+                           'dummy' : OneHotEncoder,
+                           'hashing' : HashingEncoder,
+                           'helmert' : HelmertEncoder,
+                           'loo' : LeaveOneOutEncoder,
+                           'ordinal' : OrdinalEncoder,
+                           'sum' : SumEncoder,
+                           'target' : TargetEncoder}
         self.defaults = {}
-        self.runtime_params = {}
+        self.runtime_parameters = {}
         return self
 
-    def mix(self, codex, columns = None):
+    def blend(self, codex, columns = None):
         if self.technique != 'none':
             if self.verbose:
                 print('Encoding categorical data with', self.technique, 'encoder')
             if columns:
-                self.runtime_params.update({'cols' : columns})
+                self.runtime_parameters.update({'cols' : columns})
             self.initialize()
             self.algorithm.fit(codex.x, codex.y)
             codex.x_train = self.algorithm.transform(

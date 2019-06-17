@@ -10,20 +10,17 @@ import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from .ingredient import Ingredient
+from ..implements.implement import Implement
 
 @dataclass
-class Plotter(Ingredient):
-    """Visualizes data and analysisbased upon the nature of the machine
+class Presentation(Implement):
+    """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
     """
 
-    technique : str = 'none'
-    params : object = None
-
     def __post_init__(self):
         super().__post_init__()
-        self.settings.localize(instance = self, sections = ['plotter_params'])
+        self.menu.localize(instance = self, sections = ['plotter_params'])
         self._set_style()
         self._set_options()
         self._set_plots()
@@ -38,7 +35,6 @@ class Plotter(Ingredient):
                              [213/255,94/255,0], [0,114/255,178/255]]
         plt.style.use(style = self.plt_style)
         plt.rcParams['font.family'] = self.plt_font
-
         sns.set_style(style = self.seaborn_style)
         sns.set_context(context = self.seaborn_context)
         if self.seaborn_palette == 'colorblind':
@@ -48,28 +44,28 @@ class Plotter(Ingredient):
         return self
 
     def _set_options(self):
-        self.options = {'calibration' : self.calibration,
-                        'cluster_tree' : self.cluster_tree,
-                        'confusion' : self.confusion,
-                        'cumulative_gain' : self.cumulative,
-                        'elbow' : self.elbow_curve,
-                        'heat_map' : self.heat_map,
-                        'histogram' : self.histogram,
-                        'kde' : self.kde_plot,
-                        'ks_statistic' : self.ks_stat,
-                        'lift' : self.lift_curve,
-                        'linear' : self.linear_regress,
-                        'logistic' : self.logistic_regress,
-                        'pair_plot' : self.pair_plot,
-                        'pr_curve' : self.pr_plot,
-                        'residuals' : self.residuals,
-                        'roc_curve' : self.roc_plot,
-                        'shap_dependency' : self.shap_dependency,
-                        'shap_force' : self.shap_force_plot,
-                        'shap_heat_map' : self.shap_heat_map,
-                        'shap_interactions' : self.shap_interactions,
-                        'shap_summary' : self.shap_summary,
-                        'silhouette' : self.silhouette}
+        self.techniques = {'calibration' : self.calibration,
+                           'cluster_tree' : self.cluster_tree,
+                           'confusion' : self.confusion,
+                           'cumulative_gain' : self.cumulative,
+                           'elbow' : self.elbow_curve,
+                           'heat_map' : self.heat_map,
+                           'histogram' : self.histogram,
+                           'kde' : self.kde_plot,
+                           'ks_statistic' : self.ks_stat,
+                           'lift' : self.lift_curve,
+                           'linear' : self.linear_regress,
+                           'logistic' : self.logistic_regress,
+                           'pair_plot' : self.pair_plot,
+                           'pr_curve' : self.pr_plot,
+                           'residuals' : self.residuals,
+                           'roc_curve' : self.roc_plot,
+                           'shap_dependency' : self.shap_dependency,
+                           'shap_force' : self.shap_force_plot,
+                           'shap_heat_map' : self.shap_heat_map,
+                           'shap_interactions' : self.shap_interactions,
+                           'shap_summary' : self.shap_summary,
+                           'silhouette' : self.silhouette}
         if self.model_type in ['classifier']:
             self.default_plots = ['confusion', 'heat_map','ks_statistic',
                                   'pr_curve', 'roc_curve']
@@ -90,7 +86,7 @@ class Plotter(Ingredient):
 #        return self
 
     def _set_plots(self):
-        if self.plotter in ['default']:
+        if self.presentation_options in ['default']:
             self.plots = self.default_plots
         return self
 
@@ -107,7 +103,7 @@ class Plotter(Ingredient):
                         kwargs.update({test_var : getattr(self, test_var)})
             elif 'recipe' in argspec.args:
                 kwargs.update({'recipe' : sig['recipe']})
-                x, y = sig['recipe'].codex[self.data_to_plot]
+                x, y = sig['recipe'].ingredients[self.data_to_plot]
                 if 'x' in argspec.args and 'x' in unpassed_args:
                     kwargs.update({'x' : x})
                 if 'y' in argspec.args and 'y' in unpassed_args:
@@ -142,6 +138,28 @@ class Plotter(Ingredient):
     def confusion(self, recipe = None, file_name = 'confusion_matrix.png'):
         sns.heatmap(recipe.evaluator.confusion, annot = True, fmt = 'g')
         self.save(file_name)
+        return self
+
+    def create(self, recipe, review, plot_list = None):
+        if self.verbose:
+            print('Creating and exporting visuals')
+        self.recipe = recipe
+        self.review = review
+        self.estimator = self.recipe.model.algorithm
+        if hasattr(self.review, 'predicted_probs'):
+            self.predicted_probs = self.review.predicted_probs
+        else:
+            self.predicted_probs = None
+        self.x, self.y = self.recipe.ingredients[self.data_to_plot]
+        if ('shap' in self.settings['evaluator_params']['explainers']
+            and self.technique == 'default'):
+            self.plots.extend(['shap_heat_map', 'shap_summary'])
+            if self.review.shap_method_type == 'tree':
+                self.plots.append('shap_interactions')
+#        if self.dependency_plots != 'none':
+#            self._add_dependency_plots()
+        for plot in self.plots:
+            self.techniques[plot]()
         return self
 
     @set_defaults
@@ -235,6 +253,17 @@ class Plotter(Ingredient):
         self.save(file_name)
         return self
 
+    def save(self, file_name):
+        export_path = self.pantry._iter_path(
+                model = self.recipe.model,
+                recipe_number = self.recipe.number,
+                cleave = self.recipe.cleave,
+                file_name = file_name,
+                file_type = 'png')
+        plt.savefig(export_path, bbox_inches = 'tight')
+        plt.close()
+        return self
+
     @set_defaults
     def shap_dependency(self, recipe = None, x = None, var1 = None,
                         var2 = None, file_name = 'shap_dependency.png'):
@@ -307,35 +336,4 @@ class Plotter(Ingredient):
                    file_name = 'silhouette.png'):
         skplt.metrics.plot_silhouette(x, estimator.labels_)
         self.save(file_name)
-        return self
-
-    def save(self, file_name):
-        export_path = self.filer._iter_path(model = self.recipe.model,
-                                            recipe_number = self.recipe.number,
-                                            splicer = self.recipe.splicer,
-                                            file_name = file_name,
-                                            file_type = 'png')
-        plt.savefig(export_path, bbox_inches = 'tight')
-        plt.close()
-        return self
-
-    def mix(self, recipe, plot_list = None):
-        if self.verbose:
-            print('Creating and exporting visuals')
-        self.recipe = recipe
-        self.estimator = self.recipe.model.algorithm
-        if hasattr(self.recipe.evaluator, 'predicted_probs'):
-            self.predicted_probs = self.recipe.evaluator.predicted_probs
-        else:
-            self.predicted_probs = None
-        self.x, self.y = self.recipe.codex[self.data_to_plot]
-        if ('shap' in self.settings['evaluator_params']['explainers']
-            and self.technique == 'default'):
-            self.plots.extend(['shap_heat_map', 'shap_summary'])
-            if self.recipe.evaluator.shap_method_type == 'tree':
-                self.plots.append('shap_interactions')
-#        if self.dependency_plots != 'none':
-#            self._add_dependency_plots()
-        for plot in self.plots:
-            self.options[plot]()
         return self

@@ -12,35 +12,35 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from .tools.matcher import ReMatch
-
 
 @dataclass
-class Codex(object):
+class Ingredients(object):
     """Imports, stores, and exports pandas dataframes and series, as well as
     related information about those data containers.
 
-    Codex uses pandas dataframes or series for all data storage, but its
+    Ingredients uses pandas dataframes or series for all data storage, but its
     subclasses utilize faster numpy methods where possible to increase
-    performance. Codex stores the data itself as well as a set of related
-    settings and variables about the data.
+    performance. Ingredients stores the data itself as well as a set of related
+    variables about the data.
 
-    Dataframes stored in codex can be imported and exported using the load and
-    save methods. Current file formats supported are csv, feather, and hdf5.
+    Dataframes stored in ingredients can be imported and exported using the
+    load and save methods. Current file formats supported are csv, feather, and
+    hdf5.
 
-    A Settings object needs to be passed when a Codex instance is created. If
-    the quick_start option is selected, a Filer object must be passed as well.
+    A Menu object needs to be passed when a Ingredients instance is created.
+    If the quick_start option is selected, an Inventory object must be passed
+    as well.
 
-    Codex adds easy-to-use methods for common feature engineering techniques.
-    Methods include converting rarely appearing categories to a default value
-    (convert_rare), dropping boolean columns with infrequent True values
-    (drop_infrequent), and reshaping dataframes (reshape_wide and
+    Ingredients adds easy-to-use methods for common feature engineering
+    techniques. Methods include converting rarely appearing categories to a
+    default value (convert_rare), dropping boolean columns with infrequent True
+    values (drop_infrequent), and reshaping dataframes (reshape_wide and
     reshape_long). There are methods for creating column dictionaries for the
     different data types commonly appearing in machine learning scripts
     (column_types and create_column_list). Any function can be applied to a
     dataframe contained in Engineer by using the apply method.
 
-    Codex also includes some methods which are designed to be accessible
+    Ingredients also includes some methods which are designed to be accessible
     and user-friendly than the commonly-used methods. For example, data can
     easily be downcast to save memory with the downcast method and
     smart_fill_na fills na data with appropriate defaults based upon the column
@@ -48,68 +48,78 @@ class Codex(object):
     inference).
 
     Attributes:
-        settings: an instance of Settings.
-        filer: an instance of Filer.
         df: a pandas dataframe or series.
-        quick_start: a boolean variable indicating whether codex should
+        menu: an instance of Menu.
+        inventory: an instance of Inventory.
+        quick_start: a boolean variable indicating whether data should
             automatically be loaded into the df attribute.
         default_df: the current default dataframe or series attribute that will
             be used when a specific dataframe is not passed to a class method.
             The value is a string corresponding to the attribute dataframe
-            name and is initially set to 'df.'
-        column_dict: a dictionary containing the names and datatypes of
-            columns.
+            name and is initially set to 'df'.
+        x, y, x_train, y_train, x_test, y_test, x_val, y_val: dataframes or
+            series. These dataframes (and corresponding columns dictionaries)
+            need not be passed when the class is instanced. They are merely
+            listed for users who already have divided datasets and still wish
+            to use the siMpLify package.
+        columns: dictionary containing column names and datatypes for df or x
+            (if data has been split) dataframes or series
     """
-
-    settings : object
-    filer : object = None
     df : object = None
+    menu : object = None
+    inventory : object = None
     quick_start : bool = False
-    default_df = str = 'df'
-    column_dict : object = None
+    default_df : str = 'df'
+    x : object = None
+    y : object = None
+    x_train : object = None
+    y_train : object = None
+    x_test : object = None
+    y_test : object = None
+    x_val : object = None
+    y_val : object = None
+    columns_dict : object = None
+
 
     def __post_init__(self):
-        self.settings.localize(instance = self, sections = ['general'])
+        """Localizes menu, initializes quick_start if that option is
+        selected and infers column datatypes if a pandas dataframe or series
+        is passed.
+        """
+        if self.menu:
+            self.menu.localize(instance = self, sections = ['general'])
+        else:
+            error = 'Ingredients requires a Menu object'
+            raise AttributeError(error)
         if self.verbose:
-            print('Building codex')
-        # If quick_start is set to true and a settings dictionary is passed,
-        # codex is automatically loaded according to user specifications in the
-        # settings file.
+            print('Building ingredients')
+        # If quick_start is set to true and a menu dictionary is passed,
+        # ingredients is automatically loaded according to user specifications in the
+        # menu file.
         if self.quick_start:
-            if self.filer:
-                self.load(import_path = self.filer.import_path,
-                          test_codex = self.filer.test_codex,
-                          test_rows = self.filer.test_chunk,
-                          encoding = self.filer.encoding)
+            if self.inventory:
+                self.load(import_path = self.inventory.import_path,
+                          test_data = self.inventory.test_data,
+                          test_rows = self.inventory.test_chunk,
+                          encoding = self.inventory.encoding)
             else:
-                error = 'Codex quick_start requires a Filer object'
+                error = 'Ingredients quick_start requires an Inventory object'
                 raise AttributeError(error)
-        self.column_type_dicts = {bool : [],
-                                  float : [],
-                                  int : [],
-                                  object : [],
-                                  CategoricalDtype : [],
-                                  list : [],
-                                  np.datetime64 : [],
-                                  timedelta : [],
-                                  'interactor' : [],
-                                  'scaler' : [],
-                                  'encoder' : []}
-        self.default_values = {bool : False,
-                               float : 0.0,
-                               int : 0,
-                               object : '',
-                               CategoricalDtype : '',
-                               list : [],
-                               np.datetime64 : 1/1/1990,
-                               timedelta : 0,
-                               'interactor' : '',
-                               'scaler' : 0,
-                               'encoder' : ''}
-        self.custom_columns = []
-        self.dropped_columns = []
-        if isinstance(self.df, pd.DataFrame):
-            self.auto_column_types()
+        self._default_values = {bool : False,
+                                float : 0.0,
+                                int : 0,
+                                object : '',
+                                CategoricalDtype : '',
+                                list : [],
+                                np.datetime64 : 1/1/1900,
+                                timedelta : 0,
+                                'interactor' : '',
+                                'scaler' : 0,
+                                'encoder' : ''}
+        # Initializes a list of dropped column names so that users can track
+        # which features are omitted from analysis.
+        self._dropped_columns = []
+        self.infer_datatypes()
         return self
 
     def __delitem__(self, name):
@@ -121,89 +131,171 @@ class Codex(object):
     def __len__(self):
         return len(getattr(self, self.default_df))
 
-    def __setitem__(self, name, value):
-        return setattr(self, name, value)
-
     def __repr__(self):
         return getattr(self, self.default_df)
+
+    def __setitem__(self, name, value):
+        return setattr(self, name, value)
 
     def __str__(self):
         return getattr(self, self.default_df)
 
+    def check_df(func):
+        """Decorator which automatically uses the default dataframe if one
+        is not passed to the decorated method.
+        """
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            argspec = getfullargspec(func)
+            unpassed_args = argspec.args[len(args):]
+            if 'df' in argspec.args and 'df' in unpassed_args:
+                kwargs.update({'df' : getattr(self, self.default_df)})
+            return func(self, *args, **kwargs)
+        return wrapper
+
+    @check_df
+    def _check_columns(self, df = None):
+        for df, column_dict in self._column_dicts.items():
+            if isinstance(df, pd.DataFrame) or isinstance(df, pd.Series):
+                if not column_dict:
+                    self.infer_datatypes(df)
+                else:
+                    self._crosscheck_columns(df, list(column_dict.keys()))
+        return self
+
+    @check_df
+    def _crosscheck_columns(self, df = None, columns = None):
+        """Removes any columns in columns dictionary, but not in dataframe."""
+        for column in self._listify(columns):
+            if column in self.types:
+                self.types.pop(column)
+        return self
+
+    def _deduplicate(self, type_list):
+        """Removes duplicates from a list"""
+        return list(unique_everseen(type_list))
+
+    def _get_columns_by_type(self, column_dict, datatype):
+        column_list = self._deduplicate(
+            [key for key, value in column_dict.items() if value == datatype])
+        return column_list
+#
+#    def _get_variable_name(self, variable):
+#        """Returns attribute name as a string."""
+#        if (isinstance(variable, pd.DataFrame)
+#                or isinstance(variable, pd.Series)):
+#            matches = [key for key, value in self.__dict__.items()
+#                        if variable.equals(value)]
+#            print(matches[0])
+#            return matches[0]
+#        else:
+#            return [key for key, value in self.__dict__.items()
+#                    if value == variable][0]
+
+    def _listify(self, ingredients):
+        """Checks to see if the methods are stored in a list. If not, the
+        methods are converted to a list or a list of 'none' is created.
+        """
+        if not ingredients:
+            return ['none']
+        elif isinstance(ingredients, list):
+            return ingredients
+        else:
+            return [ingredients]
+
+    @check_df
+    def _set_columns(self, df = None, column_dict = None):
+        """Creates attribute for columns specific to dataframe or series
+        attribute. Format for new attribute is [df_name]_columns.
+        """
+        var_name = self._get_variable_name(df)
+        if column_dict:
+            setattr(self, var_name + '_columns', column_dict)
+        else:
+            self.infer_datatypes()
+        return self
+
     @property
-    def bool_columns(self):
+    def booleans(self, df):
         """Returns boolean columns."""
-        return self.column_type_dicts[bool]
+        return self._get_columns_by_type(self._column_dicts[df], bool)
 
     @property
-    def float_columns(self):
-        """Returns float columns."""
-        return self.column_type_dicts[float]
-
-    @property
-    def int_columns(self):
-        """Returns int columns."""
-        return self.column_type_dicts[int]
-
-    @property
-    def str_columns(self):
-        """Returns str (object type) columns."""
-        return self.column_type_dicts[object]
-
-    @property
-    def category_columns(self):
+    def categoricals(self, df):
         """Returns caterogical columns."""
-        return self.column_type_dicts[CategoricalDtype]
+        return self._get_columns_by_type(self._column_dicts[df],
+                                         CategoricalDtype)
 
     @property
-    def list_columns(self):
-        """Returns list columns."""
-        return self.column_type_dicts[list]
+    def columns(self, datatype = dict):
+        if datatype in [dict]:
+            return self.columns_dict
+        elif datatype in [list]:
+            return list(self.columns_dict.keys())
+        else:
+            error = 'columns can only return dict and list datatypes'
+            raise TypeError(error)
+            return self
 
     @property
-    def datetime_columns(self):
+    def datetimes(self, df):
         """Returns datetime columns."""
-        return self.column_type_dicts[np.datetime64]
+        return self._get_columns_by_type(self._column_dicts[df], np.datetime64)
 
     @property
-    def timedelta_columns(self):
-        """Returns timedelata columns."""
-        return self.column_type_dicts[timedelta]
+    def default_values(self):
+        """Returns current default values for datatypes."""
+        return self._default_values
 
     @property
-    def numeric_columns(self):
+    def dropped(self, df):
+        """Returns list of dropped columns."""
+        return self.deduplicate(self._dropped_columns)
+
+    @property
+    def encoders(self, df):
+        """Returns columns with 'encoder' datatype."""
+        return self._get_columns_by_type(self._column_dicts[df], 'encoder')
+
+    @property
+    def floats(self, df):
+        """Returns float columns."""
+        return self._get_columns_by_type(self._column_dicts[df], float)
+
+    @property
+    def integers(self, df):
+        """Returns int columns."""
+        return self._get_columns_by_type(self._column_dicts[df], int)
+
+    @property
+    def interactors(self, df):
+        """Returns columns with 'interactor' datatype."""
+        return self._get_columns_by_type(self._column_dicts[df], 'interactor')
+
+    @property
+    def lists(self, df):
+        """Returns list columns."""
+        return self._get_columns_by_type(self._column_dicts[df], list)
+
+    @property
+    def numerics(self, df):
         """Returns float and int columns."""
-        return self.float_columns + self.int_columns
+        return self._deduplicate(self.floats + self.integers)
 
     @property
-    def encoder_columns(self):
-        """Returns columns with 'encoder' datatype or, if none exist, category
-        datatype.
-        """
-        if not 'encoder' in self.column_dict:
-            return self.category_columns
-        else:
-            return self.column_type_dicts['encoder']
+    def scalers(self, df):
+        """Returns columns with 'scaler' datatype."""
+        return self._get_columns_by_type(self._column_dicts[df], 'scaler')
 
     @property
-    def interactor_columns(self):
-        """Returns columns with 'interactor' datatype or, if none exist,
-        category datatype.
-        """
-        if not 'interactor' in self.column_dict:
-            return self.category_columns
-        else:
-            return self.column_type_dicts['interactor']
+    def strings(self, df):
+        """Returns str (object type) columns."""
+        return self._get_columns_by_type(self._column_dicts[df], object)
 
     @property
-    def scaler_columns(self):
-        """Returns columns with 'scaler' datatype or, if none exist, numeric
-        datatype.
-        """
-        if not 'scaler' in self.column_dict:
-            return self.numeric_columns
-        else:
-            self.column_type_dicts['scaler']
+    def timedeltas(self, df):
+        """Returns timedelata columns."""
+        return self._get_columns_by_type(self._column_dicts[df], timedelta)
 
     @property
     def full(self):
@@ -241,92 +333,34 @@ class Codex(object):
         """Returns the validation data."""
         return self.x_val, self.y_val
 
-    def check_df(func):
-        """Decorator which automatically uses the default dataframe if one
-        is not passed to the decorated method.
-        """
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            argspec = getfullargspec(func)
-            unpassed_args = argspec.args[len(args):]
-            if 'df' in argspec.args and 'df' in unpassed_args:
-                kwargs.update({'df' : getattr(self, self.default_df)})
-            return func(self, *args, **kwargs)
-        return wrapper
-
-    @check_df
-    def _check_columns(self, df = None, columns = None):
-        if not columns:
-            return df.columns
-        else:
-            return columns
-
-    def _combine_list_all(self, df, in_columns, out_column):
-        df[out_column] = np.where(np.all(df[self._listify(in_columns)]),
-                                         True, False)
+    def add_dataframe(self, name, dataframe, column_dict = None):
+        setattr(self, name, dataframe)
+        self._set_columns(dataframe, column_dict)
         return self
 
-    def _combine_list_any(self, df, in_columns, out_column):
-        df[out_column] = np.where(np.any(df[self._listify(in_columns)]),
-                                         True, False)
+    def add_datatype(self, name, default_value):
+        self._default_values.update({name : default_value})
         return self
-
-    def _combine_list_dict(self, df, in_columns, out_column, combiner):
-        df[out_column] = np.where(np.any(
-                                df[self._listify(in_columns)]),
-                                True, False)
-        return self
-
-    @check_df
-    def _crosscheck_columns(self, df = None):
-        for data_type, column_list in self.column_type_dicts.items():
-            if column_list:
-                for column in column_list:
-                    if not column in df.columns:
-                        self.column_type_dicts[data_type].remove(column)
-        dict_keys = list(self.column_dict.keys())
-        for column in dict_keys:
-            if not column in df.columns:
-                self.column_dict.pop(column)
-                if column != self.label:
-                    self.dropped_columns.append(column)
-        return self
-
-    def _listify(self, variable):
-        """Checks to see if the methods are stored in a list. If not, the
-        methods are converted to a list or a list of 'none' is created.
-        """
-        if not variable:
-            return ['none']
-        elif isinstance(variable, list):
-            return variable
-        else:
-            return [variable]
-
-    def _remove_from_column_list(self, column_list, new_columns):
-        column_list = [col for col in column_list if col not in new_columns]
-        return column_list
-
-    def add_df_group(self, group_name, df_list):
-        """Adds a new group for use when users to get different combinations
-        of dataframe attributes.
-        """
-        return self.df_options.update(
-                {group_name : self.settings._listify(df_list)})
 
     @check_df
     def add_unique_index(self, df = None, column = 'index_universal',
                          make_index = False):
         """Creates a unique integer index for each row."""
-        df[column] = range(1, len(df.index) + 1)
-        if make_index:
-            df.set_index(column, inplace = True)
+        if isinstance(df, pd.DataFrame):
+            df[column] = range(1, len(df.index) + 1)
+            self._update_columns(df, column, int)
+            if make_index:
+                df.set_index(column, inplace = True)
+        else:
+            error = 'To add an index, df must be a pandas dataframe.'
+            TypeError(error)
         return self
 
     @check_df
     def apply(self, df = None, func = None, **kwargs):
-        """Allows users to pass a function to Codex instance which will be
-        applied to the passed dataframe (or uses default_df if none is passed).
+        """Allows users to pass a function to Ingredients instance which will
+        be applied to the passed dataframe (or uses default_df if none is
+        passed).
         """
         df = func(df, **kwargs)
         return self
@@ -349,50 +383,16 @@ class Codex(object):
         return self
 
     @check_df
-    def auto_column_types(self, df = None):
-        """Infers column datatypes and adds those datatypes to column_dict.
-        """
-        self.column_dict = {}
-        for data_type, column_list in self.column_type_dicts.items():
-            if not data_type in ['interactor', 'scaler', 'encoder']:
-                columns = df.select_dtypes(
-                        include = [data_type]).columns.to_list()
-                if columns:
-                    self.column_type_dicts[data_type].extend(columns)
-                self.column_dict.update(dict.fromkeys(columns, data_type))
-        return self
-
-    @check_df
-    def change_column_type(self, df = None, columns = None, prefixes = None,
-                           data_type = str):
+    def change_type(self, df = None, columns = None, prefixes = None,
+                    datatype = str):
         """Changes column datatypes of columns passed or columns with the
-        prefixes passed. data_type becomes the new datatype for the columns.
+        prefixes passed. datatype becomes the new datatype for the columns.
         """
-        columns = self.create_column_list(prefixes = prefixes,
-                                          columns = columns)
-        self.column_dict.update(dict.fromkeys(columns, data_type))
-        for d_type, column_list in self.column_type_dicts.items():
-            if d_type == data_type:
-                self.column_type_dicts[data_type].extend(columns)
-            else:
-                self.column_type_dicts[d_type] = (
-                        self._remove_from_column_list(column_list, columns))
-        return self
-
-    @check_df
-    def combine(self, df = None, in_columns = None, out_column = None,
-                combiner = None):
-        combine_techniques = {'all' : self._combine_list_all,
-                              'any' : self._combine_list_any}
-        if isinstance(combiner, dict):
-            self._combine_list_dict(df = df,
-                                    in_columns = in_columns,
-                                    out_column = out_column,
-                                    combiner = combiner)
-        else:
-            combine_techniques[combiner](df = df,
-                                        in_columns = in_columns,
-                                        out_column = out_column)
+        columns_list = self.create_column_list(df = df,
+                                               prefixes = prefixes,
+                                               columns = columns)
+        for column in columns_list:
+            self._column_dicts[df][column] = datatype
         return self
 
     @check_df
@@ -434,6 +434,8 @@ class Codex(object):
         else:
             column_list = prefixes_list
         return column_list
+
+
 
     @check_df
     def decorrelate(self, df = None, threshold = 0.95):
@@ -526,31 +528,50 @@ class Codex(object):
         self.drop_columns(columns = cols)
         return self
 
+    @check_df
+    def infer_datatypes(self, df = None):
+        """Infers column datatypes and adds those datatypes to types. This
+        method is an alternative to default pandas methods which can use
+        complex datatypes (e.g., int8, int16, int32, int64, etc.). This also
+        allows the user to choose which datatypes to look for by changing the
+        default_values dictionary. Non-standard python datatypes cannot be
+        inferred."""
+        # Creates list of all possible datatypes.
+        self._all_datatypes = list(self.default_values.keys())
+        # Gets corresponding columns dictionary and initializes it if
+        # necessary.
+        for datatype in self._all_datatypes:
+            if not isinstance(datatype, str):
+                type_columns = df.select_dtypes(
+                        include = [datatype]).columns.to_list()
+                column_dict.update(dict.fromkeys(type_columns, datatype))
+        return self
+
     def initialize_series(self, df = None):
         """Creates a series (row) with the datatypes in column_dict."""
         row = pd.Series(index = self.column_dict.keys())
-        for column, data_type in self.column_dict.items():
-            row[column] = self.default_values[data_type]
+        for column, datatype in self.column_dict.items():
+            row[column] = self.default_values[datatype]
         if not df:
             setattr(self, self.default_df, row)
             return self
         else:
             return row
 
-    def load(self, import_folder = '', file_name = 'codex', import_path = '',
-             file_type = 'csv', usecolumns = None, index = False,
-             encoding = 'windows-1252', test_codex = False, test_rows = 500,
-             return_df = False, message = 'Importing data'):
+    def load(self, import_folder = '', file_name = 'ingredients',
+             import_path = '', file_type = 'csv', usecolumns = None,
+             index = False, encoding = 'windows-1252', test_data = False,
+             test_rows = 500, return_df = False, message = 'Importing data'):
         """Imports pandas dataframes from different file formats."""
         if not import_path:
             if not import_folder:
-                import_folder = self.filer.import_folder
-            import_path = self.filer.make_path(folder = import_folder,
+                import_folder = self.inventory.import_folder
+            import_path = self.inventory.make_path(folder = import_folder,
                                                file_name = file_name,
                                                file_type = file_type)
         if self.verbose:
             print(message)
-        if test_codex:
+        if test_data:
             nrows = test_rows
         else:
             nrows = None
@@ -599,7 +620,7 @@ class Codex(object):
         return self
 
     @check_df
-    def save(self, df = None, export_folder = '', file_name = 'codex',
+    def save(self, df = None, export_folder = '', file_name = 'ingredients',
              export_path = '', file_type = 'csv', index = False, header = True,
              encoding = 'windows-1252', float_format = '%.4f',
              boolean_out = True, message = 'Exporting data'):
@@ -611,8 +632,8 @@ class Codex(object):
         """
         if not export_path:
             if not export_folder:
-                export_folder = self.filer.data
-            export_path = self.filer.make_path(folder = export_folder,
+                export_folder = self.inventory.data
+            export_path = self.inventory.make_path(folder = export_folder,
                                                file_name = file_name,
                                                file_type = file_type)
         if not isinstance(df, pd.DataFrame):
@@ -639,8 +660,8 @@ class Codex(object):
         """Saves dropped_columns into a .csv file."""
         self.dropped_columns = list(unique_everseen(self.dropped_columns))
         if not export_path:
-            export_folder = self.filer.results
-            export_path = self.filer.make_path(folder = export_folder,
+            export_folder = self.inventory.results
+            export_path = self.inventory.make_path(folder = export_folder,
                                                file_name = file_name,
                                                file_type = 'csv')
         if self.dropped_columns:
@@ -652,6 +673,10 @@ class Codex(object):
         return
 
     def scrape(self, file_path, file_url):
+        return self
+
+    def set_default_value(self, datatype, default_value):
+        self._default_values[datatype] = default_value
         return self
 
     @check_df
@@ -671,7 +696,7 @@ class Codex(object):
 
     @check_df
     def split_xy(self, df = None, label = 'label'):
-        """Splits codex into x and y based upon the label passed."""
+        """Splits ingredients into x and y based upon the label passed."""
         self.x = df.drop(label, axis = 'columns')
         self.y = df[label]
         self._crosscheck_columns(df = self.x)
@@ -686,14 +711,14 @@ class Codex(object):
         boolean and numerical columns by default. If an export_path is passed,
         the summary table is automatically saved to disc.
         """
-        summary_columns = ['variable', 'data_type', 'count', 'min', 'q1',
+        summary_columns = ['variable', 'datatype', 'count', 'min', 'q1',
                            'median', 'q3', 'max', 'mad', 'mean', 'stan_dev',
                            'mode', 'sum']
         self.summary = pd.DataFrame(columns = summary_columns)
         for i, col in enumerate(df.columns):
             new_row = pd.Series(index = summary_columns)
             new_row['variable'] = col
-            new_row['data_type'] = df[col].dtype
+            new_row['datatype'] = df[col].dtype
             new_row['count'] = len(df[col])
             if df[col].dtype == bool:
                 df[col] = df[col].astype(int)
@@ -719,12 +744,12 @@ class Codex(object):
             df_index = False
         if export_summary:
             if not export_path:
-                export_path = os.path.join(self.filer.results,
+                export_path = os.path.join(self.inventory.results,
                                            'data_summary.csv')
             self.save(df = self.summary,
                       index = df_index,
                       header = df_header,
                       export_path = export_path,
-                      file_type = self.filer.results_format,
+                      file_type = self.inventory.results_format,
                       message = 'Exporting summary data')
         return self

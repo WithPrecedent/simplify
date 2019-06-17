@@ -8,7 +8,7 @@ from eli5 import show_weights
 #import lime
 from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
-from .ingredient import Ingredient
+from ..cookbook.ingredient import Ingredient
 
 
 @dataclass
@@ -58,9 +58,9 @@ class Evaluator(Ingredient):
             return step.algorithm
 
     def _make_predictions(self, recipe):
-        self.predictions = recipe.model.algorithm.predict(recipe.codex.x_test)
+        self.predictions = recipe.model.algorithm.predict(recipe.ingredients.x_test)
         self.predicted_probs = recipe.model.algorithm.predict_proba(
-                recipe.codex.x_test)
+                recipe.ingredients.x_test)
         return self
 
     def _get_result(self, recipe, use_val_set):
@@ -101,13 +101,13 @@ class Evaluator(Ingredient):
         for key, value in self.options.items():
             if key in self.metrics:
                 if key in self.prob_options:
-                    params = {'y_true' : recipe.codex.y_test,
+                    params = {'y_true' : recipe.ingredients.y_test,
                               'y_prob' : self.predicted_probs[:, 1]}
                 elif key in self.score_options:
-                    params = {'y_true' : recipe.codex.y_test,
+                    params = {'y_true' : recipe.ingredients.y_test,
                               'y_score' : self.predicted_probs[:, 1]}
                 else:
-                    params = {'y_true' : recipe.codex.y_test,
+                    params = {'y_true' : recipe.ingredients.y_test,
                               'y_pred' : self.predictions}
                 if key in self.spec_metrics:
                     params.update({key : self.spec_metrics[key]})
@@ -117,14 +117,14 @@ class Evaluator(Ingredient):
                 self.result[key] = result
 
     def _confusion(self, recipe):
-        self.confusion = met.confusion_matrix(recipe.codex.y_test,
+        self.confusion = met.confusion_matrix(recipe.ingredients.y_test,
                                               self.predictions)
         return self
 
     def _class_report(self, recipe):
-        self.class_report = met.classification_report(recipe.codex.y_test,
+        self.class_report = met.classification_report(recipe.ingredients.y_test,
                                                       self.predictions)
-        self.class_report_dict = met.classification_report(recipe.codex.y_test,
+        self.class_report_dict = met.classification_report(recipe.ingredients.y_test,
                                                            self.predictions,
                                                            output_dict = True)
 
@@ -132,7 +132,7 @@ class Evaluator(Ingredient):
         return self
 
     def _feature_summaries(self, recipe):
-        self.feature_list = list(recipe.codex.x_test.columns)
+        self.feature_list = list(recipe.ingredients.x_test.columns)
         if ('svm_' in recipe.model.technique
                 or 'baseline_' in recipe.model.technique):
             self.feature_import = None
@@ -159,16 +159,16 @@ class Evaluator(Ingredient):
         else:
             self.shap_method_type = 'kernel'
             self.shap_method = KernelExplainer
-        data_to_explain = {'train' : recipe.codex.x_train,
-                           'test' : recipe.codex.x_test,
-                           'full' : recipe.codex.x}
+        data_to_explain = {'train' : recipe.ingredients.x_train,
+                           'test' : recipe.ingredients.x_test,
+                           'full' : recipe.ingredients.x}
         df = data_to_explain[self.data_to_explain]
         if self.shap_method_type != 'none':
-#            recipe.model.algorithm.fit(recipe.codex.x_train,
-#                                       recipe.codex.y_train)
+#            recipe.model.algorithm.fit(recipe.ingredients.x_train,
+#                                       recipe.ingredients.y_train)
             self.shap_explainer = self.shap_method(
                     model = recipe.model.algorithm,
-                    data = recipe.codex.x_train)
+                    data = recipe.ingredients.x_train)
             self.shap_values = self.shap_explainer.shap_values(df)
             if self.shap_method_type == 'tree':
                 self.shap_interactions = (
@@ -197,7 +197,7 @@ class Evaluator(Ingredient):
         print(self.class_report)
         return self
 
-    def mix(self, recipe, data_to_use = 'train_test'):
+    def blend(self, recipe, data_to_use = 'train_test'):
         if self.verbose:
             print('Evaluating recipe')
         if data_to_use in ['train_val']:

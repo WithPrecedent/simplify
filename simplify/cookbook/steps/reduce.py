@@ -7,11 +7,11 @@ from sklearn.feature_selection import mutual_info_regression, RFE, RFECV
 from sklearn.feature_selection import SelectKBest, SelectFdr, SelectFpr
 from sklearn.feature_selection import SelectFromModel
 
-from .ingredient import Ingredient
+from .step import Step
 
 
 @dataclass
-class Selector(Ingredient):
+class Reduce(Step):
     """Contains feature selectors used in the siMpLify package."""
 
     technique : str = 'none'

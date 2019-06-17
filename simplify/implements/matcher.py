@@ -57,8 +57,8 @@ class ReMatch(object):
     with the header name passed in 'out_col.' The return is the matched value
     of the key in the expressions table.
 
-    If out_type is list, a single column is used or created with theheader name
-    passed in 'out_col.' The return is all matched patterns based upon a
+    If out_type is list, a single column is used or created with the header
+    name passed in 'out_col.' The return is all matched patterns based upon a
     regular expression stored in a python list within each dataframe or series
     cell.
     """

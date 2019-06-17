@@ -3,25 +3,25 @@ from dataclasses import dataclass
 
 from category_encoders import PolynomialEncoder
 
-from .ingredient import Ingredient
+from .step import Step
 
 @dataclass
-class Interactor(Ingredient):
+class Mix(Step):
     """Contains algorithms for testing variable interactions in the siMpLify
     package.
     """
 
     technique : str = ''
-    params : object = None
+    parameters : object = None
 
     def __post_init__(self):
         super().__post_init__()
-        self.options = {'polynomial' : PolynomialEncoder,
+        self.techniques = {'polynomial' : PolynomialEncoder,
                         'quotient' : self.quotient_features,
                         'sum' : self.sum_features,
                         'difference' : self.difference_features}
         self.defaults = {}
-        self.runtime_params = {}
+        self.runtime_parameters = {}
         return self
 
     def quotient_features(self):
@@ -36,12 +36,13 @@ class Interactor(Ingredient):
         pass
         return self
 
-    def mix(self, codex, columns = None):
+    def blend(self, codex, columns = None):
         if self.technique != 'none':
             if self.verbose:
-                print('Creating variables with', self.technique, 'interactions')
+                print('Creating variables with', self.technique,
+                      'interactions')
             if columns:
-                self.runtime_params.update({'cols' : columns})
+                self.runtime_parameters.update({'cols' : columns})
             self.initialize()
             self.algorithm.fit(codex.x, codex.y)
             codex.x_train = self.algorithm.transform(

@@ -6,50 +6,50 @@ from imblearn.over_sampling import ADASYN, RandomOverSampler, SMOTE, SMOTENC
 from imblearn.under_sampling import AllKNN, ClusterCentroids, NearMiss
 from imblearn.under_sampling import RandomUnderSampler
 
-from .ingredient import Ingredient
+from .step import Step
 
 
 @dataclass
-class Sampler(Ingredient):
+class Sample(Step):
     """Contains resampling algorithms used in the siMpLify package."""
 
     technique : str = 'none'
-    params : object = None
+    parameters : object = None
 
     def __post_init__(self):
         super().__post_init__()
-        self.options = {'adasyn' : ADASYN,
-                        'cluster' : ClusterCentroids,
-                        'knn' : AllKNN,
-                        'near_miss' : NearMiss,
-                        'random_over' : RandomOverSampler,
-                        'random_under' : RandomUnderSampler,
-                        'smote' : SMOTE,
-                        'smotenc' : SMOTENC,
-                        'smoteenn' :  SMOTEENN,
-                        'smotetomek' : SMOTETomek}
+        self.techniques = {'adasyn' : ADASYN,
+                           'cluster' : ClusterCentroids,
+                           'knn' : AllKNN,
+                           'near_miss' : NearMiss,
+                           'random_over' : RandomOverSampler,
+                           'random_under' : RandomUnderSampler,
+                           'smote' : SMOTE,
+                           'smotenc' : SMOTENC,
+                           'smoteenn' :  SMOTEENN,
+                           'smotetomek' : SMOTETomek}
         self.defaults = {'sampling_strategy' : 'auto'}
         return self
 
-    def _add_params(self, x, columns):
+    def _add_parameters(self, x, columns):
         if self.technique in ['smotenc']:
             if self.columns:
                 cat_features = self._get_indices(x, columns)
-                self.params.update({'categorical_features' : cat_features})
+                self.parameters.update({'categorical_features' : cat_features})
             else:
                 error = 'SMOTENC resampling requires categorical_features'
                 raise RuntimeError(error)
         return self
 
-    def mix(self, codex, columns = None):
+    def blend(self, codex, columns = None):
         if self.technique != 'none':
             if self.verbose:
                 print('Resampling data with', self.technique, 'technique')
             if not columns:
                 columns = []
-            self.runtime_params = {'random_state' : self.seed}
+            self.runtime_parameters = {'random_state' : self.seed}
             self.initialize()
-            self._add_params(codex.x, columns)
+            self._add_parameters(codex.x, columns)
             self._store_feature_names(codex.x_train, codex.y_train)
             resampled_x, resampled_y = self.algorithm.fit_resample(
                     codex.x_train, codex.y_train)
@@ -59,7 +59,7 @@ class Sampler(Ingredient):
 
     def fit(self, x, y, columns = None):
         self.initialize()
-        self._add_params(x, columns)
+        self._add_parameters(x, columns)
         return self
 
     def transform(self, x, y):
