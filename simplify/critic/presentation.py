@@ -20,7 +20,7 @@ class Presentation(Implement):
 
     def __post_init__(self):
         super().__post_init__()
-        self.menu.localize(instance = self, sections = ['plotter_params'])
+        self.menu.localize(instance = self, sections = ['presentation_parameters'])
         self._set_style()
         self._set_options()
         self._set_plots()
@@ -151,7 +151,7 @@ class Presentation(Implement):
         else:
             self.predicted_probs = None
         self.x, self.y = self.recipe.ingredients[self.data_to_plot]
-        if ('shap' in self.settings['evaluator_params']['explainers']
+        if ('shap' in self.settings['evaluator_parameters']['explainers']
             and self.technique == 'default'):
             self.plots.extend(['shap_heat_map', 'shap_summary'])
             if self.review.shap_method_type == 'tree':

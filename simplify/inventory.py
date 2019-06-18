@@ -29,9 +29,7 @@ class Inventory(Implement):
     def __post_init__(self):
         """Localizes 'files' settings as attributes and sets paths and folders.
         """
-        self.menu.localize(instance = self, sections = ['files'])
-        self._set_folders()
-        self._set_io_paths()
+        self.menu.localize(instance = self, sections = ['files', 'general'])
         self.load_datatypes = {'csv' : self._load_csv,
                                'feather' : self._load_feather,
                                'hdf' : self._load_hdf,
@@ -44,6 +42,8 @@ class Inventory(Implement):
         self.next_stages = {'raw' : 'interim',
                             'interim' : 'processed',
                             'processed' : 'processed'}
+        self._set_folders()
+        self._set_io_paths()
         return self
 
     def _check_boolean_out(self, boolean_out):

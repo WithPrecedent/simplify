@@ -5,8 +5,6 @@ the Cookbook class, which handles the cookbook construction and utilization.
 from dataclasses import dataclass
 
 from itertools import product
-import os
-import pickle
 import warnings
 
 from .recipe import Recipe
@@ -19,8 +17,8 @@ from .steps import Reduce
 from .steps import Sample
 from .steps import Scale
 from .steps import Split
-from ..menu import Menu
-from ..implements.implement import Implement
+#from ..menu import Menu
+#from ..implements.implement import Implement
 from ..inventory import Inventory
 from ..critic import Presentation
 from ..critic import Review
@@ -36,8 +34,8 @@ class Cookbook(object):
         menu: an instance of Menu or a string containing the file path for a
             file containing the information needed for a Menu instance to be
             created.
-        inventory: an instance of Inventory. If one is not passed when Cookbook is
-            instanced, one will be created with default options.
+        inventory: an instance of Inventory. If one is not passed when Cookbook
+            is instanced, one will be created with default options.
         recipes: a list of instances of Recipe which Cookbook creates through
             the prepare method and applies through the create method.
     """
@@ -61,44 +59,44 @@ class Cookbook(object):
                       'models' : Model}
         # Calls method to set various default or user options.
         self._set_defaults()
-        # Calls methods to set review options.
-        self._set_review()
+        # Calls methods to set critic options.
+        self._set_critic()
         return self
 
-    def __delitem__(self, value):
-        """Deletes techniques by passing [steps, techniques]."""
-        steps, techniques = value
-        del_techniques = zip(self._listify(steps), self._listify(techniques))
-        for step, technique in del_techniques.items():
-            if technique in self.steps[step].options:
-                self.steps[step].options.pop(technique)
-            else:
-                error = technique + ' is not in ' + step
-                raise KeyError(error)
-        return self
-
-    def __getitem__(self, value):
-        """Gets particular techniques by passing [step, technique]."""
-        step, technique = value
-        if step in self.steps:
-            return self.steps[step].options[technique]
-        else:
-            error = step + ' or ' + technique + ' not found'
-            raise KeyError(error)
-            return
-
-    def __setitem__(self, value):
-        """Sets new techniques by passing either strings or lists of strings
-        containing the steps, techniques, algorithms in the form of
-        [steps, techniques, algorithms].
-        """
-        steps, techniques, algorithms = value
-        set_techniques = zip(self._listify(steps),
-                             self._listify(techniques),
-                             self._listify(algorithms))
-        for step, technique, algorithm in set_techniques.items():
-            self.steps[step].options.update({technique : algorithm})
-        return self
+#    def __delitem__(self, value):
+#        """Deletes techniques by passing [steps, techniques]."""
+#        steps, techniques = value
+#        del_techniques = zip(self._listify(steps), self._listify(techniques))
+#        for step, technique in del_techniques.items():
+#            if technique in self.steps[step].options:
+#                self.steps[step].options.pop(technique)
+#            else:
+#                error = technique + ' is not in ' + step
+#                raise KeyError(error)
+#        return self
+#
+#    def __getitem__(self, value):
+#        """Gets particular techniques by passing [step, technique]."""
+#        step, technique = value
+#        if step in self.steps:
+#            return self.steps[step].options[technique]
+#        else:
+#            error = step + ' or ' + technique + ' not found'
+#            raise KeyError(error)
+#            return
+#
+#    def __setitem__(self, value):
+#        """Sets new techniques by passing either strings or lists of strings
+#        containing the steps, techniques, algorithms in the form of
+#        [steps, techniques, algorithms].
+#        """
+#        steps, techniques, algorithms = value
+#        set_techniques = zip(self._listify(steps),
+#                             self._listify(techniques),
+#                             self._listify(algorithms))
+#        for step, technique, algorithm in set_techniques.items():
+#            self.steps[step].options.update({technique : algorithm})
+#        return self
 
     def _check_best(self, recipe):
         """Checks if the current Recipe is better than the current best Recipe
@@ -122,17 +120,17 @@ class Cookbook(object):
                                   ((self.ingredients.y == 1).sum())) - 1
         return self
 
-    def _inject(self):
-        """Injects inventory and menu methods into Implement class and/or data
-        instance.
-        """
-        Implement.inventory = self.inventory
-        Implement.menu = self.menu
-        if not self.ingredients.inventory:
-            self.ingredients.inventory = self.inventory
-        if not self.ingredients.menu:
-            self.ingredients.menu = self.menu
-        return self
+#    def _inject(self):
+#        """Injects inventory and menu methods into Implement class and/or data
+#        instance.
+#        """
+#        Implement.inventory = self.inventory
+#        Implement.menu = self.menu
+#        if not self.ingredients.inventory:
+#            self.ingredients.inventory = self.inventory
+#        if not self.ingredients.menu:
+#            self.ingredients.menu = self.menu
+#        return self
 
     def _listify(self, variable):
         """Checks to see if variable is a list. If not, it is converted to a
@@ -147,11 +145,21 @@ class Cookbook(object):
 
     def _prepare_steps(self):
         """Initializes the step classes for use by the Cookbook."""
-        for step in self.steps:
+        for step, class_name in self.steps.items():
             setattr(self, step, self._listify(getattr(self, step)))
-            if not step in ['models']:
-                param_var = step + '_parameters'
-                setattr(self, param_var, self.menu[param_var])
+            if step != 'models':
+                setattr(self, step + '_parameters',
+                        self.menu[step + '_parameters'])
+        return self
+
+    def _set_critic(self):
+        # Instances a Review class for storing review of each Recipe.create.
+        self.review = Review()
+        # Sets key scoring metric for methods that require a single scoring
+        # metric.
+        self.key_metric = self._listify(self.metrics)[0]
+        # Initializations graphing and other data visualizations.
+        self.presentation = Presentation()
         return self
 
     def _set_defaults(self):
@@ -173,10 +181,10 @@ class Cookbook(object):
         if not self.inventory:
             self.inventory = Inventory(menu = self.menu)
         # Injects dependencies with appropriate attributes.
-        self._inject()
+#        self._inject()
         # Creates empty lists and dictionary for custom methods and parameters
         # to be added by user.
-        self.customs = []
+        self.customs = ['none']
         self.customs_parameters = {}
         self.customs_runtime_parameters = {}
         # Data is split in oder for certain values to be computed that require
@@ -186,26 +194,25 @@ class Cookbook(object):
             self._compute_hyperparameters()
         return self
 
-    def _set_review(self):
-        # Instances a Review class for storing review of each Recipe.create.
-        self.review = Review()
-        # Sets key scoring metric for methods that require a single scoring
-        # metric.
-        self.key_metric = self._listify(self.metrics)[0]
-        # Initializations graphing and other data visualizations.
-        self.presentation = Presentation()
-        return self
-
     def add_cleave(self, cleave_group, prefixes = [], columns = []):
         """Adds cleaves to the list of cleaves."""
         if not hasattr(self.cleaves) or not self.cleaves:
             self.cleaves = []
-
-        self.cleaves.add_cleave(cleave_group = cleave_group,
-                                prefixes = prefixes,
-                                columns = columns)
-        self.cleaves.append(cleave_label)
+        columns = self.ingredients.create_column_list(prefixes = prefixes,
+                                                      columns = columns)
+        Cleave.add(cleave_group = cleave_group, columns = columns)
+        self.cleaves.append(cleave_group)
         return self
+
+#    def add_custom(self, name, parameters, func, runtime_parameters = None):
+#        if not hasattr(self.customs) or not self.cleaves:
+#            self.cleaves = []
+#        setattr(self, name, Custom(technique = name,
+#                                   parameters = parameters,
+#                                   method = func,
+#                                   runtime_parameters = runtime_parameters))
+#        setattr(self, '_' + step, self._customs)
+#        return self
 
     def add_technique(self, steps, techniques, algorithms):
         """Adds techniques and algorithms to recipe steps."""
@@ -222,16 +229,15 @@ class Cookbook(object):
         """
         if self.verbose:
             print('Testing recipes')
-        self._set_folders()
         self.best_recipe = None
         if self.data_to_use == 'train_test_val':
-            self.create_recipe(data_to_use = 'train_test')
-            self.create_recipe(data_to_use = 'train_val')
+            self.create_recipes(data_to_use = 'train_test')
+            self.create_recipes(data_to_use = 'train_val')
         else:
-            self.create_recipe(data_to_use = self.data_to_use)
+            self.create_recipes(data_to_use = self.data_to_use)
         return self
 
-    def create_recipe(self, recipes = None, data_to_use = 'train_test'):
+    def create_recipes(self, recipes = None, data_to_use = 'train_test'):
         """Completes one iteration of a Cookbook, storing the review in the
         review table dataframe. Plots and the recipe are exported to the
         recipe folder.
@@ -243,9 +249,9 @@ class Cookbook(object):
                 print('Testing recipe ' + str(recipe.number))
             self.ingredients.split_xy(label = self.label)
             recipe.create(ingredients = self.ingredients,
-                        data_to_use = self.data_to_use)
+                          data_to_use = self.data_to_use)
             self.review.table.loc[len(self.review.table)] = (
-                    recipe.evaluator.result)
+                    recipe)
             self._check_best(recipe)
             file_name = (
                 'recipe' + str(recipe.number) + '_' + recipe.model.technique)
@@ -276,21 +282,23 @@ class Cookbook(object):
             print('Creating preprocessing, modeling, and testing recipes')
         self._prepare_steps()
         self.recipes = []
+        print(self.customs)
         all_steps = product(self.scalers, self.splitter, self.encoders,
                             self.mixers, self.cleavers, self.samplers,
                             self.customs, self.reducers, self.models)
         for i, (scale, split, encode, mix, cleave, sample, custom, reduce,
                 model) in enumerate(all_steps):
+            print(self.menu[model + '_parameters'])
             recipe = Recipe(number = i + 1,
                             order = self.order,
-                            scale = Scale(scale, self.scaler_parameters),
-                            split = Split(split, self.split_parameters),
-                            encode = Encode(encode, self.encode_parameters),
-                            mix = Mix(mix, self.mix_parameters),
-                            cleave = Cleave(cleave, self.cleave_parameters),
-                            sample = Sample(sample, self.sample_parameters),
-                            custom = Custom(custom, self.custom_parameters),
-                            reduce = Reduce(reduce, self.reduce_parameters),
+                            scaler = Scale(scale, self.scalers_parameters),
+                            splitter = Split(split, self.splitter_parameters),
+                            encoder = Encode(encode, self.encoders_parameters),
+                            mixer = Mix(mix, self.mixers_parameters),
+                            cleaver = Cleave(cleave, self.cleavers_parameters),
+                            sampler = Sample(sample, self.samplers_parameters),
+                            customs = Custom(custom, self.customs_parameters),
+                            reducer = Reduce(reduce, self.reducers_parameters),
                             model = Model(model,
                                           self.menu[model + '_parameters']))
             self.recipes.append(recipe)
@@ -316,7 +324,7 @@ class Cookbook(object):
     def save(self, file_path = None):
         """Exports the list of recipes to disc as one object."""
         self.inventory.save(self.recipes,
-                            folder = self.inventory.recipes,
+                            folder = self.inventory.results,
                             file_path = file_path,
                             file_name = 'cookbook.pkl')
         return self

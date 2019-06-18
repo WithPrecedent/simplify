@@ -30,11 +30,11 @@ class Model(Step):
 
     def __post_init__(self):
         super().__post_init__()
-        self.settings.localize(instance = self, sections = ['recipes'])
+        self.menu.localize(instance = self, sections = ['recipes'])
         self._set_options()
         self.defaults = {}
         self._parse_parameters()
-        self.initialize()
+        self._initialize()
         if self.hyperparameter_search:
             self._setup_search()
         return self
@@ -141,7 +141,7 @@ class Model(Step):
         self.search_runtime_parameters = {'estimator' : self.algorithm,
                                       'param_distributions' : self.grid,
                                       'random_state' : self.seed}
-        self.search_parameters = self.settings['models_parameters']
+        self.search_parameters = self.menu['search_parameters']
         if self.search_parameters['refit']:
             self.search_parameters['scoring'] = (
                     self._listify(self.search_parameters['scoring'])[0])

@@ -4,6 +4,18 @@ from dataclasses import dataclass
 import os
 import re
 
+from .cookbook.recipe import Recipe
+from .cookbook.steps import Cleave
+from .cookbook.steps import Encode
+from .cookbook.steps import Mix
+from .cookbook.steps import Model
+from .cookbook.steps import Reduce
+from .cookbook.steps import Sample
+from .cookbook.steps import Scale
+from .cookbook.steps import Split
+from .inventory import Inventory
+from .critic import Presentation
+from .critic import Review
 
 @dataclass
 class Menu(object):
@@ -72,28 +84,24 @@ class Menu(object):
             converted to other types (True) or left as strings (False).
         no_list: if set_types = True, sets whether config values can be set
             to lists (False) if they contain a comma.
+        auto_inject: if True, menu instance is automatically injected into
+            appropriate classes.
     """
     file_path : str = ''
     config : object = None
     set_types : bool = True
     no_lists : bool = False
+    auto_inject : bool = True
 
     def __post_init__(self):
         """Initializes the config attribute and converts the dictionary values
         to the proper types if set_types is True.
         """
-        if not self.config:
-            config = ConfigParser(dict_type = dict)
-            config.optionxform = lambda option : option
-            if not self.file_path:
-                self.file_path = os.path.join('menu',
-                                              'simplify_settings.ini')
-            config.read(self.file_path)
-            self.config = dict(config._sections)
-        if self.set_types:
-            for section, nested_dict in self.config.items():
-                for key, value in nested_dict.items():
-                    self.config[section][key] = self._typify(value)
+        self._set_config()
+        self._set_types()
+        self._set_dependencies()
+#        if self.auto_inject:
+#            self.inject()
         return self
 
     def __delitem__(self, name):
@@ -150,6 +158,40 @@ class Menu(object):
         else:
             return [variable]
 
+    def _set_config(self):
+        if not self.config:
+            config = ConfigParser(dict_type = dict)
+            config.optionxform = lambda option : option
+            if not self.file_path:
+                self.file_path = os.path.join('menu',
+                                              'simplify_settings.ini')
+            config.read(self.file_path)
+            self.config = dict(config._sections)
+        return self
+
+    def _set_dependencies(self):
+        self.dependencies = {Inventory : ['general', 'files'],
+                             Recipe : ['general', 'recipes'],
+                             Cleave : ['cleaver_parameters'],
+                             Encode : ['encoder_parameters'],
+                             Mix : ['mixer_parameters'],
+                             Model : ['search_parameters'],
+                             Reduce : ['reducer_parameters'],
+                             Sample : ['sampler_parameters'],
+                             Scale : ['scaler_parameters'],
+                             Split : ['splitter_parameters'],
+                             Presentation : ['general',
+                                             'presentation_parameters'],
+                             Review : ['general', 'review_parameters']}
+        return self
+
+    def _set_types(self):
+        if self.set_types:
+            for section, nested_dict in self.config.items():
+                for key, value in nested_dict.items():
+                    self.config[section][key] = self._typify(value)
+        return self
+
     def _typify(self, value):
         """Converts strings to list (if ', ' is present), int, float,
         or boolean types based upon the content of the string imported from
@@ -174,6 +216,36 @@ class Menu(object):
         else:
             return value
 
+    def add_dependencies(self, dependencies, section_lists = None):
+        """Adds dependencies for injection of appropriate settings.
+
+        Parameters:
+            dependencies: if a dictionary, it should be in the form of:
+                {class : [sections]}
+                if a list or str, it should include class(es) to be injected.
+                section_lists should also be passed with corresponding list(s)
+                of sections.
+            section_lists: a str or list of the same length as dependencies
+                which includes the section names containing attributes and
+                values to be injected.
+        """
+        if isinstance(dependencies, dict):
+            self.dependencies.update(dependencies)
+        else:
+            new_dependencies = zip(self._listify(dependencies),
+                                   self._listify(section_lists))
+            for dependency, section_list in new_dependencies.items():
+                self.dependencies.update({dependency : section_list})
+        return self
+
+    def inject(self):
+        """Injects appropriate settings from Menu.config into classes."""
+        for dependency, sections in self.dependencies.items():
+            for section in sections:
+                for key, value in self.config[section]:
+                    setattr(dependency, key, value)
+        return self
+
     def localize(self, instance, sections, override = False):
         """Stores the section or sections of the config dictionary in the
         passed class instance as attributes to that class instance.
@@ -184,12 +256,16 @@ class Menu(object):
                     setattr(instance, key, value)
         return
 
-    def update(self, new_options):
-        """Adds a new options to the config dictionary."""
-        if isinstance(new_options, dict):
-            self.config.update(new_options)
-        elif isinstance(new_options.config, dict):
-            self.config.update(new_options.config)
+    def update(self, new_settings):
+        """Adds a new settings to the config dictionary.
+
+        Parameters:
+           new_setting: can either be a dictionary or Menu object containing
+               new attribute, value pairs."""
+        if isinstance(new_settings, dict):
+            self.config.update(new_settings)
+        elif isinstance(new_settings.config, dict):
+            self.config.update(new_settings.config)
         else:
             error_message = 'new_options must be dict or Menu instance'
             raise TypeError(error_message)

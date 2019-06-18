@@ -25,7 +25,8 @@ class Review(Implement):
 
     def __post_init__(self):
         super().__post_init__()
-        self.settings.localize(instance = self, sections = ['review_params'])
+        self.menu.localize(instance = self, sections = ['recipes',
+                                                        'review_parameters'])
         self.step_columns = ['recipe_number', 'step_order', 'scale',
                              'split', 'encode', 'mix', 'cleave', 'sample',
                              'reduce', 'model', 'custom', 'seed',
@@ -132,10 +133,10 @@ class Review(Implement):
         elif self.results_path:
             results_path = self.results_path
         else:
-            results_path = self.pantry.make_path(folder = import_folder,
+            results_path = self.inventory.make_path(folder = import_folder,
                                                 file_name = file_name,
                                                 file_type = file_format)
-        self.table = self.pantry.load(results_path,
+        self.table = self.inventory.load(results_path,
                                      encoding = encoding)
         return self
 
@@ -146,13 +147,14 @@ class Review(Implement):
         Exports results scores to disc.
         """
         if not export_path:
-            export_path = self.pantry.make_path(folder = self.pantry.results,
-                                               name = file_name,
-                                               file_type = file_format)
+            export_path = self.inventory._create_path(
+                    folder = self.inventory.results,
+                    file_name = file_name,
+                    file_type = file_format)
         self.table.to_csv(export_path,
                           encoding = encoding,
                           float_format = float_format)
-#        self.pantry.save(df = self.table,
+#        self.inventory.save(df = self.table,
 #                        export_path = export_path,
 #                        encoding = encoding,
 #                        float_format = float_format,

@@ -14,8 +14,9 @@ class Step(Implement):
     """
 
     def __post_init__(self):
-        """Adds local attributes from settings."""
-        self.settings.localize(instance = self,
+        """Adds local attributes from menu."""
+        super().__post_init__()
+        self.menu.localize(instance = self,
                                sections = ['general', 'recipes'])
         return self
 
@@ -100,7 +101,7 @@ class Step(Implement):
 
     def _select_parameters(self, parameters_to_use = []):
         """For subclasses that only need a subset of the parameters stored in
-        settings, this function selects that subset.
+        menu, this function selects that subset.
         """
         new_parameters = {}
         if self.parameters:
