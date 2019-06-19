@@ -12,9 +12,11 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
+from .countertop import Countertop
+
 
 @dataclass
-class Ingredients(object):
+class Ingredients(Countertop):
     """Imports, stores, and exports pandas dataframes and series, as well as
     related information about those data containers.
 
@@ -128,8 +130,8 @@ class Ingredients(object):
 #    def __delitem__(self, name):
 #        return delattr(self, name)
 #
-#    def __getitem__(self, name):
-#        return getattr(self, name)
+    def __getitem__(self, name):
+        return getattr(self, name)
 
     def __len__(self):
         return len(getattr(self, self.default_df))
@@ -633,9 +635,9 @@ class Ingredients(object):
         if not export_path:
             if not export_folder:
                 export_folder = self.inventory.data
-            export_path = self.inventory.make_path(folder = export_folder,
-                                               file_name = file_name,
-                                               file_type = file_type)
+            export_path = self.inventory._create_path(folder = export_folder,
+                                                      file_name = file_name,
+                                                      file_type = file_type)
         if not isinstance(df, pd.DataFrame):
             df = getattr(self, self.default_df)
         if self.verbose:
@@ -660,9 +662,8 @@ class Ingredients(object):
         """Saves dropped_columns into a .csv file."""
         self._dropped_columns = list(unique_everseen(self._dropped_columns))
         if not export_path:
-            export_folder = self.inventory.results
             export_path = self.inventory._create_path(
-                    folder = export_folder,
+                    folder = self.inventory.experiment,
                     file_name = file_name,
                     file_type = 'csv')
         if self._dropped_columns:
@@ -744,7 +745,7 @@ class Ingredients(object):
             df_index = False
         if export_summary:
             if not export_path:
-                export_path = os.path.join(self.inventory.results,
+                export_path = os.path.join(self.inventory.experiment,
                                            'data_summary.csv')
             self.save(df = self.summary,
                       index = df_index,

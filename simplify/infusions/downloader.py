@@ -5,11 +5,11 @@ from inspect import getfullargspec
 import os
 import requests
 
-from .._library import Library
+from ..countertop import Countertop
 
 
 @dataclass
-class Downloader(Library):
+class Downloader(Countertop):
     """Downloads online data for use by siMpLify."""
     filer : object = None
     file_paths : str = ''

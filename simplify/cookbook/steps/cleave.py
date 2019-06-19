@@ -10,10 +10,9 @@ class Cleave(Step):
     used in the siMpLify package.
     """
     technique : str = 'none'
-    parameters : object = None
+    name : str = 'cleaver'
 
     def __post_init__(self):
-        super().__post_init__()
         self.techniques = {}
         self.algorithm = self._cleave
         return self
@@ -47,7 +46,5 @@ class Cleave(Step):
     def blend(self, ingredients):
         self._prepare_cleaves()
         if self.technique != 'none':
-            if self.verbose:
-                print('Testing', self.technique, 'predictors')
-        self.algorithm(ingredients)
+            self.algorithm(ingredients)
         return ingredients

@@ -15,10 +15,9 @@ class Reduce(Step):
     """Contains feature selectors used in the siMpLify package."""
 
     technique : str = 'none'
-    params : object = None
+    name : str = 'reducer'
 
     def __post_init__(self):
-        super().__post_init__()
         self.options = {'kbest' : SelectKBest,
                         'fdr' : SelectFdr,
                         'fpr' : SelectFpr,
@@ -30,55 +29,54 @@ class Reduce(Step):
                         'chi2' : chi2,
                         'mutual_class' : mutual_info_classif,
                         'mutual_regress' : mutual_info_regression}
-        self.runtime_params = {}
+        self.runtime_parameters = {}
         return self
 
     def _set_param_groups(self, estimator):
-#        self.params.update({'n_features_to_select' : self.params['k']})
+#        self.parameters.update({'n_features_to_select' : self.parameters['k']})
         if self.technique == 'rfe':
             self.defaults = {'n_features_to_select' : 10,
                              'step' : 1}
-            self.runtime_params = {'estimator' : estimator}
+            self.runtime_parameters = {'estimator' : estimator}
         elif self.technique == 'kbest':
             self.defaults = {'k' : 10,
                              'score_func' : f_classif}
-            self.runtime_params = {}
+            self.runtime_parameters = {}
         elif self.technique in ['fdr', 'fpr']:
             self.defaults = {'alpha' : 0.05,
                              'score_func' : f_classif}
-            self.runtime_params = {}
+            self.runtime_parameters = {}
         elif self.technique == 'custom':
             self.defaults = {'threshold' : 'mean'}
-            self.runtime_params = {'estimator' : estimator}
-        self.select_params(params_to_use = self.defaults.keys())
-#        if 'score_func' in self.params:
-#            self.params['score_func'] = self.scorers[self.params['score_func']]
+            self.runtime_parameters = {'estimator' : estimator}
+        self.select_parameters(parameters_to_use = self.defaults.keys())
+#        if 'score_func' in self.parameters:
+#            self.parameters['score_func'] = self.scorers[self.parameters['score_func']]
         return self
 
-    def mix(self, codex, estimator = None):
+    def blend(self, ingredients, estimator = None):
         if self.technique != 'none':
-            if self.verbose:
-                print('Using', self.technique, 'for feature reduction')
             self._set_param_groups(estimator)
-            if self.params['score_func']:
-                self.params['score_func'] = (
-                        self.scorers[self.params['score_func']])
-            self.initialize()
-            if 'k' in self.params:
-                num_features = self.params['k']
+            if self.parameters['score_func']:
+                self.parameters['score_func'] = (
+                        self.scorers[self.parameters['score_func']])
+            self._initialize()
+            if 'k' in self.parameters:
+                num_features = self.parameters['k']
             else:
-                num_features = self.params['n_features_to_select']
-            if len(codex.x_train.columns) > num_features:
-                self.algorithm.fit(codex.x_train, codex.y_train)
+                num_features = self.parameters['n_features_to_select']
+            if len(ingredients.x_train.columns) > num_features:
+                self.algorithm.fit(ingredients.x_train, ingredients.y_train)
                 mask = self.algorithm.get_support()
-                new_features = codex.x_train.columns[mask]
-                codex.x_train = self.algorithm.transform(codex.x_train)
-                codex.x_train = pd.DataFrame(codex.x_train,
-                                            columns = new_features)
-                codex.x_test = pd.DataFrame(codex.x_test,
-                                           columns = new_features)
-                codex.x = pd.DataFrame(codex.x,
-                                      columns = new_features)
+                new_features = ingredients.x_train.columns[mask]
+                ingredients.x_train = self.algorithm.transform(
+                        ingredients.x_train)
+                ingredients.x_train = pd.DataFrame(ingredients.x_train,
+                                                   columns = new_features)
+                ingredients.x_test = pd.DataFrame(ingredients.x_test,
+                                                  columns = new_features)
+                ingredients.x = pd.DataFrame(ingredients.x,
+                                             columns = new_features)
             else:
-                print('Selector lacks enough columns to reduce columns')
-        return codex
+                print('Reduce lacks enough columns to reduce columns')
+        return ingredients

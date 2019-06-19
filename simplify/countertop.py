@@ -5,15 +5,10 @@ import re
 
 
 @dataclass
-class Implement(object):
+class Countertop(object):
     """Parent class for various classes in the siMpLify package to allow
     sharing of methods.
     """
-
-    def __post_init__(self):
-        """Adds attributes from menu to class instance."""
-        self.menu.localize(instance = self, sections = ['general', 'files'])
-        return
 
     def _check_lengths(self, variable1, variable2):
         """Checks lists to ensure they are of equal length."""

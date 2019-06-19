@@ -2,12 +2,12 @@
 from dataclasses import dataclass
 import os
 
-from .implement import Implement
+from ..countertop import Countertop
 from .matcher import ReMatch
 
 
 @dataclass
-class Munger(Implement):
+class Munger(Countertop):
 
     origins : object = None
     techniques : object = None

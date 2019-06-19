@@ -4,21 +4,14 @@ import numpy as np
 import pandas as pd
 import pickle
 
-from ...implements.implement import Implement
+from ...countertop import Countertop
 
 @dataclass
-class Step(Implement):
+class Step(Countertop):
     """Parent class for preprocessing and modeling techniques in siMpLify.
     The Ingredient class allows for shared initialization, loading, and saving
     methods to be accessed by all machine learning and preprocessing steps.
     """
-
-    def __post_init__(self):
-        """Adds local attributes from menu."""
-        super().__post_init__()
-        self.menu.localize(instance = self,
-                               sections = ['general', 'recipes'])
-        return self
 
     def __contains__(self, technique):
         """Checks whether technique is listed in techniques dictionary."""
@@ -127,6 +120,15 @@ class Step(Implement):
             raise TypeError(error)
             return self
 
+    def add_runtime_parameters(self, runtime_parameters):
+        """Adds a param set to parameters dictionary."""
+        if isinstance(runtime_parameters, dict):
+            return self.runtime_parameters.update(runtime_parameters)
+        else:
+            error = 'parameters must be a dictionary type'
+            raise TypeError(error)
+            return self
+
     def add_techiques(self, techniques, algorithms):
         """Adds new technique name and corresponding algorithm to the
         techniques dictionary.
@@ -149,7 +151,7 @@ class Step(Implement):
 
     def fit(self, x, y):
         """Generic fit method for partial compatibility to sklearn."""
-        self.initialize()
+        self._initialize()
         return self.algorithm.fit(x, y)
 
     def fit_transform(self, x, y):

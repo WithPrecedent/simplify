@@ -25,12 +25,10 @@ from .step import Step
 class Model(Step):
     """Contains machine learning algorithms used in the siMpLify package."""
 
-    technique : str = ''
-    parameters : object = None
+    technique : str = 'none'
+    name : str = 'model'
 
     def __post_init__(self):
-        super().__post_init__()
-        self.menu.localize(instance = self, sections = ['recipes'])
         self._set_options()
         self.defaults = {}
         self._parse_parameters()
@@ -42,52 +40,53 @@ class Model(Step):
     def _set_options(self):
         if self.model_type in ['classifier']:
             self.techniques = {'adaboost' : AdaBoostClassifier,
-                            'baseline_classifier' : DummyClassifier,
-                            'logit' : LogisticRegression,
-                            'random_forest' : RandomForestClassifier,
-#                            'stan' : StanModel,
-                            'svm_linear' : SVC,
-                            'svm_poly' : SVC,
-                            'svm_rbf' : SVC,
-                            'svm_sigmoid' : SVC,
-#                            'tensor_flow' : KerasClassifier,
-#                            'torch' : NeuralNetClassifier,
-                            'xgb' : XGBClassifier}
+                               'baseline_classifier' : DummyClassifier,
+                               'logit' : LogisticRegression,
+                               'random_forest' : RandomForestClassifier,
+    #                           'stan' : StanModel,
+                               'svm_linear' : SVC,
+                               'svm_poly' : SVC,
+                               'svm_rbf' : SVC,
+                               'svm_sigmoid' : SVC,
+    #                           'tensor_flow' : KerasClassifier,
+    #                           'torch' : NeuralNetClassifier,
+                               'xgb' : XGBClassifier}
         elif self.model_type in ['regressor']:
             self.techniques = {'adaboost' : AdaBoostRegressor,
-                            'baseline_regressor' : DummyRegressor,
-                            'bayes_ridge' : BayesianRidge,
-                            'lasso' : Lasso,
-                            'lasso_lars' : LassoLars,
-                            'ols' : LinearRegression,
-                            'random_forest' : RandomForestRegressor,
-                            'ridge' : Ridge,
-#                            'stan' : StanModel,
-                            'svm_linear' : SVR,
-                            'svm_poly' : SVR,
-                            'svm_rbf' : SVR,
-                            'svm_sigmoid' : SVR,
-#                            'tensor_flow' : KerasRegressor,
-#                            'torch' : NeuralNetRegressor,
-                            'xgb' : XGBRegressor}
-        elif self.model_type in ['clusterer']:
+                               'baseline_regressor' : DummyRegressor,
+                               'bayes_ridge' : BayesianRidge,
+                               'lasso' : Lasso,
+                               'lasso_lars' : LassoLars,
+                               'ols' : LinearRegression,
+                               'random_forest' : RandomForestRegressor,
+                               'ridge' : Ridge,
+#                               'stan' : StanModel,
+                               'svm_linear' : SVR,
+                               'svm_poly' : SVR,
+                               'svm_rbf' : SVR,
+                               'svm_sigmoid' : SVR,
+#                               'tensor_flow' : KerasRegressor,
+#                               'torch' : NeuralNetRegressor,
+                               'xgb' : XGBRegressor}
+        elif self.model_type in ['cluster']:
             self.techniques = {'affinity' : AffinityPropagation,
-                            'agglomerative' : AgglomerativeClustering,
-                            'birch' : Birch,
-                            'dbscan' : DBSCAN,
-                            'kmeans' : KMeans,
-                            'mean_shift' : MeanShift,
-                            'spectral' : SpectralClustering,
-                            'svm_linear' : OneClassSVM,
-                            'svm_poly' : OneClassSVM,
-                            'svm_rbf' : OneClassSVM,
-                            'svm_sigmoid' : OneClassSVM}
+                               'agglomerative' : AgglomerativeClustering,
+                               'birch' : Birch,
+                               'dbscan' : DBSCAN,
+                               'kmeans' : KMeans,
+                               'mean_shift' : MeanShift,
+                               'spectral' : SpectralClustering,
+                               'svm_linear' : OneClassSVM,
+                               'svm_poly' : OneClassSVM,
+                               'svm_rbf' : OneClassSVM,
+                               'svm_sigmoid' : OneClassSVM}
         return self
 
     def _parse_parameters(self):
         self.hyperparameter_search = False
         self.grid = {}
         new_parameters = {}
+        self.parameters = self.menu[self.technique + '_parameters']
         for param, values in self.parameters.items():
             if isinstance(values, list):
                 self.hyperparameter_search = True
@@ -120,11 +119,11 @@ class Model(Step):
 
     def _svm_parameters(self):
         svm_parameters = {'svm_linear' : 'linear',
-                      'svm_poly' : 'poly',
-                      'svm_rbf' : 'rbf',
-                      'svm_sigmoid' : 'sigmoid'}
+                          'svm_poly' : 'poly',
+                          'svm_rbf' : 'rbf',
+                          'svm_sigmoid' : 'sigmoid'}
         self.parameters.update({'kernel' : svm_parameters[self.technique],
-                            'probability' : True})
+                                'probability' : True})
         return self
 
     def _baseline_parameters(self):
@@ -150,12 +149,12 @@ class Model(Step):
                 **self.search_parameters)
         return self
 
-    def search(self, codex):
+    def search(self, ingredients):
         if self.verbose:
             print('Searching for best hyperparameters for the',
                   self.technique, 'model using', self.search_algorithm,
                   'search algorithm')
-        self.search_method.fit(codex.x_train, codex.y_train)
+        self.search_method.fit(ingredients.x_train, ingredients.y_train)
         self.best_estimator = self.search_method.best_estimator_
         if self.verbose:
             print('The', self.search_parameters['scoring'],
@@ -163,15 +162,15 @@ class Model(Step):
                   'model is', f'{self.search_method.best_score_ : 4.4f}')
         return self
 
-    def blend(self, codex):
+    def blend(self, ingredients):
         if self.technique != 'none':
             if self.verbose:
                 print('Applying', self.technique, 'model to data')
             if self.hyperparameter_search:
-                self.search(codex)
+                self.search(ingredients)
                 self.algorithm = self.best_estimator
             else:
-                self.algorithm.fit(codex.x_train, codex.y_train)
+                self.algorithm.fit(ingredients.x_train, ingredients.y_train)
         return self
 
     def fit(self, x, y):

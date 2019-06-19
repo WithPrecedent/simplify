@@ -1,6 +1,7 @@
 
 from dataclasses import dataclass
-from sklearn.model_selection import TimeSeriesSplit, train_test_split
+from sklearn.model_selection import StratifiedKFold, TimeSeriesSplit
+from sklearn.model_selection import train_test_split
 
 from .step import Step
 
@@ -9,10 +10,9 @@ from .step import Step
 class Split(Step):
 
     technique : str = 'none'
-    parameters : object = None
+    name : str = 'splitter'
 
     def __post_init__(self):
-        super().__post_init__()
         self.techniques = {'time' : TimeSeriesSplit,
                            'train_test' : self._split_data,
                            'train_test_val' : self._split_data,
@@ -24,27 +24,27 @@ class Split(Step):
                          'krepeats' : 10}
         return self
 
-    def _cv_split(self, codex):
-#        for train_index, test_index in self.parameters['folder'].split(codex.x, codex.y):
-#            codex.x_train, codex.x_test = (codex.x.iloc[train_index],
-#                                         codex.x.iloc[test_index])
-#            codex.y_train, codex.y_test = (codex.y.iloc[train_index],
-#                                         codex.y.iloc[test_index])
-        return codex
+    def _cv_split(self):
+        folder = StratifiedKFold(n_splits = self.kfolds,
+                                 shuffle = False,
+                                 random_state = self.seed)
+        return folder
 
-    def _split_data(self, codex):
-        codex.x_train, codex.x_test, codex.y_train, codex.y_test = (
-                self._one_split(codex.x, codex.y,
+    def _split_data(self, ingredients):
+        (ingredients.x_train, ingredients.x_test, ingredients.y_train,
+         ingredients.y_test) = (
+                self._one_split(ingredients.x, ingredients.y,
                                 self.parameters['test_size']))
         if 'val' in self.data_to_use:
             if self.val_size > 0:
-                codex.x_train, codex.x_val, codex.y_train, codex.y_val = (
-                    self._one_split(codex.x_train, codex.y_train,
+                (ingredients.x_train, ingredients.x_val, ingredients.y_train,
+                 ingredients.y_val) = (
+                    self._one_split(ingredients.x_train, ingredients.y_train,
                                     self.parameters['val_size']))
             else:
                 error = 'val_size must be > 0 if validation data selected.'
                 raise ValueError(error)
-        return codex
+        return ingredients
 
     def _one_split(self, x, y, split_size):
         x_train, x_test, y_train, y_test = (
@@ -53,26 +53,24 @@ class Split(Step):
                                  test_size = split_size))
         return x_train, x_test, y_train, y_test
 
-    def _no_split(self, codex):
-        return codex
+    def _no_split(self, ingredients):
+        return ingredients
 
-    def blend(self, codex):
+    def blend(self, ingredients):
         if self.technique != 'none':
-            if self.verbose:
-                print('Splitting data')
             self.runtime_parameters = {'random_state' : self.seed}
             self._check_parameters()
             self.parameters.update(self.runtime_parameters)
             self.algorithm = self.techniques[self.technique]
-        return self.algorithm(codex)
+        return self.algorithm(ingredients)
 
-    def fit(self, codex):
+    def fit(self, ingredients):
         self.algorithm = self.techniques[self.technique]
         return self
 
-    def transform(self, codex):
-        return self.algorithm(codex)
+    def transform(self, ingredients):
+        return self.algorithm(ingredients)
 
-    def fit_transform(self, codex):
-        self.fit(codex)
-        return self.transform(codex)
+    def fit_transform(self, ingredients):
+        self.fit(ingredients)
+        return self.transform(ingredients)

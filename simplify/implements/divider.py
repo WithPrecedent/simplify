@@ -3,12 +3,12 @@ from dataclasses import dataclass
 import os
 import re
 
-from .implement import Implement
+from ..countertop import Countertop
 from .matcher import ReMatch
 
 
 @dataclass
-class Divider(Implement):
+class Divider(Countertop):
 
     origins : object = None
     techniques : object = None

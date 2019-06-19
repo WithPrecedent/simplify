@@ -11,11 +11,10 @@ class Mix(Step):
     package.
     """
 
-    technique : str = ''
-    parameters : object = None
+    technique : str = 'none'
+    name: str = 'mixer'
 
     def __post_init__(self):
-        super().__post_init__()
         self.techniques = {'polynomial' : PolynomialEncoder,
                         'quotient' : self.quotient_features,
                         'sum' : self.sum_features,
@@ -36,19 +35,18 @@ class Mix(Step):
         pass
         return self
 
-    def blend(self, codex, columns = None):
+    def blend(self, ingredients, columns = None):
         if self.technique != 'none':
-            if self.verbose:
-                print('Creating variables with', self.technique,
-                      'interactions')
+            if not columns:
+                columns = ingredients.mixers
             if columns:
                 self.runtime_parameters.update({'cols' : columns})
-            self.initialize()
-            self.algorithm.fit(codex.x, codex.y)
-            codex.x_train = self.algorithm.transform(
-                    codex.x_train.reset_index(drop = True))
-            codex.x_test = self.algorithm.transform(
-                    codex.x_test.reset_index(drop = True))
-            codex.x = self.algorithm.transform(
-                    codex.x.reset_index(drop = True))
-        return codex
+            self._initialize()
+            self.algorithm.fit(ingredients.x, ingredients.y)
+            ingredients.x_train = self.algorithm.transform(
+                    ingredients.x_train.reset_index(drop = True))
+            ingredients.x_test = self.algorithm.transform(
+                    ingredients.x_test.reset_index(drop = True))
+            ingredients.x = self.algorithm.transform(
+                    ingredients.x.reset_index(drop = True))
+        return ingredients

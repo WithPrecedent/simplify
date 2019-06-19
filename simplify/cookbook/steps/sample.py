@@ -14,10 +14,9 @@ class Sample(Step):
     """Contains resampling algorithms used in the siMpLify package."""
 
     technique : str = 'none'
-    parameters : object = None
+    name : str = 'sampler'
 
     def __post_init__(self):
-        super().__post_init__()
         self.techniques = {'adasyn' : ADASYN,
                            'cluster' : ClusterCentroids,
                            'knn' : AllKNN,
@@ -41,24 +40,22 @@ class Sample(Step):
                 raise RuntimeError(error)
         return self
 
-    def blend(self, codex, columns = None):
+    def blend(self, ingredients, columns = None):
         if self.technique != 'none':
-            if self.verbose:
-                print('Resampling data with', self.technique, 'technique')
             if not columns:
                 columns = []
             self.runtime_parameters = {'random_state' : self.seed}
-            self.initialize()
-            self._add_parameters(codex.x, columns)
-            self._store_feature_names(codex.x_train, codex.y_train)
+            self._initialize()
+            self._add_parameters(ingredients.x, columns)
+            self._store_feature_names(ingredients.x_train, ingredients.y_train)
             resampled_x, resampled_y = self.algorithm.fit_resample(
-                    codex.x_train, codex.y_train)
-            codex.x_train, codex.y_train = self._get_feature_names(
+                    ingredients.x_train, ingredients.y_train)
+            ingredients.x_train, ingredients.y_train = self._get_feature_names(
                     resampled_x, resampled_y)
-        return codex
+        return ingredients
 
     def fit(self, x, y, columns = None):
-        self.initialize()
+        self._initialize()
         self._add_parameters(x, columns)
         return self
 

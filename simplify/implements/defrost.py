@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 import re
 
-from .implement import Implement
+from ..countertop import Countertop
 from ..cookbook.steps import Custom
 from ..cookbook.steps import Encoder
 from ..cookbook.steps import Mixer
@@ -16,7 +16,7 @@ from ..cookbook.recipe import Recipe
 
 
 @dataclass
-class Resurrector(Implement):
+class Defrost(Countertop):
 
     file_path : str = ''
     recipes : object = None

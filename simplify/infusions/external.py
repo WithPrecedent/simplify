@@ -4,9 +4,10 @@ import os
 import pandas as pd
 import requests
 
+from ..countertop import Countertop
 
 @dataclass
-class External(object):
+class External(Countertop):
     """Class related to adding externally sourced data into the courtpy
     dataset. External includes shared methods for external data source classes.
     CourtPrepper uses these classes to get and prepare source data.

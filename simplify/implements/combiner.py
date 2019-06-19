@@ -4,12 +4,12 @@ import numpy as np
 import os
 import re
 
-from .implement import Implement
+from ..countertop import Countertop
 from .matcher import ReMatch
 
 
 @dataclass
-class Combiner(Implement):
+class Combiner(Countertop):
     """Class for combining data into new variables."""
 
     settings : object

@@ -4,8 +4,9 @@ from dataclasses import dataclass
 import os
 import re
 
-from .cookbook.recipe import Recipe
+from .cookbook import Recipe
 from .cookbook.steps import Cleave
+from .cookbook.steps import Custom
 from .cookbook.steps import Encode
 from .cookbook.steps import Mix
 from .cookbook.steps import Model
@@ -13,12 +14,13 @@ from .cookbook.steps import Reduce
 from .cookbook.steps import Sample
 from .cookbook.steps import Scale
 from .cookbook.steps import Split
+from .countertop import Countertop
 from .inventory import Inventory
 from .critic import Presentation
 from .critic import Review
 
 @dataclass
-class Menu(object):
+class Menu(Countertop):
     """Loads and/or stores user settings.
 
     Menu creates a nested dictionary, converting dictionary values to
@@ -100,8 +102,8 @@ class Menu(object):
         self._set_config()
         self._set_types()
         self._set_dependencies()
-#        if self.auto_inject:
-#            self.inject()
+        if self.auto_inject:
+            self.inject()
         return self
 
     def __delitem__(self, name):
@@ -170,22 +172,30 @@ class Menu(object):
         return self
 
     def _set_dependencies(self):
+        """Sets nested config dictionaries to be injected into other classes
+        in the siMpLify package.
+        """
         self.dependencies = {Inventory : ['general', 'files'],
                              Recipe : ['general', 'recipes'],
-                             Cleave : ['cleaver_parameters'],
-                             Encode : ['encoder_parameters'],
-                             Mix : ['mixer_parameters'],
-                             Model : ['search_parameters'],
-                             Reduce : ['reducer_parameters'],
-                             Sample : ['sampler_parameters'],
-                             Scale : ['scaler_parameters'],
-                             Split : ['splitter_parameters'],
-                             Presentation : ['general',
+                             Cleave : ['general', 'cleaver_parameters'],
+                             Custom: ['general'],
+                             Encode : ['general', 'encoder_parameters'],
+                             Mix : ['general', 'mixer_parameters'],
+                             Model : ['general', 'recipes'],
+                             Reduce : ['general', 'reducer_parameters'],
+                             Sample : ['general', 'sampler_parameters'],
+                             Scale : ['general', 'scaler_parameters'],
+                             Split : ['general', 'splitter_parameters'],
+                             Presentation : ['general', 'review_parameters',
                                              'presentation_parameters'],
-                             Review : ['general', 'review_parameters']}
+                             Review : ['general', 'recipes',
+                                       'review_parameters']}
         return self
 
     def _set_types(self):
+        """If set_types is True, all dictionary values in config are converted
+        to the appropriate type.
+        """
         if self.set_types:
             for section, nested_dict in self.config.items():
                 for key, value in nested_dict.items():
@@ -238,25 +248,7 @@ class Menu(object):
                 self.dependencies.update({dependency : section_list})
         return self
 
-    def inject(self):
-        """Injects appropriate settings from Menu.config into classes."""
-        for dependency, sections in self.dependencies.items():
-            for section in sections:
-                for key, value in self.config[section]:
-                    setattr(dependency, key, value)
-        return self
-
-    def localize(self, instance, sections, override = False):
-        """Stores the section or sections of the config dictionary in the
-        passed class instance as attributes to that class instance.
-        """
-        for section in self._listify(sections):
-            for key, value in self.config[section].items():
-                if not hasattr(instance, key) or override:
-                    setattr(instance, key, value)
-        return
-
-    def update(self, new_settings):
+    def add_settings(self, new_settings):
         """Adds a new settings to the config dictionary.
 
         Parameters:
@@ -270,3 +262,27 @@ class Menu(object):
             error_message = 'new_options must be dict or Menu instance'
             raise TypeError(error_message)
         return self
+
+    def inject(self):
+        """Injects appropriate settings from Menu.config into classes."""
+        for dependency, sections in self.dependencies.items():
+            for section in sections:
+                if section in ['general', 'files', 'recipes',
+                               'presentation_parameters',
+                               'review_parameters']:
+                    for key, value in self.config[section].items():
+                        setattr(dependency, key, value)
+                else:
+                    setattr(dependency, 'parameters', self.config[section])
+        Model.menu = self
+        return self
+
+    def localize(self, instance, sections, override = False):
+        """Stores the section or sections of the config dictionary in the
+        passed class instance as attributes to that class instance.
+        """
+        for section in self._listify(sections):
+            for key, value in self.config[section].items():
+                if not hasattr(instance, key) or override:
+                    setattr(instance, key, value)
+        return

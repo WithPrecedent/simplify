@@ -13,10 +13,9 @@ class Scale(Step):
     """Contains numerical scaler ingredients and algorithms."""
 
     technique : str = 'none'
-    parameters : object = None
+    name : str = 'scaler'
 
     def __post_init__(self):
-        super().__post_init__()
         self.techniques = {'bins' : KBinsDiscretizer,
                            'maxabs' : MaxAbsScaler,
                            'minmax' : MinMaxScaler,
@@ -34,15 +33,17 @@ class Scale(Step):
         self.runtime_parameters = {}
         return self
 
-    def blend(self, codex, columns = None):
+    def blend(self, ingredients, columns = None):
         if self.technique != 'none':
-            if self.verbose:
-                print('Scaling numerical columns with', self.technique,
-                      'method')
-            self.initialize(select_parameters = True)
+            if not columns:
+                columns = ingredients.scalers
+            self._initialize(select_parameters = True)
+            self._store_feature_names(x = ingredients.x)
             if columns:
-                codex.x[columns] = self.fit_transform(codex.x[columns],
-                                                      codex.y)
+                ingredients.x[columns] = self.fit_transform(
+                        ingredients.x[columns],ingredients.y)
             else:
-                codex.x = self.fit_transform(codex.x, codex.y)
-        return codex
+                ingredients.x = self.fit_transform(
+                        ingredients.x, ingredients.y)
+            ingredients.x = self._get_feature_names(x = ingredients.x)
+        return ingredients

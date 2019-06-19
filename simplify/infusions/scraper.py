@@ -4,10 +4,10 @@ from functools import wraps
 from inspect import getfullargspec
 import os
 
-from .._library import Library
+from ..countertop import Countertop
 
 @dataclass
-class Scraper(Library):
+class Scraper(Countertop):
 
     filer : object = None
     file_paths : str = ''

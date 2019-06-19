@@ -3,7 +3,7 @@ import numpy as np
 
 from sklearn.datasets import load_breast_cancer
 
-from simplify import Ingredients, Menu
+from simplify import Ingredients, Inventory, Menu
 from simplify.cookbook import Cookbook
 
 # Loads cancer data and converts from numpy arrays to pandas dataframe.
@@ -12,8 +12,9 @@ df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
 # Loads menu file.
 menu = Menu(file_path = 'cancer_settings.ini')
+inventory = Inventory(menu = menu)
 # Creates instance of Data with the cancer ingredientsframe.
-ingredients = Ingredients(menu = menu, df = df)
+ingredients = Ingredients(df = df, menu = menu, inventory = inventory)
 # Converts label to boolean type - conversion from numpy arrays leaves all
 # columns as float type.
 ingredients.change_type(columns = ['target'], datatype = bool)
@@ -33,4 +34,4 @@ cookbook.save_everything()
 # Outputs information about the best recipe.
 cookbook.print_best()
 # Saves ingredients file.
-ingredients.save(file_name = 'cancer_df')
+#ingredients.save(file_name = 'cancer_df')

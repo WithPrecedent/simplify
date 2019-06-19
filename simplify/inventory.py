@@ -7,11 +7,11 @@ import pickle
 
 import pandas as pd
 
-from .implements.implement import Implement
+from .countertop import Countertop
 
 
 @dataclass
-class Inventory(Implement):
+class Inventory(Countertop):
     """Creates and stores dynamic and static file paths for the siMpLify
     package.
     """
@@ -85,6 +85,21 @@ class Inventory(Implement):
                 test_rows = self.test_rows
             return test_rows
 
+    def _create_path(self, folder = '', subfolder = '', prefix = '',
+                    file_name = '', suffix = '', file_type = 'csv'):
+        """Creates file and/or folder path."""
+        if subfolder:
+            folder = os.path.join(folder, subfolder)
+        self._make_folder(folder)
+        if file_name:
+            file_name = self._file_name(prefix = prefix,
+                                        file_name = file_name,
+                                        suffix = suffix,
+                                        file_type = file_type)
+            return os.path.join(folder, file_name)
+        else:
+            return folder
+
     def _file_name(self, prefix = '', file_name = '', suffix = '',
                    file_type = ''):
         """Creates file name with prefix, suffix, and file extension."""
@@ -155,12 +170,10 @@ class Inventory(Implement):
             subfolder = ('recipe_'
                          + model.technique
                          + str(recipe_number))
-        self._make_folder(folder = self._create_path(folder = self.recipes,
-                                                    subfolder = subfolder))
-        return self._create_path(folder = self.recipes,
-                                subfolder = subfolder,
-                                file_name = file_name,
-                                file_type = file_type)
+        return self._create_path(folder = self.experiment,
+                                 subfolder = subfolder,
+                                 file_name = file_name,
+                                 file_type = file_type)
 
     def _save_df(self, variable, file_path, file_type, df_index, df_header,
                  encoding, float_format, boolean_out):
@@ -196,7 +209,7 @@ class Inventory(Implement):
         self.results = os.path.join(self.root, self.results)
         subfolder = ('experiment_'
                      + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
-        self.results = os.path.join(self.root, self.results, subfolder)
+        self.experiment = os.path.join(self.results, subfolder)
         self._make_folder(self.data_raw)
         self._make_folder(self.data_interim)
         self._make_folder(self.data_processed)
@@ -208,13 +221,13 @@ class Inventory(Implement):
         """Creates a single import and export path from passed parameters."""
         self._set_next_stage()
         self.import_path = self._create_path(folder = self.data,
-                                            subfolder = self.stage,
-                                            file_name = self.import_file,
-                                            file_type = self.import_format)
+                                             subfolder = self.stage,
+                                             file_name = self.import_file,
+                                             file_type = self.import_format)
         self.export_path = self._create_path(folder = self.data,
-                                            subfolder = self.next_stage,
-                                            file_name = self.export_file,
-                                            file_type = self.export_format)
+                                             subfolder = self.next_stage,
+                                             file_name = self.export_file,
+                                             file_type = self.export_format)
         return self
 
     def _set_next_stage(self):
@@ -226,20 +239,6 @@ class Inventory(Implement):
         variable = pickle.load(open(file_path, 'rb'))
         return variable
 
-    def _create_path(self, folder = '', subfolder = '', prefix = '',
-                    file_name = '', suffix = '', file_type = 'csv'):
-        """Creates file and/or folder path."""
-        if subfolder:
-            folder = os.path.join(folder, subfolder)
-        self._make_folder(folder)
-        if file_name:
-            file_name = self._file_name(prefix = prefix,
-                                        file_name = file_name,
-                                        suffix = suffix,
-                                        file_type = file_type)
-            return os.path.join(folder, file_name)
-        else:
-            return folder
 
     def initialize_series_writer(self, folder, file_name, file_path,
                                  encoding, column_list, dialect = 'excel'):
@@ -285,4 +284,5 @@ class Inventory(Implement):
             if isinstance(variable, datatype):
                 method(variable, file_path, file_type, df_index, df_header,
                        encoding, float_format, boolean_out)
+                break
         return self
