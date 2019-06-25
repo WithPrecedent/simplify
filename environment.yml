@@ -18,7 +18,6 @@ dependencies:
 - numpy
 - pandas
 - pip:
-    - lime
     - xgboost
 - scikit-learn
 - scikitplot
