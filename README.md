@@ -137,12 +137,12 @@ The examples folder, from which the above settings are taken, currently shows ho
 
 That's it. From that, all possible recipes are created. Each recipe gets its own folder within the results folder with relevant plots, a confusion matrix, and a classification report. A complete results file (review.csv) and summary statistics from the data (data_summary.csv) are stored in the results folder. Pickled cookbooks and recipes are also included if the user selects that option. In the above example, these are some of the plots automatically created for one of the recipes:
 
-(visuals/confusion_matrix.png?raw=true "Confusion Matrix")
-(visuals/pr_curve.png?raw=true "Precision Recall Curve")
-(visuals/roc_curve.png?raw=true "ROC Curve")
-(visuals/shap_heat_map.png?raw=true "SHAP Heat Map")
-(visuals/shap_summary.png?raw=true "SHAP Summary")
-(visuals/shap_interactions.png?raw=true "SHAP Interactions")
+![](visuals/confusion_matrix.png?raw=true)
+![](visuals/pr_curve.png?raw=true)
+![](visuals/roc_curve.png?raw=true)
+![](visuals/shap_heat_map.png?raw=true)
+![](visuals/shap_summary.png?raw=true)
+![](visuals/shap_interactions.png?raw=true)
 
 Documentation and the Almanac class, which aids with data munging, wrangling, and parsing, are forthcoming.
 
