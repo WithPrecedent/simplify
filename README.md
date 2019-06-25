@@ -59,7 +59,7 @@ For example, using the settings file, a user could create a cookbook of recipes 
     order = scaler, splitter, encoder, mixer, sampler, reducer, model
     scaler = minmax, normalizer
     splitter = train_test
-    encoder = target, helmert
+    encoder = helmert, target
     mixer = polynomial
     cleaver = none
     sampler = smote
@@ -109,21 +109,18 @@ The examples folder, from which the above settings are taken, currently shows ho
     df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                       columns = np.append(cancer['feature_names'], ['target']))
     # Loads menu file.
-    menu = Menu(file_path = 'cancer_settings.ini')
-    inventory = Inventory(menu = menu)
+    menu = Menu('cancer_settings.ini')
+    inventory = Inventory(menu)
     # Creates instance of Data with the cancer dataframe.
-    ingredients = Ingredients(df = df, menu = menu, inventory = inventory)
+    ingredients = Ingredients(df,  menu, inventory)
     # Converts label to boolean type - conversion from numpy arrays leaves all
     # columns as float type.
     ingredients.change_type(columns = ['target'], datatype = bool)
-    # Fills missing ingredients with appropriate default values based on column type.
+    # Fills missing ingredients with appropriate default values based on column
+    # datatype.
     ingredients.smart_fillna()
     # Creates instance of Cookbook.
-    cookbook = Cookbook(ingredients = ingredients, menu = menu,
-                        inventory = inventory)
-    # Automatically creates list of recipes cookbook.recipes based upon menu
-    # file.
-    cookbook.prepare()
+    cookbook = Cookbook(ingredients, menu, inventory)
     # Iterates through every recipe and exports plots from each recipe.
     cookbook.create()
     # Creates and exports a table of summary statistics from the dataframe.
@@ -145,4 +142,3 @@ That's it. From that, all possible recipes are created. Each recipe gets its own
 ![](visuals/shap_interactions.png.png?raw=true)
 
 Documentation and the Almanac class, which aids with data munging, wrangling, and parsing, are forthcoming.
-
