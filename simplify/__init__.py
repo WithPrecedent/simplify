@@ -6,7 +6,7 @@
 from .ingredients import Ingredients
 from .menu import Menu
 from .inventory import Inventory
-from .cookbook.timer import timer
+from .timer import timer
 
 
 __version__ = '0.1.0'

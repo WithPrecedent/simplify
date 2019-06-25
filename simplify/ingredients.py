@@ -12,11 +12,12 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from .countertop import Countertop
+from .almanac.blackacre import Blackacre
+from .cookbook.countertop import Countertop
 
 
 @dataclass
-class Ingredients(Countertop):
+class Ingredients(Countertop, Blackacre):
     """Imports, stores, and exports pandas dataframes and series, as well as
     related information about those data containers.
 
@@ -64,8 +65,8 @@ class Ingredients(Countertop):
             need not be passed when the class is instanced. They are merely
             listed for users who already have divided datasets and still wish
             to use the siMpLify package.
-        columns: dictionary containing column names and datatypes for df or x
-            (if data has been split) dataframes or series
+        columns_dict: dictionary containing column names and datatypes for df
+            or x (if data has been split) dataframes or series
     """
     df : object = None
     menu : object = None
@@ -107,21 +108,8 @@ class Ingredients(Countertop):
             else:
                 error = 'Ingredients quick_start requires an Inventory object'
                 raise AttributeError(error)
-        # Sets default values for missing data based upon datatype of column.
-        self._default_values = {bool : False,
-                                float : 0.0,
-                                int : 0,
-                                object : '',
-                                CategoricalDtype : '',
-                                list : [],
-                                np.datetime64 : 1/1/1900,
-                                timedelta : 0,
-                                'mixer' : '',
-                                'scaler' : 0,
-                                'encoder' : ''}
-        # Initializes a list of dropped column names so that users can track
-        # which features are omitted from analysis.
-        self._dropped_columns = []
+        # Sets default options for Ingredients.
+        self._set_defaults()
         # If column_dict passed, checks to see if columns are in df. Otherwise,
         # datatypes are inferred.
         self._initialize_columns()
@@ -216,6 +204,24 @@ class Ingredients(Countertop):
             return ingredients
         else:
             return [ingredients]
+
+    def _set_defaults(self):
+        # Sets default values for missing data based upon datatype of column.
+        self._default_values = {bool : False,
+                                float : 0.0,
+                                int : 0,
+                                object : '',
+                                CategoricalDtype : '',
+                                list : [],
+                                np.datetime64 : 1/1/1900,
+                                timedelta : 0,
+                                'mixer' : '',
+                                'scaler' : 0,
+                                'encoder' : ''}
+        # Initializes a list of dropped column names so that users can track
+        # which features are omitted from analysis.
+        self._dropped_columns = []
+        return self
 
     @check_df
     def _update_columns(self, df = None):
@@ -622,47 +628,19 @@ class Ingredients(Countertop):
         return self
 
     @check_df
-    def save(self, df = None, export_folder = '', file_name = 'ingredients',
-             export_path = '', file_type = 'csv', index = False, header = True,
-             encoding = 'windows-1252', float_format = '%.4f',
-             boolean_out = True, message = 'Exporting data'):
-        """Exports pandas dataframes to different file formats.
-
-        Attributes:
-            boolean_out: if True, boolean variables are exported sa True/False.
-                If false, boolean variables are exported as 1/0.
-        """
-        if not export_path:
-            if not export_folder:
-                export_folder = self.inventory.data
-            export_path = self.inventory._create_path(folder = export_folder,
-                                                      file_name = file_name,
-                                                      file_type = file_type)
-        if not isinstance(df, pd.DataFrame):
-            df = getattr(self, self.default_df)
+    def save(self, df = None, file_name = None):
+        """Exports pandas dataframe."""
         if self.verbose:
-            print(message)
-        if not boolean_out:
-            df.replace({True : 1, False : 0}, inplace = True)
-        if file_type == 'csv':
-            df.to_csv(export_path,
-                      encoding = encoding,
-                      index = index,
-                      header = header,
-                      float_format = float_format)
-        elif file_type == 'h5':
-            df.to_hdf(export_path)
-        elif file_type == 'feather':
-            if isinstance(df, pd.DataFrame):
-                df.reset_index(inplace = True)
-                df.to_feather(export_path)
+            print('Saving', file_name)
+        export_path = os.path.join(self.inventory.data_out, file_name)
+        self.inventory.save_df(df, export_path)
         return
 
     def save_drops(self, file_name = 'dropped_columns', export_path = ''):
         """Saves dropped_columns into a .csv file."""
         self._dropped_columns = list(unique_everseen(self._dropped_columns))
         if not export_path:
-            export_path = self.inventory._create_path(
+            export_path = self.inventory.create_path(
                     folder = self.inventory.experiment,
                     file_name = file_name,
                     file_type = 'csv')
@@ -744,13 +722,11 @@ class Ingredients(Countertop):
             df_header = True
             df_index = False
         if export_summary:
-            if not export_path:
-                export_path = os.path.join(self.inventory.experiment,
-                                           'data_summary.csv')
-            self.save(df = self.summary,
-                      index = df_index,
-                      header = df_header,
-                      export_path = export_path,
-                      file_type = self.inventory.results_format,
-                      message = 'Exporting summary data')
+            if self.verbose:
+                print('Saving ingredients summary data')
+            summary_path = os.path.join(self.inventory.experiment,
+                                       'data_summary.csv')
+            self.inventory.save_df(df, summary_path, df_header = df_header,
+                                   df_index = df_index)
+
         return self

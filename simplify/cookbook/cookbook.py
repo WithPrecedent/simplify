@@ -4,9 +4,9 @@ the Cookbook class, which handles the cookbook construction and utilization.
 """
 from dataclasses import dataclass
 from itertools import product
-import pickle
 import warnings
 
+from .countertop import Countertop
 from .recipe import Recipe
 from .steps import Cleave
 from .steps import Custom
@@ -17,10 +17,8 @@ from .steps import Reduce
 from .steps import Sample
 from .steps import Scale
 from .steps import Split
-from ..countertop import Countertop
 from ..critic import Presentation
 from ..critic import Review
-from ..inventory import Inventory
 
 
 @dataclass
@@ -30,18 +28,22 @@ class Cookbook(Countertop):
 
     Attributes:
         ingredients: an instance of Ingredients.
-        menu: an instance of Menu or a string containing the file path for a
-            file containing the information needed for a Menu instance to be
-            created.
+        menu: an instance of Menu.
         inventory: an instance of Inventory. If one is not passed when Cookbook
             is instanced, one will be created with default options.
         recipes: a list of instances of Recipe which Cookbook creates through
             the prepare method and applies through the create method.
+        auto_prepare: sets whether to automatically call the prepare method
+            when the class is instanced. If you do not plan to make any
+            adjustments to the steps, techniques, or algorithms beyond the
+            menu, this option should be set to True. If you plan to make such
+            changes, prepare should be called when those changes are complete.
     """
     ingredients : object
     menu : object
     inventory : object = None
     recipes : object = None
+    auto_prepare : bool = True
 
     def __post_init__(self):
         """Sets up the core attributes of Cookbook."""
@@ -63,6 +65,8 @@ class Cookbook(Countertop):
                       'custom5' : Custom,}
         # Calls method to set various default or user options.
         self._set_defaults()
+        if self.auto_prepare:
+            self.prepare()
         return self
 
     def _check_best(self, recipe):
@@ -98,7 +102,7 @@ class Cookbook(Countertop):
 
     def _set_critic(self):
         # Instances a Review class for storing review of each Recipe.create.
-        self.review = Review(steps = list(self.steps.keys()))
+        self.review = Review()
         # Initializations graphing and other data visualizations.
         self.presentation = Presentation(inventory = self.inventory)
         return self
@@ -111,8 +115,8 @@ class Cookbook(Countertop):
         warnings.filterwarnings('ignore')
         # Adds a Inventory instance with default menu if one is not passed when
         # the Cookbook class is instanced.
-        if not self.inventory:
-            self.inventory = Inventory(menu = self.menu)
+#        if not self.inventory:
+#            self.inventory = Inventory(menu = self.menu)
         # Creates lists for custom step classes. A Recipe can have up to 5.
         self.custom1 = ['none']
         self.custom2 = ['none']
@@ -197,44 +201,39 @@ class Cookbook(Countertop):
         for recipe in recipes:
             if self.verbose:
                 print('Testing recipe ' + str(recipe.number))
+            self.inventory._set_recipe_path(recipe)
             self.ingredients.split_xy(label = self.label)
             recipe.create(ingredients = self.ingredients,
                           data_to_use = data_to_use)
-            self.review.evaluate_recipe(recipe)
+            self.review.evaluate(recipe)
             self.presentation.create(recipe = recipe, review = self.review)
             self._check_best(recipe)
             file_name = (
                 'recipe' + str(recipe.number) + '_' + recipe.model.technique)
             if self.export_all_recipes:
-                recipe_path = self.inventory._recipe_path(
-                        model = recipe.model,
-                        recipe_number = recipe.number,
-                        cleave = recipe.cleaver,
+                recipe_path = self.inventory.create_path(
+                        folder = self.inventory.recipe,
                         file_name = file_name,
                         file_type = 'pickle')
-                self.save_recipe(recipe = recipe, export_path = recipe_path)
-            cr_path = self.inventory._recipe_path(
-                    model = recipe.model,
-                    recipe_number = recipe.number,
-                    cleave = recipe.cleaver,
+                self.save_recipe(recipe = recipe, file_path = recipe_path)
+            cr_path = self.inventory.create_path(
+                    folder = self.inventory.recipe,
                     file_name = 'class_report',
                     file_type = 'csv')
-            self.inventory.save(self.review.class_report_df,
-                                file_path = cr_path)
+            self.inventory.save_df(self.review.class_report_df,
+                                   file_path = cr_path)
             # To conserve memory, each recipe is deleted after being exported.
             del(recipe)
         return self
 
-    def load_recipe(self, import_path):
+    def load_recipe(self, file_path):
         """Imports a single recipe from disc."""
-        recipe = pickle.load(open(import_path, 'rb'))
+        recipe = self.inventory.unpickle_object(file_path)
         return recipe
 
-    def save_recipe(self, recipe, export_path = None):
+    def save_recipe(self, recipe, file_path):
         """Exports a recipe to disc."""
-        if not export_path:
-            export_path = self.inventory.results_folder
-        pickle.dump(recipe, open(export_path, 'wb'))
+        self.inventory.pickle_object(recipe, file_path)
         return self
 
     def new_order(self, order_list):
@@ -293,12 +292,12 @@ class Cookbook(Countertop):
             print('Model:', self.best_recipe.model.technique)
         return
 
-    def save(self, file_path = None):
+    def save(self):
         """Exports the list of recipes to disc as one object."""
-        self.inventory.save(self.recipes,
-                            folder = self.inventory.experiment,
-                            file_path = file_path,
-                            file_name = 'cookbook.pkl')
+        cookbook_path = self.inventory.create_path(
+                folder = self.inventory.experiment,
+                file_name = 'cookbook.pkl')
+        self.inventory.pickle_object(self.recipes, file_path = cookbook_path)
         return self
 
     def save_everything(self):
@@ -308,13 +307,15 @@ class Cookbook(Countertop):
         self.save_review()
         self.ingredients.save_drops()
         if hasattr(self, 'best_recipe'):
-            self.inventory.save(self.best_recipe,
-                                file_name = 'best_recipe.pkl')
+            best_path = self.inventory.create_path(
+                folder = self.inventory.experiment,
+                file_name = 'best_recipe.pkl')
+            self.inventory.pickle_object(self.best_recipe, best_path)
         return self
 
-    def save_review(self, file_path = None):
-        self.inventory.save(self.review.report,
-                            folder = self.inventory.experiment,
-                            file_path = file_path,
-                            file_name = 'review.csv')
+    def save_review(self):
+        review_path = self.inventory.create_path(
+                folder = self.inventory.experiment,
+                file_name = 'review.csv')
+        self.inventory.save_df(self.review.report, review_path)
         return self

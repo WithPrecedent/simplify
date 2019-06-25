@@ -1,7 +1,7 @@
 
 from dataclasses import dataclass
 
-from ..countertop import Countertop
+from .countertop import Countertop
 
 
 @dataclass
@@ -55,7 +55,9 @@ class Recipe(Countertop):
         """Copies data from ingredients to match user preferences so that the
         proper data is used for training and/or testing.
         """
+        self.use_val_set = False
         if self.data_to_use in ['train_val']:
+            self.use_val_set = True
             self.ingredients.x_test = self.ingredients.x_val
             self.ingredients.y_test = self.ingredients.y_val
         elif self.data_to_use in ['full']:

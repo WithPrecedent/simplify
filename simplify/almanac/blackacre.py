@@ -5,14 +5,44 @@ import re
 
 
 @dataclass
-class Tool(object):
-    """Parent class for courtpy parsers, wranglers, engineers, and analyzers.
+class Blackacre(object):
+    """Parent class for various classes in the siMpLify package to allow
+    sharing of methods.
     """
 
-    def __post_init__(self):
-        self.settings.localize(instance = self,
-                               sections = ['general', 'cases', 'files'])
-        return
+    def _check_algorithms(self):
+        """Checks if attribute algorithms exists. If not, returns an empty
+        list.
+        """
+        if hasattr(self, 'algorithms'):
+            return getattr(self, 'algorithms')
+        else:
+            return setattr(self, 'algorithms', [])
+
+    def _check_variable(self, variable):
+        """Checks if variable exists as attribute in class."""
+        if hasattr(self, variable):
+            return variable
+        else:
+            error = self.__class__.__name__ + ' does not contain ' + variable
+            raise KeyError(error)
+
+    def _initialize(self):
+        if not self.machines:
+            self.machines = {}
+        self.prepare()
+        return self
+
+    def _listify(self, variable):
+        """Checks to see if the variable are stored in a list. If not, the
+        variable is converted to a list or a list of 'none' is created.
+        """
+        if not variable:
+            return ['none']
+        elif isinstance(variable, list):
+            return variable
+        else:
+            return [variable]
 
     def _list_to_string(self, variable):
         """Converts a list to a string with a comma and space separating each
@@ -29,15 +59,15 @@ class Tool(object):
             out_value = variable
         return out_value
 
-    def _no_breaks(self, variable, in_col = None):
+    def _no_breaks(self, variable, in_column = None):
         """Removes line breaks and replaces them with single spaces. Also,
         removes hyphens at the end of a line and connects the surrounding text.
         Takes either string, pandas series, or pandas dataframe as input and
         returns the same.
         """
         if isinstance(variable, pd.DataFrame):
-            variable[in_col].str.replace('[a-z]-\n', '')
-            variable[in_col].str.replace('\n', ' ')
+            variable[in_column].str.replace('[a-z]-\n', '')
+            variable[in_column].str.replace('\n', ' ')
         elif isinstance(variable, pd.Series):
             variable.str.replace('[a-z]-\n', '')
             variable.str.replace('\n', ' ')
@@ -46,27 +76,27 @@ class Tool(object):
             variable = re.sub('\n', ' ', variable)
         return variable
 
-    def _no_double_space(self, variable, in_col = None):
+    def _no_double_space(self, variable, in_column = None):
         """Removes double spaces and replaces them with single spaces from a
         string. Takes either string, pandas series, or pandas dataframe as
         input and returns the same.
         """
         if isinstance(variable, pd.DataFrame):
-            variable[in_col].str.replace('  +', ' ')
+            variable[in_column].str.replace('  +', ' ')
         elif isinstance(variable, pd.Series):
             variable.str.replace('  +', ' ')
         else:
             variable = variable.replace('  +', ' ')
         return variable
 
-    def _remove_excess(self, variable, excess, in_col = None):
+    def _remove_excess(self, variable, excess, in_column = None):
         """Removes excess text included when parsing text into sections and
         strips text. Takes either string, pandas series, or pandas dataframe as
         input and returns the same.
         """
         if isinstance(variable, pd.DataFrame):
-            variable[in_col].str.replace(excess, '')
-            variable[in_col].str.strip()
+            variable[in_column].str.replace(excess, '')
+            variable[in_column].str.strip()
         elif isinstance(variable, pd.Series):
             variable.str.replace(excess, '')
             variable.str.strip()
@@ -76,4 +106,5 @@ class Tool(object):
         return variable
 
     def _word_count(self, variable):
+        """Returns word court for a string."""
         return len(variable.split(' ')) - 1

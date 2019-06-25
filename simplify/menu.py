@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import os
 import re
 
+from .cookbook import Countertop
 from .cookbook import Recipe
 from .cookbook.steps import Cleave
 from .cookbook.steps import Custom
@@ -14,7 +15,6 @@ from .cookbook.steps import Reduce
 from .cookbook.steps import Sample
 from .cookbook.steps import Scale
 from .cookbook.steps import Split
-from .countertop import Countertop
 from .inventory import Inventory
 from .critic import Presentation
 from .critic import Review
@@ -47,7 +47,7 @@ class Menu(Countertop):
     attributes in a class instance by using the localize method.
 
     If set_types is set to True (the default option), the dictionary values are
-    automatically converted to appropriate types.
+    automatically converted to appropriate datatypes.
 
     If no_lists is set to True (the default is False), dictionaries containing
     ', ' will be returned as strings instead of lists.
@@ -75,19 +75,18 @@ class Menu(Countertop):
     The result will be that an instance of Fakeclass will contain .verbose and
     .file_type as attributes that are appropriately typed.
 
-    Because Menu uses ConfigParser, it only allows 2-level menu
-    dictionaries. The desire for accessibility and simplicity dictated this
-    limitation.
+    Because Menu uses ConfigParser, it only allows 2-level menu dictionaries.
+    The desire for accessibility and simplicity dictated this limitation.
 
     Attributes:
-        file_path: string of where the menu ,ini file is located.
+        file_path: string of where the menu .ini file is located.
         config: two-level nested dictionary storing menu.
         set_types: boolean variable determines whether values in config are
             converted to other types (True) or left as strings (False).
         no_list: if set_types = True, sets whether config values can be set
             to lists (False) if they contain a comma.
         auto_inject: if True, menu instance is automatically injected into
-            appropriate classes.
+            appropriate siMpLify classes.
     """
     file_path : str = ''
     config : object = None

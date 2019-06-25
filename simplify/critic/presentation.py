@@ -3,12 +3,11 @@ from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats
 import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from ..countertop import Countertop
+from ..cookbook.countertop import Countertop
 
 
 @dataclass
@@ -21,8 +20,8 @@ class Presentation(Countertop):
 
     def __post_init__(self):
         self._set_style()
-        self._set_options()
-        self._set_plots()
+        self._set_techniques()
+        self._set_defaults()
         return self
 
     def _check_length(self, df, max_display):
@@ -30,7 +29,44 @@ class Presentation(Countertop):
             max_display = len(df.columns)
         return max_display
 
-    def _set_options(self):
+    def _default_classifier(self):
+        self.plots = ['confusion', 'heat_map','ks_statistic', 'pr_curve',
+                      'roc_curve']
+        return self
+
+    def _default_clusterer(self):
+        self.plots = ['cluster_tree', 'elbow', 'silhouette']
+        return self
+
+    def _default_regressor(self):
+        self.plots = ['heat_map', 'linear', 'residuals']
+        return self
+
+    def _set_defaults(self):
+        self.techniques_dict = {'classifier' : self._default_classifier,
+                                'regressor' : self._default_regressor,
+                                'clusterer' : self._default_clusterer}
+        self.techniques_dict[self.model_type]()
+        return self
+
+    def _set_style(self):
+        # List of colorblind colors obtained from here:
+        # https://www.dataquest.io/blog/making-538-plots/.
+        # Thanks to Alex Olteanu.
+        colorblind_colors = [[0,0,0], [230/255,159/255,0],
+                             [86/255,180/255,233/255], [0,158/255,115/255],
+                             [213/255,94/255,0], [0,114/255,178/255]]
+        plt.style.use(style = self.plt_style)
+        plt.rcParams['font.family'] = self.plt_font
+        sns.set_style(style = self.seaborn_style)
+        sns.set_context(context = self.seaborn_context)
+        if self.seaborn_palette == 'colorblind':
+            sns.set_palette(color_codes = colorblind_colors)
+        else:
+            sns.set_palette(palette = self.seaborn_palette)
+        return self
+
+    def _set_techniques(self):
         self.techniques = {'calibration' : self.calibration,
                            'cluster_tree' : self.cluster_tree,
                            'confusion' : self.confusion,
@@ -53,41 +89,12 @@ class Presentation(Countertop):
                            'shap_interactions' : self.shap_interactions,
                            'shap_summary' : self.shap_summary,
                            'silhouette' : self.silhouette}
-        if self.model_type in ['classifier']:
-            self.default_plots = ['confusion', 'heat_map','ks_statistic',
-                                  'pr_curve', 'roc_curve']
-        elif self.model_type in ['regressor']:
-            self.default_plots = ['heat_map', 'linear', 'residuals']
-        elif self.model_type in ['clusterer']:
-            self.default_plots = ['cluster_tree', 'elbow', 'silhouette']
         return self
 
 #    def _add_dependency_plots(self):
 #        if self.dependency_plots in ['splices']:
 #
 #        return self
-
-    def _set_plots(self):
-        if self.presentation_options in ['default']:
-            self.plots = self.default_plots
-        return self
-
-    def _set_style(self):
-        # List of colorblind colors obtained from here:
-        # https://www.dataquest.io/blog/making-538-plots/.
-        # Thanks to Alex Olteanu.
-        colorblind_colors = [[0,0,0], [230/255,159/255,0],
-                             [86/255,180/255,233/255], [0,158/255,115/255],
-                             [213/255,94/255,0], [0,114/255,178/255]]
-        plt.style.use(style = self.plt_style)
-        plt.rcParams['font.family'] = self.plt_font
-        sns.set_style(style = self.seaborn_style)
-        sns.set_context(context = self.seaborn_context)
-        if self.seaborn_palette == 'colorblind':
-            sns.set_palette(color_codes = colorblind_colors)
-        else:
-            sns.set_palette(palette = self.seaborn_palette)
-        return self
 
     def calibration(self, file_name = 'calibration.png'):
         skplt.metrics.plot_calibration_curve(self.y, self.review.probs_list,
@@ -194,10 +201,8 @@ class Presentation(Countertop):
         return self
 
     def save(self, file_name):
-        export_path = self.inventory._recipe_path(
-                model = self.recipe.model,
-                recipe_number = self.recipe.number,
-                cleave = self.recipe.cleaver,
+        export_path = self.inventory.create_path(
+                folder = self.inventory.recipe,
                 file_name = file_name,
                 file_type = 'png')
         plt.savefig(export_path, bbox_inches = 'tight')
@@ -206,60 +211,65 @@ class Presentation(Countertop):
 
     def shap_dependency(self, var1 = None, var2 = None,
                         file_name = 'shap_dependency.png'):
-        if var2:
-            dependence_plot(var1, self.review.shap_values, self.x,
-                            interaction_index = 'var2', show = False,
-                            matplotlib = True)
-        else:
-            dependence_plot(var1, self.review.shap_values, self.x,
-                            show = False, matplotlib = True)
-        self.save(file_name)
+        if self.review.shap_method_type != 'none':
+            if var2:
+                dependence_plot(var1, self.review.shap_values, self.x,
+                                interaction_index = 'var2', show = False,
+                                matplotlib = True)
+            else:
+                dependence_plot(var1, self.review.shap_values, self.x,
+                                show = False, matplotlib = True)
+            self.save(file_name)
         return self
 
     def shap_force_plot(self, file_name = 'shap_force_plot.png'):
-        force_plot(self.review.explainer.expected_value,
-                   self.review.shap_values, self.x, show = False,
-                   matplotlib = True)
-        self.save(file_name)
+        if self.review.shap_method_type != 'none':
+            force_plot(self.review.explainer.expected_value,
+                       self.review.shap_values, self.x, show = False,
+                       matplotlib = True)
+            self.save(file_name)
         return self
 
     def shap_heat_map(self, file_name = 'shap_heat_map.png', max_display = 10):
-        max_display = self._check_length(self.x, max_display)
-        tmp = np.abs(self.review.shap_interactions).sum(0)
-        for i in range(tmp.shape[0]):
-            tmp[i, i] = 0
-        inds = np.argsort(-tmp.sum(0))[:30]
-        tmp2 = tmp[inds,:][:,inds]
-        plt.figure(figsize = (max_display, max_display))
-        plt.imshow(tmp2)
-        plt.yticks(range(tmp2.shape[0]),
-                   self.x.columns[inds],
-                   rotation = 50.4,
-                   horizontalalignment = 'right')
-        plt.xticks(range(tmp2.shape[0]),
-                   self.x.columns[inds],
-                   rotation = 50.4,
-                   horizontalalignment = 'left')
-        plt.gca().xaxis.tick_top()
-        self.save(file_name)
+        if self.review.shap_method_type == 'tree':
+            max_display = self._check_length(self.x, max_display)
+            tmp = np.abs(self.review.shap_interactions).sum(0)
+            for i in range(tmp.shape[0]):
+                tmp[i, i] = 0
+            inds = np.argsort(-tmp.sum(0))[:30]
+            tmp2 = tmp[inds,:][:,inds]
+            plt.figure(figsize = (max_display, max_display))
+            plt.imshow(tmp2)
+            plt.yticks(range(tmp2.shape[0]),
+                       self.x.columns[inds],
+                       rotation = 50.4,
+                       horizontalalignment = 'right')
+            plt.xticks(range(tmp2.shape[0]),
+                       self.x.columns[inds],
+                       rotation = 50.4,
+                       horizontalalignment = 'left')
+            plt.gca().xaxis.tick_top()
+            self.save(file_name)
         return self
 
     def shap_interactions(self, file_name = 'shap_interactions.png',
                           max_display = 0):
-        if max_display == 0:
-            max_display = self.interactions_display
-        max_display = self._check_length(self.x, max_display)
-        summary_plot(self.review.shap_interactions, self.x,
-                     max_display = max_display, show = False)
-        self.save(file_name)
+        if self.review.shap_method_type == 'tree':
+            if max_display == 0:
+                max_display = self.interactions_display
+            max_display = self._check_length(self.x, max_display)
+            summary_plot(self.review.shap_interactions, self.x,
+                         max_display = max_display, show = False)
+            self.save(file_name)
         return self
 
     def shap_summary(self, file_name = 'shap_summary.png', max_display = 0):
-        if max_display == 0:
-            max_display = self.summary_display
-        summary_plot(self.review.shap_values, self.x,
-                     max_display = max_display, show = False)
-        self.save(file_name)
+        if self.review.shap_method_type != 'none':
+            if max_display == 0:
+                max_display = self.summary_display
+            summary_plot(self.review.shap_values, self.x,
+                         max_display = max_display, show = False)
+            self.save(file_name)
         return self
 
     def silhouette(self, file_name = 'silhouette.png'):

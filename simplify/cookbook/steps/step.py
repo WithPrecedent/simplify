@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pickle
 
-from ...countertop import Countertop
+from ..countertop import Countertop
 
 @dataclass
 class Step(Countertop):
