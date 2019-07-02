@@ -67,7 +67,7 @@ class Recipe(Countertop):
             self.ingredients_y_test = self.ingredients.y
         return self
 
-    def create(self, ingredients, data_to_use = 'train_test'):
+    def implement(self, ingredients, data_to_use = 'train_test'):
         """Applies the Recipe methods to the passed ingredients."""
         self.ingredients = ingredients
         self.data_to_use = data_to_use

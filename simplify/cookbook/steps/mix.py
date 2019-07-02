@@ -10,8 +10,11 @@ class Mix(Step):
     """Contains algorithms for testing variable interactions in the siMpLify
     package.
     """
-
     technique : str = 'none'
+    techniques : object = None
+    parameters : object = None
+    runtime_parameters : object = None
+    data_to_use : str = 'train'
     name: str = 'mixer'
 
     def __post_init__(self):
@@ -35,7 +38,7 @@ class Mix(Step):
         pass
         return self
 
-    def blend(self, ingredients, columns = None):
+    def implement(self, ingredients, columns = None):
         if self.technique != 'none':
             if not columns:
                 columns = ingredients.mixers

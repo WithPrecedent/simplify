@@ -4,8 +4,9 @@
 """
 
 from .ingredients import Ingredients
-from .menu import Menu
 from .inventory import Inventory
+from .menu import Menu
+from .planner import Planner
 from .timer import timer
 
 
@@ -15,5 +16,6 @@ __author__ = 'Corey Rayburn Yung'
 
 __all__ = ['Ingredients',
            'Menu',
+           'Planner',
            'Inventory',
            'timer']

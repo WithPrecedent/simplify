@@ -9,7 +9,12 @@ class Cleave(Step):
     """Contains different groups of features (to allow comparison among them)
     used in the siMpLify package.
     """
+
     technique : str = 'none'
+    techniques : object = None
+    parameters : object = None
+    runtime_parameters : object = None
+    data_to_use : str = 'train'
     name : str = 'cleaver'
 
     def __post_init__(self):
@@ -43,7 +48,7 @@ class Cleave(Step):
         self.techniques.update({cleave_group : columns})
         return self
 
-    def blend(self, ingredients):
+    def implement(self, ingredients):
         self._prepare_cleaves()
         if self.technique != 'none':
             self.algorithm(ingredients)

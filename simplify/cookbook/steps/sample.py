@@ -14,6 +14,10 @@ class Sample(Step):
     """Contains resampling algorithms used in the siMpLify package."""
 
     technique : str = 'none'
+    techniques : object = None
+    parameters : object = None
+    runtime_parameters : object = None
+    data_to_use : str = 'train'
     name : str = 'sampler'
 
     def __post_init__(self):
@@ -40,7 +44,16 @@ class Sample(Step):
                 raise RuntimeError(error)
         return self
 
-    def blend(self, ingredients, columns = None):
+    def fit(self, x, y, columns = None):
+        self._initialize()
+        self._add_parameters(x, columns)
+        return self
+
+    def fit_transform(self, x, y):
+        self.fit(x, y)
+        return self.transform(x, y)
+
+    def implement(self, ingredients, columns = None):
         if self.technique != 'none':
             if not columns:
                 columns = []
@@ -54,14 +67,6 @@ class Sample(Step):
                     resampled_x, resampled_y)
         return ingredients
 
-    def fit(self, x, y, columns = None):
-        self._initialize()
-        self._add_parameters(x, columns)
-        return self
-
     def transform(self, x, y):
         return self.algorithm.fit_resample(x, y)
 
-    def fit_transform(self, x, y):
-        self.fit(x, y)
-        return self.transform(x, y)

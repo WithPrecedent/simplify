@@ -26,6 +26,10 @@ class Model(Step):
     """Contains machine learning algorithms used in the siMpLify package."""
 
     technique : str = 'none'
+    techniques : object = None
+    parameters : object = None
+    runtime_parameters : object = None
+    data_to_use : str = 'train'
     name : str = 'model'
 
     def __post_init__(self):
@@ -162,7 +166,20 @@ class Model(Step):
                   'model is', f'{self.search_method.best_score_ : 4.4f}')
         return self
 
-    def blend(self, ingredients):
+    def fit(self, x, y):
+        if self.hyperparameter_search:
+            self.search(x, y)
+            self.algorithm = self.best_estimator
+        else:
+            self.algorithm.fit(x, y)
+        return self
+
+    def fit_transform(self, x, y):
+        error = 'fit_transform is not implemented for machine learning models'
+        raise NotImplementedError(error)
+        return self
+
+    def implement(self, ingredients):
         if self.technique != 'none':
             if self.verbose:
                 print('Applying', self.technique, 'model to data')
@@ -173,20 +190,7 @@ class Model(Step):
                 self.algorithm.fit(ingredients.x_train, ingredients.y_train)
         return self
 
-    def fit(self, x, y):
-        if self.hyperparameter_search:
-            self.search(x, y)
-            self.algorithm = self.best_estimator
-        else:
-            self.algorithm.fit(x, y)
-        return self
-
     def transform(self, x, y):
         error = 'transform is not implemented for machine learning models'
-        raise NotImplementedError(error)
-        return self
-
-    def fit_transform(self, x, y):
-        error = 'fit_transform is not implemented for machine learning models'
         raise NotImplementedError(error)
         return self

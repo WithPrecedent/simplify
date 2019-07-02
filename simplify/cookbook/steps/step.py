@@ -12,6 +12,12 @@ class Step(Countertop):
     The Ingredient class allows for shared initialization, loading, and saving
     methods to be accessed by all machine learning and preprocessing steps.
     """
+    technique : str = 'none'
+    techniques : object = None
+    parameters : object = None
+    runtime_parameters : object = None
+    data_to_use : str = 'train'
+    name : str = ''
 
     def __contains__(self, technique):
         """Checks whether technique is listed in techniques dictionary."""
@@ -72,22 +78,6 @@ class Step(Countertop):
         """Gets column indices for a list of column names."""
         return [df.columns.get_loc(col) for col in columns]
 
-    def _initialize(self, select_parameters = False):
-        """Adds parameters to algorithm."""
-        self._check_parameters()
-        if select_parameters:
-            self._select_parameters(
-                    parameters_to_use = list(self.defaults.keys()))
-        if self.runtime_parameters:
-            self.parameters.update(self.runtime_parameters)
-        if self.technique != 'none':
-            self.algorithm = self.techniques[self.technique]
-            if self.parameters:
-                self.algorithm = self.algorithm(**self.parameters)
-            else:
-                self.algorithm = self.algorithm()
-        return self
-
     def _list_type(self, test_list, data_type):
         """Tests whether any item in a list is of the passed data type."""
         return any(isinstance(i, data_type) for i in test_list)
@@ -139,16 +129,6 @@ class Step(Countertop):
             self.techniques.update({technique : algorithm})
         return self
 
-    def blend(self, x, y = None):
-        """Generic blend method for adding ingredients into recipe and applying
-        the appropriate algorithm.
-        """
-        self.initialize()
-        if self.algorithm != 'none':
-            self.algorithm.fit(x, y)
-            x = self.algorithm.transform(x)
-        return x
-
     def fit(self, x, y):
         """Generic fit method for partial compatibility to sklearn."""
         self._initialize()
@@ -160,6 +140,16 @@ class Step(Countertop):
         self.fit(x, y)
         return self.transform(x)
 
+    def implement(self, x, y = None):
+        """Generic implement method for adding ingredients into recipe and
+        applying the appropriate algorithm.
+        """
+        self.initialize()
+        if self.algorithm != 'none':
+            self.algorithm.fit(x, y)
+            x = self.algorithm.transform(x)
+        return x
+
     def load(self, file_name, import_folder = '', prefix = '', suffix = ''):
         """Loads stored ingredient from disc."""
         import_path = self.filer.path_join(folder = import_folder,
@@ -170,6 +160,22 @@ class Step(Countertop):
         if self.verbose:
             print('Importing', file_name)
         self.algorithm = pickle.load(open(import_path, 'rb'))
+        return self
+
+    def prepare(self, select_parameters = False):
+        """Adds parameters to algorithm."""
+        self._check_parameters()
+        if select_parameters:
+            self._select_parameters(
+                    parameters_to_use = list(self.defaults.keys()))
+        if self.runtime_parameters:
+            self.parameters.update(self.runtime_parameters)
+        if self.technique != 'none':
+            self.algorithm = self.techniques[self.technique]
+            if self.parameters:
+                self.algorithm = self.algorithm(**self.parameters)
+            else:
+                self.algorithm = self.algorithm()
         return self
 
     def save(self, file_name, export_folder = '', prefix = '', suffix = ''):

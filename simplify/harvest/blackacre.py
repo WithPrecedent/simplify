@@ -3,21 +3,29 @@ from dataclasses import dataclass
 import pandas as pd
 import re
 
+from ..ingredients import Ingredients
+
 
 @dataclass
 class Blackacre(object):
-    """Parent class for various classes in the siMpLify package to allow
-    sharing of methods.
+    """Parent class for various classes in the siMpLify Almanac subpackage to
+    allow sharing of methods.
     """
+    def __post_init__(self):
+        if self.auto_prepare:
+            self.prepare()
+        return self
 
-    def _check_algorithms(self):
-        """Checks if attribute algorithms exists. If not, returns an empty
-        list.
-        """
-        if hasattr(self, 'algorithms'):
-            return getattr(self, 'algorithms')
-        else:
-            return setattr(self, 'algorithms', [])
+    def _check_ingredients(self):
+        if self.ingredients == None:
+            self.ingredients = Ingredients(menu = self.menu,
+                                           inventory = self.inventory)
+        return self
+
+    def _check_stages(self):
+        if not self.stages:
+            self.stages = self.menu['harvest']['harvest_stages']
+        return self
 
     def _check_variable(self, variable):
         """Checks if variable exists as attribute in class."""
@@ -27,11 +35,9 @@ class Blackacre(object):
             error = self.__class__.__name__ + ' does not contain ' + variable
             raise KeyError(error)
 
-    def _initialize(self):
-        if not self.machines:
-            self.machines = {}
-        self.prepare()
-        return self
+    def _combine_lists(self, *args, **kwargs):
+        """Combines lists to create a tuple."""
+        return zip(*args, **kwargs)
 
     def _listify(self, variable):
         """Checks to see if the variable are stored in a list. If not, the

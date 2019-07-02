@@ -15,7 +15,6 @@ class Presentation(Countertop):
     """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
     """
-
     inventory : object
 
     def __post_init__(self):
@@ -112,24 +111,6 @@ class Presentation(Countertop):
         self.save(file_name)
         return self
 
-    def create(self, recipe, review, plot_list = None):
-        if self.verbose:
-            print('Creating and exporting visuals')
-        self.recipe = recipe
-        self.review = review
-        self.estimator = self.recipe.model.algorithm
-        self.x, self.y = self.recipe.ingredients[self.data_to_plot]
-        if ('shap' in self.explainers
-            and self.presentation_options == 'default'):
-            self.plots.extend(['shap_heat_map', 'shap_summary'])
-            if self.review.shap_method_type == 'tree':
-                self.plots.append('shap_interactions')
-#        if self.dependency_plots != 'none':
-#            self._add_dependency_plots()
-        for plot in self.plots:
-            self.techniques[plot]()
-        return self
-
     def cumulative(self, file_name = 'cumulative_gain.png'):
         skplt.metrics.plot_cumulative_gain(self.y, self.review.predicted_probs)
         self.save(file_name)
@@ -150,6 +131,24 @@ class Presentation(Countertop):
         for feature in self._listify(features):
             sns.distplot(self.x[feature], feature, **kwargs)
             self.save(feature + '_' + file_name)
+        return self
+
+    def implement(self, recipe, review, plot_list = None):
+        if self.verbose:
+            print('Creating and exporting visuals')
+        self.recipe = recipe
+        self.review = review
+        self.estimator = self.recipe.model.algorithm
+        self.x, self.y = self.recipe.ingredients[self.data_to_plot]
+        if ('shap' in self.explainers
+            and self.presentation_options == 'default'):
+            self.plots.extend(['shap_heat_map', 'shap_summary'])
+            if self.review.shap_method_type == 'tree':
+                self.plots.append('shap_interactions')
+#        if self.dependency_plots != 'none':
+#            self._add_dependency_plots()
+        for plot in self.plots:
+            self.techniques[plot]()
         return self
 
     def kde_plot(self, file_name = 'kde_plot.png', **kwargs):

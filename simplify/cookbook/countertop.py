@@ -7,6 +7,10 @@ class Countertop(object):
     """Parent class for various classes in the siMpLify package to allow
     sharing of methods.
     """
+    def __post_init__(self):
+        if self.auto_prepare:
+            self.prepare()
+        return self
 
     def _check_lengths(self, variable1, variable2):
         """Checks lists to ensure they are of equal length."""

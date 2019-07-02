@@ -145,7 +145,6 @@ class Review(Countertop):
         return self
 
     def _eli5_explainer(self, recipe):
-
         return self
 
     def _feature_summaries(self, recipe):
@@ -288,7 +287,7 @@ class Review(Countertop):
            self.special_metrics.append[name]
         return self
 
-    def evaluate(self, recipe):
+    def implement(self, recipe):
         """Evaluates recipe with various tools and prepares report."""
         if self.verbose:
             print('Evaluating recipe')

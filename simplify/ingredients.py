@@ -12,12 +12,9 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from .almanac.blackacre import Blackacre
-from .cookbook.countertop import Countertop
-
 
 @dataclass
-class Ingredients(Countertop, Blackacre):
+class Ingredients(object):
     """Imports, stores, and exports pandas dataframes and series, as well as
     related information about those data containers.
 
@@ -604,16 +601,16 @@ class Ingredients(Countertop, Blackacre):
             return df
 
     @check_df
-    def reshape_long(self, df = None, stubs = None, id_col = '', new_col = '',
-                     sep = ''):
+    def reshape_long(self, df = None, stubs = None, id_column = '',
+                     new_column = '', separator = ''):
         """A simple wrapper method for pandas wide_to_long method using more
         intuitive parameter names than 'i' and 'j'.
         """
         df = (pd.wide_to_long(df,
                               stubnames = stubs,
-                              i = id_col,
-                              j = new_col,
-                              sep = sep).reset_index())
+                              i = id_column,
+                              j = new_column,
+                              sep = separator).reset_index())
         return self
 
     @check_df
@@ -651,9 +648,6 @@ class Ingredients(Countertop, Blackacre):
                 csv_writer = csv.writer(export_file)
                 csv_writer.writerow(self.dropped_columns)
         return
-
-    def scrape(self, file_path, file_url):
-        return self
 
     def set_default_value(self, datatype, default_value):
         self._default_values[datatype] = default_value

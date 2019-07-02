@@ -15,6 +15,10 @@ class Encode(Step):
     """Contains categorical encoders used in the siMpLify package."""
 
     technique : str = 'none'
+    techniques : object = None
+    parameters : object = None
+    runtime_parameters : object = None
+    data_to_use : str = 'train'
     name : str = 'encoder'
 
     def __post_init__(self):
@@ -32,7 +36,7 @@ class Encode(Step):
         self.runtime_parameters = {}
         return self
 
-    def blend(self, ingredients, columns = None):
+    def implement(self, ingredients, columns = None):
         if self.technique != 'none':
             if not columns:
                 columns = ingredients.encoders

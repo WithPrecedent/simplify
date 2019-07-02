@@ -15,6 +15,10 @@ class Reduce(Step):
     """Contains feature selectors used in the siMpLify package."""
 
     technique : str = 'none'
+    techniques : object = None
+    parameters : object = None
+    runtime_parameters : object = None
+    data_to_use : str = 'train'
     name : str = 'reducer'
 
     def __post_init__(self):
@@ -54,7 +58,7 @@ class Reduce(Step):
 #            self.parameters['score_func'] = self.scorers[self.parameters['score_func']]
         return self
 
-    def blend(self, ingredients, estimator = None):
+    def implement(self, ingredients, estimator = None):
         if self.technique != 'none':
             self._set_param_groups(estimator)
             if self.parameters['score_func']:

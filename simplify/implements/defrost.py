@@ -77,6 +77,6 @@ class Defrost(Countertop):
                         settings = self.settings)
         return recipe
 
-    def revive(self):
+    def implement(self):
         self.table = self.filer.load(self.file_path)
         return recipe

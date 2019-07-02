@@ -24,7 +24,7 @@ ingredients.smart_fillna()
 # Creates instance of Cookbook.
 cookbook = Cookbook(ingredients, menu, inventory)
 # Iterates through every recipe and exports plots from each recipe.
-cookbook.create()
+cookbook.start()
 # Creates and exports a table of summary statistics from the dataframe.
 ingredients.summarize()
 # Saves the recipes, results, and cookbook.

@@ -5,31 +5,53 @@ from inspect import getfullargspec
 import os
 import requests
 
-from ..blackacre import Blackacre
+from .stage import Stage, Technique
 
 
 @dataclass
+class Sow(Stage):
 
-class Cultivate(Blackacre):
+    technique : str = ''
+    parameters : object = None
+    name : str = 'sow'
+    auto_prepare : bool = True
 
-   def _set_defaults(self):
-       self.options = {'download' : Download,
-                       'scrape' : Scrape,
-                       'split' : Split}
-       return self
+    def __post_init__(self):
+        self.techniques = {'convert' : Convert,
+                           'download' : Download,
+                           'scrape' : Scrape,
+                           'split' : Split}
+        super().__post_init__()
+        return self
+
+    def start(self):
+        kwargs = self.parameters
+        self.techniques[self.technique](**kwargs)
+        return self
 
 @dataclass
-class Download(Cultivate):
-    """Downloads online data for use by siMpLify."""
-    filer : object = None
-    file_paths : str = ''
-    file_names : str = ''
-    file_urls : str = ''
+class Convert(Technique):
+
+    inventory : object = None
+    file_path_in : str = ''
+    file_path_out : str = ''
+    technique : object = None
 
     def __post_init__(self):
         super().__post_init__()
-        self._set_defaults()
-        self.download()
+        return self
+
+@dataclass
+class Download(Technique):
+    """Downloads online data for use by siMpLify."""
+
+    inventory : object = None
+    file_name : str = ''
+    file_url : str = ''
+    technique : object = None
+
+    def __post_init__(self):
+        super().__post_init__()
         return self
 
     def _file_download(self, file_path, file_url):
@@ -73,21 +95,20 @@ class Download(Cultivate):
         return wrapper
 
     @check_path
-    def download(self, file_paths = None, file_urls = None):
+    def start(self, file_paths = None, file_urls = None):
         self._check_lengths()
         file_pairs = zip(self._listify(file_paths), self._listify(file_urls))
         for file_path, file_url in file_pairs.items():
             self._file_download(file_path = file_path, file_url = file_url)
         return self
 
-
 @dataclass
-class Scrape(Cultivate):
+class Scrape(technique):
 
-    filer : object = None
-    file_paths : str = ''
-    file_names : str = ''
-    file_urls : str = ''
+    inventory : object = None
+    file_name : str = ''
+    file_url : str = ''
+    technique : object = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -140,8 +161,11 @@ class Scrape(Cultivate):
             self._file_scrape(file_path = file_path, file_url = file_url)
         return self
 
-class Split(Cultivate):
+class Split(Technique):
+
+    inventory : object = None
+    technique : object = None
 
     def __post_init__(self):
-
+        super().__post_init__()
         return self

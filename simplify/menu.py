@@ -15,9 +15,10 @@ from .cookbook.steps import Reduce
 from .cookbook.steps import Sample
 from .cookbook.steps import Scale
 from .cookbook.steps import Split
-from .inventory import Inventory
 from .critic import Presentation
 from .critic import Review
+from .inventory import Inventory
+
 
 @dataclass
 class Menu(Countertop):
@@ -80,7 +81,8 @@ class Menu(Countertop):
 
     Attributes:
         file_path: string of where the menu .ini file is located.
-        config: two-level nested dictionary storing menu.
+        config: two-level nested dictionary storing menu. If a file_path is
+            provided, config will automatically be created.
         set_types: boolean variable determines whether values in config are
             converted to other types (True) or left as strings (False).
         no_list: if set_types = True, sets whether config values can be set
@@ -100,9 +102,9 @@ class Menu(Countertop):
         """
         self._set_config()
         self._set_types()
-        self._set_dependencies()
-        if self.auto_inject:
-            self.inject()
+#        self._set_dependencies()
+#        if self.auto_inject:
+#            self.inject()
         return self
 
     def __delitem__(self, name):
@@ -245,6 +247,7 @@ class Menu(Countertop):
                                    self._listify(section_lists))
             for dependency, section_list in new_dependencies.items():
                 self.dependencies.update({dependency : section_list})
+        self.inject()
         return self
 
     def add_settings(self, new_settings):
@@ -252,13 +255,19 @@ class Menu(Countertop):
 
         Parameters:
            new_setting: can either be a dictionary or Menu object containing
-               new attribute, value pairs."""
+               new attribute, value pairs or a string containing a file path
+               from which new configuration options can be found."""
         if isinstance(new_settings, dict):
             self.config.update(new_settings)
+        elif isinstance(new_settings, str):
+            config = ConfigParser(dict_type = dict)
+            config.optionxform = lambda option : option
+            config.read(new_settings)
+            self.config.update(dict(config._sections))
         elif isinstance(new_settings.config, dict):
             self.config.update(new_settings.config)
         else:
-            error_message = 'new_options must be dict or Menu instance'
+            error_message = 'new_options must be dict, Menu instance, or str'
             raise TypeError(error_message)
         return self
 

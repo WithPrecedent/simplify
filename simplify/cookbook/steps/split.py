@@ -10,6 +10,10 @@ from .step import Step
 class Split(Step):
 
     technique : str = 'none'
+    techniques : object = None
+    parameters : object = None
+    runtime_parameters : object = None
+    data_to_use : str = 'train'
     name : str = 'splitter'
 
     def __post_init__(self):
@@ -56,7 +60,15 @@ class Split(Step):
     def _no_split(self, ingredients):
         return ingredients
 
-    def blend(self, ingredients):
+    def fit(self, ingredients):
+        self.algorithm = self.techniques[self.technique]
+        return self
+
+    def fit_transform(self, ingredients):
+        self.fit(ingredients)
+        return self.transform(ingredients)
+
+    def implement(self, ingredients):
         if self.technique != 'none':
             self.runtime_parameters = {'random_state' : self.seed}
             self._check_parameters()
@@ -64,13 +76,5 @@ class Split(Step):
             self.algorithm = self.techniques[self.technique]
         return self.algorithm(ingredients)
 
-    def fit(self, ingredients):
-        self.algorithm = self.techniques[self.technique]
-        return self
-
     def transform(self, ingredients):
         return self.algorithm(ingredients)
-
-    def fit_transform(self, ingredients):
-        self.fit(ingredients)
-        return self.transform(ingredients)

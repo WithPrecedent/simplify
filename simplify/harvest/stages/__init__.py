@@ -3,20 +3,19 @@
   :synopsis: data processing workflow made simple
 """
 
-from .bale import Bale
+from .sow import Sow
+from .harvest import Harvest
 from .clean import Clean
-from .cultivate import Cultivate
-from .reap import Reap
-from .thresh import Thresh
-
+from .bundle import Bundle
+from .deliver import Deliver
 
 
 __version__ = '0.1.0'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = ['Bale',
+__all__ = ['Sow',
+           'Harvest',
            'Clean',
-           'Cultivate',
-           'Reap',
-           'Thresh']
+           'Bundle',
+           'Deliver']

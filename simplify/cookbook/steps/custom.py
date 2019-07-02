@@ -14,9 +14,9 @@ class Custom(Step):
     data_to_use : str = 'train'
 
     def __post_init__(self):
-        self.options = {'train' : self._blend_train,
-                        'train_test' : self._blend_train_test,
-                        'full' : self._blend_full}
+        self.options = {'train' : self._implement_train,
+                        'train_test' : self._implement_train_test,
+                        'full' : self._implement_full}
         self._add_algorithms()
         return self
 
@@ -33,7 +33,7 @@ class Custom(Step):
             self.parameters = {}
         return self
 
-    def _blend_full(self, ingredients):
+    def _implement_full(self, ingredients):
         if self.technique != 'none':
             self._set_defaults()
             self._initialize()
@@ -41,7 +41,7 @@ class Custom(Step):
                     ingredients.x, ingredients.y)
         return ingredients
 
-    def _blend_train(self, ingredients):
+    def _implement_train(self, ingredients):
         if self.technique != 'none':
             self._set_defaults()
             self._initialize()
@@ -49,7 +49,7 @@ class Custom(Step):
                     ingredients.x_train, ingredients.y_train)
         return ingredients
 
-    def _blend_train_test(self, ingredients):
+    def _implement_train_test(self, ingredients):
         if self.technique != 'none':
             self._set_defaults()
             self._initialize()
@@ -59,6 +59,6 @@ class Custom(Step):
                     ingredients.x_test, ingredients.y_test)
         return ingredients
 
-    def blend(self, ingredients):
+    def implement(self, ingredients):
         ingredients = self.options[self.data_to_use](ingredients)
         return ingredients
