@@ -1,53 +1,54 @@
 
-
 from dataclasses import dataclass
 
-from category_encoders import BackwardDifferenceEncoder, BaseNEncoder
-from category_encoders import BinaryEncoder, HashingEncoder, HelmertEncoder
-from category_encoders import LeaveOneOutEncoder, OneHotEncoder
-from category_encoders import OrdinalEncoder, SumEncoder, TargetEncoder
+from category_encoders import (BackwardDifferenceEncoder, BaseNEncoder,
+                               BinaryEncoder, HashingEncoder, HelmertEncoder,
+                               LeaveOneOutEncoder, OneHotEncoder,
+                               OrdinalEncoder, SumEncoder, TargetEncoder)
 
-from .step import Step
+from .cookbook_step import CookbookStep
 
 
 @dataclass
-class Encode(Step):
-    """Contains categorical encoders used in the siMpLify package."""
-
-    technique : str = 'none'
+class Encode(CookbookStep):
+    """Encodes categorical variables according to selected algorithms."""
+    technique : str = ''
     techniques : object = None
     parameters : object = None
     runtime_parameters : object = None
-    data_to_use : str = 'train'
+    auto_prepare : bool = True
     name : str = 'encoder'
 
     def __post_init__(self):
-        self.techniques = {'backward' : BackwardDifferenceEncoder,
-                           'basen' : BaseNEncoder,
-                           'binary' : BinaryEncoder,
-                           'dummy' : OneHotEncoder,
-                           'hashing' : HashingEncoder,
-                           'helmert' : HelmertEncoder,
-                           'loo' : LeaveOneOutEncoder,
-                           'ordinal' : OrdinalEncoder,
-                           'sum' : SumEncoder,
-                           'target' : TargetEncoder}
-        self.defaults = {}
-        self.runtime_parameters = {}
+        self._set_defaults()
+        super().__post_init__()
         return self
 
-    def implement(self, ingredients, columns = None):
+    def _set_defaults(self):
+        if not self.techniques:
+            self.techniques = {'backward' : BackwardDifferenceEncoder,
+                               'basen' : BaseNEncoder,
+                               'binary' : BinaryEncoder,
+                               'dummy' : OneHotEncoder,
+                               'hashing' : HashingEncoder,
+                               'helmert' : HelmertEncoder,
+                               'loo' : LeaveOneOutEncoder,
+                               'ordinal' : OrdinalEncoder,
+                               'sum' : SumEncoder,
+                               'target' : TargetEncoder}
+        self.default_parameters = {}
+        return self
+
+    def start(self, ingredients, recipe, columns = None):
         if self.technique != 'none':
             if not columns:
                 columns = ingredients.encoders
             if columns:
                 self.runtime_parameters.update({'cols' : columns})
-            self._initialize()
+            self.prepare()
             self.algorithm.fit(ingredients.x, ingredients.y)
-            ingredients.x_train = self.algorithm.transform(
-                    ingredients.x_train.reset_index(drop = True))
-            ingredients.x_test = self.algorithm.transform(
-                    ingredients.x_test.reset_index(drop = True))
-            ingredients.x = self.algorithm.transform(
-                    ingredients.x.reset_index(drop = True))
+            self.algorithm.transform(
+                    ingredients.x_train).reset_index(drop = True)
+            self.algorithm.transform(
+                    ingredients.x_test).reset_index(drop = True)
         return ingredients

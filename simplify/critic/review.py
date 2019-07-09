@@ -7,11 +7,12 @@ from eli5 import explain_prediction_df, explain_weights_df, show_prediction
 from eli5 import show_weights
 from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
-from ..cookbook.countertop import Countertop
+from ..managers import Step
+from ..implements import listify
 
 
 @dataclass
-class Review(Countertop):
+class Review(object):
     """Computes and stores machine learning experiment results.
 
     Review creates and stores a results report and other general
@@ -20,39 +21,35 @@ class Review(Countertop):
     in the metrics dictionary by passing them to Results.add_metric.
 
     Attributes:
-        recipe: an instance of Recipe which contains fit models and transformed
-            data. A recipe should only be passed when the class is instanced if
-            evaluating an unpickled Cookbook or Recipe. Ordinarily, a recipe
-            is passed to Results.evaluate. recipe is overwritten each time a
-            new recipe is passed to evaluate_recipe.
+        name: a string designating the name of the class which should be
+            identical to the section of the menu with relevant settings.
     """
-    recipe : object = None
+    name : str = 'review'
 
     def __post_init__(self):
         self._set_defaults()
-        self._set_explainers()
         return self
 
-    def _add_result(self, recipe):
+    def _add_result(self):
         """Prepares the results of a single recipe application to be added to
         the .report dataframe.
         """
         self.result = pd.Series(index = self.columns_list)
         for column, value in self.columns.items():
-            if hasattr(getattr(recipe, value), 'technique'):
-                self.result[column] = self._format_step(recipe, value)
+            if isinstance(getattr(self.recipe, value), Step):
+                self.result[column] = self._format_step(value)
             else:
-                self.result[column] = getattr(recipe, value)
+                self.result[column] = getattr(self.recipe, value)
         for column, value in self.techniques.items():
             if column in self.metrics:
                 if column in self.prob_techniques:
-                    params = {'y_true' : recipe.ingredients.y_test,
+                    params = {'y_true' : self.recipe.ingredients.y_test,
                               'y_prob' : self.predicted_probs[:, 1]}
                 elif column in self.score_techniques:
-                    params = {'y_true' : recipe.ingredients.y_test,
+                    params = {'y_true' : self.recipe.ingredients.y_test,
                               'y_score' : self.predicted_probs[:, 1]}
                 else:
-                    params = {'y_true' : recipe.ingredients.y_test,
+                    params = {'y_true' : self.recipe.ingredients.y_test,
                               'y_pred' : self.predictions}
                 if column in self.special_metrics:
                     params.update({column : self.special_metrics[column]})
@@ -65,25 +62,35 @@ class Review(Countertop):
 
     def _check_algorithm(self, step):
         """Returns appropriate algorithm to Review.report."""
-        if step.name in ['none', 'all']:
-            return 'none'
+        if step.technique in ['none', 'all']:
+            return step.technique
         else:
             return step.algorithm
 
-    def _class_report(self, recipe):
-        self.class_report = met.classification_report(
-                recipe.ingredients.y_test,
+    def _classification_report(self):
+        self.classification_report = met.classification_report(
+                self.recipe.ingredients.y_test,
                 self.predictions)
-        self.class_report_dict = met.classification_report(
-                recipe.ingredients.y_test,
+        self.classification_report_dict = met.classification_report(
+                self.recipe.ingredients.y_test,
                 self.predictions,
                 output_dict = True)
-        self.class_report_df = pd.DataFrame(self.class_report_dict).transpose()
+        self.classification_report_df = pd.DataFrame(
+                self.classification_report_dict).transpose()
         return self
 
-    def _confusion(self, recipe):
-        self.confusion = met.confusion_matrix(recipe.ingredients.y_test,
+    def _confusion_matrix(self):
+        self.confusion = met.confusion_matrix(self.recipe.ingredients.y_test,
                                               self.predictions)
+        return self
+
+    def _create_predictions(self):
+        """Makes predictions and determines predicted probabilities using
+        the model in the recipe passed."""
+        self.predictions = self.recipe.model.algorithm.predict(
+                self.recipe.ingredients.x_test)
+        self.predicted_probs = self.recipe.model.algorithm.predict_proba(
+                self.recipe.ingredients.x_test)
         return self
 
     def _default_classifier(self):
@@ -138,46 +145,37 @@ class Review(Countertop):
         self.score_techniques = {}
         return self
 
-    def _explain(self, recipe):
-        for explainer in self._listify(self.explainers):
+    def _explain(self):
+        for explainer in listify(self.explainers):
             explain_package = self.explainer_techniques[explainer]
-            explain_package(recipe)
+            explain_package()
         return self
 
-    def _eli5_explainer(self, recipe):
+    def _eli5_explainer(self):
         return self
 
-    def _feature_summaries(self, recipe):
-        self.feature_list = list(recipe.ingredients.x_test.columns)
-        if ('svm_' in recipe.model.technique
-                or 'baseline' in recipe.model.technique
-                or 'logit' in recipe.model.technique):
+    def _feature_summaries(self):
+        self.feature_list = list(self.recipe.ingredients.x_test.columns)
+        if ('svm_' in self.recipe.model.technique
+                or 'baseline' in self.recipe.model.technique
+                or 'logit' in self.recipe.model.technique):
             self.feature_import = None
         else:
             self.feature_import = pd.Series(
-                    data = recipe.model.algorithm.feature_importances_,
+                    data = self.recipe.model.algorithm.feature_importances_,
                     index = self.feature_list)
             self.feature_import.sort_values(ascending = False,
                                             inplace = True)
         return self
 
-    def _format_step(self, recipe, attribute):
-        if getattr(recipe, attribute).technique in ['none', 'all']:
-            step_column = getattr(recipe, attribute).technique
+    def _format_step(self, attribute):
+        if getattr(self.recipe, attribute).technique in ['none', 'all']:
+            step_column = getattr(self.recipe, attribute).technique
         else:
-            technique = getattr(recipe, attribute).technique
-            parameters = getattr(recipe, attribute).parameters
+            technique = getattr(self.recipe, attribute).technique
+            parameters = getattr(self.recipe, attribute).parameters
             step_column = f'{technique}, parameters = {parameters}'
         return step_column
-
-    def _make_predictions(self, recipe):
-        """Makes predictions and determines predicted probabilities using
-        the model in the recipe passed."""
-        self.predictions = recipe.model.algorithm.predict(
-                recipe.ingredients.x_test)
-        self.predicted_probs = recipe.model.algorithm.predict_proba(
-                recipe.ingredients.x_test)
-        return self
 
     def _print_results(self, recipe):
         """Prints to console basic results separate from report."""
@@ -188,19 +186,19 @@ class Review(Countertop):
         print('Confusion Matrix:')
         print(self.confusion)
         print('Classification Report:')
-        print(self.class_report)
+        print(self.classification_report)
         return self
 
-    def _set_columns(self, recipe):
+    def _set_columns(self):
         """Sets columns and options for report."""
         self.columns = {'recipe_number' : 'number',
                         'step_order' : 'order',
                         'seed' : 'seed',
-                        'validation_set' : 'use_val_set'}
-        for step in recipe.order:
+                        'validation_set' : 'val_set'}
+        for step in self.recipe.order:
             self.columns.update({step : step})
         self.columns_list = list(self.columns.keys())
-        self.columns_list.extend(self._listify(self.metrics))
+        self.columns_list.extend(listify(self.metrics))
         self.report = pd.DataFrame(columns = self.columns_list)
         return self
 
@@ -221,6 +219,7 @@ class Review(Countertop):
         self.techniques_dict[self.model_type]()
         self.techniques.update(self.prob_techniques)
         self.techniques.update(self.score_techniques)
+        self._set_explainers()
         return self
 
     def _set_explainers(self):
@@ -246,24 +245,25 @@ class Review(Countertop):
                                 'tree' : TreeExplainer}
         return self
 
-    def _shap_explainer(self, recipe):
+    def _shap_explainer(self):
         """Applies shap explainer to data based upon type of model used."""
-        if recipe.model.technique in self.shap_models:
-            self.shap_method_type = self.shap_models[recipe.model.technique]
+        if self.recipe.model.technique in self.shap_models:
+            self.shap_method_type = self.shap_models[
+                    self.recipe.model.technique]
             self.shap_method = self.shap_techniques[self.shap_method_type]
-        elif 'baseline_' in recipe.model.technique:
+        elif 'baseline_' in self.recipe.model.technique:
             self.shap_method_type = 'none'
         else:
             self.shap_method_type = 'kernel'
             self.shap_method = KernelExplainer
-        data_to_explain = {'train' : recipe.ingredients.x_train,
-                           'test' : recipe.ingredients.x_test,
-                           'full' : recipe.ingredients.x}
+        data_to_explain = {'train' : self.recipe.ingredients.x_train,
+                           'test' : self.recipe.ingredients.x_test,
+                           'full' : self.recipe.ingredients.x}
         df = data_to_explain[self.data_to_explain]
         if self.shap_method_type != 'none':
             self.shap_explainer = self.shap_method(
-                    model = recipe.model.algorithm,
-                    data = recipe.ingredients.x_train)
+                    model = self.recipe.model.algorithm,
+                    data = self.recipe.ingredients.x_train)
             self.shap_values = self.shap_explainer.shap_values(df)
             if self.shap_method_type == 'tree':
                 self.shap_interactions = (
@@ -287,16 +287,20 @@ class Review(Countertop):
            self.special_metrics.append[name]
         return self
 
-    def implement(self, recipe):
+    def prepare(self):
+        return self
+
+    def start(self, recipe):
         """Evaluates recipe with various tools and prepares report."""
         if self.verbose:
             print('Evaluating recipe')
+        self.recipe = recipe
         if not hasattr(self, 'columns'):
-            self._set_columns(recipe)
-        self._make_predictions(recipe)
-        self._add_result(recipe)
-        self._confusion(recipe)
-        self._class_report(recipe)
-        self._feature_summaries(recipe)
-        self._explain(recipe)
+            self._set_columns()
+        self._create_predictions()
+        self._add_result()
+        self._confusion_matrix()
+        self._classification_report()
+        self._feature_summaries()
+        self._explain()
         return self

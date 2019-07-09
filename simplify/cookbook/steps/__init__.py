@@ -4,7 +4,6 @@
 """
 
 from .cleave import Cleave
-from .custom import Custom
 from .encode import Encode
 from .mix import Mix
 from .model import Model
@@ -19,7 +18,6 @@ __version__ = '0.1.0'
 __author__ = 'Corey Rayburn Yung'
 
 __all__ = ['Cleave',
-           'Custom',
            'Encode',
            'Mix',
            'Model',

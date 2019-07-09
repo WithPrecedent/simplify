@@ -1,11 +1,11 @@
 
 from dataclasses import dataclass
 
-from .step import Step
+from .cookbook_step import CookbookStep
 
 
 @dataclass
-class Cleave(Step):
+class Cleave(CookbookStep):
     """Contains different groups of features (to allow comparison among them)
     used in the siMpLify package.
     """
@@ -18,7 +18,12 @@ class Cleave(Step):
     name : str = 'cleaver'
 
     def __post_init__(self):
+        self._set_defaults()
+        return self
+
+    def _set_defaults(self):
         self.techniques = {}
+        self.default_parameters = {}
         self.algorithm = self._cleave
         return self
 
@@ -32,7 +37,7 @@ class Cleave(Step):
                                              inplace = True)
                     ingredients.x_test.drop(col, axis = 'columns',
                                             inplace = True)
-        return self
+        return ingredients
 
     def _prepare_cleaves(self):
         for group, columns in self.techniques.items():
@@ -48,8 +53,8 @@ class Cleave(Step):
         self.techniques.update({cleave_group : columns})
         return self
 
-    def implement(self, ingredients):
-        self._prepare_cleaves()
+    def start(self, ingredients, recipe):
         if self.technique != 'none':
-            self.algorithm(ingredients)
+            self._prepare_cleaves()
+            ingredients = self.algorithm(ingredients)
         return ingredients

@@ -11,10 +11,12 @@ cancer = load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
 # Loads menu file.
-menu = Menu('cancer_settings.ini')
-inventory = Inventory(menu)
+menu = Menu(file_path = 'cancer_settings.ini')
+inventory = Inventory(menu = menu)
 # Creates instance of Data with the cancer dataframe.
-ingredients = Ingredients(df,  menu, inventory)
+ingredients = Ingredients(menu = menu,
+                          inventory = inventory,
+                          df = df)
 # Converts label to boolean type - conversion from numpy arrays leaves all
 # columns as float type.
 ingredients.change_type(columns = ['target'], datatype = bool)
@@ -22,7 +24,9 @@ ingredients.change_type(columns = ['target'], datatype = bool)
 # datatype.
 ingredients.smart_fillna()
 # Creates instance of Cookbook.
-cookbook = Cookbook(ingredients, menu, inventory)
+cookbook = Cookbook(menu = menu,
+                    inventory = inventory,
+                    ingredients = ingredients)
 # Iterates through every recipe and exports plots from each recipe.
 cookbook.start()
 # Creates and exports a table of summary statistics from the dataframe.

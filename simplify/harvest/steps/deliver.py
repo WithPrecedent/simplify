@@ -3,22 +3,30 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from .stage import Stage, Technique
+from .harvest_step import HarvestStep
+from ...managers import Technique
 
 
 @dataclass
-class Deliver(Stage):
+class Deliver(HarvestStep):
 
-    technique : str = ''
-    parameters : object = None
-    name : str = 'clean'
+    options : object = None
+    almanac : object = None
     auto_prepare : bool = True
+    name : str = 'delivery'
 
     def __post_init__(self):
-        self.techniques = {'shapers' : Shaper,
-                           'streamliners' : Streamliner}
+        self.default_options = {'shapers' : Shaper,
+                                'streamliners' : Streamliner}
         super().__post_init__()
         return self
+
+    def _prepare_shapers(self):
+        return self
+
+    def _prepare_streamliners(self):
+        return self
+
 
 @dataclass
 class Shaper(Technique):
@@ -28,8 +36,6 @@ class Shaper(Technique):
     id_column : str = ''
     values : object = None
     separator : str = ''
-    auto_shape : bool = False
-    df : object = None
 
     def __post_init__(self):
         return self
@@ -54,16 +60,19 @@ class Shaper(Technique):
                        values = self.values).reset_index())
         return df
 
-    def start(self, df):
-        return df
+
+    def start(self, ingredients):
+        ingredients.df = getattr(self, '_' + self.shape_type)(ingredients.df)
+        return ingredients
 
 @dataclass
 class Streamliner(Technique):
 
-    technique : str = ''
+    algorithm : object = None
 
     def __post_init__(self):
         return self
 
     def start(self, ingredients):
+        ingredients = self.algorithm(ingredients)
         return ingredients

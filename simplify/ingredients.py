@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
+from .implements import listify
+
 
 @dataclass
 class Ingredients(object):
@@ -48,9 +50,9 @@ class Ingredients(object):
     inference).
 
     Attributes:
-        df: a pandas dataframe or series.
         menu: an instance of Menu.
         inventory: an instance of Inventory.
+        df: a pandas dataframe or series.
         quick_start: a boolean variable indicating whether data should
             automatically be loaded into the df attribute.
         default_df: the current default dataframe or series attribute that will
@@ -65,9 +67,9 @@ class Ingredients(object):
         columns_dict: dictionary containing column names and datatypes for df
             or x (if data has been split) dataframes or series
     """
-    df : object = None
-    menu : object = None
+    menu : object
     inventory : object = None
+    df : object = None
     quick_start : bool = False
     default_df : str = 'df'
     x : object = None
@@ -80,55 +82,171 @@ class Ingredients(object):
     y_val : object = None
     columns_dict : object = None
 
-
     def __post_init__(self):
         """Localizes menu, initializes quick_start if that option is
         selected and infers column datatypes if a pandas dataframe or series
         is passed.
         """
-        if self.menu:
-            self.menu.localize(instance = self, sections = ['general'])
-        else:
-            error = 'Ingredients requires a Menu object'
-            raise AttributeError(error)
+        self.menu.localize(instance = self, sections = ['general'])
         if self.verbose:
-            print('Building ingredients')
-        # If quick_start is set to true and a menu dictionary is passed,
-        # ingredients is automatically loaded according to user specifications
-        # in the menu file.
-        if self.quick_start:
-            if self.inventory:
-                self.load(import_path = self.inventory.import_path,
-                          test_data = self.inventory.test_data,
-                          test_rows = self.inventory.test_chunk,
-                          encoding = self.inventory.encoding)
-            else:
-                error = 'Ingredients quick_start requires an Inventory object'
-                raise AttributeError(error)
+            print('Making ingredients')
         # Sets default options for Ingredients.
         self._set_defaults()
-        # If column_dict passed, checks to see if columns are in df. Otherwise,
-        # datatypes are inferred.
-        self._initialize_columns()
         return self
-#
-#    def __delitem__(self, name):
-#        return delattr(self, name)
-#
-    def __getitem__(self, name):
-        return getattr(self, name)
 
-    def __len__(self):
-        return len(getattr(self, self.default_df))
+    def __get_item__(self, item):
+        if item in self.dataframes:
+            return self.dataframes[item]
+        else:
+            return getattr(self, item)
 
-    def __repr__(self):
-        return getattr(self, self.default_df)
-#
-#    def __setitem__(self, name, value):
-#        return setattr(self, name, value)
+    @property
+    def booleans(self):
+        """Returns boolean columns."""
+        return self._get_columns_by_type(bool)
 
-    def __str__(self):
-        return getattr(self, self.default_df)
+    @property
+    def categoricals(self):
+        """Returns caterogical columns."""
+        return self._get_columns_by_type(CategoricalDtype)
+
+    @property
+    def columns(self, datatype = dict):
+        if not self.columns_dict:
+            self.columns_dict = {}
+        if datatype in [dict]:
+            return self.columns_dict
+        elif datatype in [list]:
+            return list(self.columns_dict.keys())
+        else:
+            error = 'columns can only return dict and list datatypes'
+            raise TypeError(error)
+            return self
+
+    @columns.setter
+    def columns(self, column, datatype):
+        self.columns_dict.update({column : datatype})
+        return self
+
+    @property
+    def datetimes(self):
+        """Returns datetime columns."""
+        return self._get_columns_by_type(np.datetime64)
+
+    @property
+    def default_values(self):
+        """Returns current default values for datatypes."""
+        return self._default_values
+
+    @property
+    def dropped(self):
+        """Returns list of dropped columns."""
+        return self.deduplicate(self._dropped_columns)
+
+    @property
+    def encoders(self):
+        """Returns columns with 'encoder' datatype."""
+        return self._get_columns_by_type('encoder')
+
+    @encoders.setter
+    def encoders(self, column_list):
+        self.column_dict.update(dict.fromkeys(column_list, 'encoder'))
+        return self
+
+    @property
+    def floats(self):
+        """Returns float columns."""
+        return self._get_columns_by_type(float)
+
+    @property
+    def integers(self):
+        """Returns int columns."""
+        return self._get_columns_by_type(int)
+
+    @property
+    def lists(self):
+        """Returns list columns."""
+        return self._get_columns_by_type(list)
+
+    @property
+    def mixers(self):
+        """Returns columns with 'mixer' datatype."""
+        return self._get_columns_by_type('mixer')
+
+    @mixers.setter
+    def mixers(self, column_list):
+        self.column_dict.update(dict.fromkeys(column_list, 'mixer'))
+        return self
+
+    @property
+    def numerics(self):
+        """Returns float and int columns."""
+        return self._deduplicate(self.floats + self.integers)
+
+    @property
+    def scalers(self):
+        """Returns columns with 'scaler' datatype."""
+        return self._get_columns_by_type('scaler')
+
+    @scalers.setter
+    def scalers(self, column_list):
+        self.column_dict.update(dict.fromkeys(column_list, 'scaler'))
+        return self
+
+    @property
+    def strings(self):
+        """Returns str (object type) columns."""
+        return self._get_columns_by_type(object)
+
+    @property
+    def timedeltas(self):
+        """Returns timedelata columns."""
+        return self._get_columns_by_type(timedelta)
+
+    @property
+    def full(self):
+        """Returns the full dataset divided into x and y twice."""
+        return (self.dataframes['x'], self.dataframes['y'],
+                self.dataframes['x'], self.dataframes['y'])
+
+    @property
+    def test(self):
+        """Returns the test data."""
+        return self.dataframes['x_test'], self.dataframes['y_test']
+
+    @property
+    def train_test(self):
+        """Returns the training and testing data."""
+        return (self.dataframes['x_train'], self.dataframes['y_train'],
+                self.dataframes['x_test'], self.dataframes['y_test'])
+
+    @property
+    def train(self):
+        """Returns the training data."""
+        return self.dataframes['x_train'], self.dataframes['y_train']
+
+    @property
+    def train_test_val(self):
+        """Returns the training, test, and validation data."""
+        return (self.dataframes['x_train'], self.dataframes['y_train'],
+                self.dataframes['x_test'], self.dataframes['y_test'],
+                self.dataframes['x_val'], self.dataframes['y_val'])
+
+    @property
+    def train_val(self):
+        """Returns the training and validation data."""
+        return (self.dataframes['x_train'], self.dataframes['y_train'],
+                self.dataframes['x_val'], self.dataframes['y_val'])
+
+    @property
+    def val(self):
+        """Returns the validation data."""
+        return self.dataframes['x_val'], self.dataframes['y_val']
+
+    @property
+    def xy(self):
+        """Returns the full dataset divided into x and y."""
+        return self.dataframes['x'], self.dataframes['y']
 
     def check_df(func):
         """Decorator which automatically uses the default dataframe if one
@@ -191,16 +309,27 @@ class Ingredients(object):
                 self._crosscheck_columns(df = self.x_train)
         return self
 
-    def _listify(self, ingredients):
-        """Checks to see if the methods are stored in a list. If not, the
-        methods are converted to a list or a list of 'none' is created.
-        """
-        if not ingredients:
-            return ['none']
-        elif isinstance(ingredients, list):
-            return ingredients
-        else:
-            return [ingredients]
+    def _remap_dataframes(self, data_to_use):
+        if data_to_use == 'train_test':
+            self.dataframes = self.default_dataframes.copy()
+        elif data_to_use == 'train_val':
+            self.dataframes['x_test'] = self.x_val
+            self.dataframes['y_test'] = self.y_val
+        elif data_to_use == 'full':
+            self.dataframes['x_train'] = self.x
+            self.dataframes['y_train'] = self.y
+            self.dataframes['x_test'] = self.x
+            self.dataframes['y_test'] = self.y
+        elif data_to_use == 'train':
+            self.dataframes['x'] = self.x_train
+            self.dataframes['y'] = self.y_train
+        elif data_to_use == 'test':
+            self.dataframes['x'] = self.x_test
+            self.dataframes['y'] = self.y_test
+        elif data_to_use == 'val':
+            self.dataframes['x'] = self.x_val
+            self.dataframes['y'] = self.y_val
+        return self
 
     def _set_defaults(self):
         # Sets default values for missing data based upon datatype of column.
@@ -215,139 +344,40 @@ class Ingredients(object):
                                 'mixer' : '',
                                 'scaler' : 0,
                                 'encoder' : ''}
+        # Declares dictionary of dataframes contained in Ingredients to allow
+        # temporary remapping.
+        self.default_dataframes = {'x' : self.x,
+                                   'y' : self.y,
+                                   'x_train' : self.x_train,
+                                   'y_train' : self.y_train,
+                                   'x_test' : self.x_test,
+                                   'y_test' : self.y_test,
+                                   'x_val' : self.x_val,
+                                   'y_val' : self.y_val}
+        self._remap_dataframes(data_to_use = 'train_test')
+        # If quick_start is set to true and a menu dictionary is passed,
+        # ingredients is automatically loaded according to user specifications
+        # in the menu file.
+        if self.quick_start and not self.df:
+            if self.inventory:
+                self.load(import_path = self.inventory.import_path,
+                          test_data = self.inventory.test_data,
+                          test_rows = self.inventory.test_chunk,
+                          encoding = self.inventory.encoding)
+            else:
+                error = 'Ingredients quick_start requires an Inventory object'
+                raise AttributeError(error)
         # Initializes a list of dropped column names so that users can track
         # which features are omitted from analysis.
         self._dropped_columns = []
+        # If column_dict passed, checks to see if columns are in df. Otherwise,
+        # datatypes are inferred.
+        self._initialize_columns()
         return self
 
     @check_df
     def _update_columns(self, df = None):
-
         return self
-
-    @property
-    def booleans(self):
-        """Returns boolean columns."""
-        return self._get_columns_by_type(bool)
-
-    @property
-    def categoricals(self):
-        """Returns caterogical columns."""
-        return self._get_columns_by_type(CategoricalDtype)
-
-    @property
-    def columns(self, datatype = dict):
-        if not self.columns_dict:
-            self.columns_dict = {}
-        if datatype in [dict]:
-            return self.columns_dict
-        elif datatype in [list]:
-            return list(self.columns_dict.keys())
-        else:
-            error = 'columns can only return dict and list datatypes'
-            raise TypeError(error)
-            return self
-
-    @columns.setter
-    def columns(self, column, datatype):
-        self.column_dict.update({column : datatype})
-        return self
-
-    @property
-    def datetimes(self):
-        """Returns datetime columns."""
-        return self._get_columns_by_type(np.datetime64)
-
-    @property
-    def default_values(self):
-        """Returns current default values for datatypes."""
-        return self._default_values
-
-    @property
-    def dropped(self):
-        """Returns list of dropped columns."""
-        return self.deduplicate(self._dropped_columns)
-
-    @property
-    def encoders(self):
-        """Returns columns with 'encoder' datatype."""
-        return self._get_columns_by_type('encoder')
-
-    @property
-    def floats(self):
-        """Returns float columns."""
-        return self._get_columns_by_type(float)
-
-    @property
-    def integers(self):
-        """Returns int columns."""
-        return self._get_columns_by_type(int)
-
-    @property
-    def lists(self):
-        """Returns list columns."""
-        return self._get_columns_by_type(list)
-
-    @property
-    def mixers(self):
-        """Returns columns with 'mixer' datatype."""
-        return self._get_columns_by_type('mixer')
-
-    @property
-    def numerics(self):
-        """Returns float and int columns."""
-        return self._deduplicate(self.floats + self.integers)
-
-    @property
-    def scalers(self):
-        """Returns columns with 'scaler' datatype."""
-        return self._get_columns_by_type('scaler')
-
-    @property
-    def strings(self):
-        """Returns str (object type) columns."""
-        return self._get_columns_by_type(object)
-
-    @property
-    def timedeltas(self):
-        """Returns timedelata columns."""
-        return self._get_columns_by_type(timedelta)
-
-    @property
-    def full(self):
-        """Returns the full dataset divided into x and y."""
-        return self.x, self.y
-
-    @property
-    def test(self):
-        """Returns the test data."""
-        return self.x_test, self.y_test
-
-    @property
-    def train_test(self):
-        """Returns the training and testing data."""
-        return self.x_train, self.y_train, self.x_test, self.y_test
-
-    @property
-    def train(self):
-        """Returns the training data."""
-        return self.x_train, self.y_train
-
-    @property
-    def train_test_val(self):
-        """Returns the training, test, and validation data."""
-        return (self.x_train, self.y_train, self.x_test, self.y_test,
-                self.x_val, self.y_val)
-
-    @property
-    def train_val(self):
-        """Returns the training and validation data."""
-        return self.x_train, self.y_train, self.x_val, self.y_val
-
-    @property
-    def val(self):
-        """Returns the validation data."""
-        return self.x_val, self.y_val
 
     def add_datatype(self, name, default_value):
         self._default_values.update({name : default_value})
@@ -444,6 +474,17 @@ class Ingredients(object):
             column_list = prefixes_list
         return column_list
 
+    def create_series(self, df = None):
+        """Creates a series (row) with the datatypes in columns."""
+        row = pd.Series(index = self.columns.keys())
+        for column, datatype in self.columns.items():
+            row[column] = self.default_values[datatype]
+        if not df:
+            setattr(self, self.default_df, row)
+            return self
+        else:
+            return row
+
     @check_df
     def decorrelate(self, df = None, threshold = 0.95):
         """Drops all but one column from highly correlated groups of columns.
@@ -481,7 +522,7 @@ class Ingredients(object):
                 elif self.columns[column] in [CategoricalDtype]:
                     df[column] = df[column].astype('category')
                 elif self.columns[column] in [list]:
-                    df[column].apply(self._listify,
+                    df[column].apply(listify,
                                      axis = 'columns',
                                      inplace = True)
                 elif self.columns[column] in [np.datetime64]:
@@ -551,17 +592,6 @@ class Ingredients(object):
                         include = [datatype]).columns.to_list()
                 self.columns.update(dict.fromkeys(type_columns, datatype))
         return self
-
-    def initialize_series(self, df = None):
-        """Creates a series (row) with the datatypes in columns."""
-        row = pd.Series(index = self.columns.keys())
-        for column, datatype in self.columns.items():
-            row[column] = self.default_values[datatype]
-        if not df:
-            setattr(self, self.default_df, row)
-            return self
-        else:
-            return row
 
     def load(self, import_folder = '', file_name = 'ingredients',
              import_path = '', file_type = 'csv', usecolumns = None,

@@ -8,11 +8,10 @@ from dataclasses import dataclass
 import pandas as pd
 import pickle
 
-from .cookbook.countertop import Countertop
-
+from .implements import listify
 
 @dataclass
-class Inventory(Countertop):
+class Inventory(object):
     """Creates and stores dynamic and static file paths, loads and saves
     various file types, and properly formats files for import and export.
 
@@ -52,6 +51,12 @@ class Inventory(Countertop):
         return self
 
     @property
+    def bundlers(self):
+        """Returns external data folder where bundlers data files are located.
+        """
+        return self._bundlers
+
+    @property
     def cleaners(self):
         """Returns folder containing cleaner .csv files."""
         return self._cleaners
@@ -78,12 +83,6 @@ class Inventory(Countertop):
         return self._experiment
 
     @property
-    def mappers(self):
-        """Returns external data folder where mappers data files are located.
-        """
-        return self._mappers
-
-    @property
     def reapers(self):
         """Returns folder containing reaper .csv files."""
         return self._reapers
@@ -97,11 +96,6 @@ class Inventory(Countertop):
     def results(self):
         """Returns results folder."""
         return self._results
-
-    @property
-    def threshers(self):
-        """Returns folder containing thresher .csv files."""
-        return self._threshers
 
     def _check_boolean_out(self, boolean_out):
         """Checks value of local boolean_out variable. If not supplied, the
@@ -119,7 +113,7 @@ class Inventory(Countertop):
         if encoding:
             return encoding
         else:
-            return self.encoding
+            return self.file_encoding
 
     def _check_file_type(self, file_type, io_status):
         """Checks value of local file_type variable. If not supplied, the
@@ -199,8 +193,8 @@ class Inventory(Countertop):
                            'png' : '.png'}
         self._data = os.path.join(self.root_folder, self.data_folder)
         self.data_subfolders = ['raw', 'interim', 'processed', 'external']
-        self.almanac_subfolders = ['reapers', 'threshers', 'cleaners',
-                                   'mappers']
+        self.harvest_subfolders = ['organizers', 'keywords', 'cleaners',
+                                   'combiners']
         self._results = os.path.join(self.root_folder, self.results_folder)
         if self.datetime_naming:
             subfolder = ('experiment_'
@@ -225,7 +219,7 @@ class Inventory(Countertop):
         """
         if steps_to_use:
             subfolder = 'recipe_'
-            for step in self._listify(steps_to_use):
+            for step in listify(steps_to_use):
                 subfolder += getattr(recipe, step).technique + '_'
             subfolder += str(recipe.number)
         self._recipe = os.path.join(self.experiment, subfolder)
@@ -335,7 +329,7 @@ class Inventory(Countertop):
         for folder in self.data_subfolders:
             setattr(self, '_' + folder, os.path.join(self._data, folder))
             self._make_folder(getattr(self, '_' + folder))
-        for folder in self.almanac_subfolders:
+        for folder in self.harvest_subfolders:
             setattr(self, '_' + folder, os.path.join(self._external, folder))
             self._make_folder(getattr(self, '_' + folder))
         return self
@@ -350,7 +344,7 @@ class Inventory(Countertop):
         encoding = self._check_encoding(encoding)
         float_format = self._check_float(float_format)
         file_type = self._check_file_type(file_type, 'export')
-        if boolean_out:
+        if not boolean_out:
             variable.replace({True : 1, False : 0}, inplace = True)
         if file_type == '.csv':
             variable.to_csv(file_path,

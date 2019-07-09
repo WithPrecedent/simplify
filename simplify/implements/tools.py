@@ -18,3 +18,14 @@ def timer(process):
             return result
         return decorated
     return shell_timer
+
+def listify(variable):
+    """Checks to see if the variable are stored in a list. If not, the variable
+    is converted to a list or a list of 'none' is created.
+    """
+    if not variable:
+        return ['none']
+    elif isinstance(variable, list):
+        return variable
+    else:
+        return [variable]

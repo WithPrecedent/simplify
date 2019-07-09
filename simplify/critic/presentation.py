@@ -7,19 +7,18 @@ import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from ..cookbook.countertop import Countertop
+from ..implements import listify
 
 
 @dataclass
-class Presentation(Countertop):
+class Presentation(object):
     """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
     """
     inventory : object
+    name : str = 'presentation'
 
     def __post_init__(self):
-        self._set_style()
-        self._set_techniques()
         self._set_defaults()
         return self
 
@@ -42,6 +41,8 @@ class Presentation(Countertop):
         return self
 
     def _set_defaults(self):
+        self._set_style()
+        self._set_techniques()
         self.techniques_dict = {'classifier' : self._default_classifier,
                                 'regressor' : self._default_regressor,
                                 'clusterer' : self._default_clusterer}
@@ -128,27 +129,9 @@ class Presentation(Countertop):
 
     def histogram(self, features = None, file_name = 'histogram.png',
                   **kwargs):
-        for feature in self._listify(features):
+        for feature in listify(features):
             sns.distplot(self.x[feature], feature, **kwargs)
             self.save(feature + '_' + file_name)
-        return self
-
-    def implement(self, recipe, review, plot_list = None):
-        if self.verbose:
-            print('Creating and exporting visuals')
-        self.recipe = recipe
-        self.review = review
-        self.estimator = self.recipe.model.algorithm
-        self.x, self.y = self.recipe.ingredients[self.data_to_plot]
-        if ('shap' in self.explainers
-            and self.presentation_options == 'default'):
-            self.plots.extend(['shap_heat_map', 'shap_summary'])
-            if self.review.shap_method_type == 'tree':
-                self.plots.append('shap_interactions')
-#        if self.dependency_plots != 'none':
-#            self._add_dependency_plots()
-        for plot in self.plots:
-            self.techniques[plot]()
         return self
 
     def kde_plot(self, file_name = 'kde_plot.png', **kwargs):
@@ -181,6 +164,9 @@ class Presentation(Countertop):
                   **kwargs):
         sns.pairplot(self.x, vars = features, **kwargs)
         self.save(file_name)
+        return self
+
+    def prepare(self):
         return self
 
     def pr_plot(self, file_name = 'pr_curve.png'):
@@ -274,4 +260,25 @@ class Presentation(Countertop):
     def silhouette(self, file_name = 'silhouette.png'):
         skplt.metrics.plot_silhouette(self.x, self.estimator.labels_)
         self.save(file_name)
+        return self
+
+    def start(self, recipe, review, plot_list = None):
+        if self.verbose:
+            print('Creating and exporting visuals')
+        self.recipe = recipe
+        self.review = review
+        self.estimator = self.recipe.model.algorithm
+        self.recipe.ingredients._remap_dataframes(
+                data_to_use = self.data_to_plot)
+        self.x = self.recipe.ingredients.x_test
+        self.y = self.recipe.ingredients.y_test
+        if ('shap' in self.explainers
+            and self.presentation_options == 'default'):
+            self.plots.extend(['shap_heat_map', 'shap_summary'])
+            if self.review.shap_method_type == 'tree':
+                self.plots.append('shap_interactions')
+#        if self.dependency_plots != 'none':
+#            self._add_dependency_plots()
+        for plot in self.plots:
+            self.techniques[plot]()
         return self

@@ -3,24 +3,28 @@ from dataclasses import dataclass
 
 from imblearn.combine import SMOTEENN, SMOTETomek
 from imblearn.over_sampling import ADASYN, RandomOverSampler, SMOTE, SMOTENC
-from imblearn.under_sampling import AllKNN, ClusterCentroids, NearMiss
-from imblearn.under_sampling import RandomUnderSampler
+from imblearn.under_sampling import (AllKNN, ClusterCentroids, NearMiss,
+                                     RandomUnderSampler)
 
-from .step import Step
+from .cookbook_step import CookbookStep
 
 
 @dataclass
-class Sample(Step):
-    """Contains resampling algorithms used in the siMpLify package."""
-
-    technique : str = 'none'
+class Sample(CookbookStep):
+    """Synthetically resamples data according to selected algorithm."""
+    technique : str = ''
     techniques : object = None
     parameters : object = None
     runtime_parameters : object = None
-    data_to_use : str = 'train'
+    auto_prepare : bool = True
     name : str = 'sampler'
 
     def __post_init__(self):
+        self._set_defaults()
+        super().__post_init__()
+        return self
+
+    def _set_defaults(self):
         self.techniques = {'adasyn' : ADASYN,
                            'cluster' : ClusterCentroids,
                            'knn' : AllKNN,
@@ -31,42 +35,47 @@ class Sample(Step):
                            'smotenc' : SMOTENC,
                            'smoteenn' :  SMOTEENN,
                            'smotetomek' : SMOTETomek}
-        self.defaults = {'sampling_strategy' : 'auto'}
+        self.default_parameters = {'sampling_strategy' : 'auto'}
+        self.runtime_parameters = {'random_state' : self.seed}
         return self
 
-    def _add_parameters(self, x, columns):
+    def _add_parameters(self, ingredients, columns = None):
         if self.technique in ['smotenc']:
-            if self.columns:
-                cat_features = self._get_indices(x, columns)
+            if columns:
+                cat_features = self._get_indices(ingredients.x, columns)
                 self.parameters.update({'categorical_features' : cat_features})
             else:
-                error = 'SMOTENC resampling requires categorical_features'
-                raise RuntimeError(error)
+                cat_features = self._get_indices(ingredients.x,
+                                                 ingredients.categoricals)
         return self
 
     def fit(self, x, y, columns = None):
-        self._initialize()
         self._add_parameters(x, columns)
         return self
 
     def fit_transform(self, x, y):
         self.fit(x, y)
-        return self.transform(x, y)
+        x = self.transform(x, y)
+        return x
 
-    def implement(self, ingredients, columns = None):
+    def start(self, ingredients, recipe, columns = None):
         if self.technique != 'none':
-            if not columns:
-                columns = []
-            self.runtime_parameters = {'random_state' : self.seed}
-            self._initialize()
             self._add_parameters(ingredients.x, columns)
-            self._store_feature_names(ingredients.x_train, ingredients.y_train)
-            resampled_x, resampled_y = self.algorithm.fit_resample(
-                    ingredients.x_train, ingredients.y_train)
-            ingredients.x_train, ingredients.y_train = self._get_feature_names(
-                    resampled_x, resampled_y)
+            if recipe.data_to_use in ['full']:
+                self._store_feature_names(ingredients.x, ingredients.y)
+                resampled_x, resampled_y = self.algorithm.fit_resample(
+                        ingredients.x, ingredients.y)
+                ingredients.x, ingredients.y = self._get_feature_names(
+                        resampled_x, resampled_y)
+            else:
+                self._store_feature_names(ingredients.x_train,
+                                          ingredients.y_train)
+                resampled_x, resampled_y = self.algorithm.fit_resample(
+                        ingredients.x_train, ingredients.y_train)
+                ingredients.x_train, ingredients.y_train = (
+                        self._get_feature_names(resampled_x, resampled_y))
         return ingredients
 
     def transform(self, x, y):
-        return self.algorithm.fit_resample(x, y)
-
+        x = self.algorithm.fit_resample(x, y)
+        return x

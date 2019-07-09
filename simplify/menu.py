@@ -4,24 +4,9 @@ from dataclasses import dataclass
 import os
 import re
 
-from .cookbook import Countertop
-from .cookbook import Recipe
-from .cookbook.steps import Cleave
-from .cookbook.steps import Custom
-from .cookbook.steps import Encode
-from .cookbook.steps import Mix
-from .cookbook.steps import Model
-from .cookbook.steps import Reduce
-from .cookbook.steps import Sample
-from .cookbook.steps import Scale
-from .cookbook.steps import Split
-from .critic import Presentation
-from .critic import Review
-from .inventory import Inventory
-
 
 @dataclass
-class Menu(Countertop):
+class Menu(object):
     """Loads and/or stores user settings.
 
     Menu creates a nested dictionary, converting dictionary values to
@@ -94,7 +79,6 @@ class Menu(Countertop):
     config : object = None
     set_types : bool = True
     no_lists : bool = False
-    auto_inject : bool = True
 
     def __post_init__(self):
         """Initializes the config attribute and converts the dictionary values
@@ -102,9 +86,6 @@ class Menu(Countertop):
         """
         self._set_config()
         self._set_types()
-#        self._set_dependencies()
-#        if self.auto_inject:
-#            self.inject()
         return self
 
     def __delitem__(self, name):
@@ -172,27 +153,6 @@ class Menu(Countertop):
             self.config = dict(config._sections)
         return self
 
-    def _set_dependencies(self):
-        """Sets nested config dictionaries to be injected into other classes
-        in the siMpLify package.
-        """
-        self.dependencies = {Inventory : ['general', 'files'],
-                             Recipe : ['general', 'recipes'],
-                             Cleave : ['general', 'cleaver_parameters'],
-                             Custom: ['general'],
-                             Encode : ['general', 'encoder_parameters'],
-                             Mix : ['general', 'mixer_parameters'],
-                             Model : ['general', 'recipes'],
-                             Reduce : ['general', 'reducer_parameters'],
-                             Sample : ['general', 'sampler_parameters'],
-                             Scale : ['general', 'scaler_parameters'],
-                             Split : ['general', 'splitter_parameters'],
-                             Presentation : ['general', 'review_parameters',
-                                             'presentation_parameters'],
-                             Review : ['general', 'recipes',
-                                       'review_parameters']}
-        return self
-
     def _set_types(self):
         """If set_types is True, all dictionary values in config are converted
         to the appropriate type.
@@ -227,29 +187,6 @@ class Menu(Countertop):
         else:
             return value
 
-    def add_dependencies(self, dependencies, section_lists = None):
-        """Adds dependencies for injection of appropriate settings.
-
-        Parameters:
-            dependencies: if a dictionary, it should be in the form of:
-                {class : [sections]}
-                if a list or str, it should include class(es) to be injected.
-                section_lists should also be passed with corresponding list(s)
-                of sections.
-            section_lists: a str or list of the same length as dependencies
-                which includes the section names containing attributes and
-                values to be injected.
-        """
-        if isinstance(dependencies, dict):
-            self.dependencies.update(dependencies)
-        else:
-            new_dependencies = zip(self._listify(dependencies),
-                                   self._listify(section_lists))
-            for dependency, section_list in new_dependencies.items():
-                self.dependencies.update({dependency : section_list})
-        self.inject()
-        return self
-
     def add_settings(self, new_settings):
         """Adds a new settings to the config dictionary.
 
@@ -269,20 +206,6 @@ class Menu(Countertop):
         else:
             error_message = 'new_options must be dict, Menu instance, or str'
             raise TypeError(error_message)
-        return self
-
-    def inject(self):
-        """Injects appropriate settings from Menu.config into classes."""
-        for dependency, sections in self.dependencies.items():
-            for section in sections:
-                if section in ['general', 'files', 'recipes',
-                               'presentation_parameters',
-                               'review_parameters']:
-                    for key, value in self.config[section].items():
-                        setattr(dependency, key, value)
-                else:
-                    setattr(dependency, 'parameters', self.config[section])
-        Model.menu = self
         return self
 
     def localize(self, instance, sections, override = False):

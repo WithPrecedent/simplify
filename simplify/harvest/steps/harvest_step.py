@@ -1,54 +1,21 @@
 
 from dataclasses import dataclass
-import pandas as pd
 import re
 
-from ..ingredients import Ingredients
+import pandas as pd
+
+from ...managers import Step
 
 
 @dataclass
-class Blackacre(object):
-    """Parent class for various classes in the siMpLify Almanac subpackage to
-    allow sharing of methods.
-    """
+class HarvestStep(Step):
+    """Parent class for preprocessing steps in the siMpLify package."""
+
     def __post_init__(self):
-        if self.auto_prepare:
-            self.prepare()
+        if not self.options:
+            self.options = self.default_options()
+        super().__post_init__()
         return self
-
-    def _check_ingredients(self):
-        if self.ingredients == None:
-            self.ingredients = Ingredients(menu = self.menu,
-                                           inventory = self.inventory)
-        return self
-
-    def _check_stages(self):
-        if not self.stages:
-            self.stages = self.menu['harvest']['harvest_stages']
-        return self
-
-    def _check_variable(self, variable):
-        """Checks if variable exists as attribute in class."""
-        if hasattr(self, variable):
-            return variable
-        else:
-            error = self.__class__.__name__ + ' does not contain ' + variable
-            raise KeyError(error)
-
-    def _combine_lists(self, *args, **kwargs):
-        """Combines lists to create a tuple."""
-        return zip(*args, **kwargs)
-
-    def _listify(self, variable):
-        """Checks to see if the variable are stored in a list. If not, the
-        variable is converted to a list or a list of 'none' is created.
-        """
-        if not variable:
-            return ['none']
-        elif isinstance(variable, list):
-            return variable
-        else:
-            return [variable]
 
     def _list_to_string(self, variable):
         """Converts a list to a string with a comma and space separating each
@@ -114,3 +81,14 @@ class Blackacre(object):
     def _word_count(self, variable):
         """Returns word court for a string."""
         return len(variable.split(' ')) - 1
+
+    def prepare(self):
+        self.techniques = {}
+        for key in self.options.keys():
+            getattr(self, '_prepare_' + key)()
+        return self
+
+    def start(self, ingredients, almanac):
+        for technique, algorithm in self.techniques.items():
+            ingredients = algorithm.start(ingredients, almanac)
+        return ingredients
