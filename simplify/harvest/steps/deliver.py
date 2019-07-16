@@ -19,15 +19,21 @@ class Deliver(Step):
         return self
 
     def _prepare_shapers(self, almanac):
+        self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
     def _prepare_streamliners(self, almanac):
+        self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
     def _set_defaults(self):
         self.options = {'shapers' : Shaper,
                         'streamliners' : Streamliner}
         return self
+
+    def start(self, ingredients):
+        ingredients = self.algorithm.start(ingredients)
+        return ingredients
 
 @dataclass
 class Shaper(Technique):
@@ -69,11 +75,11 @@ class Shaper(Technique):
 @dataclass
 class Streamliner(Technique):
 
-    algorithm : object = None
+    method : object = None
 
     def __post_init__(self):
         return self
 
     def start(self, ingredients):
-        ingredients = self.algorithm(ingredients)
+        ingredients = self.method(ingredients)
         return ingredients

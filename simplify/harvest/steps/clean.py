@@ -20,60 +20,65 @@ class Clean(Step):
         super().__post_init__()
         return self
 
-    def _prepare_combiners(self, almanac):
-        for key, value in almanac.combiners.items():
-            source_column = 'section_' + key
-            out_column = key
-            mapper = 'any'
-            self.techniques.update({key : self.options['combiners'](
-                    source_column = source_column,
-                    out_column = out_column,
-                    mapper = mapper)})
-        return self
-
-    def _prepare_parsers(self, almanac):
-        for key, value in almanac.parsers.items():
-            file_path = os.path.join(self.inventory.parsers, key +  '.csv')
-            out_prefix = key + '_'
-            self.techniques.update(
-                    {'parsers' :  {'file_path' : file_path,
-                                   'compile_keys' : True,
-                                   'out_prefix' : out_prefix}})
-        return self
-
     def _set_defaults(self):
-        self.options = {'parsers' : ReFrame,
-                        'combiners' : Combine}
+        self.options = {'keyword' : ReFrame,
+                        'combiner' : Combine}
         return self
 
-    def start(self, ingredients, almanac):
-        ingredients.df = self.technique.match(ingredients.df)
+    def _prepare_combiner(self):
+        self.algorithm = self.options[self.technique](**self.parameters)
+        return self
+
+    def _prepare_keyword(self):
+        file_path = os.path.join(self.inventory.keywords,
+                                 self.parameters['section'] + '.csv')
+        self.update.parameters(
+                {'file_path' : file_path},
+                {'out_prefix' : self.parameters['section'] + '_'})
+        self.algorithm = self.options[self.technique](**self.parameters)
+        return self
+
+    def _start_combiner(self, ingredients):
+        ingredients = self.algorithm.start(ingredients)
+        return ingredients
+
+    def _start_keyword(self, ingredients):
+        ingredients.df = self.algorithm.match(ingredients.df)
+        return ingredients
+
+    def prepare(self):
+        getattr(self, '_prepare_' + self.technique)()
+        return self
+
+    def start(self, ingredients):
+        ingredients = getattr(self, '_start_' + self.technique)(ingredients)
         return ingredients
 
 @dataclass
 class Combine(Technique):
 
-    source_column : str = ''
+    in_columns : object = None
     out_column : str = ''
-    mapper : object = None
+    algorithm : object = None
 
     def __post_init__(self):
         return self
 
-    def _combine_list_all(self, df, in_columns, out_column):
-        df[out_column] = np.where(np.all(df[self._listify(in_columns)]),
-                                         True, False)
+    def _combine_all(self, ingredients):
+        ingredients.df[self.out_column] = np.where(
+                np.all(ingredients.df[self.in_columns]), True, False)
         return self
 
-    def _combine_list_any(self, df, in_columns, out_column):
-        df[out_column] = np.where(np.any(df[self._listify(in_columns)]),
-                                         True, False)
+    def _combine_any(self, ingredients):
+        ingredients.df[self.out_column] = np.where(
+                np.any(ingredients.df[self.in_columns]), True, False)
         return self
 
-    def _combine_list_dict(self, df, in_columns, out_column, combiner):
-        df[out_column] = np.where(np.any(
-                                df[self._listify(in_columns)]),
-                                True, False)
+    def prepare(self):
+        if isinstance(self.algorithm, str):
+            self.algorithm = getattr(self, '_combine_' + self.algorithm)
+        return self
 
     def start(self, ingredients):
+        self.ingredients = self.algorithm(ingredients)
         return ingredients

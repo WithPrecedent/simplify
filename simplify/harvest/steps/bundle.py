@@ -16,12 +16,17 @@ class Bundle(Step):
         super().__post_init__()
         return self
 
-    def _prepare_mergers(self, almanac):
-        return self
-
     def _set_defaults(self):
         self.options = {'mergers' : Merger}
         return self
+
+    def prepare(self):
+        self.algorithm = self.options[self.technique](**self.parameters)
+        return self
+
+    def start(self, ingredients):
+        ingredients = self.algorithm.start(ingredients)
+        return ingredients
 
 @dataclass
 class Merger(Technique):

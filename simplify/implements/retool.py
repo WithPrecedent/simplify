@@ -189,7 +189,10 @@ class ReFrame(ReTool):
     encoding : str = ''
     compile_keys : bool = True
     compile_values : bool = False
-    source_column : str = ''
+    source : str = ''
+    source_suffix : str = ''
+    out_column : str = ''
+    out_suffix : str = ''
     flags : object = None
     out_type : str = 'bool'
 
@@ -251,10 +254,14 @@ class ReFrame(ReTool):
 
     def match(self, df, source = '', source_suffix = '', out_column = '',
               out_suffix = ''):
-        self.source = source
-        self.source_suffix = source_suffix
-        self.out_column = out_column
-        self.out_suffix = out_suffix
+        if source:
+            self.source = source
+        if source_suffix:
+            self.source_suffix = source_suffix
+        if out_column:
+            self.out_column = out_column
+        if out_suffix:
+            self.out_suffix = out_suffix
         df = self.matcher(df)
         return df
 

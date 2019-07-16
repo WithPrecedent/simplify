@@ -107,6 +107,10 @@ class Step(object):
         """Tests whether any item in a list is of the passed data type."""
         return any(isinstance(i, data_type) for i in test_list)
 
+    def _prepare_generic(self):
+        self.algorithm = self.options[self.technique](**self.parameters)
+        return self
+
     def _select_parameters(self, parameters_to_use = None):
         """For subclasses that only need a subset of the parameters stored in
         menu, this function selects that subset.
@@ -121,6 +125,10 @@ class Step(object):
                         new_parameters.update({key : value})
                 self.parameters = new_parameters
         return self
+
+    def _start_generic(self, ingredients):
+        ingredients = self.algorithm.start(ingredients)
+        return ingredients
 
     def _store_feature_names(self, x, y = None):
         """Stores feature names."""

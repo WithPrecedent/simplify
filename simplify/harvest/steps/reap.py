@@ -14,41 +14,45 @@ class Reap(Step):
     name : str = 'reaper'
 
     def __post_init__(self):
-
         super().__post_init__()
-        return self
-
-    def _prepare_keywords(self, almanac):
-        for section in almanac.keywords:
-            file_path = os.path.join(self.inventory.keywords,
-                                     section + '.csv')
-            parameters = {'file_path' : file_path,
-                          'out_type' : self.sections[section],
-                          'out_prefix' : section + '_'}
-            self.techniques.update(
-                    {section : self.options['keywords'](parameters)})
         return self
 
     def _prepare_organizer(self, almanac):
         file_path = os.path.join(self.inventory.organizers,
-                                 almanac.organizer_file)
+                                 self.parameters['file_name'])
         parameters = ({'file_path' : file_path,
                        'out_prefix' : 'section_'})
-        self.techniques.update(
-                {'organizer' : self.options['organizer'](parameters)})
+        self.algorithm = self.options[self.technique](**parameters)
+        return self
+
+    def _prepare_parsers(self, almanac):
+        file_path = os.path.join(self.inventory.parsers,
+                                 self.parameters['section'] + '.csv')
+        parameters = {'file_path' : file_path,
+                      'out_type' : self.parameters['out_type'],
+                      'out_prefix' : self.parameters['section'] + '_'}
+        self.algorithm = self.options[self.technique](**parameters)
         return self
 
     def _set_defaults(self):
         self.options = {'organizer' : ReOrganize,
-                        'keywords' : ReSearch}
+                        'parser' : ReSearch}
         return self
 
-    def start(self, ingredients, almanac):
-        for technique, algorithm in self.techniques.items():
-            if technique in ['organizer']:
-                ingredients.df, ingredients.source = technique.match(
-                        ingredients.df, ingredients.source)
-            else:
-                ingredients.df = technique.match(ingredients.df,
-                                                 ingredients.source)
+    def _start_organizer(self, ingredients):
+        ingredients.df, ingredients.source = self.algorithm.match(
+                df = ingredients.df, source = ingredients.source)
+        return ingredients
+
+    def _start_parser(self, ingredients):
+        ingredients.df = self.algorithm.match(df = ingredients.df,
+                                              source = ingredients.source)
+        return ingredients
+
+    def prepare(self):
+        getattr(self, '_prepare_' + self.technique)()
+        return self
+
+    def start(self, ingredients):
+        ingredients = getattr(self, '_start_' + self.technique)(ingredients)
         return ingredients
