@@ -1,35 +1,32 @@
 
 from dataclasses import dataclass
 
-from .cookbook_step import CookbookStep
+from ...managers.step import Step
 
 
 @dataclass
-class Cleave(CookbookStep):
+class Cleave(Step):
     """Contains different groups of features (to allow comparison among them)
     used in the siMpLify package.
     """
-
-    technique : str = 'none'
-    techniques : object = None
+    technique : str = ''
     parameters : object = None
-    runtime_parameters : object = None
-    data_to_use : str = 'train'
+    auto_prepare : bool = True
     name : str = 'cleaver'
 
     def __post_init__(self):
-        self._set_defaults()
+        super().__post_init__()
         return self
 
     def _set_defaults(self):
-        self.techniques = {}
+        self.options = {}
         self.default_parameters = {}
         self.algorithm = self._cleave
         return self
 
     def _cleave(self, ingredients):
         if self.technique != 'all':
-            cleave = self.techniques[self.technique]
+            cleave = self.options[self.technique]
             drop_list = [i for i in self.test_columns if i not in cleave]
             for col in drop_list:
                 if col in ingredients.x_train.columns:
@@ -40,17 +37,17 @@ class Cleave(CookbookStep):
         return ingredients
 
     def _prepare_cleaves(self):
-        for group, columns in self.techniques.items():
+        for group, columns in self.options.items():
             self.test_columns.extend(columns)
         if self.parameters['include_all']:
-            self.techniques.update({'all' : self.test_columns})
+            self.options.update({'all' : self.test_columns})
         return self
 
     def add(self, cleave_group, columns):
         """For the cleavers in siMpLify, this step alows users to manually
         add a new cleave group to the cleaver dictionary.
         """
-        self.techniques.update({cleave_group : columns})
+        self.options.update({cleave_group : columns})
         return self
 
     def start(self, ingredients, recipe):

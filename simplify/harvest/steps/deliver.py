@@ -3,30 +3,31 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from .harvest_step import HarvestStep
-from ...managers import Technique
+from ...managers import Step, Technique
 
 
 @dataclass
-class Deliver(HarvestStep):
+class Deliver(Step):
 
-    options : object = None
-    almanac : object = None
+    technique : str = ''
+    parameters : object = None
     auto_prepare : bool = True
     name : str = 'delivery'
 
     def __post_init__(self):
-        self.default_options = {'shapers' : Shaper,
-                                'streamliners' : Streamliner}
         super().__post_init__()
         return self
 
-    def _prepare_shapers(self):
+    def _prepare_shapers(self, almanac):
         return self
 
-    def _prepare_streamliners(self):
+    def _prepare_streamliners(self, almanac):
         return self
 
+    def _set_defaults(self):
+        self.options = {'shapers' : Shaper,
+                        'streamliners' : Streamliner}
+        return self
 
 @dataclass
 class Shaper(Technique):

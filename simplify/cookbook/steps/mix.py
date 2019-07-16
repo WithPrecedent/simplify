@@ -3,30 +3,26 @@ from dataclasses import dataclass
 
 from category_encoders import PolynomialEncoder
 
-from .cookbook_step import CookbookStep
+from ...managers.step import Step
 
 
 @dataclass
-class Mix(CookbookStep):
+class Mix(Step):
     """Computes new features using different algorithms selected."""
     technique : str = ''
-    techniques : object = None
     parameters : object = None
-    runtime_parameters : object = None
     auto_prepare : bool = True
     name: str = 'mixer'
 
     def __post_init__(self):
-        self._set_defaults()
         super().__post_init__()
         return self
 
     def _set_defaults(self):
-        if not self.techniques:
-            self.techniques = {'polynomial' : PolynomialEncoder,
-                               'quotient' : self.quotient_features,
-                               'sum' : self.sum_features,
-                               'difference' : self.difference_features}
+        self.options = {'polynomial' : PolynomialEncoder,
+                        'quotient' : self.quotient_features,
+                        'sum' : self.sum_features,
+                        'difference' : self.difference_features}
         self.default_parameters = {}
         return self
 

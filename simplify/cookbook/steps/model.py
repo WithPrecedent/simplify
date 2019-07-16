@@ -17,74 +17,21 @@ from sklearn.svm import OneClassSVM, SVC, SVR
 #from pystan import StanModel
 from xgboost import XGBClassifier, XGBRegressor
 
-from .cookbook_step import CookbookStep
 from ...implements import listify
-
+from ...managers.step import Step
 
 @dataclass
-class Model(CookbookStep):
-    """Applies machine learning algorithms based upon user selections and model
-    type."""
+class Model(Step):
+    """Applies machine learning algorithms based upon user selections."""
     technique : str = ''
-    techniques : object = None
     parameters : object = None
-    runtime_parameters : object = None
     auto_prepare : bool = True
     name : str = 'model'
 
     def __post_init__(self):
-        self._set_defaults()
+        super().__post_init__()
         if self.hyperparameter_search:
             self._prepare_search()
-        super().__post_init__()
-        return self
-
-    def _set_defaults(self):
-        if not self.techniques:
-            if self.model_type in ['classifier']:
-                self.techniques = {'adaboost' : AdaBoostClassifier,
-                                   'baseline_classifier' : DummyClassifier,
-                                   'logit' : LogisticRegression,
-                                   'random_forest' : RandomForestClassifier,
-        #                           'stan' : StanModel,
-                                   'svm_linear' : SVC,
-                                   'svm_poly' : SVC,
-                                   'svm_rbf' : SVC,
-                                   'svm_sigmoid' : SVC,
-        #                           'tensor_flow' : KerasClassifier,
-        #                           'torch' : NeuralNetClassifier,
-                                   'xgb' : XGBClassifier}
-            elif self.model_type in ['regressor']:
-                self.techniques = {'adaboost' : AdaBoostRegressor,
-                                   'baseline_regressor' : DummyRegressor,
-                                   'bayes_ridge' : BayesianRidge,
-                                   'lasso' : Lasso,
-                                   'lasso_lars' : LassoLars,
-                                   'ols' : LinearRegression,
-                                   'random_forest' : RandomForestRegressor,
-                                   'ridge' : Ridge,
-    #                               'stan' : StanModel,
-                                   'svm_linear' : SVR,
-                                   'svm_poly' : SVR,
-                                   'svm_rbf' : SVR,
-                                   'svm_sigmoid' : SVR,
-    #                               'tensor_flow' : KerasRegressor,
-    #                               'torch' : NeuralNetRegressor,
-                                   'xgb' : XGBRegressor}
-            elif self.model_type in ['cluster']:
-                self.techniques = {'affinity' : AffinityPropagation,
-                                   'agglomerative' : AgglomerativeClustering,
-                                   'birch' : Birch,
-                                   'dbscan' : DBSCAN,
-                                   'kmeans' : KMeans,
-                                   'mean_shift' : MeanShift,
-                                   'spectral' : SpectralClustering,
-                                   'svm_linear' : OneClassSVM,
-                                   'svm_poly' : OneClassSVM,
-                                   'svm_rbf' : OneClassSVM,
-                                   'svm_sigmoid' : OneClassSVM}
-        self.default_parameters = {}
-        self._parse_parameters()
         return self
 
     def _baseline_parameters(self):
@@ -94,12 +41,22 @@ class Model(CookbookStep):
             self.parameters.update({'strategy' : 'mean'})
         return self
 
+    def _check_parameters(self):
+        """Checks if parameters exists. If not, defaults are used. If there
+        are no defaults, an empty dict is created for parameters.
+        """
+        if hasattr(self, 'menu') and self.technique in self.menu.config:
+            self.parameters = self.menu.config[self.technique]
+        elif hasattr(self, 'default_parameters'):
+            self.parameters = self.default_parameters
+        else:
+            self.parameters = {}
+        return self
+
     def _parse_parameters(self):
         self.hyperparameter_search = False
         self.grid = {}
         new_parameters = {}
-        self.search_parameters = self.parameters
-        self.parameters = self.menu[self.technique + '_parameters']
         for param, values in self.parameters.items():
             if isinstance(values, list):
                 self.hyperparameter_search = True
@@ -137,12 +94,65 @@ class Model(CookbookStep):
         self.search_runtime_parameters = {'estimator' : self.algorithm,
                                           'param_distributions' : self.grid,
                                           'random_state' : self.seed}
-        if self.search_parameters['refit']:
+        if 'refit' in self.search_parameters:
             self.search_parameters['scoring'] = (
                     listify(self.search_parameters['scoring'])[0])
         self.search_parameters.update(self.search_runtime_parameters)
+        self.search_algorithm = self.menu['cookbook']['search_algorithm']
         self.search_method = self.search_options[self.search_algorithm](
                 **self.search_parameters)
+        return self
+
+    def _set_classifier(self):
+        self.options = {'adaboost' : AdaBoostClassifier,
+                        'baseline_classifier' : DummyClassifier,
+                        'logit' : LogisticRegression,
+                        'random_forest' : RandomForestClassifier,
+#                        'stan' : StanModel,
+                        'svm_linear' : SVC,
+                        'svm_poly' : SVC,
+                        'svm_rbf' : SVC,
+                        'svm_sigmoid' : SVC,
+#                        'tensor_flow' : KerasClassifier,
+#                         torch' : NeuralNetClassifier,
+                        'xgb' : XGBClassifier}
+        return self
+
+    def _set_cluster(self):
+        self.options = {'affinity' : AffinityPropagation,
+                        'agglomerative' : AgglomerativeClustering,
+                        'birch' : Birch,
+                        'dbscan' : DBSCAN,
+                        'kmeans' : KMeans,
+                        'mean_shift' : MeanShift,
+                        'spectral' : SpectralClustering,
+                        'svm_linear' : OneClassSVM,
+                        'svm_poly' : OneClassSVM,
+                        'svm_rbf' : OneClassSVM,
+                        'svm_sigmoid' : OneClassSVM}
+        return self
+
+    def _set_defaults(self):
+        getattr(self, '_set_' + self.model_type)()
+        return self
+
+    def _set_regressor(self):
+        self.options = {'adaboost' : AdaBoostRegressor,
+                        'baseline_regressor' : DummyRegressor,
+                        'bayes_ridge' : BayesianRidge,
+                        'lasso' : Lasso,
+                        'lasso_lars' : LassoLars,
+                        'ols' : LinearRegression,
+                        'random_forest' : RandomForestRegressor,
+                        'ridge' : Ridge,
+#                            'stan' : StanModel,
+                        'svm_linear' : SVR,
+                        'svm_poly' : SVR,
+                        'svm_rbf' : SVR,
+                        'svm_sigmoid' : SVR,
+#                            'tensor_flow' : KerasRegressor,
+#                            'torch' : NeuralNetRegressor,
+                        'xgb' : XGBRegressor}
         return self
 
     def _svm_parameters(self):
@@ -170,6 +180,16 @@ class Model(CookbookStep):
             print('The', self.search_parameters['scoring'],
                   'score of the best estimator for the', self.technique,
                   'model is', f'{self.search_method.best_score_ : 4.4f}')
+        return self
+
+    def prepare(self):
+        """Adds parameters to algorithm."""
+        if not hasattr(self, 'parameters') or not self.parameters:
+            self.parameters = self.menu[self.technique]
+        self._check_runtime_parameters()
+        self._parse_parameters()
+        if self.technique != 'none':
+            self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
     def start(self, ingredients, recipe):

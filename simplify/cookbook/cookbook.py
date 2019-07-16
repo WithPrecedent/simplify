@@ -3,17 +3,9 @@ cookbook.py is the primary control file for the siMpLify package. It contains
 the Cookbook class, which handles the cookbook construction and utilization.
 """
 from dataclasses import dataclass
-from itertools import product
 
 from .recipe import Recipe
-from .steps import Cleave
-from .steps import Encode
-from .steps import Mix
-from .steps import Model
-from .steps import Reduce
-from .steps import Sample
-from .steps import Scale
-from .steps import Split
+from .steps import Cleave, Encode, Mix, Model, Reduce, Sample, Scale, Split
 from ..critic import Critic
 from ..implements import listify
 from ..managers import Planner, Step
@@ -21,20 +13,23 @@ from ..managers import Planner, Step
 
 @dataclass
 class Cookbook(Planner):
-    """Dynamically creates recipes for preprocessing, machine learning, and
-        data analysis using a unified interface and architecture.
+    """Dynamically creates recipes for final preprocessing, machine learning,
+    and data analysis using a unified interface and architecture.
 
     Attributes:
-        menu: an instance of Menu.
+        an instance of Menu or a string containing the path where a menu
+            settings file exists.
         inventory: an instance of Inventory. If one is not passed when Cookbook
             is instanced, one will be created with default options.
-        steps: a dictionary containing strings as keys and classes as values.
-            If steps is not passed when Cookbook is instanced, the default
-            steps will be used. These steps can still be modified or
-            supplemented with Cookbook methods.
-        ingredients: an instance of Ingredients.
+        steps: a dictionary of step names and corresponding classes. steps
+            should only be passed if the user wants to override the options
+            selected in the menu settings.
+        ingredients: an instance of Ingredients (or a subclass).
         recipes: a list of instances of Recipe which Cookbook creates through
-            the prepare method and applies through the create method.
+            the prepare method and applies through the start method.
+            Ordinarily, recipes is not passed when Cookbook is instanced, but
+            the argument is included if the user wishes to reexamine past
+            recipes or manually create recipes.
         auto_prepare: sets whether to automatically call the prepare method
             when the class is instanced. If you do not plan to make any
             adjustments to the steps, techniques, or algorithms beyond the
@@ -53,19 +48,25 @@ class Cookbook(Planner):
 
     def __post_init__(self):
         """Sets up the core attributes of Cookbook."""
-        if self.menu['general']['verbose']:
-            print('Creating cookbook')
-        # Declares default step names and classes in a cookbook recipe.
-        self.default_steps = {'scaler' : Scale,
-                              'splitter' : Split,
-                              'encoder' : Encode,
-                              'mixer' : Mix,
-                              'cleaver' : Cleave,
-                              'sampler' : Sample,
-                              'reducer' : Reduce,
-                              'model' : Model}
+        self._set_defaults()
         super().__post_init__()
         return self
+
+    @property
+    def critic(self):
+        return self.comparer
+
+    @critic.setter
+    def critic(self, comparer):
+        self.comparer = comparer
+
+    @property
+    def recipes(self):
+        return self.plans
+
+    @recipes.setter
+    def recipes(self, plans):
+        self.plans = plans
 
     def _check_best(self, recipe):
         """Checks if the current Recipe is better than the current best Recipe
@@ -85,12 +86,6 @@ class Cookbook(Planner):
                     listify(self.metrics)[0]]
         return self
 
-    def _check_steps(self):
-        """Checks if steps currently exist. If not, default_steps are used."""
-        if not self.steps:
-            self.steps = self.default_steps
-        return self
-
     def _compute_hyperparameters(self):
         """Computes hyperparameters that can be determined by the source data.
         """
@@ -101,54 +96,20 @@ class Cookbook(Planner):
                                   ((self.ingredients.y == 1).sum())) - 1
         return self
 
-    def _localize(self):
-        """Injects parameters and 'general' section of menu into each step
-        base class and relevant menu settings into this class instance."""
-        for step, step_class in self.steps.items():
-            if (hasattr(step_class, 'name')
-                    and step_class.name in self.menu.config):
-                if not step_class.parameters:
-                    setattr(step_class, 'parameters', self.menu.config[step])
-            self.menu.localize(instance = step_class, sections = ['general'])
-        self.menu.localize(instance = Recipe, sections = ['general'])
-        sections = ['general', 'files']
-        if hasattr(self, 'name') and self.name in self.menu.config:
-            sections.append(self.name)
-        self.menu.localize(instance = self, sections = sections)
-        return self
 
-    def _prepare_steps(self):
-        """Initializes the step classes for use by the Cookbook."""
-        self.step_lists = []
-        self._check_steps()
-        self._localize()
-        for step in self.steps.keys():
-            setattr(self, step, listify(getattr(self, step)))
-            self.step_lists.append(getattr(self, step))
-        # Creates a list of all possible permutations of step techniques
-        # selected. Each item in the the list is a 'plan'
-        self.all_recipes = list(map(list, product(*self.step_lists)))
-        return self
-
-    def _start_recipes(self, recipes = None, data_to_use = 'train_test'):
-        """Completes one iteration of a Cookbook, storing the review in the
-        review report dataframe. Plots and the recipe are exported to the
-        recipe folder.
-        """
-        for recipe in recipes:
-            if self.verbose:
-                print('Testing recipe ' + str(recipe.number))
-            self.inventory._set_recipe_folder(
-                    recipe = recipe, steps_to_use = ['model', 'cleaver'])
-            self.ingredients.split_xy(label = self.label)
-            recipe.start(ingredients = self.ingredients,
-                         data_to_use = data_to_use)
-            self.critic.start(recipe = recipe)
-            self._check_best(recipe)
-            self.save_classification_report()
-            self.ingredients._remap_dataframes(data_to_use = 'train_test')
-            # To conserve memory, each recipe is deleted after being exported.
-            del(recipe)
+    def _set_defaults(self):
+        """ Declares default step names and classes in a Cookbook recipe."""
+        self.options = {'scaler' : Scale,
+                        'splitter' : Split,
+                        'encoder' : Encode,
+                        'mixer' : Mix,
+                        'cleaver' : Cleave,
+                        'sampler' : Sample,
+                        'reducer' : Reduce,
+                        'model' : Model}
+        self.plan_class = Recipe
+        self.compare_class = Critic
+        self.best_recipe = None
         return self
 
     def add_cleave(self, cleave_group, prefixes = [], columns = []):
@@ -185,15 +146,7 @@ class Cookbook(Planner):
                                        techniques = techniques,
                                        **kwargs)})
         if step_order:
-            self.set_order(order = step_order)
-        return self
-
-    def add_techniques(self, step, techniques, algorithms):
-        """Adds new technique name and corresponding algorithm to the
-        techniques dictionary.
-        """
-        self.steps[step].add_techniques(techniques = techniques,
-                                        algorithms = algorithms)
+            self.steps = step_order
         return self
 
     def load_recipe(self, file_path):
@@ -203,33 +156,8 @@ class Cookbook(Planner):
         return self
 
     def prepare(self):
-        """Creates a planner with all possible selected permutations of
-        methods. Each set of methods is stored in a list of instances of the
-        class stored in self.recipes.
-        """
-        # Injects menu instance into Model base class to allow Model to access
-        # specific model parameters.
-        Model.menu = self.menu
-        # Creates Critic instance to compile results and create visualizations.
-        self.critic = Critic(menu = self.menu, inventory = self.inventory)
-        # If option is selected, select hyperparameters are computed if they
-        # can be derived from the data (without creating endogeniety problems).
-        if self.compute_hyperparameters:
-            self._compute_hyperparameters()
-        self._prepare_steps()
-        self.recipes = []
-        self.custom_steps = {}
-        for i, recipe in enumerate(self.all_recipes):
-            recipe_params = {'number' : i + 1, 'order' : self.order}
-            for j, step in enumerate(self.steps.keys()):
-                if step in self.default_steps:
-                    recipe_params.update({step : self.steps[step](recipe[j])})
-                else:
-                    self.custom_steps.update(
-                            {step : self.steps[step](recipe[j])})
-            self.recipes.append(Recipe(**recipe_params))
-            for step, step_class in self.custom_steps.items():
-                setattr(self.recipes[-1], step, step_class)
+        Model.search_parameters = self.menu['search_parameters']
+        super().prepare()
         return self
 
     def print_best(self):
@@ -238,18 +166,10 @@ class Cookbook(Planner):
             print('The best test recipe, based upon the',
                   listify(self.metrics)[0], 'metric with a score of',
                   f'{self.best_recipe_score : 4.4f}', 'is:')
-            for step in self.best_recipe.order:
+            for step in self.best_recipe.steps:
                 print(step.capitalize(), ':',
                       getattr(self.best_recipe, step).technique)
         return
-
-    def save(self):
-        """Exports the list of recipes to disc as one object."""
-        cookbook_path = self.inventory.create_path(
-                folder = self.inventory.experiment,
-                file_name = 'cookbook.pkl')
-        self.inventory.pickle_object(self.recipes, file_path = cookbook_path)
-        return self
 
     def save_all_recipes(self, recipes = None):
         if not recipes:
@@ -273,16 +193,6 @@ class Cookbook(Planner):
                                          file_path = best_path)
         return self
 
-    def save_classification_report(self, classification_report = None):
-        if not classification_report:
-            classification_report = self.critic.review.classification_report_df
-        file_path = self.inventory.create_path(
-                    folder = self.inventory.recipe,
-                    file_name = 'class_report',
-                    file_type = 'csv')
-        self.inventory.save_df(classification_report, file_path = file_path)
-        return
-
     def save_everything(self):
         """Automatically saves the recipes, results, dropped columns from
         ingredients, and the best recipe (if one has been stored)."""
@@ -303,34 +213,4 @@ class Cookbook(Planner):
                 file_name = 'review.csv')
         self.inventory.save_df(self.critic.review.report,
                                file_path = review_path)
-        return self
-
-    def set_order(self, order = None):
-        """Sets order to default (order of steps.keys) if one is not provided.
-        """
-        if order:
-            self.order = order
-        elif hasattr(self, 'steps') and self.steps:
-            self.order = list(self.steps.keys())
-        return self
-
-    def start(self, recipes = None, data_to_use = 'train_test'):
-        """Iterates through each of the possible recipes. The best overall
-        recipe is stored in self.best_recipe. If the user has selected both
-        the testing and validation sets to be tested, all recipes are applied
-        with both sets of data.
-        """
-        if self.verbose:
-            print('Testing recipes')
-        if not recipes:
-            recipes = self.recipes
-        self.best_recipe = None
-        if self.data_to_use == 'train_test_val':
-            self._start_recipes(recipes = recipes, data_to_use = 'train_test')
-            self._start_recipes(recipes = recipes, data_to_use = 'train_val')
-        else:
-            self._start_recipes(recipes = recipes,
-                                data_to_use = self.data_to_use)
-        if self.export_all_recipes:
-            self.save_all_recipes()
         return self

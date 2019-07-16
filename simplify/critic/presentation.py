@@ -42,11 +42,8 @@ class Presentation(object):
 
     def _set_defaults(self):
         self._set_style()
-        self._set_techniques()
-        self.techniques_dict = {'classifier' : self._default_classifier,
-                                'regressor' : self._default_regressor,
-                                'clusterer' : self._default_clusterer}
-        self.techniques_dict[self.model_type]()
+        self._set_options()
+        getattr(self, '_default_' + self.model_type)()
         return self
 
     def _set_style(self):
@@ -66,29 +63,29 @@ class Presentation(object):
             sns.set_palette(palette = self.seaborn_palette)
         return self
 
-    def _set_techniques(self):
-        self.techniques = {'calibration' : self.calibration,
-                           'cluster_tree' : self.cluster_tree,
-                           'confusion' : self.confusion,
-                           'cumulative_gain' : self.cumulative,
-                           'elbow' : self.elbow_curve,
-                           'heat_map' : self.heat_map,
-                           'histogram' : self.histogram,
-                           'kde' : self.kde_plot,
-                           'ks_statistic' : self.ks_stat,
-                           'lift' : self.lift_curve,
-                           'linear' : self.linear_regress,
-                           'logistic' : self.logistic_regress,
-                           'pair_plot' : self.pair_plot,
-                           'pr_curve' : self.pr_plot,
-                           'residuals' : self.residuals,
-                           'roc_curve' : self.roc_plot,
-                           'shap_dependency' : self.shap_dependency,
-                           'shap_force' : self.shap_force_plot,
-                           'shap_heat_map' : self.shap_heat_map,
-                           'shap_interactions' : self.shap_interactions,
-                           'shap_summary' : self.shap_summary,
-                           'silhouette' : self.silhouette}
+    def _set_options(self):
+        self.options = {'calibration' : self.calibration,
+                        'cluster_tree' : self.cluster_tree,
+                        'confusion' : self.confusion,
+                        'cumulative_gain' : self.cumulative,
+                        'elbow' : self.elbow_curve,
+                        'heat_map' : self.heat_map,
+                        'histogram' : self.histogram,
+                        'kde' : self.kde_plot,
+                        'ks_statistic' : self.ks_stat,
+                        'lift' : self.lift_curve,
+                        'linear' : self.linear_regress,
+                        'logistic' : self.logistic_regress,
+                        'pair_plot' : self.pair_plot,
+                        'pr_curve' : self.pr_plot,
+                        'residuals' : self.residuals,
+                        'roc_curve' : self.roc_plot,
+                        'shap_dependency' : self.shap_dependency,
+                        'shap_force' : self.shap_force_plot,
+                        'shap_heat_map' : self.shap_heat_map,
+                        'shap_interactions' : self.shap_interactions,
+                        'shap_summary' : self.shap_summary,
+                        'silhouette' : self.silhouette}
         return self
 
 #    def _add_dependency_plots(self):
@@ -187,7 +184,7 @@ class Presentation(object):
 
     def save(self, file_name):
         export_path = self.inventory.create_path(
-                folder = self.inventory.recipe,
+                folder = self.inventory.plan,
                 file_name = file_name,
                 file_type = 'png')
         plt.savefig(export_path, bbox_inches = 'tight')
@@ -280,5 +277,5 @@ class Presentation(object):
 #        if self.dependency_plots != 'none':
 #            self._add_dependency_plots()
         for plot in self.plots:
-            self.techniques[plot]()
+            self.options[plot]()
         return self

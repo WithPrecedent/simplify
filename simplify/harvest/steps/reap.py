@@ -2,26 +2,24 @@
 from dataclasses import dataclass
 import os
 
-from .harvest_step import HarvestStep
 from ...implements import ReOrganize, ReSearch
-
+from ...managers.step import Step
 
 @dataclass
-class Reap(HarvestStep):
+class Reap(Step):
 
-    options : object = None
-    almanac : object = None
+    technique : str = ''
+    parameters : object = None
     auto_prepare : bool = True
     name : str = 'reaper'
 
     def __post_init__(self):
-        self.default_options = {'organizer' : ReOrganize,
-                                'keywords' : ReSearch}
+
         super().__post_init__()
         return self
 
-    def _prepare_keywords(self):
-        for section in self.keywords:
+    def _prepare_keywords(self, almanac):
+        for section in almanac.keywords:
             file_path = os.path.join(self.inventory.keywords,
                                      section + '.csv')
             parameters = {'file_path' : file_path,
@@ -31,17 +29,21 @@ class Reap(HarvestStep):
                     {section : self.options['keywords'](parameters)})
         return self
 
-    def _prepare_organizer(self):
+    def _prepare_organizer(self, almanac):
         file_path = os.path.join(self.inventory.organizers,
-                                 self.organizer_file)
+                                 almanac.organizer_file)
         parameters = ({'file_path' : file_path,
                        'out_prefix' : 'section_'})
         self.techniques.update(
                 {'organizer' : self.options['organizer'](parameters)})
         return self
 
+    def _set_defaults(self):
+        self.options = {'organizer' : ReOrganize,
+                        'keywords' : ReSearch}
+        return self
 
-    def start(self, ingredients):
+    def start(self, ingredients, almanac):
         for technique, algorithm in self.techniques.items():
             if technique in ['organizer']:
                 ingredients.df, ingredients.source = technique.match(

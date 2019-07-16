@@ -6,35 +6,32 @@ from imblearn.over_sampling import ADASYN, RandomOverSampler, SMOTE, SMOTENC
 from imblearn.under_sampling import (AllKNN, ClusterCentroids, NearMiss,
                                      RandomUnderSampler)
 
-from .cookbook_step import CookbookStep
+from ...managers.step import Step
 
 
 @dataclass
-class Sample(CookbookStep):
+class Sample(Step):
     """Synthetically resamples data according to selected algorithm."""
     technique : str = ''
-    techniques : object = None
     parameters : object = None
-    runtime_parameters : object = None
     auto_prepare : bool = True
     name : str = 'sampler'
 
     def __post_init__(self):
-        self._set_defaults()
         super().__post_init__()
         return self
 
     def _set_defaults(self):
-        self.techniques = {'adasyn' : ADASYN,
-                           'cluster' : ClusterCentroids,
-                           'knn' : AllKNN,
-                           'near_miss' : NearMiss,
-                           'random_over' : RandomOverSampler,
-                           'random_under' : RandomUnderSampler,
-                           'smote' : SMOTE,
-                           'smotenc' : SMOTENC,
-                           'smoteenn' :  SMOTEENN,
-                           'smotetomek' : SMOTETomek}
+        self.options  = {'adasyn' : ADASYN,
+                         'cluster' : ClusterCentroids,
+                         'knn' : AllKNN,
+                         'near_miss' : NearMiss,
+                         'random_over' : RandomOverSampler,
+                         'random_under' : RandomUnderSampler,
+                         'smote' : SMOTE,
+                         'smotenc' : SMOTENC,
+                         'smoteenn' :  SMOTEENN,
+                         'smotetomek' : SMOTETomek}
         self.default_parameters = {'sampling_strategy' : 'auto'}
         self.runtime_parameters = {'random_state' : self.seed}
         return self

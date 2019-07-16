@@ -7,34 +7,30 @@ from sklearn.feature_selection import (chi2, f_classif, mutual_info_classif,
                                        SelectKBest, SelectFdr, SelectFpr,
                                        SelectFromModel)
 
-from .cookbook_step import CookbookStep
+from ...managers.step import Step
 
 
 @dataclass
-class Reduce(CookbookStep):
+class Reduce(Step):
     """Reduces features using different algorithms, including the model
-    algorithm."""
-
+    algorithm.
+    """
     technique : str = ''
-    techniques : object = None
     parameters : object = None
-    runtime_parameters : object = None
     auto_prepare : bool = True
     name : str = 'reducer'
 
     def __post_init__(self):
-        self._set_defaults()
         super().__post_init__()
         return self
 
     def _set_defaults(self):
-        if not self.techniques:
-            self.techniques = {'kbest' : SelectKBest,
-                               'fdr' : SelectFdr,
-                               'fpr' : SelectFpr,
-                               'custom' : SelectFromModel,
-                               'rfe' : RFE,
-                               'rfecv' : RFECV}
+        self.options  = {'kbest' : SelectKBest,
+                         'fdr' : SelectFdr,
+                         'fpr' : SelectFpr,
+                         'custom' : SelectFromModel,
+                         'rfe' : RFE,
+                         'rfecv' : RFECV}
         self.scorers = {'f_classif' : f_classif,
                         'chi2' : chi2,
                         'mutual_class' : mutual_info_classif,
@@ -57,13 +53,6 @@ class Reduce(CookbookStep):
         elif self.technique == 'custom':
             self.default_parameters = {'threshold' : 'mean'}
             self.runtime_parameters = {'estimator' : estimator}
-        if self.parameters['score_func']:
-            self.parameters['score_func'] = (
-                    self.scorers[self.parameters['score_func']])
-        if 'k' in self.parameters:
-            self.num_features = self.parameters['k']
-        else:
-            self.num_features = self.parameters['n_features_to_select']
         return self
 
     def start(self, ingredients, recipe, estimator = None):
@@ -72,6 +61,13 @@ class Reduce(CookbookStep):
                 estimator = recipe.model.algorithm
             self._add_parameters(estimator)
             self.prepare()
+            if self.parameters['score_func']:
+                self.parameters['score_func'] = (
+                        self.scorers[self.parameters['score_func']])
+            if 'k' in self.parameters:
+                self.num_features = self.parameters['k']
+            else:
+                self.num_features = self.parameters['n_features_to_select']
             if recipe.data_to_use in ['full']:
                 if len(ingredients.x.columns) > self.num_features:
                     self.algorithm.fit(ingredients.x, ingredients.y)

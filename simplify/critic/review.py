@@ -67,16 +67,19 @@ class Review(object):
         else:
             return step.algorithm
 
-    def _classification_report(self):
-        self.classification_report = met.classification_report(
+    def _classifier_report(self):
+        self.classifier_report_default = met.classification_report(
                 self.recipe.ingredients.y_test,
                 self.predictions)
-        self.classification_report_dict = met.classification_report(
+        self.classifier_report_dict = met.classification_report(
                 self.recipe.ingredients.y_test,
                 self.predictions,
                 output_dict = True)
-        self.classification_report_df = pd.DataFrame(
-                self.classification_report_dict).transpose()
+        self.classifier_report = pd.DataFrame(
+                self.classifier_report_dict).transpose()
+        return self
+
+    def _cluster_report(self):
         return self
 
     def _confusion_matrix(self):
@@ -189,13 +192,16 @@ class Review(object):
         print(self.classification_report)
         return self
 
+    def _regressor_report(self):
+        return self
+
     def _set_columns(self):
         """Sets columns and options for report."""
         self.columns = {'recipe_number' : 'number',
-                        'step_order' : 'order',
+                        'step_order' : 'steps',
                         'seed' : 'seed',
                         'validation_set' : 'val_set'}
-        for step in self.recipe.order:
+        for step in self.recipe.steps:
             self.columns.update({step : step})
         self.columns_list = list(self.columns.keys())
         self.columns_list.extend(listify(self.metrics))
@@ -213,10 +219,7 @@ class Review(object):
                 'recall_weighted' : {'average' : 'weighted'}}
         self.negative_metrics = ['brier_loss_score', 'neg_log_loss',
                                  'zero_one']
-        self.techniques_dict = {'classifier' : self._default_classifier,
-                                'regressor' : self._default_regressor,
-                                'clusterer' : self._default_clusterer}
-        self.techniques_dict[self.model_type]()
+        getattr(self, '_default_' + self.model_type)()
         self.techniques.update(self.prob_techniques)
         self.techniques.update(self.score_techniques)
         self._set_explainers()
@@ -300,7 +303,7 @@ class Review(object):
         self._create_predictions()
         self._add_result()
         self._confusion_matrix()
-        self._classification_report()
+        getattr(self, '_' + self.model_type + '_report')()
         self._feature_summaries()
         self._explain()
         return self

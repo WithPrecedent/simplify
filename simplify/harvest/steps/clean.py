@@ -4,27 +4,24 @@ import os
 
 import numpy as np
 
-from .harvest_step import HarvestStep
 from ...implements import ReFrame
-from ...managers import Technique
+from ...managers import Step, Technique
 
 
 @dataclass
-class Clean(HarvestStep):
+class Clean(Step):
 
-    options : object = None
-    almanac : object = None
+    technique : str = ''
+    parameters : object = None
     auto_prepare : bool = True
     name : str = 'cleaner'
 
     def __post_init__(self):
-        self.default_options = {'parsers' : ReFrame,
-                                'combiners' : Combine}
         super().__post_init__()
         return self
 
-    def _prepare_combiners(self):
-        for key, value in self.almanac.combiners.items():
+    def _prepare_combiners(self, almanac):
+        for key, value in almanac.combiners.items():
             source_column = 'section_' + key
             out_column = key
             mapper = 'any'
@@ -34,8 +31,8 @@ class Clean(HarvestStep):
                     mapper = mapper)})
         return self
 
-    def _prepare_parsers(self):
-        for key, value in self.almanac.parsers.items():
+    def _prepare_parsers(self, almanac):
+        for key, value in almanac.parsers.items():
             file_path = os.path.join(self.inventory.parsers, key +  '.csv')
             out_prefix = key + '_'
             self.techniques.update(
@@ -44,7 +41,12 @@ class Clean(HarvestStep):
                                    'out_prefix' : out_prefix}})
         return self
 
-    def start(self, ingredients):
+    def _set_defaults(self):
+        self.options = {'parsers' : ReFrame,
+                        'combiners' : Combine}
+        return self
+
+    def start(self, ingredients, almanac):
         ingredients.df = self.technique.match(ingredients.df)
         return ingredients
 

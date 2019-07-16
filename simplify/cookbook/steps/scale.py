@@ -6,33 +6,29 @@ from sklearn.preprocessing import (KBinsDiscretizer, MaxAbsScaler,
                                    QuantileTransformer, RobustScaler,
                                    StandardScaler)
 
-from .cookbook_step import CookbookStep
+from ...managers.step import Step
 
 
 @dataclass
-class Scale(CookbookStep):
+class Scale(Step):
     """Scales numerical data according to selected algorithm."""
     technique : str = ''
-    techniques : object = None
     parameters : object = None
-    runtime_parameters : object = None
     auto_prepare : bool = True
     name : str = 'scaler'
 
     def __post_init__(self):
-        self._set_defaults()
         super().__post_init__()
         return self
 
     def _set_defaults(self):
-        if not self.techniques:
-            self.techniques = {'bins' : KBinsDiscretizer,
-                               'maxabs' : MaxAbsScaler,
-                               'minmax' : MinMaxScaler,
-                               'normalizer' : Normalizer,
-                               'quantile' : QuantileTransformer,
-                               'robust' : RobustScaler,
-                               'standard' : StandardScaler}
+        self.options = {'bins' : KBinsDiscretizer,
+                        'maxabs' : MaxAbsScaler,
+                        'minmax' : MinMaxScaler,
+                        'normalizer' : Normalizer,
+                        'quantile' : QuantileTransformer,
+                        'robust' : RobustScaler,
+                        'standard' : StandardScaler}
         if self.technique in ['bins']:
             self.default_parameters = {'copy' : False,
                                        'encode' : 'ordinal',

@@ -6,36 +6,32 @@ from category_encoders import (BackwardDifferenceEncoder, BaseNEncoder,
                                LeaveOneOutEncoder, OneHotEncoder,
                                OrdinalEncoder, SumEncoder, TargetEncoder)
 
-from .cookbook_step import CookbookStep
+from ...managers.step import Step
 
 
 @dataclass
-class Encode(CookbookStep):
+class Encode(Step):
     """Encodes categorical variables according to selected algorithms."""
     technique : str = ''
-    techniques : object = None
     parameters : object = None
-    runtime_parameters : object = None
     auto_prepare : bool = True
     name : str = 'encoder'
 
     def __post_init__(self):
-        self._set_defaults()
         super().__post_init__()
         return self
 
     def _set_defaults(self):
-        if not self.techniques:
-            self.techniques = {'backward' : BackwardDifferenceEncoder,
-                               'basen' : BaseNEncoder,
-                               'binary' : BinaryEncoder,
-                               'dummy' : OneHotEncoder,
-                               'hashing' : HashingEncoder,
-                               'helmert' : HelmertEncoder,
-                               'loo' : LeaveOneOutEncoder,
-                               'ordinal' : OrdinalEncoder,
-                               'sum' : SumEncoder,
-                               'target' : TargetEncoder}
+        self.options = {'backward' : BackwardDifferenceEncoder,
+                        'basen' : BaseNEncoder,
+                        'binary' : BinaryEncoder,
+                        'dummy' : OneHotEncoder,
+                        'hashing' : HashingEncoder,
+                        'helmert' : HelmertEncoder,
+                        'loo' : LeaveOneOutEncoder,
+                        'ordinal' : OrdinalEncoder,
+                        'sum' : SumEncoder,
+                        'target' : TargetEncoder}
         self.default_parameters = {}
         return self
 

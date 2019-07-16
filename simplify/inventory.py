@@ -88,11 +88,6 @@ class Inventory(object):
         return self._reapers
 
     @property
-    def recipe(self):
-        """Returns active recipe folder."""
-        return self._recipe
-
-    @property
     def results(self):
         """Returns results folder."""
         return self._results
@@ -209,20 +204,21 @@ class Inventory(object):
         self._data_output_folder = ''
         return self
 
-    def _set_recipe_folder(self, recipe, steps_to_use = None):
-        """Creates file or folder path for recipe-specific exports.
+    def _set_plan_folder(self, plan, steps_to_use = None):
+        """Creates file or folder path for plan-specific exports.
 
         Parameters:
-            recipe: an instance of Recipe for which files are to be saved.
+            plan: an instance of Plan (or a subclass) for which files are to be
+                saved.
             steps to use: a list of strings or single string containing names
                 of steps from which the folder name should be created.
         """
         if steps_to_use:
-            subfolder = 'recipe_'
+            subfolder = plan.name + '_'
             for step in listify(steps_to_use):
-                subfolder += getattr(recipe, step).technique + '_'
-            subfolder += str(recipe.number)
-        self._recipe = os.path.join(self.experiment, subfolder)
+                subfolder += getattr(plan, step).technique + '_'
+            subfolder += str(plan.number)
+        self.plan = os.path.join(self.experiment, subfolder)
         return self
 
     def add_data_subfolder(self, subfolder, io_status):
