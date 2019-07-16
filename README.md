@@ -55,10 +55,10 @@ Users can easily select different options using a text settings file (siMpLify_s
 
 For example, using the settings file, a user could create a cookbook of recipes simply by listing the strings mapped to different methods:
 
-    [recipes]
-    order = scaler, splitter, encoder, mixer, sampler, reducer, model
+    [cookbook]
+    cookbook_steps = scaler, splitter, encoder, mixer, sampler, reducer, model
     scaler = minmax, normalizer
-    splitter = train_test
+    splitter = stratified
     encoder = helmert, target
     mixer = polynomial
     cleaver = none
@@ -73,7 +73,7 @@ With the above settings, all possible recipes are automatically created using ei
 
 siMpLify can import hyperparameters (and/or hyperparameter searches) based upon user selections in the settings file as follows:
 
-    [xgb_params]
+    [xgb]
     booster = gbtree
     objective = binary:logistic
     eval_metric = aucpr
@@ -88,7 +88,7 @@ siMpLify can import hyperparameters (and/or hyperparameter searches) based upon 
     gamma = 0.0, 0.1
     alpha = 0.0, 1
 
-In the above case, anywhere two values are listed separated by a comma, siMpLify automatically implements a hyperparameter search between those values (using either randint or uniform from scipy.stats, depending upon the data type). If just one hyperparameter is listed, it stays fixed throughout the tests. Further, the hyperparameters are automatically linked to the 'xgb' model by including that prefix to '_params' in the settings file.
+In the above case, anywhere two values are listed separated by a comma, siMpLify automatically implements a hyperparameter search between those values (using either randint or uniform from scipy.stats, depending upon the data type). If just one hyperparameter is listed, it stays fixed throughout the tests. Further, the hyperparameters are automatically linked to the 'xgb' model by including that model name in the settings file.
 
 siMpLify currently supports NVIDIA GPU modeling for xgboost and will implement it for other incorporated models with built-in GPU support.
 
@@ -109,10 +109,12 @@ The examples folder, from which the above settings are taken, currently shows ho
     df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                       columns = np.append(cancer['feature_names'], ['target']))
     # Loads menu file.
-    menu = Menu('cancer_settings.ini')
-    inventory = Inventory(menu)
+    menu = Menu(file_path = 'cancer_settings.ini')
+    inventory = Inventory(menu = menu)
     # Creates instance of Data with the cancer dataframe.
-    ingredients = Ingredients(df,  menu, inventory)
+    ingredients = Ingredients(menu = menu,
+                              inventory = inventory,
+                              df = df)
     # Converts label to boolean type - conversion from numpy arrays leaves all
     # columns as float type.
     ingredients.change_type(columns = ['target'], datatype = bool)
@@ -120,9 +122,11 @@ The examples folder, from which the above settings are taken, currently shows ho
     # datatype.
     ingredients.smart_fillna()
     # Creates instance of Cookbook.
-    cookbook = Cookbook(ingredients, menu, inventory)
+    cookbook = Cookbook(menu = menu,
+                        inventory = inventory,
+                        ingredients = ingredients)
     # Iterates through every recipe and exports plots from each recipe.
-    cookbook.create()
+    cookbook.start()
     # Creates and exports a table of summary statistics from the dataframe.
     ingredients.summarize()
     # Saves the recipes, results, and cookbook.
@@ -141,4 +145,4 @@ That's it. From that, all possible recipes are created. Each recipe gets its own
 ![](visuals/shap_summary.png.png?raw=true)
 ![](visuals/shap_interactions.png.png?raw=true)
 
-Documentation and the Almanac class, which aids with data munging, wrangling, and parsing, are forthcoming.
+Documentation and the Harvest class, which aids with data munging, wrangling, and parsing, are forthcoming.
