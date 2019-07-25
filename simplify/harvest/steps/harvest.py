@@ -6,12 +6,12 @@ from ...implements import ReOrganize, ReSearch
 from ...managers.step import Step
 
 @dataclass
-class Reap(Step):
+class Harvest(Step):
 
     technique : str = ''
     parameters : object = None
     auto_prepare : bool = True
-    name : str = 'reaper'
+    name : str = 'harvester'
 
     def __post_init__(self):
         super().__post_init__()
@@ -45,6 +45,7 @@ class Reap(Step):
         return ingredients
 
     def _start_parser(self, ingredients):
+        source = getattr(ingredients, self.parameters['source'])
         ingredients.df = self.algorithm.match(df = ingredients.df,
                                               source = ingredients.source)
         return ingredients

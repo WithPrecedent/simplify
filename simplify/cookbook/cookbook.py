@@ -3,12 +3,13 @@ cookbook.py is the primary control file for the siMpLify package. It contains
 the Cookbook class, which handles the cookbook construction and utilization.
 """
 from dataclasses import dataclass
+from itertools import product
 
 from .recipe import Recipe
 from .steps import Cleave, Encode, Mix, Model, Reduce, Sample, Scale, Split
 from ..critic import Critic
 from ..implements import listify
-from ..managers import Planner, Step
+from ..managers import Planner
 
 
 @dataclass
@@ -17,7 +18,7 @@ class Cookbook(Planner):
     and data analysis using a unified interface and architecture.
 
     Attributes:
-        an instance of Menu or a string containing the path where a menu
+        menu: an instance of Menu or a string containing the path where a menu
             settings file exists.
         inventory: an instance of Inventory. If one is not passed when Cookbook
             is instanced, one will be created with default options.
@@ -51,14 +52,6 @@ class Cookbook(Planner):
         self._set_defaults()
         super().__post_init__()
         return self
-
-    @property
-    def critic(self):
-        return self.comparer
-
-    @critic.setter
-    def critic(self, comparer):
-        self.comparer = comparer
 
     @property
     def recipes(self):
@@ -96,9 +89,34 @@ class Cookbook(Planner):
                                   ((self.ingredients.y == 1).sum())) - 1
         return self
 
+    def _prepare_one_loop(self, data_to_use):
+        for i, plan in enumerate(self.all_plans):
+            plan_instance = self.plan_class(techniques = self.steps)
+            setattr(plan_instance, 'number', i + 1)
+            setattr(plan_instance, 'data_to_use', data_to_use)
+            for j, step in enumerate(self.options.keys()):
+                setattr(plan_instance, step, self.options[step](plan[j]))
+            plan_instance.prepare()
+            self.plans.append(plan_instance)
+        return self
+
+    def _prepare_plans(self):
+        """Initializes the step classes for use by the Cookbook."""
+        self.plans = []
+        self.step_lists = []
+        for step in self.options.keys():
+            # Stores each step attribute in a list
+            setattr(self, step, listify(getattr(self, step)))
+            # Adds step to a list of all step lists
+            self.step_lists.append(getattr(self, step))
+        # Creates a list of all possible permutations of step techniques
+        # selected. Each item in the the list is a 'plan'
+        self.all_plans = list(map(list, product(*self.step_lists)))
+        return self
 
     def _set_defaults(self):
         """ Declares default step names and classes in a Cookbook recipe."""
+        super()._set_defaults()
         self.options = {'scaler' : Scale,
                         'splitter' : Split,
                         'encoder' : Encode,
@@ -108,7 +126,6 @@ class Cookbook(Planner):
                         'reducer' : Reduce,
                         'model' : Model}
         self.plan_class = Recipe
-        self.compare_class = Critic
         self.best_recipe = None
         return self
 
@@ -122,31 +139,11 @@ class Cookbook(Planner):
         self.cleaves.append(cleave_group)
         return self
 
-    def add_parameters(self, step, parameters):
-        """Adds parameter sets to the parameters dictionary of a prescribed
-        step. """
-        self.steps[step].add_parameters(parameters = parameters)
-        return self
-
     def add_recipe(self, recipe):
         if hasattr(self, 'recipes'):
             self.recipes.append(recipe)
         else:
             self.recipes = [recipe]
-        return self
-
-    def add_runtime_parameters(self, step, parameters):
-        """Adds runtime_parameter sets to the parameters dictionary of a
-        prescribed step."""
-        self.steps[step].add_runtime_parameters(parameters = parameters)
-        return self
-
-    def add_step(self, name, techniques, step_order = None, **kwargs):
-        self.steps.update({name : Step(name = name,
-                                       techniques = techniques,
-                                       **kwargs)})
-        if step_order:
-            self.steps = step_order
         return self
 
     def load_recipe(self, file_path):
@@ -156,8 +153,20 @@ class Cookbook(Planner):
         return self
 
     def prepare(self):
+        """Creates a planner with all possible selected permutations of
+        methods. Each set of methods is stored in a list of instances of the
+        class stored in self.plans.
+        """
         Model.search_parameters = self.menu['search_parameters']
-        super().prepare()
+        self._prepare_plan_class()
+        self._prepare_steps()
+        self._prepare_plans()
+        self.critic = Critic(menu = self.menu, inventory = self.inventory)
+        if 'train_test_val' in self.data_to_use:
+            self._prepare_one_loop(data_to_use = 'train_test')
+            self._prepare_one_loop(data_to_use = 'train_val')
+        else:
+            self._prepare_one_loop(data_to_use = self.data_to_use)
         return self
 
     def print_best(self):
@@ -207,10 +216,30 @@ class Cookbook(Planner):
         self.inventory.pickle_object(recipe, file_path)
         return self
 
-    def save_review(self):
-        review_path = self.inventory.create_path(
-                folder = self.inventory.experiment,
-                file_name = 'review.csv')
-        self.inventory.save_df(self.critic.review.report,
-                               file_path = review_path)
+    def save_review(self, review = None):
+        if not review:
+            review = getattr(self.critic.review,
+                             self.model_type + '_report')
+        file_path = self.inventory.create_path(
+                    folder = self.inventory.plan,
+                    file_name = self.model_type + '_report',
+                    file_type = 'csv')
+        self.inventory.save_df(review, file_path = file_path)
+        return
+
+    def start(self, ingredients = None):
+        """Completes an iteration of a Cookbook."""
+        if ingredients:
+            self.ingredients = ingredients
+        for plan in self.plans:
+            if self.verbose:
+                print('Testing ' + plan.name + ' ' + str(plan.number))
+            self.inventory._set_plan_folder(
+                    plan = plan, steps_to_use = self.naming_classes)
+            plan.start(ingredients = self.ingredients)
+            self.critic.start(plan)
+            self._check_best(plan)
+            self.save_report()
+            # To conserve memory, each recipe is deleted after being exported.
+            del(plan)
         return self

@@ -4,7 +4,7 @@
 """
 
 from .sow import Sow
-from .reap import Reap
+from .reap import Harvest
 from .clean import Clean
 from .bundle import Bundle
 from .deliver import Deliver
@@ -15,7 +15,7 @@ __version__ = '0.1.0'
 __author__ = 'Corey Rayburn Yung'
 
 __all__ = ['Sow',
-           'Reap',
+           'Harvest',
            'Clean',
            'Bundle',
            'Deliver']

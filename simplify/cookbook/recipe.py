@@ -1,31 +1,31 @@
 
-import copy
 from dataclasses import dataclass
 
-from ..managers import Plan
-
-
 @dataclass
-class Recipe(Plan):
+class Recipe(object):
     """Defines rules for analyzing data in the siMpLify Cookbook subpackage.
 
     Attributes:
-        steps: dictionary of steps containing the name of the step and
-            corresponding classes. Dictionary keys and values should be placed
-            in order that they should be completed.
-        number: counter of recipe, used for file and folder naming.
-
+        techniques: a list of techniques containing the classes to be used at
+            each stage of a Recipe.
+        name: a string designating the name of the class which should be
+            identical to the section of the menu with relevant settings.
     """
-    steps : object = None
+    techniques : object = None
     name : str = 'recipe'
-    structure : str = 'compare'
 
     def __post_init__(self):
-        super().__post_init__()
+        return self
+
+    def _check_attributes(self):
+        for technique in self.techniques:
+            if not hasattr(self, technique):
+                error = technique + ' has not been passed to Recipe class.'
+                raise AttributeError(error)
         return self
 
     def prepare(self):
-        super().prepare()
+        self._check_attributes()
         if 'val' in self.data_to_use:
             self.val_set = True
         else:
@@ -34,14 +34,14 @@ class Recipe(Plan):
 
     def start(self, ingredients):
         """Applies the Recipe methods to the passed ingredients."""
-        steps = self.steps.copy()
+        techniques = self.techniques.copy()
         self.ingredients = ingredients
         self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
         self.ingredients.split_xy(label = self.label)
-        for step in self.steps:
-            steps.remove(step)
-            if step != 'splitter':
-                self.ingredients = getattr(self, step).start(
+        for technique in self.techniques:
+            techniques.remove(technique)
+            if technique != 'splitter':
+                self.ingredients = getattr(self, technique).start(
                         self.ingredients, self)
             else:
                 break
@@ -53,7 +53,7 @@ class Recipe(Plan):
            self.ingredients.y_train, self.ingredients.y_test = (
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
-           for step in steps:
-                self.ingredients = getattr(self, step).start(
+           for technique in techniques:
+                self.ingredients = getattr(self, technique).start(
                         self.ingredients, self)
         return self
