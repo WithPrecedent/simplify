@@ -7,7 +7,7 @@ import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from ..implements import listify
+from ...implements.tools import listify
 
 
 @dataclass
@@ -184,7 +184,7 @@ class Presentation(object):
 
     def save(self, file_name):
         export_path = self.inventory.create_path(
-                folder = self.inventory.plan,
+                folder = self.inventory.recipe,
                 file_name = file_name,
                 file_type = 'png')
         plt.savefig(export_path, bbox_inches = 'tight')

@@ -6,6 +6,7 @@ import re
 
 from more_itertools import unique_everseen
 
+
 @dataclass
 class ReTool(object):
     """Contains shared methods for regex tools in the ReTool package.
@@ -26,24 +27,29 @@ class ReTool(object):
     is with a very large dataframe and a relatively small (< 500 rows)
     expressions dataframe.
     """
+
+    keys : str = 'keys'
+    values : str = 'values'
+    sections : str = 'sections'
+    datatypes : str = 'datatypes'
+    flags : object = None
+    zipped : object = None
+    file_path : str = ''
+    encoding : str = 'windows-1252'
+    section_prefix : str = 'section'
+    add_prefixes : bool = True
+    auto_prepare : bool = True
+
     def __post_init__(self):
-        self._initialize()
+        self._set_defaults()
+        if self.auto_prepare:
+            self.prepare()
         return self
-
-    @property
-    def default_value(self):
-        """Returns default value for appropriate datatype."""
-        return self.default_values(self.out_type)
-
-    @property
-    def matcher(self):
-        """Returns matcher method for appropriate datatype."""
-        return getattr(self, '_' + self.out_type)
 
     def _aggregate_flags(self, row):
         """Creates regex flag sequence for compiling regexes."""
         self.flags = None
-        for name, flag in self.all_flags.items():
+        for name, flag in self.flag_options.items():
             if name in row.index and row[name]:
                 if not self.flags:
                     self.flags = flag
@@ -51,39 +57,17 @@ class ReTool(object):
                     self.flags |= flag
         return self
 
-    def _build_expressions(self):
-        """Builds regular expressions table."""
-        self.expressions = pd.DataFrame(list(zip(self.keys, self.values)),
-                                        columns = ['keys', 'values'])
-        # Implements common column naming scheme regardless of source of data
-        # for the expressions table.
-        self.keys = 'keys'
-        self.values = 'values'
-        # If user selects to compile the regular expressions, this section
-        # includes columns in the raw table for flags selected.
-        if self.compile_keys:
-            for flag in self.all_flags.keys():
-                if self.flags and flag in self.flags:
-                    self.expressions[flag] = True
-        return self
-
-    def _check_out_column(self, out_column):
-        """Checks if out_column passed. If not, default is used."""
-        if out_column:
-            out_column = self.out_column
-        return out_column
-
-    def _compile_expressions(self, key_value):
+    def _compile_expressions(self):
         """Compiles regular expressions (whether built or loaded)."""
         for i, row in self.expressions.iterrows():
             self._aggregate_flags(row)
             if self.flags:
-                self.expressions.loc[i, key_value] = (
-                    re.compile(self.expressions.loc[i, key_value],
+                self.expressions.loc[i, self.keys] = (
+                    re.compile(self.expressions.loc[i, self.keys],
                                flags = self.flags))
             else:
                 self.expressions.loc[i, self.keys] = (
-                    re.compile(self.expressions.loc[i, key_value]))
+                    re.compile(self.expressions.loc[i, self.keys]))
         return self
 
     def _convert_to_dict(self):
@@ -92,71 +76,189 @@ class ReTool(object):
                 self.keys).to_dict()[self.values])
         return self
 
-    def _initialize(self):
-        self._set_defaults()
-        if self.file_path:
-            self._load_expressions()
-        else:
-            if isinstance(self.keys, list) or isinstance(self.keys, pd.Series):
-                if (isinstance(self.values, list)
-                        or isinstance(self.values, pd.Series)):
-                    self._build_expressions()
-                else:
-                    error = 'values must be list or series if no file_path'
-                    raise TypeError(error)
-            else:
-                error = 'keys must be list or series if no file_path'
-                raise TypeError(error)
-        # Calls method to convert loaded and passed data to expressions table.
-        self._make_expressions()
-        return self
-
-    def _load_expressions(self):
-        """Loads data for expressions table from .csv file, converts keys to
-        strings, and removes a common encording error character.
-        """
-        self.expressions = (pd.read_csv(self.file_path,
-                                        index_col = False,
-                                        encoding = self.encoding,
-                                        true_values = ['y', 'Y', '1'],
-                                        false_values = ['n', 'N', '0'])
-                              .astype(str)
-                              .replace('Â', ''))
-        return self
-
-    def _make_expressions(self):
-        if hasattr(self, 'complie_keys') and self.compile_keys:
-            self._compile_expressions(self.keys)
-        if hasattr(self, 'complie_values') and self.compile_values:
-            self._compile_expressions(self.values)
-        return self
-
     def _set_defaults(self):
         # Sets default values for missing data based upon datatype of column.
-#        if not self.default_values:
         self.default_values = {'bool' : False,
                                'float' : 0.0,
                                'int' : 0,
                                'list' : [],
                                'pattern' : '',
                                'patterns' : [],
+                               'remove' : '',
+                               'replace' : '',
                                'str' : ''}
-        self.all_flags = {'ignorecase' : re.IGNORECASE,
-                          'dotall' : re.DOTALL,
-                          'locale' : re.LOCALE,
-                          'multiline' : re.MULTILINE,
-                          'verbose' : re.VERBOSE,
-                          'ascii' : re.ASCII}
-        if not self.encoding:
-            self.encoding = 'windows-1252'
+        # Sets str names for corresponding regex compiling flags.
+        self.flag_options = {'ignorecase' : re.IGNORECASE,
+                             'dotall' : re.DOTALL,
+                             'locale' : re.LOCALE,
+                             'multiline' : re.MULTILINE,
+                             'verbose' : re.VERBOSE,
+                             'ascii' : re.ASCII}
+
         return self
+
+    def _set_matcher(self, df, remove_from_source):
+        # Sets matcher options based upon data datatype.
+        parameters = {'expressions' : self.expressions,
+                      'sections' : self.expression,
+                      'datatypes' : self.datatypes,
+                      'add_prefixes' : self.add_prefixes,
+                      'section_prefix' : self.section_prefixes}
+        if isinstance(df, pd.Series):
+            if remove_from_source:
+                parameters.pop(['sections', 'datatypes', 'section_prefix'])
+                self.matcher = ReOrganize(**parameters)
+            else:
+                self.matcher = ReSearch(**parameters)
+        elif isinstance(df, pd.DataFrame):
+            self.matcher = ReFrame(**parameters)
+        else:
+            error = 'df must be pandas series or dataframe.'
+            raise TypeError(error)
+        self.matcher.default_values = self.default_values
+        return self
+
+    def prepare(self):
+        if self.file_path:
+            tool = ReLoad(keys = self.keys,
+                          values = self.values,
+                          sections = self.sections,
+                          datatypes = self.datatypes,
+                          file_path = self.file_path,
+                          auto_prepare = self.auto_prepare,
+                          encoding = self.encoding,
+                          section_prefix = self.section_prefix,
+                          flag_options = self.flag_options)
+        else:
+            tool = ReBuild(keys = self.keys,
+                           values = self.values,
+                           sections = self.sections,
+                           datatypes = self.datatypes,
+                           flags = self.flags,
+                           zipped = self.zipped,
+                           auto_prepare = self.auto_prepare,
+                           section_prefix = self.section_prefix,
+                           flag_options = self.flag_options)
+            self.keys = tool.keys
+            self.values = tool.values
+        self.sections = tool.sections
+        self.datatypes = tool.datatypes
+        self.expressions = tool.expressions
+        self._compile_expressions()
+        self._convert_to_dict()
+        return self
+
+    def start(self, ingredients, remove_from_source = True):
+        df = ingredients['default_df']
+        source = ingredients.source
+        self._set_matcher(df = df, remove_from_source = remove_from_source)
+        if remove_from_source:
+            df, source = self.matcher.start(df = df, source = source)
+        else:
+            df = self.matcher.start(df = df, source = source)
+        return ingredients
 
     def update(self, key, value):
         self.expressions.update({key : value})
         return self
 
 @dataclass
-class ReFrame(ReTool):
+class ReBuild(object):
+
+    keys : str = 'keys'
+    values : str = 'values'
+    sections : str = 'sections'
+    datatypes : str = 'datatypes'
+    flags : object = None
+    zipped : object = None
+    auto_prepare : bool = True
+    section_prefix : str = 'section'
+    flag_options : object = None
+
+    def __post_init__(self):
+        if self.auto_prepare:
+            self.prepare()
+        return self
+
+    def prepare(self):
+        """Builds regular expressions table."""
+        self.expressions = pd.DataFrame(list(zip(self.keys, self.values)),
+                                        columns = ['keys', 'values'])
+        # Implements common column naming scheme regardless of source of data
+        # for the expressions table.
+        self.keys = 'keys'
+        self.values = 'values'
+        for flag in self.flag_options.keys():
+            if self.flags and flag in self.flags:
+                self.expressions[flag] = True
+        return self
+
+@dataclass
+class ReLoad(object):
+
+    keys : str = 'keys'
+    values : str = 'values'
+    sections : str = 'sections'
+    datatypes : str = 'datatypes'
+    file_path : str = ''
+    auto_prepare : bool = True
+    encoding : str = 'windows-1252'
+    section_prefix : str = 'section'
+    flag_options : object = None
+
+    def __post_init__(self):
+        if self.auto_prepare:
+            self.prepare()
+        return self
+
+    def _explode_sections(self):
+        self.expressions.explode(columns = ['section'], inplace = True)
+        return self
+
+    def prepare(self):
+        """Loads data for expressions table from .csv file, converts keys to
+        strings, and removes a common encording error character.
+        """
+        self.expressions = (pd.read_csv(self.file_path,
+                                        index_col = False,
+                                        encoding = self.encoding)
+                              .astype(str)
+                              .replace('Â', ''))
+        self._explode_sections()
+        self.sections = (
+                self.expressions.set_index('values').to_dict()['section'])
+        self.datatypes = (
+                self.expressions.set_index('section').to_dict()['datatype'])
+        return self
+
+@dataclass
+class ReMatch(object):
+
+    def _set_out_column(self):
+        if self.add_prefixes:
+            self.out_column = self.section + '_' + self.value
+        else:
+            self.out_column = self.value
+        return self
+
+    def _set_source(self):
+        if self.section_prefix:
+            self.source = self.section_prefix + '_' + self.value
+        else:
+            self.source = self.value
+        return self
+
+    def start(self, df):
+        for self.key, self.value in self.expressions.items():
+            self._set_source()
+            self.section = self.sections[self.value]
+            self.datatype = self.datatypes[self.section]
+            self._set_out_column()
+            df = getattr(self, '_' + self.datatype)(df = df)
+        return df
+
+@dataclass
+class ReFrame(ReMatch):
     """Stores and applies vectorized string and regular expression matching
     methods (when possible) to pandas dataframes.
 
@@ -182,29 +284,24 @@ class ReFrame(ReTool):
     name passed in 'out_column.' The return is all matched patterns based upon
     a regular expression stored in a python list within each dataframe column.
     """
-
-    keys : str = 'keys'
-    values : str = 'values'
-    file_path : str = ''
-    encoding : str = ''
-    compile_keys : bool = True
-    compile_values : bool = False
-    source : str = ''
-    source_suffix : str = ''
-    out_column : str = ''
-    out_suffix : str = ''
-    flags : object = None
-    out_type : str = 'bool'
+    expressions : object
+    sections : object
+    datatypes : object
+    add_prefixes : bool = True
+    section_prefix : str = 'section'
 
     def __post_init__(self):
-        super().__post_init__()
-        self._convert_to_dict()
         return self
 
     def _bool(self, df):
-        for key, value in self.expressions.items():
-            df[value] = (np.where(df[self.source].str.contains(key, True,
-                                  self.default_value)))
+        df[self.out_column] = np.where(
+                df[self.source].str.contains(self.key, True,
+                self.default_values[self.datatype]))
+        return df
+
+    def _divider(self, df):
+        df = df.join(df[self.source].str.split(
+                self.key, expand = True).add_prefix(self.value))
         return df
 
     def _float(self, df):
@@ -221,143 +318,83 @@ class ReFrame(ReTool):
                                             downcast = 'integer')
         return df
 
-    def _list(self, df):
-        df[self.out_column] = np.empty((len(df), 0)).tolist()
-        df = df.apply(self._list_row, axis = 'columns')
-        return df
-
-    def _list_row(self, df_row):
-        temp_list = []
-        for key, value in self.expressions.items():
-            temp_list += re.findall(key, df_row[self.source])
-        if temp_list:
-            temp_list = list(unique_everseen(temp_list))
-            df_row[self.out_column].extend(temp_list)
-        return df_row
-
     def _pattern(self, df):
-        for key, value in self.expressions.items():
-            df[self.out_column] = df[self.source].str.find(key)
+        df[self.out_column] = df[self.source].str.find(self.key)
         return df
 
     def _patterns(self, df):
-        for key, value in self.expressions.items():
-            df[value] = df[self.source].str.findall(key)
+        df[self.value] = df[self.source].str.findall(self.key)
+        return df
+
+    def _remove(self, df):
+        df[self.value] = df[self.source].replace(self.key, '')
         return df
 
     def _str(self, df):
-        for i, row in self.expressions.iterrows():
-            df[self.out_column] = (
-                np.where(df[self.source].str.contains(row[self.keys]),
-                         row[self.values], df[self.out_column]))
+        df[self.out_column] = np.where(
+                df[self.source].str.contains(self.key),
+                     self.value, self.default_values[self.datatype])
         return df
 
-    def match(self, df, source = '', source_suffix = '', out_column = '',
-              out_suffix = ''):
-        if source:
-            self.source = source
-        if source_suffix:
-            self.source_suffix = source_suffix
-        if out_column:
-            self.out_column = out_column
-        if out_suffix:
-            self.out_suffix = out_suffix
-        df = self.matcher(df)
-        return df
+class ReSearch(ReMatch):
 
-class ReSearch(ReTool):
-
-    keys : str = 'keys'
-    values : str = 'values'
-    file_path : str = ''
-    encoding : str = ''
-    compile_keys : bool = True
-    flags : object = None
-    out_type : str = 'bool'
-    out_prefix : str = ''
+    expressions : object
+    sections : object
+    datatypes : object
+    add_prefixes : bool = True
+    section_prefix : str = 'section'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def _bool(self, df, regex):
-        for key, value in self.expressions.items():
-            out_column = self.out_prefix + value
-            if re.search(regex, self.source):
-                df[out_column] = True
-            else:
-                df[out_column] = False
+    def _bool(self, df):
+        if re.search(self.key, self.source):
+            df[self.out_column] = True
+        else:
+            df[self.out_column] = False
         return df
 
-    def _float(self, df, regex):
-        for key, value in self.expressions.items():
-            out_column = self.out_prefix + value
-            if re.search(key, self.source):
-                df[out_column] = value
-                break
-            else:
-                df[out_column] = self.default_value
-        df[out_column] = float(df[self.out_column])
+    def _float(self, df):
+        df = self._str(df)
+        df[self.out_column] = float(df[self.out_column])
         return df
 
-    def _int(self, df, regex):
-        for key, value in self.expressions.items():
-            out_column = self.out_prefix + value
-            if re.search(key, self.source):
-                df[out_column] = value
-                break
-            else:
-                df[out_column] = self.default_value
-        df[out_column] = int(df[self.out_column])
+    def _int(self, df):
+        df = self._str(df)
+        df[self.out_column] = int(df[self.out_column])
         return df
 
-    def _list(self, df, regex):
+    def _list(self, df):
         temp_list = []
-        for key, value in self.expressions.items():
-            out_column = self.out_prefix + value
-        temp_list += re.findall(regex, self.source)
+        temp_list += re.findall(self.key, self.source)
         if temp_list:
             temp_list = list(unique_everseen(temp_list))
-            df[out_column] = temp_list
+            df[self.out_column] = temp_list
         else:
-            df[out_column] = self.default_value
+            df[self.out_column] = self.default_values[self.datatype]
         return df
 
-    def _pattern(self, df, regex):
-        for key, value in self.expressions.items():
-            out_column = self.out_prefix + value
-            if re.search(key, self.source):
-                df[out_column] = value
-                break
+    def _pattern(self, df):
+        if re.search(self.key, self.source):
+            df[self.out_column] = self.value
         return df
 
-    def _patterns(self, df, regex):
-        for key, value in self.expressions.items():
-            out_column = self.out_prefix + value
-            if re.search(key, self.source):
-                df[out_column] = re.search(key, self.source).group(0).strip()
+    def _patterns(self, df):
+        if re.search(self.key, self.source):
+            df[self.out_column] = re.search(
+                    self.key, self.source).group(0).strip()
         return df
 
-    def _str(self, df, regex):
-        for key, value in self.expressions.items():
-            out_column = self.out_prefix + value
-            if re.search(key, self.source):
-                df[out_column] = value
-                break
-            else:
-                df[out_column] = self.default_value
-        df[out_column] = str(df[self.out_column])
-        return df
-
-    def match(self, df, source, source_in_df = False):
-        if source_in_df:
-            self.source = df[source]
+    def _str(self, df):
+        if re.search(self.key, self.source):
+            df[self.out_column] = self.value
         else:
-            self.source = source
-        df = self.matcher(df = df)
+            df[self.out_column] = self.default_value
+        df[self.out_column] = str(df[self.out_column])
         return df
 
-class ReOrganize(ReTool):
+class ReOrganize(ReMatch):
     """Stores and applies string and regular expression matching methods to
     python strings for dividing strings into a pandas series.
 
@@ -373,26 +410,19 @@ class ReOrganize(ReTool):
     selected.
 
     """
-    keys : str = 'keys'
-    values : str = 'values'
-    file_path : str = ''
-    encoding : str = ''
-    compile_keys : bool = True
-    flags : object = None
-    out_prefix : str = ''
+    expressions : object
+    add_prefixes : bool = True
+    section : str = 'section'
 
     def __post_init__(self):
-        super().__post_init__()
-        self._convert_to_dict()
         return self
 
-    def match(self, df, source, remove_from_source = True):
+    def start(self, df, source):
         for key, value in self.expressions.items():
-            out_column = self.out_prefix + value
+            self._set_out_column()
             if re.search(key, source):
-                df[out_column] = re.search(key, source).group(0).strip()
-                if remove_from_source:
-                    source = re.sub(key, '', source)
+                df[self.out_column] = re.search(key, source).group(0).strip()
+                source = re.sub(key, '', source)
             else:
-                df[out_column] = self.default_values['str']
+                df[self.out_column] = self.default_values['str']
         return df, source

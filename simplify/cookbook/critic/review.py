@@ -7,8 +7,8 @@ from eli5 import explain_prediction_df, explain_weights_df, show_prediction
 from eli5 import show_weights
 from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
-from ..managers import Step
-from ..implements import listify
+from ...implements.tools import listify
+from ..cookbook_step import CookbookStep
 
 
 @dataclass
@@ -36,7 +36,7 @@ class Review(object):
         """
         self.result = pd.Series(index = self.columns_list)
         for column, value in self.columns.items():
-            if isinstance(getattr(self.recipe, value), Step):
+            if isinstance(getattr(self.recipe, value), CookbookStep):
                 self.result[column] = self._format_step(value)
             else:
                 self.result[column] = getattr(self.recipe, value)
@@ -198,10 +198,10 @@ class Review(object):
     def _set_columns(self):
         """Sets columns and options for report."""
         self.columns = {'recipe_number' : 'number',
-                        'step_order' : 'steps',
+                        'techniques' : 'techniques',
                         'seed' : 'seed',
                         'validation_set' : 'val_set'}
-        for step in self.recipe.steps:
+        for step in self.recipe.techniques:
             self.columns.update({step : step})
         self.columns_list = list(self.columns.keys())
         self.columns_list.extend(listify(self.metrics))

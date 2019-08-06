@@ -2,10 +2,9 @@
 from dataclasses import dataclass
 import warnings
 
-from .plan import Plan
-from ..implements import listify
-from ..inventory import Inventory
-from ..menu import Menu
+from .inventory import Inventory
+from .menu import Menu
+from .tools import listify
 
 
 @dataclass
@@ -26,13 +25,16 @@ class Planner(object):
         """Implements basic settings for Planner subclasses."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Checks menu, inventory, and other attributes in self.checks.
-        self._checks()
         # Adds attributes to class from appropriate sections of the menu.
         sections = ['general', 'files']
-        if hasattr(self, 'name') and self.name in self.menu.config:
+        if hasattr(self, 'name') and self.name in self.menu.configuration:
             sections.append(self.name)
         self.menu.localize(instance = self, sections = sections)
+        # Calls default setter method if it exists.
+        if hasattr(self, '_set_defaults'):
+            self._set_defaults()
+        # Checks menu, inventory, and other attributes in self.checks.
+        self._checks()
         # Outputs Planner status to console if verbose option is selected.
         if self.verbose:
             print('Creating', self.name, 'planner')
@@ -71,6 +73,8 @@ class Planner(object):
         """
         if not hasattr(self, 'name'):
             self.name = 'planner'
+        if self.name in self.menu.configuration:
+            self.menu.localize(instance = self, sections = [self.name])
         return self
 
     def _check_options(self):
@@ -94,7 +98,7 @@ class Planner(object):
 
     def _prepare_steps(self):
         """Adds menu and inventory instances to step classes as needed."""
-        for step in self.steps:
+        for step in listify(self.steps):
             self.options[step].menu = self.menu
             self.menu.localize(instance = self.options[step],
                                sections = ['general'])
@@ -104,7 +108,7 @@ class Planner(object):
     def _set_defaults(self):
         """ Declares defaults for Planner."""
         self.options = {}
-        self.plan_class = Plan
+        self.plan_class = None
         self.checks = ['menu', 'inventory', 'name', 'options', 'steps']
         return self
 
@@ -134,8 +138,8 @@ class Planner(object):
 
     def save(self):
         """Exports the list of plans to disc as one object."""
-        file_path = self.inventory.create_path(
-                folder = self.inventory.experiment,
-                file_name = self.name + '.pkl')
-        self.inventory.pickle_object(self, file_path = file_path)
+        self.inventory.save(variable = self,
+                            folder = self.inventory.experiment,
+                            file_name = self.name,
+                            file_type = 'pickle')
         return self

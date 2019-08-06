@@ -16,9 +16,19 @@ class Plan(object):
     name : str = 'plan'
 
     def __post_init__(self):
+        if not self.techniques:
+            self.techniques = []
+        return self
+
+    def _check_attributes(self):
+        for technique in self.techniques:
+            if not hasattr(self, technique):
+                error = technique + ' has not been passed to Plan class.'
+                raise AttributeError(error)
         return self
 
     def prepare(self):
+        self._check_attributes()
         return self
 
     def start(self, ingredients):

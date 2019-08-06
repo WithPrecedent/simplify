@@ -6,11 +6,11 @@ from imblearn.over_sampling import ADASYN, RandomOverSampler, SMOTE, SMOTENC
 from imblearn.under_sampling import (AllKNN, ClusterCentroids, NearMiss,
                                      RandomUnderSampler)
 
-from ...managers.step import Step
+from ..cookbook_step import CookbookStep
 
 
 @dataclass
-class Sample(Step):
+class Sample(CookbookStep):
     """Synthetically resamples data according to selected algorithm."""
     technique : str = ''
     parameters : object = None

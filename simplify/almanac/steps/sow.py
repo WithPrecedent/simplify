@@ -3,30 +3,37 @@ from dataclasses import dataclass
 import os
 import requests
 
-from ...managers import Step, Technique
+from ..almanac_step import AlmanacStep
 
 
 @dataclass
-class Sow(Step):
+class Sow(AlmanacStep):
 
     technique : str = ''
     parameters : object = None
     auto_prepare : bool = True
-    name : str = 'sower'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
     def _set_defaults(self):
-        self.options = {'converter' : Convert,
-                        'downloader' : Download,
-                        'scraper' : Scrape,
-                        'splitter' : Split}
-        return self
-
-    def prepare(self):
-        self.algorithm = self.options[self.technique](**self.parameters)
+        self.options = {'convert' : Convert,
+                        'download' : Download,
+                        'scrape' : Scrape,
+                        'split' : Split}
+        self.needed_parameters = {'convert' : ['file_in', 'file_out',
+                                                 'method'],
+                                  'download' : ['file_url', 'file_name'],
+                                  'scrape' : ['file_url', 'file_name'],
+                                  'split' : ['in_folder', 'out_folder',
+                                                'method']}
+        if self.technique in ['split']:
+            self.import_folder = 'raw'
+            self.export_folder = 'interim'
+        else:
+            self.import_folder = 'external'
+            self.export_folder = 'external'
         return self
 
     def start(self, ingredients):
@@ -34,7 +41,7 @@ class Sow(Step):
         return ingredients
 
 @dataclass
-class Convert(Technique):
+class Convert(object):
     """Converts external data to usable form."""
     file_in : str = ''
     file_out : str = ''
@@ -59,8 +66,9 @@ class Convert(Technique):
         return self
 
 @dataclass
-class Download(Technique):
+class Download(object):
     """Downloads online data for use by siMpLify."""
+    core_data : bool = True
     file_name : str = ''
     file_url : str = ''
 
@@ -78,8 +86,9 @@ class Download(Technique):
         return self
 
 @dataclass
-class Scrape(Technique):
+class Scrape(object):
 
+    core_data : bool = True
     file_name : str = ''
     file_url : str = ''
     method : object = None
@@ -93,7 +102,7 @@ class Scrape(Technique):
         return self
 
 @dataclass
-class Split(Technique):
+class Split(object):
 
     in_folder : str = ''
     out_folder : str = ''

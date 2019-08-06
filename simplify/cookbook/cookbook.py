@@ -3,13 +3,14 @@ cookbook.py is the primary control file for the siMpLify package. It contains
 the Cookbook class, which handles the cookbook construction and utilization.
 """
 from dataclasses import dataclass
+import datetime
 from itertools import product
 
+from .critic import Critic
 from .recipe import Recipe
 from .steps import Cleave, Encode, Mix, Model, Reduce, Sample, Scale, Split
-from ..critic import Critic
-from ..implements import listify
-from ..managers import Planner
+from ..implements.tools import listify
+from ..implements.planner import Planner
 
 
 @dataclass
@@ -22,9 +23,9 @@ class Cookbook(Planner):
             settings file exists.
         inventory: an instance of Inventory. If one is not passed when Cookbook
             is instanced, one will be created with default options.
-        steps: a dictionary of step names and corresponding classes. steps
-            should only be passed if the user wants to override the options
-            selected in the menu settings.
+        steps: an ordered list of step names to be completed. This argument
+            should only be passed if the user whiches to override the Menu
+            steps.
         ingredients: an instance of Ingredients (or a subclass).
         recipes: a list of instances of Recipe which Cookbook creates through
             the prepare method and applies through the start method.
@@ -49,17 +50,8 @@ class Cookbook(Planner):
 
     def __post_init__(self):
         """Sets up the core attributes of Cookbook."""
-        self._set_defaults()
         super().__post_init__()
         return self
-
-    @property
-    def recipes(self):
-        return self.plans
-
-    @recipes.setter
-    def recipes(self, plans):
-        self.plans = plans
 
     def _check_best(self, recipe):
         """Checks if the current Recipe is better than the current best Recipe
@@ -90,19 +82,19 @@ class Cookbook(Planner):
         return self
 
     def _prepare_one_loop(self, data_to_use):
-        for i, plan in enumerate(self.all_plans):
+        for i, plan in enumerate(self.all_recipes):
             plan_instance = self.plan_class(techniques = self.steps)
             setattr(plan_instance, 'number', i + 1)
             setattr(plan_instance, 'data_to_use', data_to_use)
             for j, step in enumerate(self.options.keys()):
                 setattr(plan_instance, step, self.options[step](plan[j]))
             plan_instance.prepare()
-            self.plans.append(plan_instance)
+            self.recipes.append(plan_instance)
         return self
 
-    def _prepare_plans(self):
+    def _prepare_recipes(self):
         """Initializes the step classes for use by the Cookbook."""
-        self.plans = []
+        self.recipes = []
         self.step_lists = []
         for step in self.options.keys():
             # Stores each step attribute in a list
@@ -111,7 +103,7 @@ class Cookbook(Planner):
             self.step_lists.append(getattr(self, step))
         # Creates a list of all possible permutations of step techniques
         # selected. Each item in the the list is a 'plan'
-        self.all_plans = list(map(list, product(*self.step_lists)))
+        self.all_recipes = list(map(list, product(*self.step_lists)))
         return self
 
     def _set_defaults(self):
@@ -127,6 +119,34 @@ class Cookbook(Planner):
                         'model' : Model}
         self.plan_class = Recipe
         self.best_recipe = None
+        return self
+
+    def _set_experiment_folder(self):
+        if self.inventory.datetime_naming:
+            subfolder = ('experiment_'
+                         + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
+        else:
+            subfolder = 'experiment'
+        self.inventory.experiment = self.inventory.create_path(
+                folder = self.inventory.results, subfolder = subfolder)
+        return self
+
+    def _set_recipe_folder(self, recipe):
+        """Creates file or folder path for plan-specific exports.
+
+        Parameters:
+            plan: an instance of Plan or Recipe for which files are to be
+                saved.
+            steps to use: a list of strings or single string containing names
+                of steps from which the folder name should be created.
+        """
+        if self.naming_classes:
+            subfolder = recipe.name + '_'
+            for step in listify(self.naming_classes):
+                subfolder += getattr(recipe, step).technique + '_'
+            subfolder += str(recipe.number)
+        self.inventory.recipe = self.inventory.create_path(
+                folder = self.inventory.experiment, subfolder = subfolder)
         return self
 
     def add_cleave(self, cleave_group, prefixes = [], columns = []):
@@ -155,12 +175,13 @@ class Cookbook(Planner):
     def prepare(self):
         """Creates a planner with all possible selected permutations of
         methods. Each set of methods is stored in a list of instances of the
-        class stored in self.plans.
+        class stored in self.recipes.
         """
         Model.search_parameters = self.menu['search_parameters']
+        self._set_experiment_folder()
         self._prepare_plan_class()
         self._prepare_steps()
-        self._prepare_plans()
+        self._prepare_recipes()
         self.critic = Critic(menu = self.menu, inventory = self.inventory)
         if 'train_test_val' in self.data_to_use:
             self._prepare_one_loop(data_to_use = 'train_test')
@@ -175,32 +196,28 @@ class Cookbook(Planner):
             print('The best test recipe, based upon the',
                   listify(self.metrics)[0], 'metric with a score of',
                   f'{self.best_recipe_score : 4.4f}', 'is:')
-            for step in self.best_recipe.steps:
-                print(step.capitalize(), ':',
-                      getattr(self.best_recipe, step).technique)
+            for technique in self.best_recipe.techniques:
+                print(technique.capitalize(), ':',
+                      getattr(self.best_recipe, technique).technique)
         return
 
-    def save_all_recipes(self, recipes = None):
-        if not recipes:
-            recipes = self.recipes
-        for recipe in recipes:
+    def save_all_recipes(self):
+        for recipe in self.recipes:
             file_name = (
                 'recipe' + str(recipe.number) + '_' + recipe.model.technique)
-            recipe_path = self.inventory.create_path(
-                    folder = self.inventory.recipe,
-                    file_name = file_name,
-                    file_type = 'pickle')
-            self.save_recipe(recipe = recipe, file_path = recipe_path)
+            self.save_recipe(recipe = recipe,
+                             folder = self.inventory.recipe,
+                             file_name = file_name,
+                             file_type = 'pickle')
         return
 
     def save_best_recipe(self):
         if hasattr(self, 'best_recipe'):
-            best_path = self.inventory.create_path(
-                folder = self.inventory.experiment,
-                file_name = 'best_recipe.pkl')
-            self.inventory.pickle_object(self.best_recipe,
-                                         file_path = best_path)
-        return self
+            self.inventory.save(variable = self.best_recipe,
+                                folder = self.inventory.experiment,
+                                file_name = 'best_recipe',
+                                file_type = 'pickle')
+        return
 
     def save_everything(self):
         """Automatically saves the recipes, results, dropped columns from
@@ -209,37 +226,37 @@ class Cookbook(Planner):
         self.save_review()
         self.save_best_recipe()
         self.ingredients.save_drops()
-        return self
+        return
 
     def save_recipe(self, recipe, file_path):
         """Exports a recipe to disc."""
-        self.inventory.pickle_object(recipe, file_path)
-        return self
+        self.inventory.save(variable = recipe,
+                            file_path = file_path,
+                            file_type = 'pickle')
+        return
 
     def save_review(self, review = None):
         if not review:
             review = getattr(self.critic.review,
                              self.model_type + '_report')
-        file_path = self.inventory.create_path(
-                    folder = self.inventory.plan,
-                    file_name = self.model_type + '_report',
-                    file_type = 'csv')
-        self.inventory.save_df(review, file_path = file_path)
+        self.inventory.save(variable = review,
+                            folder = self.inventory.recipe,
+                            file_name = self.model_type + '_report',
+                            file_type = 'csv')
         return
 
     def start(self, ingredients = None):
         """Completes an iteration of a Cookbook."""
         if ingredients:
             self.ingredients = ingredients
-        for plan in self.plans:
+        for recipe in self.recipes:
             if self.verbose:
-                print('Testing ' + plan.name + ' ' + str(plan.number))
-            self.inventory._set_plan_folder(
-                    plan = plan, steps_to_use = self.naming_classes)
-            plan.start(ingredients = self.ingredients)
-            self.critic.start(plan)
-            self._check_best(plan)
-            self.save_report()
+                print('Testing ' + recipe.name + ' ' + str(recipe.number))
+            self._set_recipe_folder(recipe = recipe)
+            recipe.start(ingredients = self.ingredients)
+            self.critic.start(recipe)
+            self._check_best(recipe)
+            self.save_review()
             # To conserve memory, each recipe is deleted after being exported.
-            del(plan)
+            del(recipe)
         return self

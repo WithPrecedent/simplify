@@ -2,15 +2,12 @@
 from dataclasses import dataclass
 import pickle
 
-import numpy as np
-import pandas as pd
-
-from ..implements import listify
+from .tools import listify
 
 
 @dataclass
 class Step(object):
-    """Parent class for preprocessing and modeling techniques in the siMpLify
+    """Parent class for preprocessing and modeling steps in the siMpLify
     package."""
 
     def __post_init__(self):
@@ -45,7 +42,11 @@ class Step(object):
         else:
             error = technique + ' is not in ' + self.__class__.__name__
             raise KeyError(error)
-            return
+            return self
+
+    def __repr__(self):
+        """Returns the name of the current Step."""
+        return self.__str__()
 
     def __setitem__(self, technique, algorithm):
         """Adds technique and algorithm to options dictionary."""
@@ -60,22 +61,26 @@ class Step(object):
             raise TypeError(error)
         return self
 
+    def __str__(self):
+        """Returns the name of the current Step."""
+        return self.__class__.__name__.lower()
+
     def _check_lengths(self, variable1, variable2):
         """Checks lists to ensure they are of equal length."""
-        if len(listify(variable1) != listify(variable1)):
+        if len(listify(variable1) == listify(variable1)):
+            return True
+        else:
             error = 'Lists must be of equal length'
             raise RuntimeError(error)
             return self
-        else:
-            return True
 
     def _check_parameters(self):
         """Checks if parameters exists. If not, defaults are used. If there
         are no defaults, an empty dict is created for parameters.
         """
         if not hasattr(self, 'parameters') or self.parameters == None:
-            if hasattr(self, 'menu') and self.name in self.menu.config:
-                self.parameters = self.menu.config[self.name]
+            if hasattr(self, 'menu') and self.name in self.menu.configuration:
+                self.parameters = self.menu.configuration[self.name]
             elif hasattr(self, 'default_parameters'):
                 self.parameters = self.default_parameters
             else:
@@ -88,27 +93,6 @@ class Step(object):
         """
         if hasattr(self, 'runtime_parameters') and self.runtime_parameters:
             self.parameters.update(self.runtime_parameters)
-        return self
-
-    def _get_feature_names(self, x, y = None):
-        """Gets feature names if previously stored by _store_feature_names."""
-        x = pd.DataFrame(x, columns = self.x_cols)
-        if isinstance(y, np.ndarray):
-            y = pd.Series(y, name = self.y_col)
-            return x, y
-        else:
-            return x
-
-    def _get_indices(self, df, columns):
-        """Gets column indices for a list of column names."""
-        return [df.columns.get_loc(col) for col in columns]
-
-    def _list_type(self, test_list, data_type):
-        """Tests whether any item in a list is of the passed data type."""
-        return any(isinstance(i, data_type) for i in test_list)
-
-    def _prepare_generic(self):
-        self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
     def _select_parameters(self, parameters_to_use = None):
@@ -126,15 +110,12 @@ class Step(object):
                 self.parameters = new_parameters
         return self
 
-    def _start_generic(self, ingredients):
-        ingredients = self.algorithm.start(ingredients)
-        return ingredients
-
-    def _store_feature_names(self, x, y = None):
-        """Stores feature names."""
-        self.x_cols = list(x.columns.values)
-        if isinstance(y, pd.Series):
-            self.y_col = self.label
+    def _set_folders(self):
+        self.folder_types = ['import', 'export']
+        for folder_type in self.folder_types:
+            if hasattr(self, folder_type + '_folder'):
+                setattr(self, folder_type + '_folder',
+                        getattr(self.inventory, folder_type + '_folder'))
         return self
 
     def add_options(self, techniques, algorithms):
@@ -177,21 +158,6 @@ class Step(object):
             raise TypeError(error)
             return self
 
-    def fit(self, x, y = None):
-        """Generic fit method for partial compatibility to sklearn."""
-        self.prepare()
-        if isinstance(y, pd.Series):
-            return self.algorithm.fit(x, y)
-        else:
-            return self.algorithm.fit(x)
-
-    def fit_transform(self, x, y = None):
-        """Generic fit_transform method for partial compatibility to sklearn.
-        """
-        self.fit(x, y)
-        x = self.transform(x)
-        return x
-
     def load(self, file_name, folder = '', prefix = '', suffix = ''):
         """Loads stored ingredient from disc."""
         if self.verbose:
@@ -202,15 +168,6 @@ class Step(object):
                                                suffix = suffix,
                                                file_type = 'pickle')
         self.algorithm = pickle.load(open(file_path, 'rb'))
-        return self
-
-    def prepare(self):
-        """Adds parameters to algorithm."""
-        self._check_parameters()
-        self._select_parameters()
-        self._check_runtime_parameters()
-        if self.technique != 'none':
-            self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
     def save(self, file_name, folder = '', prefix = '', suffix = ''):
@@ -224,17 +181,3 @@ class Step(object):
                                                file_type = 'pickle')
         pickle.dump(self.algorithm, open(file_path, 'wb'))
         return self
-
-    def start(self, ingredients, recipe):
-        """Generic implement method for adding ingredients into recipe and
-        applying the appropriate algorithm.
-        """
-        if self.technique != 'none':
-            self.algorithm.fit(ingredients.x, ingredients.y)
-            ingredients.x = self.algorithm.transform(ingredients.x)
-        return ingredients
-
-    def transform(self, x):
-        """Generic transform method for partial compatibility to sklearn."""
-        x = self.algorithm.transform(x)
-        return x

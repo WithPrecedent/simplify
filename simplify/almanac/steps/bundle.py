@@ -1,23 +1,23 @@
 
 from dataclasses import dataclass
 
-from ...managers import Step, Technique
+from ..almanac_step import AlmanacStep
 
 
 @dataclass
-class Bundle(Step):
+class Bundle(AlmanacStep):
     """Class for combining different datasets."""
     technique : str = ''
     parameters : object = None
     auto_prepare : bool = True
-    name : str = 'bundler'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
     def _set_defaults(self):
-        self.options = {'mergers' : Merger}
+        self.options = {'merger' : Merger}
+        self.needed_parameters = {'merger' : ['index_columns', 'merge_type']}
         return self
 
     def prepare(self):
@@ -29,7 +29,7 @@ class Bundle(Step):
         return ingredients
 
 @dataclass
-class Merger(Technique):
+class Merger(object):
 
     index_columns : object = None
     merge_type : str = ''

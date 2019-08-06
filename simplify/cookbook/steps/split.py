@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from sklearn.model_selection import (GroupKFold, KFold, ShuffleSplit,
                                      StratifiedKFold, TimeSeriesSplit)
 
-from ...managers.step import Step
+from ..cookbook_step import CookbookStep
 
 
 @dataclass
-class Split(Step):
+class Split(CookbookStep):
     """Splits data into training, testing, and/or validation sets or applies
     k-folds cross-validation.
     """

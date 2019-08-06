@@ -6,11 +6,11 @@ from category_encoders import (BackwardDifferenceEncoder, BaseNEncoder,
                                LeaveOneOutEncoder, OneHotEncoder,
                                OrdinalEncoder, SumEncoder, TargetEncoder)
 
-from ...managers.step import Step
+from ..cookbook_step import CookbookStep
 
 
 @dataclass
-class Encode(Step):
+class Encode(CookbookStep):
     """Encodes categorical variables according to selected algorithms."""
     technique : str = ''
     parameters : object = None

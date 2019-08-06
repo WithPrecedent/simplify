@@ -3,11 +3,11 @@ from dataclasses import dataclass
 
 from category_encoders import PolynomialEncoder
 
-from ...managers.step import Step
+from ..cookbook_step import CookbookStep
 
 
 @dataclass
-class Mix(Step):
+class Mix(CookbookStep):
     """Computes new features using different algorithms selected."""
     technique : str = ''
     parameters : object = None

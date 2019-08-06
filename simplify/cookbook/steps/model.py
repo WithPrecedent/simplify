@@ -17,11 +17,11 @@ from sklearn.svm import OneClassSVM, SVC, SVR
 #from pystan import StanModel
 from xgboost import XGBClassifier, XGBRegressor
 
-from ...implements import listify
-from ...managers.step import Step
+from ...implements.tools import listify
+from ..cookbook_step import CookbookStep
 
 @dataclass
-class Model(Step):
+class Model(CookbookStep):
     """Applies machine learning algorithms based upon user selections."""
     technique : str = ''
     parameters : object = None
@@ -77,7 +77,7 @@ class Model(Step):
                 self.scale_pos_weight = 1
             if self.gpu:
                 self.runtime_parameters.update(
-                        {'tree_Step' : 'gpu_exact'})
+                        {'tree_CookbookStep' : 'gpu_exact'})
             if self.hyperparameter_search:
                 self.grid.update({'scale_pos_weight' :
                                   uniform(self.scale_pos_weight / 2,
@@ -91,9 +91,10 @@ class Model(Step):
         self.search_options = {'random' : RandomizedSearchCV,
                                'fixed' : GridSearchCV}
 #                               'bayes' : BayesSearchCV}
-        self.search_runtime_parameters = {'estimator' : self.algorithm,
-                                          'param_distributions' : self.grid,
-                                          'random_state' : self.seed}
+        self.search_runtime_parameters = {
+                'estimator' : self.algorithm,
+                'param_distributions' : self.grid,
+                'random_state' : self.seed}
         if 'refit' in self.search_parameters:
             self.search_parameters['scoring'] = (
                     listify(self.search_parameters['scoring'])[0])

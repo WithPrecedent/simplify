@@ -6,11 +6,11 @@ from sklearn.preprocessing import (KBinsDiscretizer, MaxAbsScaler,
                                    QuantileTransformer, RobustScaler,
                                    StandardScaler)
 
-from ...managers.step import Step
+from ..cookbook_step import CookbookStep
 
 
 @dataclass
-class Scale(Step):
+class Scale(CookbookStep):
     """Scales numerical data according to selected algorithm."""
     technique : str = ''
     parameters : object = None

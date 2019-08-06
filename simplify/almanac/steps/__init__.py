@@ -1,10 +1,10 @@
 """
-.. module:: simplify_harvest_steps
+.. module:: simplify_almanac_steps
   :synopsis: data processing workflow made simple
 """
 
 from .sow import Sow
-from .reap import Harvest
+from .harvest import Harvest
 from .clean import Clean
 from .bundle import Bundle
 from .deliver import Deliver

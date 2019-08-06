@@ -3,16 +3,15 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from ...managers import Step, Technique
+from ..almanac_step import AlmanacStep
 
 
 @dataclass
-class Deliver(Step):
+class Deliver(AlmanacStep):
 
     technique : str = ''
     parameters : object = None
     auto_prepare : bool = True
-    name : str = 'delivery'
 
     def __post_init__(self):
         super().__post_init__()
@@ -29,6 +28,10 @@ class Deliver(Step):
     def _set_defaults(self):
         self.options = {'shapers' : Shaper,
                         'streamliners' : Streamliner}
+        self.needed_parameters = {'shapers' : ['shape_type', 'stubs',
+                                               'id_column', 'values',
+                                               'separator'],
+                                  'streamliners' : ['method']}
         return self
 
     def start(self, ingredients):
@@ -36,7 +39,7 @@ class Deliver(Step):
         return ingredients
 
 @dataclass
-class Shaper(Technique):
+class Shaper(object):
 
     shape_type : str = ''
     stubs : object = None
@@ -73,7 +76,7 @@ class Shaper(Technique):
         return ingredients
 
 @dataclass
-class Streamliner(Technique):
+class Streamliner(object):
 
     method : object = None
 

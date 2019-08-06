@@ -22,7 +22,7 @@ ingredients = Ingredients(menu = menu,
 ingredients.change_type(columns = ['target'], datatype = bool)
 # Fills missing ingredients with appropriate default values based on column
 # datatype.
-ingredients.smart_fillna()
+ingredients.smart_fill()
 # Creates instance of Cookbook.
 cookbook = Cookbook(menu = menu,
                     inventory = inventory,
