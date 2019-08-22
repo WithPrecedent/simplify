@@ -3,8 +3,8 @@ from dataclasses import dataclass
 
 import pandas as pd
 import sklearn.metrics as met
-from eli5 import explain_prediction_df, explain_weights_df, show_prediction
-from eli5 import show_weights
+#from eli5 import explain_prediction_df, explain_weights_df, show_prediction
+#from eli5 import show_weights
 from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
 from ...implements.tools import listify

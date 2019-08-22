@@ -40,16 +40,17 @@ class Cookbook(Planner):
         name: a string designating the name of the class which should be
             identical to the section of the menu with relevant settings.
     """
-    menu : object
+    menu : object = None
     inventory : object = None
     steps : object = None
     ingredients : object = None
     recipes : object = None
     auto_prepare : bool = True
     name : str = 'cookbook'
+    step : str = 'cook'
 
     def __post_init__(self):
-        """Sets up the core attributes of Cookbook."""
+        """Sets up the core attributes of a Cookbook instance."""
         super().__post_init__()
         return self
 
@@ -72,7 +73,8 @@ class Cookbook(Planner):
         return self
 
     def _compute_hyperparameters(self):
-        """Computes hyperparameters that can be determined by the source data.
+        """Computes hyperparameters that can be determined by the source data
+        (without creating data leakage).
         """
         # Data is split in oder for certain values to be computed that require
         # features and the label to be split.
@@ -127,7 +129,7 @@ class Cookbook(Planner):
                          + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
         else:
             subfolder = 'experiment'
-        self.inventory.experiment = self.inventory.create_path(
+        self.inventory.experiment = self.inventory.create_folder(
                 folder = self.inventory.results, subfolder = subfolder)
         return self
 
@@ -140,12 +142,12 @@ class Cookbook(Planner):
             steps to use: a list of strings or single string containing names
                 of steps from which the folder name should be created.
         """
-        if self.naming_classes:
+        if hasattr(self, 'naming_classes') and self.naming_classes:
             subfolder = recipe.name + '_'
             for step in listify(self.naming_classes):
                 subfolder += getattr(recipe, step).technique + '_'
             subfolder += str(recipe.number)
-        self.inventory.recipe = self.inventory.create_path(
+        self.inventory.recipe = self.inventory.create_folder(
                 folder = self.inventory.experiment, subfolder = subfolder)
         return self
 
@@ -178,6 +180,7 @@ class Cookbook(Planner):
         class stored in self.recipes.
         """
         Model.search_parameters = self.menu['search_parameters']
+        self.conform(step = 'cook')
         self._set_experiment_folder()
         self._prepare_plan_class()
         self._prepare_steps()
@@ -208,7 +211,7 @@ class Cookbook(Planner):
             self.save_recipe(recipe = recipe,
                              folder = self.inventory.recipe,
                              file_name = file_name,
-                             file_type = 'pickle')
+                             file_format = 'pickle')
         return
 
     def save_best_recipe(self):
@@ -216,7 +219,7 @@ class Cookbook(Planner):
             self.inventory.save(variable = self.best_recipe,
                                 folder = self.inventory.experiment,
                                 file_name = 'best_recipe',
-                                file_type = 'pickle')
+                                file_format = 'pickle')
         return
 
     def save_everything(self):
@@ -228,11 +231,18 @@ class Cookbook(Planner):
         self.ingredients.save_drops()
         return
 
-    def save_recipe(self, recipe, file_path):
+    def save_recipe(self, recipe, file_path = None):
         """Exports a recipe to disc."""
+        if self.verbose:
+            print('Saving recipe', recipe.number)
+        self._set_recipe_folder(recipe = recipe)
+        self.save_plan(plan = recipe,
+                       file_path = file_path)
         self.inventory.save(variable = recipe,
                             file_path = file_path,
-                            file_type = 'pickle')
+                            folder = self.inventory.recipe,
+                            file_name = 'recipe',
+                            file_format = 'pickle')
         return
 
     def save_review(self, review = None):
@@ -242,7 +252,7 @@ class Cookbook(Planner):
         self.inventory.save(variable = review,
                             folder = self.inventory.recipe,
                             file_name = self.model_type + '_report',
-                            file_type = 'csv')
+                            file_format = 'csv')
         return
 
     def start(self, ingredients = None):
@@ -252,10 +262,10 @@ class Cookbook(Planner):
         for recipe in self.recipes:
             if self.verbose:
                 print('Testing ' + recipe.name + ' ' + str(recipe.number))
-            self._set_recipe_folder(recipe = recipe)
             recipe.start(ingredients = self.ingredients)
-            self.critic.start(recipe)
-            self._check_best(recipe)
+            self.save_recipe(recipe = recipe)
+            self.critic.start(recipe = recipe)
+            self._check_best(recipe = recipe)
             self.save_review()
             # To conserve memory, each recipe is deleted after being exported.
             del(recipe)

@@ -46,6 +46,7 @@ class Ingredients(object):
     inference).
 
     Attributes:
+
         menu: an instance of Menu.
         inventory: an instance of Inventory.
         df: a pandas DataFrame or Series.
@@ -62,10 +63,10 @@ class Ingredients(object):
             or x (if data has been split) DataFrames or Series.
     """
     menu : object
-    inventory : object = None
+    inventory : object
     df : object = None
     auto_prepare : bool = True
-    auto_load : bool = True
+    auto_load : bool = False
     default_df : str = 'df'
     x : object = None
     y : object = None
@@ -77,7 +78,6 @@ class Ingredients(object):
     y_val : object = None
     datatypes : object = None
     prefixes : object = None
-    step : str = 'cook'
 
     def __post_init__(self):
         """Localizes menu settings, sets class instance defaults, and prepares
@@ -180,168 +180,6 @@ class Ingredients(object):
     def __str__(self):
         """Returns the name of the Ingredients instance in lowercase."""
         return self.__class__.__name__.lower()
-#
-#    @property
-#    def booleans(self):
-#        """Returns boolean columns."""
-#        return self._get_columns_by_type(bool)
-#
-#    @booleans.setter
-#    def booleans(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, bool))
-#        return self
-#
-#    @property
-#    def categoricals(self):
-#        """Returns caterogical columns."""
-#        return self._get_columns_by_type(CategoricalDtype)
-#
-#    @categoricals.setter
-#    def categoricals(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, CategoricalDtype))
-#        return self
-#
-#    @property
-#    def columns(self, datatype = dict):
-#        if not self.datatypes:
-#            self.datatypes = {}
-#            return self.datatypes
-#        if datatype in [dict]:
-#            return self.datatypes
-#        elif datatype in [list]:
-#            return list(self.datatypes.keys())
-#        else:
-#            error = 'columns can only return dict and list datatypes'
-#            raise TypeError(error)
-#            return self
-#
-#    @columns.setter
-#    def columns(self, key_values):
-#        self.datatypes.update({key_values})
-#        return self
-#
-#    @property
-#    def datetimes(self):
-#        """Returns datetime columns."""
-#        return self._get_columns_by_type(np.datetime64)
-#
-#    @datetimes.setter
-#    def datetimes(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, np.datetime64))
-#        return self
-#
-#    @property
-#    def default_values(self):
-#        """Returns current default values for datatypes."""
-#        return self.default_values
-#
-#    @default_values.setter
-#    def default_values(self, key_values):
-#        self.default_values.update(key_values)
-#        return self
-#
-#    @property
-#    def dropped(self):
-#        """Returns list of dropped columns."""
-#        return deduplicate(self.dropped_columns)
-#
-#    @property
-#    def encoders(self):
-#        """Returns columns with 'encoder' datatype."""
-#        return self._get_columns_by_type('encoder')
-#
-#    @encoders.setter
-#    def encoders(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, 'encoder'))
-#        return self
-#
-#    @property
-#    def floats(self):
-#        """Returns float columns."""
-#        return self._get_columns_by_type(float)
-#
-#    @floats.setter
-#    def floats(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, float))
-#        return self
-#
-#    @property
-#    def integers(self):
-#        """Returns int columns."""
-#        return self._get_columns_by_type(int)
-#
-#    @integers.setter
-#    def integers(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, int))
-#        return self
-#
-#    @property
-#    def lists(self):
-#        """Returns list columns."""
-#        return self._get_columns_by_type(list)
-#
-#    @lists.setter
-#    def lists(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, list))
-#        return self
-#
-#    @property
-#    def mixers(self):
-#        """Returns columns with 'mixer' datatype."""
-#        return self._get_columns_by_type('mixer')
-#
-#    @mixers.setter
-#    def mixers(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, 'mixer'))
-#        return self
-#
-#    @property
-#    def numerics(self):
-#        """Returns float and int columns."""
-#        return deduplicate(self.floats + self.integers)
-#
-#    @property
-#    def scalers(self):
-#        """Returns columns with 'scaler' datatype."""
-#        return self._get_columns_by_type('scaler')
-#
-#    @scalers.setter
-#    def scalers(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, 'scaler'))
-#        return self
-#
-#    @property
-#    def sections(self):
-#        """Returns dictionary of section prefixes and corresponding datatypes.
-#        """
-#        if not self.prefixes:
-#            self.prefixes = {}
-#        return self.prefixes
-#
-#    @sections.setter
-#    def sections(self, key_values):
-#        self.prefixes.update(key_values)
-#        return self
-#
-#    @property
-#    def strings(self):
-#        """Returns str (object type) columns."""
-#        return self._get_columns_by_type(object)
-#
-#    @strings.setter
-#    def strings(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, str))
-#        return self
-#
-#    @property
-#    def timedeltas(self):
-#        """Returns timedelata columns."""
-#        return self._get_columns_by_type(timedelta)
-#
-#    @timedeltas.setter
-#    def timedeltas(self, columns):
-#        self.datatypes.update(dict.fromkeys(columns, timedelta))
-#        return self
 
     @property
     def full(self):
@@ -416,35 +254,30 @@ class Ingredients(object):
         return self
 
     def _get_columns_by_type(self, datatype):
+        """Returns list of columns of the specified datatype."""
         return (
             [key for key, value in self.columns.items() if value == datatype])
 
     def _initialize_datatypes(self, df = None):
-        if isinstance(df, pd.DataFrame) or isinstance(df, pd.Series):
-            if not self.datatypes:
-                self.infer_datatypes(df = df)
-            else:
-                self._crosscheck_columns(df = df)
-        elif (isinstance(getattr(self, self.default_df), pd.DataFrame)
-                or isinstance(getattr(self, self.default_df), pd.Series)):
-            if not self.datatypes:
-                self.infer_datatypes()
-            else:
-                self._crosscheck_columns()
-        elif isinstance(self.x, pd.DataFrame) or isinstance(self.x, pd.Series):
-            if not self.datatypes:
-                self.infer_datatypes(df = self.x)
-            else:
-                self._crosscheck_columns(df = self.x)
-        elif (isinstance(self.x_train, pd.DataFrame)
-                or isinstance(self.x_train, pd.Series)):
-            if not self.datatypess:
-                self.infer_datatypes(df = self.x_train)
-            else:
-                self._crosscheck_columns(df = self.x_train)
+        """Initializes datatypes for columns of pandas DataFrame or Series if
+        not already provided.
+        """
+        check_order = [df, getattr(self, self.default_df), self.x,
+                       self.x_train]
+        for _data in check_order:
+            if isinstance(_data, pd.DataFrame) or isinstance(_data, pd.Series):
+                if not self.datatypes:
+                    self.infer_datatypes(df = _data)
+                else:
+                    self._crosscheck_columns(df = _data)
+                break
         return self
 
     def _remap_dataframes(self, data_to_use):
+        """Remaps DataFrames returned by various properties of Ingredients so
+        that methods and classes of siMpLify can use the same labels for
+        analyzing the Ingredients DataFrames.
+        """
         if data_to_use == 'train_test':
             self.dataframes = self.default_dataframes.copy()
         elif data_to_use == 'train_val':
@@ -467,6 +300,7 @@ class Ingredients(object):
         return self
 
     def _set_defaults(self):
+        """Sets defaults for Ingredients when class is instanced."""
         # Sets default values for missing data based upon datatype of column.
         self.default_values = {bool : False,
                                float : 0.0,
@@ -479,6 +313,7 @@ class Ingredients(object):
                                'mixer' : '',
                                'scaler' : 0,
                                'encoder' : ''}
+        # Sets string names of various datatypes available.
         self.datatype_names = {'booleans' : bool,
                                'floats' : float,
                                'integers' : int,
@@ -500,6 +335,8 @@ class Ingredients(object):
                                    'y_test' : self.y_test,
                                    'x_val' : self.x_val,
                                    'y_val' : self.y_val}
+        # Maps class properties to appropriate DataFrames using the default
+        # train_test setting.
         self._remap_dataframes(data_to_use = 'train_test')
         return self
 
@@ -543,16 +380,52 @@ class Ingredients(object):
         return self
 
     @check_df
-    def change_type(self, df = None, columns = None, prefixes = None,
-                    datatype = str):
+    def change_datatype(self, df = None, columns = None, prefixes = None,
+                        datatype = str):
         """Changes column datatypes of columns passed or columns with the
         prefixes passed. datatype becomes the new datatype for the columns.
         """
-        columns_list = self.create_column_list(df = df,
-                                               prefixes = prefixes,
-                                               columns = columns)
+        if prefixes or columns:
+            columns_list = self.create_column_list(df = df,
+                                                   prefixes = prefixes,
+                                                   columns = columns)
+        else:
+            columns_list = self.columns.keys()
         for column in columns_list:
             self.columns[column] = datatype
+        return self
+
+    @check_df
+    def conform(self, df = None, step = None):
+        """Adjusts some of the siMpLify-specific datatypes to the appropriate
+        datatype based upon the current step.
+        """
+        self.step = step
+        for column, datatype in self.columns.items():
+            if self.step in ['harvest', 'clean']:
+                if datatype in ['category', 'encoder', 'interactor']:
+                    self.columns[column] = str
+            elif self.step in ['bundle', 'deliver']:
+                if datatype in ['list', 'pattern']:
+                    self.columns[column] = 'category'
+        self.convert_column_datatypes(df = df)
+        return self
+
+    @check_df
+    def convert_column_datatypes(self, df = None, raise_errors = False):
+        """Attempts to convert all column data to the datatypes list in
+        self.columns.
+        """
+        if raise_errors:
+            raise_errors = 'raise'
+        else:
+            raise_errors = 'ignore'
+        for column, datatype in self.columns.items():
+            if not isinstance(datatype, str):
+                df[column].astype(dtype = datatype,
+                                  copy = False,
+                                  errors = raise_errors)
+        self.downcast(df = df)
         return self
 
     @check_df
@@ -707,20 +580,23 @@ class Ingredients(object):
         return self
 
     def load(self, folder = None, file_name = None, file_path = None,
-             file_type = None):
+             file_format = None):
+        """Loads DataFrame into Ingredients instance from a file."""
         setattr(self, self.default_df, self.inventory.load(
                 folder = folder,
                 file_name = file_name,
                 file_path = file_path,
-                file_type = file_type))
+                file_format = file_format))
         return self
 
     def prepare(self):
+        """Prepares Ingredients class instance."""
         if self.verbose:
             print('Preparing ingredients')
-        if getattr(self, self.default_df) == None and self.auto_load:
-            self.load(folder = self.inventory.data_in,
-                      file_name = self.inventory.import_files[self.step])
+        if (not (isinstance(getattr(self, self.default_df), pd.DataFrame)
+                 or isinstance(getattr(self, self.default_df), pd.Series))
+                 and self.auto_load):
+            self.load()
         # Initializes a list of dropped column names so that users can track
         # which features are omitted from analysis.
         self.dropped_columns = []
@@ -731,10 +607,13 @@ class Ingredients(object):
 
     @check_df
     def save(self, df = None, folder = None, file_name = None,
-             file_path = None, file_type = None):
-        self.inventory.save(variable = df, folder = folder,
-                            file_name = file_name, file_path = file_path,
-                            file_type = file_type)
+             file_path = None, file_format = None):
+        """Exports a DataFrame or Series attribute to disc."""
+        self.inventory.save(variable = df,
+                            folder = folder,
+                            file_name = file_name,
+                            file_path = file_path,
+                            file_format = file_format)
         return
 
     def save_drops(self, file_name = 'dropped_columns', export_path = ''):
@@ -744,7 +623,7 @@ class Ingredients(object):
             export_path = self.inventory.create_path(
                     folder = self.inventory.experiment,
                     file_name = file_name,
-                    file_type = 'csv')
+                    file_format = 'csv')
         if self.dropped_columns:
             if self.verbose:
                 print('Exporting dropped feature list')
@@ -820,7 +699,8 @@ class Ingredients(object):
                 print('Saving ingredients summary data')
             self.inventory.save(variable = df,
                                 folder = self.inventory.experiment,
-                                file_name ='data_summary',
+                                file_format = 'csv',
+                                file_name = 'data_summary',
                                 header = df_header,
                                 index = df_index)
         return self

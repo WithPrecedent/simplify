@@ -183,12 +183,16 @@ class Presentation(object):
         return self
 
     def save(self, file_name):
-        export_path = self.inventory.create_path(
-                folder = self.inventory.recipe,
-                file_name = file_name,
-                file_type = 'png')
-        plt.savefig(export_path, bbox_inches = 'tight')
-        plt.close()
+        self.inventory.save(variable = plt,
+                            folder = self.inventory.recipe,
+                            file_name = file_name,
+                            file_format = 'png')
+#        export_path = self.inventory.create_path(
+#                folder = self.inventory.recipe,
+#                file_name = file_name,
+#                file_format = 'png')
+#        plt.savefig(export_path, bbox_inches = 'tight')
+#        plt.close()
         return self
 
     def shap_dependency(self, var1 = None, var2 = None,

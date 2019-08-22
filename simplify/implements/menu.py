@@ -2,6 +2,7 @@
 from configparser import ConfigParser
 from dataclasses import dataclass
 
+from .inventory import Inventory
 from .tools import listify, typify
 
 
@@ -29,8 +30,8 @@ class Menu(object):
     attribute .config. Users can store any section of the configuration
     dictionary as attributes in a class instance by using the localize method.
 
-    If set_types is set to True (the default option), the dictionary values are
-    automatically converted to appropriate datatypes.
+    If infer_types is set to True (the default option), the dictionary values
+    are automatically converted to appropriate datatypes.
 
     For example, if the menu file (simplify_menu.ini stored in the appropriate
     folder) is as follows:
@@ -59,22 +60,26 @@ class Menu(object):
     The desire for accessibility and simplicity dictated this limitation.
 
     Attributes:
+
         file_path: string of where the menu .ini file is located.
         configuration: two-level nested dictionary storing menu. If a file_path
             is provided, configuration will automatically be created.
-        set_types: boolean variable determines whether values in configuration
-            are converted to other types (True) or left as strings (False).
+        infer_types: boolean variable determines whether values in
+            configuration are converted to other types (True) or left as
+            strings (False).
     """
     file_path : str
     configuration : object = None
-    set_types : bool = True
+    infer_types : bool = True
+    auto_prepare : bool = True
 
     def __post_init__(self):
         """Initializes the configuration attribute and converts the dictionary
-        values to the proper types if set_types is True.
+        values to the proper types if infer_types is True.
         """
         self._set_configuration()
-        self._set_types()
+        if self.auto_prepare:
+            self.prepare()
         return self
 
     def __delitem__(self, key):
@@ -83,6 +88,7 @@ class Menu(object):
         sections of the configuration dictionary.
 
         Parameters:
+
             key: the name of the dictionary key or section to be deleted.
         """
         found_value = False
@@ -104,6 +110,7 @@ class Menu(object):
         found, an empty dictionary.
 
         Parameters:
+
             key: the name of the dictionary key for which the value is
                 sought.
         """
@@ -117,6 +124,7 @@ class Menu(object):
         nested dictionary.
 
         Parameters:
+
             section: a string naming the section of the configuration
                 dictionary.
             nested_dict: the dictionary to be placed in that section.
@@ -132,6 +140,16 @@ class Menu(object):
             raise TypeError(error_message)
         return self
 
+    def _infer_types(self):
+        """If infer_types is True, all dictionary values in configuration are
+        converted to the appropriate type.
+        """
+        if self.infer_types:
+            for section, nested_dict in self.configuration.items():
+                for key, value in nested_dict.items():
+                    self.configuration[section][key] = typify(value)
+        return self
+
     def _set_configuration(self):
         """Loads configuration dictionary using ConfigParser if configuration
         does not presently exist.
@@ -143,20 +161,11 @@ class Menu(object):
             self.configuration = dict(configuration._sections)
         return self
 
-    def _set_types(self):
-        """If set_types is True, all dictionary values in configuration are
-        converted to the appropriate type.
-        """
-        if self.set_types:
-            for section, nested_dict in self.configuration.items():
-                for key, value in nested_dict.items():
-                    self.configuration[section][key] = typify(value)
-        return self
-
     def add_settings(self, new_settings):
         """Adds new settings to the configuration dictionary.
 
         Parameters:
+
            new_settings: can either be a dictionary or Menu object containing
                new attribute, value pairs or a string containing a file path
                from which new configuration options can be found.
@@ -168,7 +177,8 @@ class Menu(object):
             configuration.optionxform = lambda option : option
             configuration.read(new_settings)
             self.configuration.update(dict(configuration._sections))
-        elif isinstance(new_settings.configuration, dict):
+        elif (hasattr(new_settings, 'configuration')
+                and isinstance(new_settings.configuration, dict)):
             self.configuration.update(new_settings.configuration)
         else:
             error_message = 'new_options must be dict, Menu instance, or str'
@@ -180,6 +190,7 @@ class Menu(object):
         passed class instance as attributes to that class instance.
 
         Parameters:
+
             instance: either a class instance or class to which attributes
                 should be added.
             sections: the sections of the configuration dictionary which should
@@ -192,3 +203,7 @@ class Menu(object):
                 if not hasattr(instance, key) or override:
                     setattr(instance, key, value)
         return
+
+    def prepare(self):
+        self._infer_types()
+        return self

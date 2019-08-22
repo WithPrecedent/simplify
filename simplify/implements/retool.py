@@ -57,6 +57,23 @@ class ReTool(object):
                     self.flags |= flag
         return self
 
+    def _check_ingredients(self, ingredients, df, source):
+        if df == None:
+            if ingredients == None:
+                error = 'ReTool requires either df or ingredients'
+                raise AttributeError(error)
+            else:
+                df = ingredients['default_df']
+                if isinstance(source, str):
+                    source = getattr(ingredients, source)
+                else:
+                    source = ingredients.source
+        else:
+            if source == None:
+                error = 'If df passed, ReTool also requires source.'
+                raise AttributeError(error)
+        return df, source
+
     def _compile_expressions(self):
         """Compiles regular expressions (whether built or loaded)."""
         for i, row in self.expressions.iterrows():
@@ -148,9 +165,11 @@ class ReTool(object):
         self._convert_to_dict()
         return self
 
-    def start(self, ingredients, remove_from_source = True):
-        df = ingredients['default_df']
-        source = ingredients.source
+    def start(self, ingredients = None, df = None, source = None,
+              remove_from_source = True):
+        df, source = self._check_ingredients(ingredients = ingredients,
+                                             df = df,
+                                             source = source)
         self._set_matcher(df = df, remove_from_source = remove_from_source)
         if remove_from_source:
             df, source = self.matcher.start(df = df, source = source)
@@ -212,7 +231,8 @@ class ReLoad(object):
         return self
 
     def _explode_sections(self):
-        self.expressions.explode(columns = ['section'], inplace = True)
+        if 'section' in self.expressions:
+            self.expressions.explode(column = 'section')
         return self
 
     def prepare(self):
@@ -225,9 +245,11 @@ class ReLoad(object):
                               .astype(str)
                               .replace('Â', ''))
         self._explode_sections()
-        self.sections = (
+        if 'section' in self.expressions:
+            self.sections = (
                 self.expressions.set_index('values').to_dict()['section'])
-        self.datatypes = (
+        if 'datatypes' in self.expressions:
+            self.datatypes = (
                 self.expressions.set_index('section').to_dict()['datatype'])
         return self
 

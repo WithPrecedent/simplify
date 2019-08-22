@@ -172,14 +172,13 @@ class Model(CookbookStep):
 
     def search(self, ingredients, recipe = None):
         if self.verbose:
-            print('Searching for best hyperparameters for the',
-                  self.technique, 'model using', self.search_algorithm,
-                  'search algorithm')
+            print('Searching for best hyperparameters using',
+                  self.search_algorithm, 'search algorithm')
         self.search_method.fit(ingredients.x_train, ingredients.y_train)
         self.best_estimator = self.search_method.best_estimator_
         if self.verbose:
             print('The', self.search_parameters['scoring'],
-                  'score of the best estimator for the', self.technique,
+                  'score of the best estimator for this', self.technique,
                   'model is', f'{self.search_method.best_score_ : 4.4f}')
         return self
 
