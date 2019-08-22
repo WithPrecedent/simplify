@@ -161,7 +161,8 @@ class Review(object):
         self.feature_list = list(self.recipe.ingredients.x_test.columns)
         if ('svm_' in self.recipe.model.technique
                 or 'baseline' in self.recipe.model.technique
-                or 'logit' in self.recipe.model.technique):
+                or 'logit' in self.recipe.model.technique
+                or 'tensor_flow' in self.recipe.model.technique):
             self.feature_import = None
         else:
             self.feature_import = pd.Series(
@@ -229,7 +230,8 @@ class Review(object):
         """Sets options for explainer(s) chosen by user."""
         self.explainer_techniques = {'shap' : self._shap_explainer,
                                      'eli5' : self._eli5_explainer}
-        self.shap_models = {'catboost' : 'tree',
+        self.shap_models = {'baseline' : 'none',
+                            'catboost' : 'tree',
                             'decision_tree' : 'tree',
                             'lasso' : 'linear',
                             'lasso_lars' : 'linear',
@@ -254,11 +256,8 @@ class Review(object):
             self.shap_method_type = self.shap_models[
                     self.recipe.model.technique]
             self.shap_method = self.shap_techniques[self.shap_method_type]
-        elif 'baseline_' in self.recipe.model.technique:
-            self.shap_method_type = 'none'
         else:
             self.shap_method_type = 'kernel'
-            self.shap_method = KernelExplainer
         data_to_explain = {'train' : self.recipe.ingredients.x_train,
                            'test' : self.recipe.ingredients.x_test,
                            'full' : self.recipe.ingredients.x}

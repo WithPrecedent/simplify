@@ -13,7 +13,7 @@ from sklearn.linear_model import (BayesianRidge, Lasso, LassoLars,
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.svm import OneClassSVM, SVC, SVR
 #from skopt import BayesSearchCV
-#from keras.wrappers.scikit_learn import KerasClassifier, KerasRegressor
+from keras.wrappers.scikit_learn import KerasClassifier, KerasRegressor
 #from pystan import StanModel
 from xgboost import XGBClassifier, XGBRegressor
 
@@ -53,6 +53,18 @@ class Model(CookbookStep):
             self.parameters = {}
         return self
 
+
+    def _check_runtime_parameters(self):
+        """Checks if class has runtime_parameters and, if so, adds them to
+        the parameters attribute.
+        """
+        if hasattr(self, 'runtime_parameters') and self.runtime_parameters:
+            self.runtime_parameters.update({'random_state' : self.seed})
+        else:
+            self.runtime_parameters = {'random_state' : self.seed}
+        self.parameters.update(self.runtime_parameters)
+        return 
+    
     def _parse_parameters(self):
         self.hyperparameter_search = False
         self.grid = {}
@@ -67,24 +79,6 @@ class Model(CookbookStep):
             else:
                 new_parameters.update({param : values})
         self.parameters = new_parameters
-        self.runtime_parameters = {'random_state' : self.seed}
-        if 'svm' in self.technique:
-            self._svm_parameters()
-        elif 'baseline' in self.technique:
-            self._baseline_parameters()
-        elif 'xgb' in self.technique:
-            if not hasattr(self, 'scale_pos_weight'):
-                self.scale_pos_weight = 1
-            if self.gpu:
-                self.runtime_parameters.update(
-                        {'tree_CookbookStep' : 'gpu_exact'})
-            if self.hyperparameter_search:
-                self.grid.update({'scale_pos_weight' :
-                                  uniform(self.scale_pos_weight / 2,
-                                  self.scale_pos_weight * 2)})
-            else:
-                self.parameters.update(
-                        {'scale_pos_weight' : self.scale_pos_weight})
         return self
 
     def _prepare_search(self):
@@ -114,7 +108,7 @@ class Model(CookbookStep):
                         'svm_poly' : SVC,
                         'svm_rbf' : SVC,
                         'svm_sigmoid' : SVC,
-#                        'tensor_flow' : KerasClassifier,
+                        'tensor_flow' : KerasClassifier,
 #                         torch' : NeuralNetClassifier,
                         'xgb' : XGBClassifier}
         return self
@@ -151,11 +145,17 @@ class Model(CookbookStep):
                         'svm_poly' : SVR,
                         'svm_rbf' : SVR,
                         'svm_sigmoid' : SVR,
-#                            'tensor_flow' : KerasRegressor,
+                        'tensor_flow' : KerasRegressor,
 #                            'torch' : NeuralNetRegressor,
                         'xgb' : XGBRegressor}
         return self
 
+    def _specific_parameters(self):
+        self.runtime_parameters = {'random_state' : self.seed}
+        if hasattr(self, '_' + self.technique + '_parameters'):
+            getattr(self, '_' + self.technique + '_parameters')()        
+        return self
+    
     def _svm_parameters(self):
         svm_parameters = {'svm_linear' : 'linear',
                           'svm_poly' : 'poly',
@@ -165,6 +165,62 @@ class Model(CookbookStep):
                                 'probability' : True})
         return self
 
+    def _tensor_flow_model(self):
+        from keras.models import Sequential
+        from keras.layers import Dense, Dropout, Activation, Flatten
+        classifier = Sequential()
+        classifier.add(Dense(units = 6, kernel_initializer = 'uniform', 
+            activation = 'relu', input_dim = 30))
+        classifier.add(Dense(units = 6, kernel_initializer = 'uniform', 
+            activation = 'relu'))
+        classifier.add(Dense(units = 1, kernel_initializer = 'uniform', 
+            activation = 'sigmoid'))
+        classifier.compile(optimizer = 'adam', 
+                           loss = 'binary_crossentropy', 
+                           metrics = ['accuracy'])
+        return classifier
+#        model = Sequential()
+#        model.add(Activation('relu'))
+#        model.add(Activation('relu'))
+#        model.add(Dropout(0.25))   
+#        model.add(Flatten())
+#        for layer_size in self.parameters['dense_layer_sizes']:
+#            model.add(Dense(layer_size))
+#            model.add(Activation('relu'))
+#        model.add(Dropout(0.5))
+#        model.add(Dense(2))
+#        model.add(Activation('softmax'))    
+#        model.compile(loss = 'categorical_crossentropy',
+#                      optimizer = 'adadelta',
+#                      metrics = ['accuracy'])
+#        return model        
+  
+    def _tensor_flow_parameters(self):
+        new_parameters = {'build_fn' : self._tensor_flow_model,
+                          'batch_size' : 10, 
+                          'epochs' : 2}
+        self.parameters = new_parameters
+        return self
+    
+    def _xgb_parameters(self):
+        if not hasattr(self, 'scale_pos_weight'):
+            self.scale_pos_weight = 1
+        if self.gpu:
+            if self.verbose:
+                print('Using GPU')
+            self.runtime_parameters.update(
+                    {'tree_method' : 'gpu_exact'})
+        elif self.verbose:
+            print('Using CPU')
+        if self.hyperparameter_search:
+            self.grid.update({'scale_pos_weight' :
+                              uniform(self.scale_pos_weight / 2,
+                              self.scale_pos_weight * 2)})
+        else:
+            self.parameters.update(
+                    {'scale_pos_weight' : self.scale_pos_weight})        
+        return self
+    
     def fit_transform(self, x, y):
         error = 'fit_transform is not implemented for machine learning models'
         raise NotImplementedError(error)
@@ -188,14 +244,16 @@ class Model(CookbookStep):
             self.parameters = self.menu[self.technique]
         self._check_runtime_parameters()
         self._parse_parameters()
+        self._specific_parameters()
         if self.technique != 'none':
             self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
     def start(self, ingredients, recipe):
+        """Applies model from recipe to ingredients data."""
         if self.technique != 'none':
             if self.verbose:
-                print('Applying', self.technique, 'model to data')
+                print('Applying', self.technique, 'model')
             if self.hyperparameter_search:
                 self.search(ingredients = ingredients, recipe = recipe)
                 self.algorithm = self.best_estimator
