@@ -23,30 +23,40 @@ class Presentation(object):
         return self
 
     def _check_length(self, df, max_display):
+        """Checks if max_display length is larger than number of columns.
+        If so, number of columns in df is used instead.
+        """
         if max_display > len(df.columns):
             max_display = len(df.columns)
         return max_display
 
     def _default_classifier(self):
+        """Sets default plots for classifier algorithms."""
         self.plots = ['confusion', 'heat_map','ks_statistic', 'pr_curve',
                       'roc_curve']
         return self
 
-    def _default_clusterer(self):
+    def _default_cluster(self):
+        """Sets default plots for cluster algorithms."""
         self.plots = ['cluster_tree', 'elbow', 'silhouette']
         return self
 
     def _default_regressor(self):
+        """Sets default plots for regressor algorithms."""
         self.plots = ['heat_map', 'linear', 'residuals']
         return self
 
     def _set_defaults(self):
+        """Sets default styles, options, and plots."""
         self._set_style()
         self._set_options()
         getattr(self, '_default_' + self.model_type)()
         return self
 
     def _set_style(self):
+        """Sets fonts, colors, and styles for plots that do not have set 
+        styles.
+        """
         # List of colorblind colors obtained from here:
         # https://www.dataquest.io/blog/making-538-plots/.
         # Thanks to Alex Olteanu.
@@ -64,6 +74,7 @@ class Presentation(object):
         return self
 
     def _set_options(self):
+        """Sets available plots dictionary."""
         self.options = {'calibration' : self.calibration,
                         'cluster_tree' : self.cluster_tree,
                         'confusion' : self.confusion,
@@ -187,12 +198,6 @@ class Presentation(object):
                             folder = self.inventory.recipe,
                             file_name = file_name,
                             file_format = 'png')
-#        export_path = self.inventory.create_path(
-#                folder = self.inventory.recipe,
-#                file_name = file_name,
-#                file_format = 'png')
-#        plt.savefig(export_path, bbox_inches = 'tight')
-#        plt.close()
         return self
 
     def shap_dependency(self, var1 = None, var2 = None,

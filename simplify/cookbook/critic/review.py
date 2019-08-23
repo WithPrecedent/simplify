@@ -25,9 +25,12 @@ class Review(object):
             identical to the section of the menu with relevant settings.
     """
     name : str = 'review'
+    auto_prepare : bool = True
 
     def __post_init__(self):
         self._set_defaults()
+        if self.auto_prepare:
+            self.prepare()
         return self
 
     def _add_result(self):
@@ -40,12 +43,12 @@ class Review(object):
                 self.result[column] = self._format_step(value)
             else:
                 self.result[column] = getattr(self.recipe, value)
-        for column, value in self.techniques.items():
+        for column, value in self.options.items():
             if column in self.metrics:
-                if column in self.prob_techniques:
+                if column in self.prob_options:
                     params = {'y_true' : self.recipe.ingredients.y_test,
                               'y_prob' : self.predicted_probs[:, 1]}
-                elif column in self.score_techniques:
+                elif column in self.score_options:
                     params = {'y_true' : self.recipe.ingredients.y_test,
                               'y_score' : self.predicted_probs[:, 1]}
                 else:
@@ -97,7 +100,7 @@ class Review(object):
         return self
 
     def _default_classifier(self):
-        self.techniques = {
+        self.options = {
                 'accuracy' : met.accuracy_score,
                 'balanced_accuracy' : met.balanced_accuracy_score,
                 'f1' : met.f1_score,
@@ -112,12 +115,12 @@ class Review(object):
                 'recall' :  met.recall_score,
                 'recall_weighted' :  met.recall_score,
                 'zero_one' : met.zero_one_loss}
-        self.prob_techniques = {'brier_score_loss' : met.brier_score_loss}
-        self.score_techniques = {'roc_auc' :  met.roc_auc_score}
+        self.prob_options = {'brier_score_loss' : met.brier_score_loss}
+        self.score_options = {'roc_auc' :  met.roc_auc_score}
         return self
 
     def _default_clusterer(self):
-        self.techniques = {
+        self.options = {
                 'adjusted_mutual_info' : met.adjusted_mutual_info_score,
                 'adjusted_rand' : met.adjusted_rand_score,
                 'calinski' : met.calinski_harabasz_score,
@@ -131,12 +134,12 @@ class Review(object):
                 'norm_mutual_info' : met.normalized_mutual_info_score,
                 'silhouette' : met.silhouette_score,
                 'v_measure' : met.v_measure_score}
-        self.prob_techniques = {}
-        self.score_techniques = {}
+        self.prob_options = {}
+        self.score_options = {}
         return self
 
     def _default_regressor(self):
-        self.techniques = {
+        self.options = {
                 'explained_variance' : met.explained_variance_score,
                 'max_error' : met.max_error,
                 'absolute_error' : met.absolute_error,
@@ -144,13 +147,13 @@ class Review(object):
                 'msle' : met.mean_squared_log_error,
                 'mae' : met.median_absolute_error,
                 'r2' : met.r2_score}
-        self.prob_techniques = {}
-        self.score_techniques = {}
+        self.prob_options = {}
+        self.score_options = {}
         return self
 
     def _explain(self):
         for explainer in listify(self.explainers):
-            explain_package = self.explainer_techniques[explainer]
+            explain_package = self.explainer_options[explainer]
             explain_package()
         return self
 
@@ -199,7 +202,7 @@ class Review(object):
     def _set_columns(self):
         """Sets columns and options for report."""
         self.columns = {'recipe_number' : 'number',
-                        'techniques' : 'techniques',
+                        'options' : 'techniques',
                         'seed' : 'seed',
                         'validation_set' : 'val_set'}
         for step in self.recipe.techniques:
@@ -221,14 +224,11 @@ class Review(object):
         self.negative_metrics = ['brier_loss_score', 'neg_log_loss',
                                  'zero_one']
         getattr(self, '_default_' + self.model_type)()
-        self.techniques.update(self.prob_techniques)
-        self.techniques.update(self.score_techniques)
-        self._set_explainers()
         return self
 
     def _set_explainers(self):
         """Sets options for explainer(s) chosen by user."""
-        self.explainer_techniques = {'shap' : self._shap_explainer,
+        self.explainer_options = {'shap' : self._shap_explainer,
                                      'eli5' : self._eli5_explainer}
         self.shap_models = {'baseline' : 'none',
                             'catboost' : 'tree',
@@ -244,7 +244,7 @@ class Review(object):
                             'tensor_flow' : 'deep',
                             'torch' : 'deep',
                             'xgb' : 'tree'}
-        self.shap_techniques = {'deep' : DeepExplainer,
+        self.shap_options = {'deep' : DeepExplainer,
                                 'kernel' : KernelExplainer,
                                 'linear' : LinearExplainer,
                                 'tree' : TreeExplainer}
@@ -255,7 +255,7 @@ class Review(object):
         if self.recipe.model.technique in self.shap_models:
             self.shap_method_type = self.shap_models[
                     self.recipe.model.technique]
-            self.shap_method = self.shap_techniques[self.shap_method_type]
+            self.shap_method = self.shap_options[self.shap_method_type]
         else:
             self.shap_method_type = 'kernel'
         data_to_explain = {'train' : self.recipe.ingredients.x_train,
@@ -278,11 +278,11 @@ class Review(object):
     def add_metric(self, name, metric, special_type = None,
                    special_parameters = None, negative_metric = False):
         """Allows user to manually add a metric to report."""
-        self.techniques.update({name : metric})
+        self.options.update({name : metric})
         if special_type in ['probability']:
-            self.prob_techniques.update({name : metric})
+            self.prob_options.update({name : metric})
         elif special_type in ['scorer']:
-            self.score_techniques.update({name : metric})
+            self.score_options.update({name : metric})
         if special_parameters:
            self.special_metrics.update({name : special_parameters})
         if negative_metric:
@@ -290,6 +290,9 @@ class Review(object):
         return self
 
     def prepare(self):
+        self.options.update(self.prob_options)
+        self.options.update(self.score_options)
+        self._set_explainers()
         return self
 
     def start(self, recipe):

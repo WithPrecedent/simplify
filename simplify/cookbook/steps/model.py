@@ -17,8 +17,10 @@ from keras.wrappers.scikit_learn import KerasClassifier, KerasRegressor
 #from pystan import StanModel
 from xgboost import XGBClassifier, XGBRegressor
 
+from ...implements.technique import Technique
 from ...implements.tools import listify
 from ..cookbook_step import CookbookStep
+
 
 @dataclass
 class Model(CookbookStep):
@@ -30,8 +32,6 @@ class Model(CookbookStep):
 
     def __post_init__(self):
         super().__post_init__()
-        if self.hyperparameter_search:
-            self._prepare_search()
         return self
 
     def _baseline_parameters(self):
@@ -53,7 +53,6 @@ class Model(CookbookStep):
             self.parameters = {}
         return self
 
-
     def _check_runtime_parameters(self):
         """Checks if class has runtime_parameters and, if so, adds them to
         the parameters attribute.
@@ -67,35 +66,28 @@ class Model(CookbookStep):
     
     def _parse_parameters(self):
         self.hyperparameter_search = False
-        self.grid = {}
+        self.space = {}
         new_parameters = {}
         for param, values in self.parameters.items():
             if isinstance(values, list):
                 self.hyperparameter_search = True
                 if self._list_type(values, float):
-                    self.grid.update({param : uniform(values[0], values[1])})
+                    self.space.update({param : uniform(values[0], values[1])})
                 elif self._list_type(values, int):
-                    self.grid.update({param : randint(values[0], values[1])})
+                    self.space.update({param : randint(values[0], values[1])})
             else:
                 new_parameters.update({param : values})
         self.parameters = new_parameters
         return self
 
     def _prepare_search(self):
-        self.search_options = {'random' : RandomizedSearchCV,
-                               'fixed' : GridSearchCV}
-#                               'bayes' : BayesSearchCV}
-        self.search_runtime_parameters = {
-                'estimator' : self.algorithm,
-                'param_distributions' : self.grid,
-                'random_state' : self.seed}
-        if 'refit' in self.search_parameters:
-            self.search_parameters['scoring'] = (
-                    listify(self.search_parameters['scoring'])[0])
-        self.search_parameters.update(self.search_runtime_parameters)
-        self.search_algorithm = self.menu['cookbook']['search_algorithm']
-        self.search_method = self.search_options[self.search_algorithm](
-                **self.search_parameters)
+        self.searcher = Search(
+                technique = self.menu['cookbook']['search_algorithm'],
+                estimator = self.algorithm,
+                parameters = self.search_parameters,
+                space = self.space,
+                seed = self.seed,
+                verbose = self.verbose)
         return self
 
     def _set_classifier(self):
@@ -109,7 +101,7 @@ class Model(CookbookStep):
                         'svm_rbf' : SVC,
                         'svm_sigmoid' : SVC,
                         'tensor_flow' : KerasClassifier,
-#                         torch' : NeuralNetClassifier,
+#                        'torch' : NeuralNetClassifier,
                         'xgb' : XGBClassifier}
         return self
 
@@ -140,13 +132,13 @@ class Model(CookbookStep):
                         'ols' : LinearRegression,
                         'random_forest' : RandomForestRegressor,
                         'ridge' : Ridge,
-#                            'stan' : StanModel,
+#                        'stan' : StanModel,
                         'svm_linear' : SVR,
                         'svm_poly' : SVR,
                         'svm_rbf' : SVR,
                         'svm_sigmoid' : SVR,
                         'tensor_flow' : KerasRegressor,
-#                            'torch' : NeuralNetRegressor,
+#                        'torch' : NeuralNetRegressor,
                         'xgb' : XGBRegressor}
         return self
 
@@ -213,9 +205,9 @@ class Model(CookbookStep):
         elif self.verbose:
             print('Using CPU')
         if self.hyperparameter_search:
-            self.grid.update({'scale_pos_weight' :
-                              uniform(self.scale_pos_weight / 2,
-                              self.scale_pos_weight * 2)})
+            self.space.update({'scale_pos_weight' :
+                               uniform(self.scale_pos_weight / 2,
+                               self.scale_pos_weight * 2)})
         else:
             self.parameters.update(
                     {'scale_pos_weight' : self.scale_pos_weight})        
@@ -224,18 +216,6 @@ class Model(CookbookStep):
     def fit_transform(self, x, y):
         error = 'fit_transform is not implemented for machine learning models'
         raise NotImplementedError(error)
-        return self
-
-    def search(self, ingredients, recipe = None):
-        if self.verbose:
-            print('Searching for best hyperparameters using',
-                  self.search_algorithm, 'search algorithm')
-        self.search_method.fit(ingredients.x_train, ingredients.y_train)
-        self.best_estimator = self.search_method.best_estimator_
-        if self.verbose:
-            print('The', self.search_parameters['scoring'],
-                  'score of the best estimator for this', self.technique,
-                  'model is', f'{self.search_method.best_score_ : 4.4f}')
         return self
 
     def prepare(self):
@@ -247,6 +227,8 @@ class Model(CookbookStep):
         self._specific_parameters()
         if self.technique != 'none':
             self.algorithm = self.options[self.technique](**self.parameters)
+        if self.hyperparameter_search:
+            self._prepare_search()
         return self
 
     def start(self, ingredients, recipe):
@@ -255,8 +237,8 @@ class Model(CookbookStep):
             if self.verbose:
                 print('Applying', self.technique, 'model')
             if self.hyperparameter_search:
-                self.search(ingredients = ingredients, recipe = recipe)
-                self.algorithm = self.best_estimator
+                self.searcher.start(ingredients = ingredients)
+                self.algorithm = self.searcher.best_estimator
             else:
                 self.algorithm.fit(ingredients.x_train, ingredients.y_train)
         return ingredients
@@ -265,3 +247,45 @@ class Model(CookbookStep):
         error = 'transform is not implemented for machine learning models'
         raise NotImplementedError(error)
         return self
+    
+@dataclass
+class Search(Technique):
+    
+    technique : str
+    estimator : object
+    parameters : object
+    space : object
+    seed : int
+    verbose : bool
+
+    def __post_init__(self):
+        super().__post_init__()        
+        return self
+    
+    def _set_defaults(self):
+        self.options = {'random' : RandomizedSearchCV,
+                        'grid' : GridSearchCV}
+#                       'bayes' : BayesSearchCV} 
+        self.runtime_parameters = {'estimator' : self.estimator,
+                                   'param_distributions' : self.space,
+                                   'random_state' : self.seed}
+        return self
+
+    def prepare(self):
+        if 'refit' in self.parameters:
+            self.parameters['scoring'] = listify(self.parameters['scoring'])[0]
+        self.parameters.update(self.runtime_parameters)
+        self.tool = self.options[self.technique](**self.parameters)
+        return self
+    
+    def start(self, ingredients):
+        if self.verbose:
+            print('Searching for best hyperparameters using',
+                  self.technique, 'search algorithm')
+        self.tool.fit(ingredients.x_train, ingredients.y_train)
+        self.best_estimator = self.tool.best_estimator_
+        if self.verbose:
+            print('The', self.parameters['scoring'],
+                  'score of the best estimator for this model is', 
+                  f'{self.tool.best_score_ : 4.4f}')
+        return self    

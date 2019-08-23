@@ -17,7 +17,7 @@ class Technique(object):
         return self
 
     def prepare(self):
-        self.tool = self.techniques[self.technique](**self.parameters)
+        self.tool = self.options[self.technique](**self.parameters)
         return self
 
     def start(self, ingredients):
