@@ -467,11 +467,14 @@ class Ingredients(object):
             columns = prefixes_list
         return columns
 
-    def create_series(self, df = None):
+    def create_series(self, df = None, columns = None):
         """Creates a Series (row) with the datatypes in columns."""
-        row = pd.Series(index = self.columns.keys())
-        for column, datatype in self.columns.items():
-            row[column] = self.default_values[datatype]
+        if not columns:
+            columns = list(self.columns.keys())
+        row = pd.Series(index = columns)
+        if self.columns:
+            for column, datatype in self.columns.items():
+                row[column] = self.default_values[datatype]
         if not df:
             setattr(self, self.default_df, row)
             return self

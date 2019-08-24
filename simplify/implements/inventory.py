@@ -59,7 +59,7 @@ class Inventory(object):
             return 'glob'
         else:
             return list(self.export_folder.keys())[list(
-                    self.export_folder.keys()).index(self.step) - 1] + '_data'
+                    self.export_folder.keys()).index(self.step)] + '_data'
 
     @property
     def folder_in(self):
@@ -461,7 +461,7 @@ class Inventory(object):
         file_format = self._check_file_format(file_format = file_format,
                                               io_status = 'import')
         extension = self.extensions[file_format]
-        return glob.glob(os.path.join(folder, '**', extension),
+        return glob.glob(os.path.join(folder, '**', '*' + extension),
                          recursive = include_subfolders)
 
     def create_folder(self, folder, subfolder = None):

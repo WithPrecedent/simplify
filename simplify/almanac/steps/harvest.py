@@ -19,25 +19,33 @@ class Harvest(AlmanacStep):
 
     def _prepare_organize(self, key):
         file_name = 'organizer_' + key + '.csv'
-        self.parameters = {'file_path' : os.path.join(self.inventory.external,
+        self.parameters = {'technique' : self.technique,
+                           'file_path' : os.path.join(self.inventory.external,
                                                       file_name)}
-        return self
+        algorithm = self.options[self.technique](**self.parameters)
+        self._set_columns(algorithm)
+        return algorithm
 
     def _prepare_parse(self, key):
         file_name = 'parser_' + key + '.csv'
-        self.parameters = {'file_path' : os.path.join(self.inventory.external,
+        self.parameters = {'technique' : self.technique,
+                           'file_path' : os.path.join(self.inventory.external,
                                                       file_name)}
-        return self
+        algorithm = self.options[self.technique](**self.parameters)
+        return algorithm
 
     def _set_defaults(self):
         self.options = {'organize' : ReTool,
                         'parse' : ReTool}
         return self
 
-    def _set_initial_columns(self, algorithm):
-        self.columns = list(algorithm.expressions.values())
-        prefix = algorithm.matcher.section
-        self.columns = [prefix + '_' + column for column in self.columns]
+    def _set_columns(self, algorithm):
+        prefix = algorithm.matcher.section_prefix
+        if not hasattr(self, 'columns'):
+            self.columns = []
+        new_columns = list(algorithm.expressions.values())
+        new_columns = [prefix + '_' + column for column in self.columns]
+        self.columns.extend(new_columns)
         return self
 
     def _start_organize(self, ingredients, algorithm):
@@ -53,11 +61,9 @@ class Harvest(AlmanacStep):
     def prepare(self):
         for key in self.parameters:
             if hasattr(self, '_prepare_' + self.technique):
-                getattr(self, '_prepare_' + self.technique)(key = key)
+                algorithm = getattr(
+                        self, '_prepare_' + self.technique)(key = key)
             else:
-                getattr(self, '_prepare_generic_list')(key = key)
-            algorithm = self.options[self.technique](**self.parameters)
-            if self.technique == 'organize':
-                self._set_initial_columns(algorithm)
+                algorithm = getattr(self, '_prepare_generic_list')(key = key)
             self.algorithms.append(algorithm)
         return self

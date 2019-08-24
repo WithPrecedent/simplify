@@ -23,11 +23,11 @@ class ReTool(object):
     advantages of dictionaries cannot be replicated. The tipping point for
     expressions dataframe length versus using .apply or other non-vectorized
     options for matching varies and needs to be tested based upon the
-    particular use case. The normal use case where ReMatch has efficiency gains
+    particular use case. The normal use case where ReTool has efficiency gains
     is with a very large dataframe and a relatively small (< 500 rows)
-    expressions dataframe.
+    expressions dictionary.
     """
-
+    technique : str
     keys : str = 'keys'
     values : str = 'values'
     sections : str = 'sections'
@@ -58,7 +58,7 @@ class ReTool(object):
         return self
 
     def _check_ingredients(self, ingredients, df, source):
-        if df == None:
+        if not (isinstance(df, pd.DataFrame) or isinstance(df, pd.Series)):
             if ingredients == None:
                 error = 'ReTool requires either df or ingredients'
                 raise AttributeError(error)
@@ -111,27 +111,20 @@ class ReTool(object):
                              'multiline' : re.MULTILINE,
                              'verbose' : re.VERBOSE,
                              'ascii' : re.ASCII}
-
+        # Sets options for matcher classes.
+        self.options = {'organize' : ReOrganize,
+                        'parse' : ReSearch,
+                        'keyword' : ReFrame}
         return self
 
-    def _set_matcher(self, df, remove_from_source):
+    def _set_matcher(self):
         # Sets matcher options based upon data datatype.
         parameters = {'expressions' : self.expressions,
-                      'sections' : self.expression,
+                      'sections' : self.sections,
                       'datatypes' : self.datatypes,
                       'add_prefixes' : self.add_prefixes,
-                      'section_prefix' : self.section_prefixes}
-        if isinstance(df, pd.Series):
-            if remove_from_source:
-                parameters.pop(['sections', 'datatypes', 'section_prefix'])
-                self.matcher = ReOrganize(**parameters)
-            else:
-                self.matcher = ReSearch(**parameters)
-        elif isinstance(df, pd.DataFrame):
-            self.matcher = ReFrame(**parameters)
-        else:
-            error = 'df must be pandas series or dataframe.'
-            raise TypeError(error)
+                      'section_prefix' : self.section_prefix}
+        self.matcher = self.options[self.technique](**parameters)
         self.matcher.default_values = self.default_values
         return self
 
@@ -163,6 +156,7 @@ class ReTool(object):
         self.expressions = tool.expressions
         self._compile_expressions()
         self._convert_to_dict()
+        self._set_matcher()
         return self
 
     def start(self, ingredients = None, df = None, source = None,
@@ -170,7 +164,6 @@ class ReTool(object):
         df, source = self._check_ingredients(ingredients = ingredients,
                                              df = df,
                                              source = source)
-        self._set_matcher(df = df, remove_from_source = remove_from_source)
         if remove_from_source:
             df, source = self.matcher.start(df = df, source = source)
         else:
@@ -256,9 +249,12 @@ class ReLoad(object):
 @dataclass
 class ReMatch(object):
 
+    def __post_init__(self):
+        return self
+
     def _set_out_column(self):
         if self.add_prefixes:
-            self.out_column = self.section + '_' + self.value
+            self.out_column = self.section_prefix + '_' + self.value
         else:
             self.out_column = self.value
         return self
@@ -358,6 +354,7 @@ class ReFrame(ReMatch):
                      self.value, self.default_values[self.datatype])
         return df
 
+@dataclass
 class ReSearch(ReMatch):
 
     expressions : object
@@ -416,6 +413,7 @@ class ReSearch(ReMatch):
         df[self.out_column] = str(df[self.out_column])
         return df
 
+@dataclass
 class ReOrganize(ReMatch):
     """Stores and applies string and regular expression matching methods to
     python strings for dividing strings into a pandas series.
@@ -433,18 +431,21 @@ class ReOrganize(ReMatch):
 
     """
     expressions : object
+    sections : object
+    datatypes : object
     add_prefixes : bool = True
-    section : str = 'section'
+    section_prefix : str = 'section'
 
     def __post_init__(self):
         return self
 
     def start(self, df, source):
-        for key, value in self.expressions.items():
+        for self.key, self.value in self.expressions.items():
             self._set_out_column()
-            if re.search(key, source):
-                df[self.out_column] = re.search(key, source).group(0).strip()
-                source = re.sub(key, '', source)
+            if re.search(self.key, source):
+                df[self.out_column] = re.search(
+                        self.key, source).group(0).strip()
+                source = re.sub(self.key, '', source)
             else:
                 df[self.out_column] = self.default_values['str']
         return df, source

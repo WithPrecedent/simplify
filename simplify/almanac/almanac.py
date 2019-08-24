@@ -26,7 +26,7 @@ class Almanac(Planner):
             should only be passed if the user whiches to override the Menu
             steps.
         ingredients: an instance of Ingredients (or a subclass).
-        plan: a list of instances of almanac_steps which Almanac creates
+        plans: a list of instances of almanac_steps which Almanac creates
             through the prepare method and applies through the start method.
             Ordinarily, a list of plan is not passed when Almanac is
             instanced, but the argument is included if the user wishes to
@@ -47,6 +47,8 @@ class Almanac(Planner):
     ingredients : object = None
     plans : object = None
     auto_prepare : bool = True
+    index_column : str = 'index_universal'
+    metadata_columns : object = None
     name : str = 'almanac'
 
     def __post_init__(self):
@@ -80,14 +82,24 @@ class Almanac(Planner):
         """Initializes the step classes for use by the Almanac."""
         self.plans = []
         for step in self.steps:
-            step_instance = self.plan_class(name = step)
+            step_instance = self.plan_class(name = step,
+                                            index_column = self.index_column)
             for technique in listify(getattr(self, step + '_techniques')):
                 tool_instance = self.add_technique(
                         step = step,
                         technique = technique,
                         parameters = listify(getattr(self, technique)))
-                step_instance.techniques.append(tool_instance)
+            step_instance.techniques.append(tool_instance)
+            step_instance.prepare()
             self.plans.append(step_instance)
+        return self
+
+    def _set_columns(self, organizer):
+        if not hasattr(self, 'columns'):
+            self.columns = {self.index_column : int}
+            if self.metadata_columns:
+                self.columns.update(self.metadata_columns)
+        self.columns.update(dict.fromkeys(organizer.columns), str)
         return self
 
     def _set_defaults(self):
@@ -111,12 +123,19 @@ class Almanac(Planner):
         self._prepare_plan_class()
         self._prepare_steps()
         self._prepare_plan()
+        if hasattr(self, '_set_folders'):
+            self._set_folders()
         return self
 
     def start(self, ingredients = None):
         """Completes an iteration of an Almanac."""
         for plan in self.plans:
             self.step = plan.name
+            # Adds initial columns dictionary to ingredients instance.
+            if (self.step in ['harvest']
+                    and 'organize' in self.harvest_techniques):
+                self._set_columns(organizer = plan)
+                ingredients.columns = self.columns
             self.conform(step = self.step)
             self.ingredients = plan.start(ingredients = self.ingredients)
             self.inventory.save(variable = self.ingredients,
