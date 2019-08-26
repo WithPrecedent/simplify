@@ -45,7 +45,6 @@ class Step(object):
         else:
             error = technique + ' is not in ' + self.__class__.__name__
             raise KeyError(error)
-            return self
 
     def __repr__(self):
         """Returns the name of the current Step."""
@@ -75,13 +74,12 @@ class Step(object):
         else:
             error = 'Lists must be of equal length'
             raise RuntimeError(error)
-            return self
 
     def _check_parameters(self):
         """Checks if parameters exists. If not, defaults are used. If there
         are no defaults, an empty dict is created for parameters.
         """
-        if not hasattr(self, 'parameters') or self.parameters == None:
+        if not hasattr(self, 'parameters') or self.parameters is None:
             if hasattr(self, 'menu') and self.name in self.menu.configuration:
                 self.parameters = self.menu.configuration[self.name]
             elif hasattr(self, 'default_parameters'):
@@ -126,7 +124,7 @@ class Step(object):
         techniques dictionary.
         """
         if self._check_lengths(techniques, algorithms):
-            if getattr(self, 'options') == None:
+            if getattr(self, 'options') is None:
                 self.options = dict(zip(listify(techniques),
                                         listify(algorithms)))
             else:
@@ -137,7 +135,7 @@ class Step(object):
     def add_parameters(self, parameters):
         """Adds a parameter set to parameters dictionary."""
         if isinstance(parameters, dict):
-            if not hasattr(self, 'parameters') or self.parameters == None:
+            if not hasattr(self, 'parameters') or self.parameters is None:
                 self.parameters = parameters
             else:
                 self.parameters.update(parameters)
@@ -145,13 +143,12 @@ class Step(object):
         else:
             error = 'parameters must be a dict type'
             raise TypeError(error)
-            return self
 
     def add_runtime_parameters(self, parameters):
         """Adds a parameter set to runtime_parameters dictionary."""
         if isinstance(parameters, dict):
             if (not hasattr(self, 'runtime_parameters')
-                    or self.runtime_parameters == None):
+                    or self.runtime_parameters is None):
                 self.runtime_parameters = parameters
             else:
                 self.runtime_parameters.update(parameters)
@@ -159,7 +156,6 @@ class Step(object):
         else:
             error = 'runtime_parameters must be a dict type'
             raise TypeError(error)
-            return self
 
     def load(self, file_name, folder = '', prefix = '', suffix = ''):
         """Loads stored ingredient from disc."""

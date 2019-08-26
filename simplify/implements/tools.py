@@ -47,7 +47,6 @@ def list_to_string(variable):
     else:
         msg = 'Value must be a list or pandas series containing lists'
         raise TypeError(msg)
-        out_value = variable
     return out_value
 
 def listify(variable):

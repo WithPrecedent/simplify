@@ -65,6 +65,10 @@ class Model(CookbookStep):
         return 
     
     def _parse_parameters(self):
+        """
+
+        :return: 
+        """
         self.hyperparameter_search = False
         self.space = {}
         new_parameters = {}
@@ -216,7 +220,6 @@ class Model(CookbookStep):
     def fit_transform(self, x, y):
         error = 'fit_transform is not implemented for machine learning models'
         raise NotImplementedError(error)
-        return self
 
     def prepare(self):
         """Adds parameters to algorithm."""
@@ -246,7 +249,6 @@ class Model(CookbookStep):
     def transform(self, x, y):
         error = 'transform is not implemented for machine learning models'
         raise NotImplementedError(error)
-        return self
     
 @dataclass
 class Search(Technique):

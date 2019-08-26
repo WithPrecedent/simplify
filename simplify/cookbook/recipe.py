@@ -39,6 +39,7 @@ class Recipe(object):
         """Applies the Recipe methods to the passed ingredients."""
         techniques = self.techniques.copy()
         self.ingredients = ingredients
+        # noinspection PyProtectedMember
         self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
         self.ingredients.split_xy(label = self.label)
         for technique in self.techniques:

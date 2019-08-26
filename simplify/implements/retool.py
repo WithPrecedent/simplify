@@ -59,7 +59,7 @@ class ReTool(object):
 
     def _check_ingredients(self, ingredients, df, source):
         if not (isinstance(df, pd.DataFrame) or isinstance(df, pd.Series)):
-            if ingredients == None:
+            if ingredients is None:
                 error = 'ReTool requires either df or ingredients'
                 raise AttributeError(error)
             else:
@@ -69,7 +69,7 @@ class ReTool(object):
                 else:
                     source = ingredients.source
         else:
-            if source == None:
+            if source is None:
                 error = 'If df passed, ReTool also requires source.'
                 raise AttributeError(error)
         return df, source

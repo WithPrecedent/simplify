@@ -23,7 +23,7 @@ class Almanac(Planner):
         inventory: an instance of Inventory. If one is not passed when Almanac
             is instanced, one will be created with default options.
         steps: an ordered list of step names to be completed. This argument
-            should only be passed if the user whiches to override the Menu
+            should only be passed if the user wishes to override the Menu
             steps.
         ingredients: an instance of Ingredients (or a subclass).
         plans: a list of instances of almanac_steps which Almanac creates
@@ -89,7 +89,7 @@ class Almanac(Planner):
                         step = step,
                         technique = technique,
                         parameters = listify(getattr(self, technique)))
-            step_instance.techniques.append(tool_instance)
+                step_instance.techniques.append(tool_instance)
             step_instance.prepare()
             self.plans.append(step_instance)
         return self

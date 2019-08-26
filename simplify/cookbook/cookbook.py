@@ -147,7 +147,7 @@ class Cookbook(Planner):
             for step in listify(self.naming_classes):
                 subfolder += getattr(recipe, step).technique + '_'
             subfolder += str(recipe.number)
-        self.inventory.recipe = self.inventory.create_folder(
+            self.inventory.recipe = self.inventory.create_folder(
                 folder = self.inventory.experiment, subfolder = subfolder)
         return self
 

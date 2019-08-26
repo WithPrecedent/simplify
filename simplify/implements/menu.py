@@ -162,6 +162,7 @@ class Menu(object):
             configuration = ConfigParser(dict_type = dict)
             configuration.optionxform = lambda option : option
             configuration.read(self.file_path)
+            # noinspection PyProtectedMember
             self.configuration = dict(configuration._sections)
         return self
 
@@ -180,6 +181,7 @@ class Menu(object):
             configuration = ConfigParser(dict_type = dict)
             configuration.optionxform = lambda option : option
             configuration.read(new_settings)
+            # noinspection PyProtectedMember
             self.configuration.update(dict(configuration._sections))
         elif (hasattr(new_settings, 'configuration')
                 and isinstance(new_settings.configuration, dict)):

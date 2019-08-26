@@ -274,6 +274,7 @@ class Presentation(object):
         self.recipe = recipe
         self.review = review
         self.estimator = self.recipe.model.algorithm
+        # noinspection PyProtectedMember
         self.recipe.ingredients._remap_dataframes(
                 data_to_use = self.data_to_plot)
         self.x = self.recipe.ingredients.x_test

@@ -125,7 +125,6 @@ class Ingredients(object):
             return self.__dict__[attr]
         elif attr.startswith('__') and attr.endswith('__'):
             raise AttributeError
-            return None
         else:
             return None
 
@@ -138,7 +137,6 @@ class Ingredients(object):
         else:
             error = item + ' is not in ' + self.__class__.__name__
             raise KeyError(error)
-            return self
 
     def __iter__(self):
         return getattr(self, self.default_df).iterrows()
@@ -194,7 +192,7 @@ class Ingredients(object):
     def test(self):
         """Returns the test data."""
         return self.dataframes['x_test'], self.dataframes['y_test']
-       self.dataframes['x_test'], self.dataframes['y_test'])
+       
 
     @property
     def train(self):
@@ -205,6 +203,7 @@ class Ingredients(object):
     def train_test(self):
         """Returns the training and testing data."""
         return (self.dataframes['x_train'], self.dataframes['y_train'],
+                self.dataframes['x_test'], self.dataframes['y_test'])
 
     @property
     def train_test_val(self):

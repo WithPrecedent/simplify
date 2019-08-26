@@ -106,7 +106,7 @@ class Planner(object):
 
     def _check_menu(self):
         """Loads menu from an .ini file if a string is passed to menu instead
-        of a menu instance. Localizes sections of menu to Planner instance.
+        of a menu instance. injects sections of menu to Planner instance.
         """
         if isinstance(self.menu, str):
             self.menu = Menu(file_path = self.menu)
@@ -114,7 +114,7 @@ class Planner(object):
         sections = ['general', 'files']
         if hasattr(self, 'name') and self.name in self.menu.configuration:
             sections.append(self.name)
-        self.menu.localize(instance = self, sections = sections)
+        self.menu.inject(instance = self, sections = sections)
         return self
 
     def _check_name(self):
@@ -123,7 +123,7 @@ class Planner(object):
         if not hasattr(self, 'name'):
             self.name = 'planner'
         if self.name in self.menu.configuration:
-            self.menu.localize(instance = self, sections = [self.name])
+            self.menu.inject(instance = self, sections = [self.name])
         return self
 
     def _check_options(self):
@@ -144,21 +144,21 @@ class Planner(object):
         return self
 
     def _prepare_plan_class(self):
-        """Adds menu and inventory instances to plan_class and localizes
+        """Adds menu and inventory instances to plan_class and injects
         general menu attributes.
         """
         self.plan_class.menu = self.menu
-        self.menu.localize(instance = self.plan_class, sections = ['general'])
+        self.menu.inject(instance = self.plan_class, sections = ['general'])
         self.plan_class.inventory = self.inventory
         return self
 
     def _prepare_steps(self):
-        """Adds menu and inventory instances to step classes and localizes
+        """Adds menu and inventory instances to step classes and injects
         general menu attributes.
         """
         for step in listify(self.steps):
             self.options[step].menu = self.menu
-            self.menu.localize(instance = self.options[step],
+            self.menu.inject(instance = self.options[step],
                                sections = ['general'])
             self.options[step].inventory = self.inventory
         return self

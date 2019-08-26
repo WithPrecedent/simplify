@@ -235,7 +235,7 @@ class Inventory(object):
                 be used. If set to False, the full dataset is imported.
             test_rows: an integer containing the size of the test sample.
         """
-        if test_data == False:
+        if not test_data:
             return None
         elif not test_data and not self.test_data:
             return None
@@ -289,7 +289,7 @@ class Inventory(object):
             kwargs.update({'chunksize' : self.test_rows})
         if 'usecols' in kwargs:
             kwargs.update({'columns' : kwargs['usecols']})
-            kwargs.pop['usecols']
+            kwargs.pop('usecols')
         return pd.read_hdf(file_path, **kwargs)
 
     def _load_json(self, file_path, **kwargs):
@@ -301,7 +301,7 @@ class Inventory(object):
             kwargs.update({'chunksize' : self.test_rows})
         if 'usecols' in kwargs:
             kwargs.update({'columns' : kwargs['usecols']})
-            kwargs.pop['usecols']
+            kwargs.pop('usecols')
         return pd.read_json(file_path = file_path, **kwargs)
 
     def _load_pickle(self, file_path, **kwargs):
@@ -311,7 +311,6 @@ class Inventory(object):
     def _load_png(self, file_path, **kwargs):
         error = 'loading .png files is not supported'
         raise NotImplementedError(error)
-        return
 
     def _load_text(self, file_path, **kwargs):
         return self._load_txt(file_path = file_path, **kwargs)
