@@ -2,7 +2,6 @@
 from configparser import ConfigParser
 from dataclasses import dataclass
 
-from .inventory import Inventory
 from .tools import listify, typify
 
 
@@ -28,7 +27,8 @@ class Menu(object):
 
     Whichever option is chosen, the nested menu dictionary is stored in the
     attribute .config. Users can store any section of the configuration
-    dictionary as attributes in a class instance by using the localize method.
+    dictionary as attributes in a class instance by using the inject
+    method.
 
     If infer_types is set to True (the default option), the dictionary values
     are automatically converted to appropriate datatypes.
@@ -51,7 +51,7 @@ class Menu(object):
 
             def __init__(self):
                 self.menu = Menu()
-                self.menu.localize(instance = self, sections = ['general'])
+                self.menu.inject(instance = self, sections = ['general'])
 
     The result will be that an instance of Fakeclass will contain .verbose and
     .file_type as attributes that are appropriately typed.
@@ -140,6 +140,10 @@ class Menu(object):
             raise TypeError(error_message)
         return self
 
+    def __str__(self):
+        """Returns the configuration dictionary."""
+        return self.configuration
+
     def _infer_types(self):
         """If infer_types is True, all dictionary values in configuration are
         converted to the appropriate type.
@@ -185,9 +189,9 @@ class Menu(object):
             raise TypeError(error_message)
         return self
 
-    def localize(self, instance, sections, override = False):
-        """Stores the section or sections of the configuration dictionary in the
-        passed class instance as attributes to that class instance.
+    def inject(self, instance, sections, override = False):
+        """Stores the section or sections of the configuration dictionary in
+        the passed class instance as attributes to that class instance.
 
         Parameters:
 

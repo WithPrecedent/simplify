@@ -130,7 +130,7 @@ class Ingredients(object):
             return None
 
     def __getitem__(self, item):
-        """Gets algorithm if item is in options dictionary."""
+        """Returns item if item is in self.dataframes or is an atttribute."""
         if item in self.dataframes:
             return self.dataframes[item]
         elif hasattr(self, item):
@@ -139,6 +139,9 @@ class Ingredients(object):
             error = item + ' is not in ' + self.__class__.__name__
             raise KeyError(error)
             return self
+
+    def __iter__(self):
+        return getattr(self, self.default_df).iterrows()
 
     def __repr__(self):
         """Returns the name of the Ingredients instance in lowercase."""
@@ -178,8 +181,8 @@ class Ingredients(object):
         return self
 
     def __str__(self):
-        """Returns the name of the Ingredients instance in lowercase."""
-        return self.__class__.__name__.lower()
+        """Returns the default dataframe."""
+        return getattr(self, self.default_df)
 
     @property
     def full(self):
@@ -191,17 +194,17 @@ class Ingredients(object):
     def test(self):
         """Returns the test data."""
         return self.dataframes['x_test'], self.dataframes['y_test']
-
-    @property
-    def train_test(self):
-        """Returns the training and testing data."""
-        return (self.dataframes['x_train'], self.dataframes['y_train'],
-                self.dataframes['x_test'], self.dataframes['y_test'])
+       self.dataframes['x_test'], self.dataframes['y_test'])
 
     @property
     def train(self):
         """Returns the training data."""
         return self.dataframes['x_train'], self.dataframes['y_train']
+
+    @property
+    def train_test(self):
+        """Returns the training and testing data."""
+        return (self.dataframes['x_train'], self.dataframes['y_train'],
 
     @property
     def train_test_val(self):
@@ -393,6 +396,7 @@ class Ingredients(object):
             columns_list = self.columns.keys()
         for column in columns_list:
             self.columns[column] = datatype
+        self.convert_column_datatypes(df = df)
         return self
 
     @check_df

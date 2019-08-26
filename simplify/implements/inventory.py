@@ -514,6 +514,30 @@ class Inventory(object):
             self.writer.writerow(columns)
         return self
 
+    def inject(self, instance, sections, override = True):
+        """Stores the default paths in the passed instance.
+
+        Parameters:
+
+            instance: either a class instance or class to which attributes
+                should be added.
+            sections: list of paths to be added to passed class. Data import
+                and export paths are automatically added.
+            override: if True, even existing attributes in instance will be
+                replaced by items from this class.
+        """
+        instance.data_in = self.path_in
+        instance.data_out = self.path_out
+        for section in listify(sections):
+            if hasattr(self, section + '_in') and override:
+                setattr(instance, section + '_in',
+                        getattr(self, section + '_in'))
+                setattr(instance, section + '_out',
+                        getattr(self, section + '_out'))
+            elif override:
+                setattr(instance, section, getattr(self, section))
+        return
+
     def iterate(self, plans, ingredients = None, return_ingredients = True):
         """Iterates through a list of files contained in self.batch and
         applies the plans created by a Planner method (or subclass).

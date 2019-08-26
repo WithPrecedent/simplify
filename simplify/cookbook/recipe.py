@@ -17,6 +17,9 @@ class Recipe(object):
     def __post_init__(self):
         return self
 
+    def __call__(self, *args, **kwargs):
+        return self.start(*args, **kwargs)
+
     def _check_attributes(self):
         for technique in self.techniques:
             if not hasattr(self, technique):

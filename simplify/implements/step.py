@@ -17,6 +17,9 @@ class Step(object):
             self.prepare()
         return self
 
+    def __call__(self, *args, **kwargs):
+        return self.start(*args, **kwargs)
+
     def __contains__(self, technique):
         """Checks whether technique is listed in techniques dictionary."""
         if technique in self.options:
@@ -62,7 +65,7 @@ class Step(object):
         return self
 
     def __str__(self):
-        """Returns the name of the current Step."""
+        """Returns lowercase name of class."""
         return self.__class__.__name__.lower()
 
     def _check_lengths(self, variable1, variable2):

@@ -16,6 +16,13 @@ class Technique(object):
         self.prepare()
         return self
 
+    def __call__(self, *args, **kwargs):
+        return self.start(*args, **kwargs)
+
+    def __str__(self):
+        """Returns lowercase name of class."""
+        return self.__class__.__name__.lower()
+
     def prepare(self):
         self.tool = self.options[self.technique](**self.parameters)
         return self
