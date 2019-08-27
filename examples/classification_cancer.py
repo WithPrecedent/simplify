@@ -1,16 +1,22 @@
+import os
+
 import pandas as pd
 import numpy as np
-
 from sklearn.datasets import load_breast_cancer
 
+from simplify import Inventory, Menu
 from simplify.cookbook import Cookbook
 
 # Loads cancer data and converts from numpy arrays to pandas dataframe.
 cancer = load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
+
+menu = Menu(file_path = 'cancer_settings.ini')
+inventory = Inventory(menu = menu, root_folder = os.path.join('..', '..'))
 # Creates instance of Data with the cancer dataframe.
-cookbook = Cookbook(menu = 'cancer_settings.ini',
+cookbook = Cookbook(menu = menu,
+                    inventory = inventory,
                     ingredients = df)
 # Converts label to boolean type - conversion from numpy arrays leaves all
 # columns as float type.

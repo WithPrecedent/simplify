@@ -25,6 +25,12 @@ def add_suffix(iterable, suffix):
     elif isinstance(iterable, pd.DataFrame):
         return iterable.add_suffix(suffix)
 
+def convert_time(seconds):
+    """Function that converts seconds into hours, minutes, and seconds."""
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    return hours, minutes, seconds
+
 def deduplicate(iterable):
     """Adds suffix to list, pandas dataframe, or pandas series."""
     if isinstance(iterable, list):

@@ -40,6 +40,9 @@ class Planner(object):
         return self
 
     def __call__(self, *args, **kwargs):
+        """When called as a function, a Planner class or subclass instance will
+        return the start method.
+        """
         return self.start(*args, **kwargs)
 
     def __str__(self):

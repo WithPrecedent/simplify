@@ -1,6 +1,7 @@
 
 from dataclasses import dataclass
 
+
 @dataclass
 class Recipe(object):
     """Defines rules for analyzing data in the siMpLify Cookbook subpackage.
@@ -15,12 +16,19 @@ class Recipe(object):
     name : str = 'recipe'
 
     def __post_init__(self):
+        pass
         return self
 
     def __call__(self, *args, **kwargs):
+        """When called as a function, a Recipe class or subclass instance will
+        return the start method.
+        """
         return self.start(*args, **kwargs)
 
     def _check_attributes(self):
+        """Checks if corresponding attribute exists for every item in the
+        self.techniques list.
+        """
         for technique in self.techniques:
             if not hasattr(self, technique):
                 error = technique + ' has not been passed to Recipe class.'
@@ -28,7 +36,10 @@ class Recipe(object):
         return self
 
     def prepare(self):
+        """Prepares instance of Recipe."""
         self._check_attributes()
+        # Creates a boolean attribute as to whether the validation set is being
+        # used for later access by a Critic instance.
         if 'val' in self.data_to_use:
             self.val_set = True
         else:

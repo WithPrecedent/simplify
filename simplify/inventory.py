@@ -331,9 +331,6 @@ class Inventory(object):
         return self
 
     def _save_csv(self, variable, file_path, **kwargs):
-        """Saves pandas dataframe to different file formats based upon
-        file_format, or if not provided, default file_format from Menu instance.
-        """
         if isinstance(variable, pd.DataFrame):
             additional_kwargs = ['index', 'header', 'encoding', 'float_format']
             kwargs = self._check_kwargs(variables_to_check = additional_kwargs,
@@ -421,7 +418,16 @@ class Inventory(object):
 
     def add_file_format(self, file_format, extension, load_method,
                         save_method):
-        """Adds or replaces a file extension option."""
+        """Adds or replaces a file extension option.
+
+        Parameters:
+            file_format: string name of the file_format.
+            extension: file extension (without period) to be used.
+            load_method: a method to be used when loading files of the passed
+                file_format.
+            save_method: a method to be used when saving files of the passed
+                file_format.
+        """
         self.extensions.update({file_format : extension})
         if isinstance(load_method, str):
             setattr(self, '_load_' + file_format, '_load_' + load_method)
@@ -434,6 +440,12 @@ class Inventory(object):
         return self
 
     def add_folders(self, root_folder, subfolders):
+        """Adds a list of subfolders to an existing root_folder.
+
+        Parameters:
+            root_folder: path of folder where subfolders should be created.
+            subfolders: list of subfolder names to be created.
+        """
         for subfolder in listify(subfolders):
             temp_folder = self.create_folder(folder = root_folder,
                                              subfolder = subfolder)
@@ -441,12 +453,20 @@ class Inventory(object):
         return self
 
     def add_tree(self, folder_tree):
+        """Adds a folder tree to disc with corresponding attributes to the
+        Inventory instance.
+
+        Parameters:
+            folder_tree: a dictionary containing a folder tree to be created
+                with corresponding attributes to the Inventory instance.
+        """
         for folder, subfolders in folder_tree.items():
             self._add_branch(root_folder = folder,
                              subfolders = subfolders)
         return self
 
     def conform(self, step):
+        """Sets self.step to current step in siMpLify."""
         self.step = step
         return self
 

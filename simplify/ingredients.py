@@ -2,8 +2,6 @@
 import csv
 from datetime import timedelta
 from dataclasses import dataclass
-from functools import wraps
-from inspect import getfullargspec
 from more_itertools import unique_everseen
 
 import numpy as np
@@ -235,19 +233,6 @@ class Ingredients(object):
     def xy(self):
         """Returns the full dataset divided into x and y."""
         return self.dataframes['x'], self.dataframes['y']
-
-#    def check_df(func):
-#        """Decorator which automatically uses the default DataFrame if one
-#        is not passed to the decorated method.
-#        """
-#        @wraps(func)
-#        def wrapper(self, *args, **kwargs):
-#            argspec = getfullargspec(func)
-#            unpassed_args = argspec.args[len(args):]
-#            if 'df' in argspec.args and 'df' in unpassed_args:
-#                kwargs.update({'df' : getattr(self, self.default_df)})
-#            return func(self, *args, **kwargs)
-#        return wrapper
 
     def _check_columns(self, columns = None):
         """Returns self.columns if columns doesn't exist."""

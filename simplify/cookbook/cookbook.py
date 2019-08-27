@@ -55,8 +55,11 @@ class Cookbook(Planner):
         return self
 
     def _check_best(self, recipe):
-        """Checks if the current Recipe is better than the current best Recipe
+        """Checks if the current recipe is better than the current best recipe
         based upon the primary scoring metric.
+
+        Parameters:
+            recipe: an instance of Recipe.
         """
         if not self.best_recipe:
             self.best_recipe = recipe
@@ -74,16 +77,25 @@ class Cookbook(Planner):
 
     def _compute_hyperparameters(self):
         """Computes hyperparameters that can be determined by the source data
-        (without creating data leakage).
+        (without creating data leakage problems).
         """
         # Data is split in oder for certain values to be computed that require
         # features and the label to be split.
         self.ingredients.split_xy(label = self.label)
+        # Model class is injected with scale_pos_weight for algorithms that
+        # use that parameter.
         Model.scale_pos_weight = (len(self.ingredients.y.index) /
                                   ((self.ingredients.y == 1).sum())) - 1
         return self
 
     def _prepare_one_loop(self, data_to_use):
+        """Prepares one set of recipes from all_recipes as applied to a
+        specific training/testing set.
+
+        Parameters:
+            data_to_use: a string corresponding to an Ingredients property
+                which will return the appropriate training/testing set.
+        """
         for i, plan in enumerate(self.all_recipes):
             plan_instance = self.plan_class(techniques = self.steps)
             setattr(plan_instance, 'number', i + 1)
@@ -110,7 +122,9 @@ class Cookbook(Planner):
 
     def _set_defaults(self):
         """ Declares default step names and classes in a Cookbook recipe."""
+        # Initially sets defaults from parent class.
         super()._set_defaults()
+        # Sets options for default steps of a Recipe.
         self.options = {'scaler' : Scale,
                         'splitter' : Split,
                         'encoder' : Encode,
@@ -119,11 +133,17 @@ class Cookbook(Planner):
                         'sampler' : Sample,
                         'reducer' : Reduce,
                         'model' : Model}
+        # Assigns the particular plan_class to Recipe so that parent class
+        # methods will point to the proper plan class.
         self.plan_class = Recipe
+        # Initializes the best_recipe.
         self.best_recipe = None
         return self
 
     def _set_experiment_folder(self):
+        """Sets the experiment folder and corresponding attributes in this
+        class's Inventory instance based upon user settings.
+        """
         if self.inventory.datetime_naming:
             subfolder = ('experiment_'
                          + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
@@ -143,7 +163,7 @@ class Cookbook(Planner):
                 of steps from which the folder name should be created.
         """
         if hasattr(self, 'naming_classes') and self.naming_classes:
-            subfolder = recipe.name + '_'
+            subfolder = 'recipe_'
             for step in listify(self.naming_classes):
                 subfolder += getattr(recipe, step).technique + '_'
             subfolder += str(recipe.number)
@@ -151,8 +171,15 @@ class Cookbook(Planner):
                 folder = self.inventory.experiment, subfolder = subfolder)
         return self
 
-    def add_cleave(self, cleave_group, prefixes = [], columns = []):
-        """Adds cleaves to the list of cleaves."""
+    def add_cleave(self, cleave_group, prefixes = None, columns = None):
+        """Adds cleaves to the list of cleaves.
+
+        Parameters:
+            cleave_group: string naming the set of features in the group.
+            prefixes: list or string of prefixes for columns to be included
+                within the cleave.
+            columns: list or string of columns to be included within the
+                cleave."""
         if not hasattr(self.cleaves) or not self.cleaves:
             self.cleaves = []
         columns = self.ingredients.create_column_list(prefixes = prefixes,
@@ -162,6 +189,11 @@ class Cookbook(Planner):
         return self
 
     def add_recipe(self, recipe):
+        """Adds a single recipe to self.recipes.
+
+        Parameters:
+            recipe: an instance of Recipe.
+        """
         if hasattr(self, 'recipes'):
             self.recipes.append(recipe)
         else:
@@ -169,9 +201,13 @@ class Cookbook(Planner):
         return self
 
     def load_recipe(self, file_path):
-        """Imports a single recipe from disc."""
-        recipe = self.inventory.unpickle_object(file_path)
-        self.add_recipe(recipe = recipe)
+        """Imports a single recipe from disc and adds it to self.recipes.
+
+        Parameters:
+            file_path: a path where the file to be loaded is located.
+        """
+        self.add_recipe(recipe = self.inventory.load(file_path = file_path,
+                                                     file_format = 'pickle'))
         return self
 
     def prepare(self):
@@ -180,12 +216,16 @@ class Cookbook(Planner):
         class stored in self.recipes.
         """
         Model.search_parameters = self.menu['search_parameters']
+        # Unlike Almanac, Cookbook doesn't require state changes at each step.
         self.conform(step = 'cook')
         self._set_experiment_folder()
         self._prepare_plan_class()
         self._prepare_steps()
         self._prepare_recipes()
         self.critic = Critic(menu = self.menu, inventory = self.inventory)
+        # Using training, test, validate sets creates two separate loops
+        # through all recipes: one with the test set, one with the validation
+        # set.
         if 'train_test_val' in self.data_to_use:
             self._prepare_one_loop(data_to_use = 'train_test')
             self._prepare_one_loop(data_to_use = 'train_val')
@@ -205,6 +245,7 @@ class Cookbook(Planner):
         return
 
     def save_all_recipes(self):
+        """Saves all recipes in self.recipes to disc as individual files."""
         for recipe in self.recipes:
             file_name = (
                 'recipe' + str(recipe.number) + '_' + recipe.model.technique)
@@ -215,6 +256,7 @@ class Cookbook(Planner):
         return
 
     def save_best_recipe(self):
+        """Saves the best recipe to disc."""
         if hasattr(self, 'best_recipe'):
             self.inventory.save(variable = self.best_recipe,
                                 folder = self.inventory.experiment,
@@ -232,7 +274,12 @@ class Cookbook(Planner):
         return
 
     def save_recipe(self, recipe, file_path = None):
-        """Exports a recipe to disc."""
+        """Exports a recipe to disc.
+
+        Parameters:
+            recipe: an instance of Recipe.
+            file_path: path of where file should be saved. If none, a default
+                file_path will be created from self.inventory."""
         if self.verbose:
             print('Saving recipe', recipe.number)
         self._set_recipe_folder(recipe = recipe)
@@ -246,6 +293,12 @@ class Cookbook(Planner):
         return
 
     def save_review(self, review = None):
+        """Exports the Critic review to disc.
+
+        Parameters:
+            review: the attribute review from an instance of Critic. If none
+                is provided, self.critic.review is saved.
+        """
         if not review:
             review = getattr(self.critic.review,
                              self.model_type + '_report')
@@ -256,7 +309,13 @@ class Cookbook(Planner):
         return
 
     def start(self, ingredients = None):
-        """Completes an iteration of a Cookbook."""
+        """Completes an iteration of a Cookbook.
+
+        Parameters:
+            ingredients: an Instance of Ingredients. If passsed, it will be
+                assigned to self.ingredients. If not passed, self.ingredients
+                will be used.
+        """
         if ingredients:
             self.ingredients = ingredients
         for recipe in self.recipes:

@@ -157,26 +157,19 @@ class Step(object):
             error = 'runtime_parameters must be a dict type'
             raise TypeError(error)
 
-    def load(self, file_name, folder = '', prefix = '', suffix = ''):
-        """Loads stored ingredient from disc."""
+    def load(self, file_path):
+        """Loads stored step from disc."""
         if self.verbose:
-            print('Importing', file_name)
-        file_path = self.inventory.create_path(folder = folder,
-                                               prefix = prefix,
-                                               file_name = file_name,
-                                               suffix = suffix,
-                                               file_type = 'pickle')
-        self.algorithm = pickle.load(open(file_path, 'rb'))
-        return self
+            print('Importing', file_path)
+        step = self.inventory.load(file_path, file_format = 'pickle')
+        return step
 
-    def save(self, file_name, folder = '', prefix = '', suffix = ''):
+    def save(self):
         """Saves step to disc."""
         if self.verbose:
-            print('Exporting', file_name)
-        file_path = self.inventory.create_path(folder = folder,
-                                               prefix = prefix,
-                                               file_name = file_name,
-                                               suffix = suffix,
-                                               file_type = 'pickle')
-        pickle.dump(self.algorithm, open(file_path, 'wb'))
+            print('Exporting', self.name)
+        self.inventory.save(variable = self.algorithm,
+                            folder = self.inventory.experiment,
+                            file_name = self.name,
+                            file_format = 'pickle')
         return self
