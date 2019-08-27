@@ -7,7 +7,7 @@ import sklearn.metrics as met
 #from eli5 import show_weights
 from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
-from ...implements.tools import listify
+from ...tools import listify
 from ..cookbook_step import CookbookStep
 
 

@@ -1,5 +1,5 @@
 """
-.. module:: simplify_steps
+.. module:: siMpLify cookbook steps
   :synopsis: machine learning workflow made simple
 """
 
@@ -11,11 +11,6 @@ from .reduce import Reduce
 from .sample import Sample
 from .scale import Scale
 from .split import Split
-
-
-__version__ = '0.1.0'
-
-__author__ = 'Corey Rayburn Yung'
 
 __all__ = ['Cleave',
            'Encode',

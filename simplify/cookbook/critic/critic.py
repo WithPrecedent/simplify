@@ -18,17 +18,17 @@ class Critic(object):
             self.prepare()
         return self
 
-    def _localize(self):
-        self.menu.localize(instance = Review,
+    def _inject(self):
+        self.menu.inject(instance = Review,
                            sections = ['general', 'cookbook', 'files',
                                        'review'])
-        self.menu.localize(instance = Presentation,
+        self.menu.inject(instance = Presentation,
                            sections = ['general', 'files', 'review',
                                        'presentation'])
         return self
 
     def _set_defaults(self):
-        self._localize()
+        self._inject()
         self.review = Review()
         self.presentation = Presentation(inventory = self.inventory)
         return self

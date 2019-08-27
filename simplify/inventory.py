@@ -36,10 +36,10 @@ class Inventory(object):
     auto_prepare : bool = True
 
     def __post_init__(self):
-        """Localizes select settings as attributes, sets default attributes,
+        """injects select settings as attributes, sets default attributes,
         and calls prepare method if auto_prepare = True.
         """
-        self.menu.localize(instance = self, sections = ['general', 'files'])
+        self.menu.inject(instance = self, sections = ['general', 'files'])
         self._set_defaults()
         if self.auto_prepare:
             self.prepare()
@@ -323,7 +323,7 @@ class Inventory(object):
     def _make_folder(self, folder):
         """Creates folder if it doesn't already exist.
 
-        Arguments:
+        Parameters:
             folder: a string containing the path of the folder.
         """
         if not os.path.exists(folder):
@@ -494,7 +494,7 @@ class Inventory(object):
                           dialect = 'excel'):
         """Initializes writer object for line-by-line exporting to a .csv file.
 
-        Arguments:
+        Parameters:
             file_path: a complete path to the file being created and written
                 to.
             columns: a list of column names to be added to the first row of the
@@ -541,7 +541,7 @@ class Inventory(object):
         """Iterates through a list of files contained in self.batch and
         applies the plans created by a Planner method (or subclass).
 
-        Arguments:
+        Parameters:
             plans: an attribute of a Planner method (or subclass) containing
                 methods used to modify an Ingredients instance.
             ingredients: an instance of Ingredients (or subclass).
@@ -569,7 +569,7 @@ class Inventory(object):
         the various arguments are not passed, default values are used. If
         file_path is passed, folder and file_name are ignored.
 
-        Arguments:
+        Parameters:
             file_path: a complete file path for the file to be loaded.
             folder: a path to the folder from where the file should be loaded
                 (not used if file_path is passed).
@@ -613,7 +613,7 @@ class Inventory(object):
         the various arguments are not passed, default values are used. If
         file_path is passed, folder and file_name are ignored.
 
-        Arguments:
+        Parameters:
             variable: the variable being exported.
             file_path: a complete file path for the file to be saved.
             folder: a path to the folder where the file should be saved (not

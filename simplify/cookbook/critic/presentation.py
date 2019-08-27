@@ -7,7 +7,7 @@ import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from ...implements.tools import listify
+from ...tools import listify
 
 
 @dataclass
@@ -54,7 +54,7 @@ class Presentation(object):
         return self
 
     def _set_style(self):
-        """Sets fonts, colors, and styles for plots that do not have set 
+        """Sets fonts, colors, and styles for plots that do not have set
         styles.
         """
         # List of colorblind colors obtained from here:

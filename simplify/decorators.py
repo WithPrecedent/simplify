@@ -3,6 +3,20 @@ from inspect import getfullargspec, signature
 
 import time
 
+
+def check_df(func):
+    """Decorator which automatically uses the default DataFrame if one
+    is not passed to the decorated method.
+    """
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        argspec = getfullargspec(func)
+        unpassed_args = argspec.args[len(args):]
+        if 'df' in argspec.args and 'df' in unpassed_args:
+            kwargs.update({'df' : getattr(self, self.default_df)})
+        return func(self, *args, **kwargs)
+    return wrapper
+
 def check_kwargs(method, excludes = None):
     @wraps(method)
     def wrapper(self, *args, **kwargs):

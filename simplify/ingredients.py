@@ -11,7 +11,8 @@ import pandas as pd
 from numpy import datetime64
 from pandas.api.types import CategoricalDtype
 
-from .implements.tools import listify
+from .decorators import check_df
+from .tools import listify
 
 
 @dataclass
@@ -82,7 +83,7 @@ class Ingredients(object):
     def __post_init__(self):
         """Localizes menu settings, sets class instance defaults, and prepares
         data and datatype dict if auto_prepare is True."""
-        self.menu.localize(instance = self, sections = ['general'])
+        self.menu.inject(instance = self, sections = ['general'])
         # Sets default options for Ingredients.
         self._set_defaults()
         if self.auto_prepare:
@@ -109,6 +110,9 @@ class Ingredients(object):
         return self
 
     def __getattr__(self, attr):
+        """Returns values from column datatypes, column datatype dictionary,
+        and section prefixes dictionary.
+        """
         if attr in ['booleans', 'floats', 'integers', 'strings',
                     'categoricals', 'list', 'datetime', 'timedelta', 'mixer',
                     'scaler', 'encoder']:
@@ -139,6 +143,7 @@ class Ingredients(object):
             raise KeyError(error)
 
     def __iter__(self):
+        """Returns iterable from default dataframe rows."""
         return getattr(self, self.default_df).iterrows()
 
     def __repr__(self):
@@ -146,6 +151,9 @@ class Ingredients(object):
         return self.__str__()
 
     def __setattr__(self, attr, value):
+        """Sets values in column datatypes, column datatype dictionary, and
+        section prefixes dictionary.
+        """
         if attr in ['booleans', 'floats', 'integers', 'strings',
                     'categoricals', 'list', 'datetime', 'timedelta', 'mixer',
                     'scaler', 'encoder']:
@@ -192,7 +200,7 @@ class Ingredients(object):
     def test(self):
         """Returns the test data."""
         return self.dataframes['x_test'], self.dataframes['y_test']
-       
+
 
     @property
     def train(self):
@@ -228,24 +236,22 @@ class Ingredients(object):
         """Returns the full dataset divided into x and y."""
         return self.dataframes['x'], self.dataframes['y']
 
-    def check_df(func):
-        """Decorator which automatically uses the default DataFrame if one
-        is not passed to the decorated method.
-        """
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            argspec = getfullargspec(func)
-            unpassed_args = argspec.args[len(args):]
-            if 'df' in argspec.args and 'df' in unpassed_args:
-                kwargs.update({'df' : getattr(self, self.default_df)})
-            return func(self, *args, **kwargs)
-        return wrapper
+#    def check_df(func):
+#        """Decorator which automatically uses the default DataFrame if one
+#        is not passed to the decorated method.
+#        """
+#        @wraps(func)
+#        def wrapper(self, *args, **kwargs):
+#            argspec = getfullargspec(func)
+#            unpassed_args = argspec.args[len(args):]
+#            if 'df' in argspec.args and 'df' in unpassed_args:
+#                kwargs.update({'df' : getattr(self, self.default_df)})
+#            return func(self, *args, **kwargs)
+#        return wrapper
 
     def _check_columns(self, columns = None):
-        if columns:
-            return columns
-        else:
-            return self.columns
+        """Returns self.columns if columns doesn't exist."""
+        return columns or self.columns
 
     @check_df
     def _crosscheck_columns(self, df = None):
@@ -345,7 +351,14 @@ class Ingredients(object):
     @check_df
     def add_unique_index(self, df = None, column = 'index_universal',
                          make_index = False):
-        """Creates a unique integer index for each row."""
+        """Creates a unique integer index for each row.
+
+        Parameters:
+            df: pandas DataFrame. If none is provided, the default DataFrame
+                is used.
+            column: string containing the column name for the index.
+            make_index: boolean value indicating whether the index column
+                should be made the index of the DataFrame."""
         if isinstance(df, pd.DataFrame):
             df[column] = range(1, len(df.index) + 1)
             self.datatypes.update({column, int})
@@ -361,6 +374,12 @@ class Ingredients(object):
         """Allows users to pass a function to Ingredients instance which will
         be applied to the passed DataFrame (or uses default_df if none is
         passed).
+
+        Parameters:
+            df: pandas DataFrame. If none is provided, the default DataFrame
+                is used.
+            func: function to be applied to the DataFrame.
+            **kwargs: any arguments to be passed to func.
         """
         df = func(df, **kwargs)
         return self
@@ -370,6 +389,15 @@ class Ingredients(object):
         """Automatically assesses each column to determine if it has less than
         threshold unique values and is not boolean. If so, that column is
         converted to category type.
+
+        Parameters:
+            df: pandas DataFrame. If none is provided, the default DataFrame
+                is used.
+            columns: a list of column names.
+            threshold: integer of unique values necessary to form a category.
+                If there are less unique values than the threshold, the column
+                is converted to a category type. Otherwise, it will remain its
+                current datatype.
         """
         for column in self._check_columns(columns):
             if column in df.columns:
@@ -386,6 +414,14 @@ class Ingredients(object):
                         datatype = str):
         """Changes column datatypes of columns passed or columns with the
         prefixes passed. datatype becomes the new datatype for the columns.
+
+        Parameters:
+            df: pandas DataFrame. If none is provided, the default DataFrame
+                is used.
+            columns: a list of column names.
+            prefixes: a list of prefix names.
+            datatype: a string containing the datatype to convert the columns
+                and columns with prefixes to.
         """
         if prefixes or columns:
             columns_list = self.create_column_list(df = df,
@@ -402,6 +438,11 @@ class Ingredients(object):
     def conform(self, df = None, step = None):
         """Adjusts some of the siMpLify-specific datatypes to the appropriate
         datatype based upon the current step.
+
+        Parameters:
+            df: pandas DataFrame. If none is provided, the default DataFrame
+                is used.
+            step: string corresponding to the current state.
         """
         self.step = step
         for column, datatype in self.columns.items():
@@ -418,6 +459,12 @@ class Ingredients(object):
     def convert_column_datatypes(self, df = None, raise_errors = False):
         """Attempts to convert all column data to the datatypes list in
         self.columns.
+
+        Parameters:
+            df: pandas DataFrame. If none is provided, the default DataFrame
+                is used.
+            raise_errors: a boolean variable indicating whether errors should
+                be raised when converting datatypes or ignored.
         """
         if raise_errors:
             raise_errors = 'raise'
@@ -609,6 +656,7 @@ class Ingredients(object):
         # If datatypes passed, checks to see if columns are in df. Otherwise,
         # datatypes are inferred.
         self._initialize_datatypes()
+        self.summarizer = Summary()
         return self
 
     @check_df
@@ -669,44 +717,120 @@ class Ingredients(object):
         boolean and numerical columns by default. If an export_path is passed,
         the summary table is automatically saved to disc.
         """
-        summary_columns = ['variable', 'datatype', 'count', 'min', 'q1',
-                           'median', 'q3', 'max', 'mad', 'mean', 'stan_dev',
-                           'mode', 'sum']
-        self.summary = pd.DataFrame(columns = summary_columns)
-        for i, col in enumerate(df.columns):
-            new_row = pd.Series(index = summary_columns)
-            new_row['variable'] = col
-            new_row['datatype'] = df[col].dtype
-            new_row['count'] = len(df[col])
-            if df[col].dtype == bool:
-                df[col] = df[col].astype(int)
-            if df[col].dtype.kind in 'bifcu':
-                new_row['min'] = df[col].min()
-                new_row['q1'] = df[col].quantile(0.25)
-                new_row['median'] = df[col].median()
-                new_row['q3'] = df[col].quantile(0.75)
-                new_row['max'] = df[col].max()
-                new_row['mad'] = df[col].mad()
-                new_row['mean'] = df[col].mean()
-                new_row['stan_dev'] = df[col].std()
-                new_row['mode'] = df[col].mode()[0]
-                new_row['sum'] = df[col].sum()
-            self.summary.loc[len(self.summary)] = new_row
-        self.summary.sort_values('variable', inplace = True)
+#        summary_columns = ['variable', 'datatype', 'count', 'min', 'q1',
+#                           'median', 'q3', 'max', 'mad', 'mean', 'stan_dev',
+#                           'mode', 'sum']
+#        self.summary = pd.DataFrame(columns = summary_columns)
+#        for i, col in enumerate(df.columns):
+#            new_row = pd.Series(index = summary_columns)
+#            new_row['variable'] = col
+#            new_row['datatype'] = df[col].dtype
+#            new_row['count'] = len(df[col])
+#            if df[col].dtype == bool:
+#                df[col] = df[col].astype(int)
+#            if df[col].dtype.kind in 'bifcu':
+##                new_row['min'] = df[col].min()
+#                new_row['min'] = getattr(df[col], 'min')()
+#                new_row['q1'] = getattr(df[col], 'quantile')(0.25)
+#                new_row['median'] = df[col].median()
+#                new_row['q3'] = df[col].quantile(0.75)
+#                new_row['max'] = df[col].max()
+#                new_row['mad'] = df[col].mad()
+#                new_row['mean'] = df[col].mean()
+#                new_row['stan_dev'] = df[col].std()
+#                new_row['mode'] = df[col].mode()[0]
+#                new_row['sum'] = df[col].sum()
+#            self.summary.loc[len(self.summary)] = new_row
+#        self.summary.sort_values('variable', inplace = True)
+#        if not transpose:
+#            self.summary = self.summary.transpose()
+#            df_header = False
+#            df_index = True
+#        else:
+#            df_header = True
+#            df_index = False
+#        if export_summary:
+#            if self.verbose:
+#                print('Saving ingredients summary data')
+#            self.inventory.save(variable = df,
+#                                folder = self.inventory.experiment,
+#                                file_format = 'csv',
+#                                file_name = 'data_summary',
+#                                header = df_header,
+#                                index = df_index)
+        self.summarizer.start(df = df, transpose = transpose)
+        if self.verbose:
+            print('Saving ingredients summary data')
+        self.inventory.save(variable = self.summarizer.report,
+                            folder = self.inventory.experiment,
+                            file_format = 'csv',
+                            file_name = 'data_summary',
+                            header = self.summarizer.df_header,
+                            index = self.summarizer.df_index)
+        return self
+
+@dataclass
+class Summary(object):
+
+    auto_prepare : bool = True
+
+    def __post_init__(self):
+        self._set_defaults()
+        if self.auto_prepare:
+            self.prepare()
+        return self
+
+    def _set_defaults(self):
+        self.options = {'datatype' : ['dtype'],
+                        'count' : 'count',
+                        'min' :'min',
+                        'q1' : ['quantile', 0.25],
+                        'median' : 'median',
+                        'q3' : ['quantile', 0.75],
+                        'max' : 'max',
+                        'mad' : 'mad',
+                        'mean' : 'mean',
+                        'stan_dev' : 'std',
+                        'mode' : ['mode', [0]],
+                        'sum' : 'sum',
+                        'kurtosis' : 'kurtosis',
+                        'skew' : 'skew',
+                        'variance' : 'var',
+                        'stan_error' : 'sem',
+                        'unique' : 'nunique'}
+        return self
+
+    def prepare(self):
+        self.columns = ['variable']
+        self.columns.extend(list(self.options.keys()))
+        self.report = pd.DataFrame(columns = self.columns)
+        return self
+
+    def start(self, df = None, transpose = True):
+        for i, column in enumerate(df.columns):
+            row = pd.Series(index = self.columns)
+            row['variable'] = column
+            if df[column].dtype == bool:
+                df[column] = df[column].astype(int)
+            if df[column].dtype.kind in 'bifcu':
+                for key, value in self.options.items():
+                    if isinstance(value, str):
+                        row[key] = getattr(df[column], value)()
+                    elif isinstance(value, list):
+                        if len(value) < 2:
+                            row[key] = getattr(df[column], value[0])
+                        elif isinstance(value[1], list):
+                            row[key] = getattr(df[column],
+                               value[0])()[value[1]]
+                        else:
+                            row[key] = getattr(df[column],
+                               value[0])(value[1])
+            self.report.loc[len(self.report)] = row
         if not transpose:
-            self.summary = self.summary.transpose()
-            df_header = False
-            df_index = True
+            self.report = self.report.transpose()
+            self.df_header = False
+            self.df_index = True
         else:
-            df_header = True
-            df_index = False
-        if export_summary:
-            if self.verbose:
-                print('Saving ingredients summary data')
-            self.inventory.save(variable = df,
-                                folder = self.inventory.experiment,
-                                file_format = 'csv',
-                                file_name = 'data_summary',
-                                header = df_header,
-                                index = df_index)
+            self.df_header = True
+            self.df_index = False
         return self

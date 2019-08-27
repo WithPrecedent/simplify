@@ -8,7 +8,7 @@ import pandas as pd
 from .inventory import Inventory
 from .menu import Menu
 from .tools import listify
-from ..ingredients import Ingredients
+from .ingredients import Ingredients
 
 @dataclass
 class Planner(object):
@@ -61,7 +61,7 @@ class Planner(object):
         Ingredients instance. If ingredients is None, then an Ingredients
         instance is created with no pandas DataFrames within it.
 
-        Arguments:
+        Parameters:
             ingredients: an Ingredients instance, a file path containing a
                 DataFrame or Series to add to an Ingredients instance, or
                 a folder containing files to be used to compose Ingredients
