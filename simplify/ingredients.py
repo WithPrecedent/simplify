@@ -270,6 +270,10 @@ class Ingredients(object):
         """Remaps DataFrames returned by various properties of Ingredients so
         that methods and classes of siMpLify can use the same labels for
         analyzing the Ingredients DataFrames.
+
+        Parameters:
+            data_to_use: a string corresponding to a class property indicating
+                which set of data is to be returned.
         """
         if data_to_use == 'train_test':
             self.dataframes = self.default_dataframes.copy()
