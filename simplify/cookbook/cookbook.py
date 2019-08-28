@@ -270,7 +270,7 @@ class Cookbook(Planner):
         self.save()
         self.save_review()
         self.save_best_recipe()
-        self.ingredients.save_drops()
+        self.ingredients.save_dropped()
         return
 
     def save_recipe(self, recipe, file_path = None):

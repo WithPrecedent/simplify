@@ -243,7 +243,7 @@ class Review(object):
                             'svm_linear' : 'linear',
                             'tensor_flow' : 'deep',
                             'torch' : 'deep',
-                            'xgb' : 'tree'}
+                            'xgboost' : 'tree'}
         self.shap_options = {'deep' : DeepExplainer,
                                 'kernel' : KernelExplainer,
                                 'linear' : LinearExplainer,

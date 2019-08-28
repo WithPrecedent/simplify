@@ -3,6 +3,7 @@ import csv
 from datetime import timedelta
 from dataclasses import dataclass
 from more_itertools import unique_everseen
+import os
 
 import numpy as np
 import pandas as pd
@@ -10,6 +11,7 @@ from numpy import datetime64
 from pandas.api.types import CategoricalDtype
 
 from .decorators import check_df
+from .summary import Summary
 from .tools import listify
 
 
@@ -18,48 +20,39 @@ class Ingredients(object):
     """Imports, stores, and exports pandas DataFrames and Series, as well as
     related information about those data containers.
 
-    Ingredients uses pandas DataFrames or Series for all data storage, but its
-    subclasses utilize faster numpy methods where possible to increase
-    performance. Ingredients stores the data itself as well as a set of related
-    variables about the data.
+    Ingredients uses pandas DataFrames or Series for all data storage, but it
+    utilizes faster numpy methods where possible to increase performance.
+    Ingredients stores the data itself as well as related variables containing
+    information about the data.
 
     DataFrames stored in ingredients can be imported and exported using the
-    load and save methods. Current file formats supported are csv, feather, and
-    hdf5.
-
-    A Menu object needs to be passed when a Ingredients instance is created.
-    If the auto_prepare option is selected, an Inventory object must be passed
-    as well.
+    load and save methods from the Inventory class.
 
     Ingredients adds easy-to-use methods for common feature engineering
-    techniques. There are methods for creating column dictionaries for the
-    different data types commonly appearing in machine learning scripts
-    (column_types and create_column_list). Any function can be applied to a
-    DataFrame contained in Ingredients by using the apply method.
+    techniques. In addition, any user function can be applied to a DataFrame
+    or Series contained in Ingredients by using the apply method.
 
-    Ingredients also includes some methods which are designed to be accessible
-    and user-friendly than the commonly-used methods. For example, data can
-    easily be downcast to save memory with the downcast method and
-    smart_fill fills na data with appropriate defaults based upon the column
-    datatypes (either provided by the user via datatypes or through
-    inference).
-
-    Attributes:
+    Parameters:
 
         menu: an instance of Menu.
         inventory: an instance of Inventory.
-        df: a pandas DataFrame or Series.
+        df: a pandas DataFrame or Series. This argument should be passed if
+            the user has a pre-existing dataset.
         auto_prepare: a boolean variable indicating whether prepare method
-            should be called when class instanced.
+            should be called when the class is instanced.
         default_df: a string listing the current default DataFrame or Series
             attribute that will be used when a specific DataFrame is not passed
-            to a method. The default value is initially set to 'df'.
+            to a method. The default value is initially set to 'df'. The
+            imported decorator check_df will look to the default_df to pick
+            the appropriate DataFrame in such situations.
         x, y, x_train, y_train, x_test, y_test, x_val, y_val: DataFrames or
             Series. These DataFrames and Series need not be passed when the
             class is instanced. They are merely listed for users who already
             have divided datasets and still wish to use the siMpLify package.
-        datatypes: dictionary containing column names and datatypes for df
-            or x (if data has been split) DataFrames or Series.
+        datatypes: dictionary containing column names and datatypes for
+            DataFrames or Series.
+        prefixes: dictionary containing list of prefixes for columns and
+            corresponding datatypes for default DataFrame.
     """
     menu : object
     inventory : object
@@ -99,7 +92,7 @@ class Ingredients(object):
         """Deletes item if in dataframes dict or, if an instance attribute, it
         is assigned a value of None."""
         if item in self.dataframes:
-            self.dataframes.pop(item)
+            del self.dataframes[item]
         elif hasattr(self, item):
             setattr(self, item, None)
         else:
@@ -112,9 +105,11 @@ class Ingredients(object):
         and section prefixes dictionary.
         """
         if attr in ['booleans', 'floats', 'integers', 'strings',
-                    'categoricals', 'list', 'datetime', 'timedelta', 'mixer',
-                    'scaler', 'encoder']:
-            return self._get_columns_by_type(self._datatype_names[attr])
+                    'categoricals', 'lists', 'datetimes', 'timedeltas']:
+            return self._get_columns_by_type(self._datatype_names[attr[:-1]])
+        elif (attr in ['scalers', 'encoders', 'mixers']
+              and attr not in self.__dict__):
+            return getattr(self, '_get_default_' + attr)()
         elif attr in ['columns']:
             if not self.datatypes:
                 self.datatypes = {}
@@ -153,10 +148,10 @@ class Ingredients(object):
         section prefixes dictionary.
         """
         if attr in ['booleans', 'floats', 'integers', 'strings',
-                    'categoricals', 'list', 'datetime', 'timedelta', 'mixer',
-                    'scaler', 'encoder']:
+                    'categoricals', 'lists', 'datetimes', 'timedeltas']:
             self.__dict__['datatypes'].update(
-                    dict.fromkeys(listify(self._datatype_names[attr]), value))
+                    dict.fromkeys(listify(self._datatype_names[attr[:-1]]),
+                                  value))
             return self
         elif attr in ['columns']:
             self.__dict__['datatypes'].update({attr: value})
@@ -235,21 +230,37 @@ class Ingredients(object):
         return self.dataframes['x'], self.dataframes['y']
 
     def _check_columns(self, columns = None):
-        """Returns self.columns if columns doesn't exist."""
-        return columns or self.columns
+        """Returns self.datatypes if columns doesn't exist.
+
+        Parameters:
+            columns: list of column names."""
+        return columns or list(self.datatypes.keys())
 
     @check_df
     def _crosscheck_columns(self, df = None):
-        """Removes any columns in columns dictionary, but not in DataFrame."""
-        for column, datatype in self.columns.items():
+        """Removes any columns in datatypes dictionary, but not in df."""
+        for column, datatype in self.datatypes.items():
             if column not in df.columns:
-                self.columns.pop(column)
+                del self.datatypes[column]
         return self
 
     def _get_columns_by_type(self, datatype):
-        """Returns list of columns of the specified datatype."""
+        """Returns list of columns of the specified datatype.
+
+        Parameters:
+            datatype: string matching datatype in self.extensions.
+        """
         return (
-            [key for key, value in self.columns.items() if value == datatype])
+            [key for key, value in self.datatypes.items() if value == datatype])
+
+    def _get_default_encoders(self):
+        return self.categoricals
+
+    def _get_default_mixers(self):
+        return []
+
+    def _get_default_scalers(self):
+        return self.integers + self.floats
 
     def _initialize_datatypes(self, df = None):
         """Initializes datatypes for columns of pandas DataFrame or Series if
@@ -266,15 +277,20 @@ class Ingredients(object):
                 break
         return self
 
-    def _remap_dataframes(self, data_to_use):
+    def _remap_dataframes(self, data_to_use = None):
         """Remaps DataFrames returned by various properties of Ingredients so
         that methods and classes of siMpLify can use the same labels for
         analyzing the Ingredients DataFrames.
 
         Parameters:
             data_to_use: a string corresponding to a class property indicating
-                which set of data is to be returned.
+                which set of data is to be returned when the corresponding
+                property is called.
         """
+        if not data_to_use:
+            data_to_use = 'train_test'
+        # Sets values in self.dataframes which contains the mapping for class
+        # attributes and DataFrames as determined in __getattr__.
         if data_to_use == 'train_test':
             self.dataframes = self.default_dataframes.copy()
         elif data_to_use == 'train_val':
@@ -299,31 +315,28 @@ class Ingredients(object):
     def _set_defaults(self):
         """Sets defaults for Ingredients when class is instanced."""
         # Sets default values for missing data based upon datatype of column.
-        self.default_values = {bool : False,
-                               float : 0.0,
-                               int : 0,
-                               object : '',
-                               CategoricalDtype : '',
-                               list : [],
-                               datetime64 : 1/1/1900,
-                               timedelta : 0,
-                               'mixer' : '',
-                               'scaler' : 0,
-                               'encoder' : ''}
+        self.default_values = {'boolean' : False,
+                               'float' : 0.0,
+                               'integer' : 0,
+                               'string' : '',
+                               'categorical' : '',
+                               'list' : [],
+                               'datetime' : 1/1/1900,
+                               'timedelta' : 0}
         # Sets string names of various datatypes available.
-        self.datatype_names = {'booleans' : bool,
-                               'floats' : float,
-                               'integers' : int,
-                               'strings' : object,
-                               'categoricals' : CategoricalDtype,
+        self.datatype_names = {'boolean' : bool,
+                               'float' : float,
+                               'integer' : int,
+                               'string' : object,
+                               'categorical' : CategoricalDtype,
                                'list' : list,
                                'datetime' : datetime64,
-                               'timedelta' : timedelta,
-                               'mixer' : 'mixer',
-                               'scaler' : 'scaler',
-                               'encoder' : 'encoder'}
+                               'timedelta' : timedelta}
+        # Creates reversed dictionary of datatype_names.
+        self.datatype_names_reversed = {
+            value : key for key, value in self.datatype_names.items()}
         # Declares dictionary of DataFrames contained in Ingredients to allow
-        # temporary remapping.
+        # temporary remapping of attributes in __getattr__.
         self.default_dataframes = {'x' : self.x,
                                    'y' : self.y,
                                    'x_train' : self.x_train,
@@ -332,6 +345,10 @@ class Ingredients(object):
                                    'y_test' : self.y_test,
                                    'x_val' : self.x_val,
                                    'y_val' : self.y_val}
+        # Sets lists of columns for specialized use by Cookbook.
+        self.scalers = []
+        self.encoders = []
+        self.mixers = []
         # Maps class properties to appropriate DataFrames using the default
         # train_test setting.
         self._remap_dataframes(data_to_use = 'train_test')
@@ -417,9 +434,9 @@ class Ingredients(object):
                                                    prefixes = prefixes,
                                                    columns = columns)
         else:
-            columns_list = self.columns.keys()
+            columns_list = self.datatypes.keys()
         for column in columns_list:
-            self.columns[column] = datatype
+            self.datatypes[column] = datatype
         self.convert_column_datatypes(df = df)
         return self
 
@@ -434,20 +451,20 @@ class Ingredients(object):
             step: string corresponding to the current state.
         """
         self.step = step
-        for column, datatype in self.columns.items():
+        for column, datatype in self.datatypes.items():
             if self.step in ['harvest', 'clean']:
                 if datatype in ['category', 'encoder', 'interactor']:
-                    self.columns[column] = str
+                    self.datatypes[column] = str
             elif self.step in ['bundle', 'deliver']:
                 if datatype in ['list', 'pattern']:
-                    self.columns[column] = 'category'
+                    self.datatypes[column] = 'category'
         self.convert_column_datatypes(df = df)
         return self
 
     @check_df
     def convert_column_datatypes(self, df = None, raise_errors = False):
-        """Attempts to convert all column data to the datatypes list in
-        self.columns.
+        """Attempts to convert all column data to the datatypes in
+        self.datatypes.
 
         Parameters:
             df: pandas DataFrame. If none is provided, the default DataFrame
@@ -459,7 +476,7 @@ class Ingredients(object):
             raise_errors = 'raise'
         else:
             raise_errors = 'ignore'
-        for column, datatype in self.columns.items():
+        for column, datatype in self.datatypes.items():
             if not isinstance(datatype, str):
                 df[column].astype(dtype = datatype,
                                   copy = False,
@@ -472,24 +489,38 @@ class Ingredients(object):
         """Converts categories rarely appearing within categorical columns
         to empty string if they appear below the passed threshold. threshold is
         defined as the percentage of total rows.
+
+        Parameters:
+            df: a pandas DataFrame.
+            columns: a list of columns to check. If not passed, all columns
+                in self.datatypes listed as 'categorical' type are used.
+            threshold: a float indicating the percentage of values in rows
+                below which a default_value is substituted.
         """
-        for column in self._check_columns(columns):
+        if not columns:
+            columns = self.categoricals
+        for column in columns:
             if column in df.columns:
-                default_value = self.default_values[CategoricalDtype]
-                df['value_freq'] = (df[column].value_counts()
-                                    / len(df[column]))
+                df['value_freq'] = (df[column].value_counts() / len(df[column]))
                 df[column] = np.where(df['value_freq'] <= threshold,
-                                      default_value, df[column])
+                                      self.default_values['categorical'],
+                                      df[column])
             else:
                 error = column + ' is not in DataFrame'
                 raise KeyError(error)
-        df.drop('value_freq', axis = 'columns', inplace = True)
+        if 'value_freq' in df.columns:
+            df.drop('value_freq', axis = 'columns', inplace = True)
         return self
 
     @check_df
     def create_column_list(self, df = None, columns = None, prefixes = None):
         """Dynamically creates a new column list from a list of columns and/or
         lists of prefixes.
+
+        Parameters:
+            df: a pandas DataFrame.
+            columns: a list of columns to be included in returned list.
+            prefixes: a list of prefixes for columns to identify.
         """
         if prefixes:
             temp_list = []
@@ -506,32 +537,49 @@ class Ingredients(object):
             columns = prefixes_list
         return columns
 
-    def create_series(self, df = None, columns = None):
-        """Creates a Series (row) with the datatypes in columns."""
-        if not columns:
-            columns = list(self.columns.keys())
+    def create_series(self, columns = None, return_series = False):
+        """Creates a Series (row) with the datatypes in columns.
+
+        Parameters:
+            columns: a list of index names for pandas series.
+            return_series: boolean value indicating whether the Series should
+                be returned (True) or assigned to attribute named in default_df
+                (False):
+        """
+        # If columns is not passed, the keys of self.datatypes are used.
+        if not columns and self.datatypes:
+            columns = list(self.datatypes.keys())
         row = pd.Series(index = columns)
-        if self.columns:
-            for column, datatype in self.columns.items():
+        # Fills series with default_values based on datatype.
+        if self.datatypes:
+            for column, datatype in self.datatypes.items():
                 row[column] = self.default_values[datatype]
-        if not df:
+        if return_series:
+            return row
+        else:
             setattr(self, self.default_df, row)
             return self
-        else:
-            return row
 
     @check_df
-    def decorrelate(self, df = None, threshold = 0.95):
+    def decorrelate(self, df = None, columns = None, threshold = 0.95):
         """Drops all but one column from highly correlated groups of columns.
         threshold is based upon the .corr() method in pandas. columns can
-        include any datatype accepted by .corr(). If columns is set to 'all',
+        include any datatype accepted by .corr(). If columns is set to None,
         all columns in the DataFrame are tested.
+
+        Parameters:
+            df: a pandas DataFrame.
+            threshold: a float indicating the level of correlation using
+                pandas corr method above which a column is dropped.
         """
-        corr_matrix = df.corr().abs()
+        if columns:
+            corr_matrix = df[columns].corr().abs()
+        else:
+            corr_matrix = df.corr().abs()
         upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape),
                                           k = 1).astype(np.bool))
-        columns = [col for col in upper.columns if any(upper[col] > threshold)]
-        self.drop_columns(columns = columns)
+        corrs = [col for col in upper.corrs if any(upper[col] > threshold)]
+        self.drop_columns(columns = corrs)
         return self
 
     @check_df
@@ -539,12 +587,16 @@ class Ingredients(object):
         """Decreases memory usage by downcasting datatypes. For numerical
         datatypes, the method attempts to cast the data to unsigned integers if
         possible.
+
+        Parameters:
+            df: a pandas DataFrame.
+            columns: a list of columns to downcast
         """
         for column in self._check_columns(columns):
             if column in df.columns:
-                if self.columns[column] in [bool]:
+                if self.datatypes[column] in ['boolean']:
                     df[column] = df[column].astype(bool)
-                elif self.columns[column] in [int, float]:
+                elif self.datatypes[column] in ['integer', 'float']:
                     try:
                         df[column] = pd.to_numeric(df[column],
                                                    downcast = 'integer')
@@ -554,15 +606,15 @@ class Ingredients(object):
                     except ValueError:
                         df[column] = pd.to_numeric(df[column],
                                                    downcast = 'float')
-                elif self.columns[column] in [CategoricalDtype]:
+                elif self.datatypes[column] in ['categorical']:
                     df[column] = df[column].astype('category')
-                elif self.columns[column] in [list]:
+                elif self.datatypes[column] in ['list']:
                     df[column].apply(listify,
                                      axis = 'columns',
                                      inplace = True)
-                elif self.columns[column] in [np.datetime64]:
+                elif self.datatypes[column] in ['datetime']:
                     df[column] = pd.to_datetime(df[column])
-                elif self.columns[column] in [timedelta]:
+                elif self.datatypes[column] in ['timedelta']:
                     df[column] = pd.to_timedelta(df[column])
             else:
                 error = column + ' is not in DataFrame'
@@ -574,6 +626,11 @@ class Ingredients(object):
         """Drops list of columns and columns with prefixes listed. In addition,
         any dropped columns are stored in the cumulative dropped_columns
         list.
+
+        Parameters:
+            df: a pandas DataFrame.
+            columns: a list of columns to drop.
+            prefixes: a list of prefixes for columns to drop.
         """
         columns = self.create_column_list(columns = columns,
                                           prefixes = prefixes)
@@ -588,18 +645,23 @@ class Ingredients(object):
         concerned with rare instances of True and not False. This enables
         users to set a different variance threshold for rarely appearing
         information. threshold is defined as the percentage of total rows (and
-        not the typical variance formulas).
+        not the typical variance formulas used in sklearn).
+
+        Parameters:
+            df: a pandas DataFrame.
+            columns: a list of columns to check. If not passed, all boolean
+                columns will be used.
+            threshold: a float indicating the percentage of True values in a
+                boolean column that must exist for the column to be kept.
         """
-        cols = []
-        for column in self._check_columns(df):
-            if column in df.columns:
+        if not columns:
+            columns = self.booleans
+        infrequents = []
+        for column in self.booleans:
+            if column in columns:
                 if df[column].mean() < threshold:
-                    df.drop(column, axis = 'columns', inplace = True)
-                    cols.append(column)
-            else:
-                error = column + ' is not in DataFrame'
-                raise KeyError(error)
-        self.drop_columns(columns = cols)
+                    infrequents.append(column)
+        self.drop_columns(columns = infrequents)
         return self
 
     @check_df
@@ -609,80 +671,122 @@ class Ingredients(object):
         complex datatypes (e.g., int8, int16, int32, int64, etc.). This also
         allows the user to choose which datatypes to look for by changing the
         default_values dictionary. Non-standard python datatypes cannot be
-        inferred."""
+        inferred.
+
+        Parameters:
+            df: a pandas DataFrame.
+        """
         # Creates list of all possible datatypes.
-        self._all_datatypes = list(self.default_values.keys())
-        # Gets corresponding columns dictionary and initializes it if
-        # necessary.
+        self._all_datatypes = list(self.datatype_names.values())
+        # Makes datatypes dictionary from inferred datatypes.
+        if not self.datatypes:
+            self.datatypes = {}
         for datatype in self._all_datatypes:
-            if not isinstance(datatype, str):
-                type_columns = df.select_dtypes(
-                        include = [datatype]).columns.to_list()
-                self.columns.update(dict.fromkeys(type_columns, datatype))
+            type_columns = df.select_dtypes(
+                include = [datatype]).columns.to_list()
+            self.datatypes.update(
+                dict.fromkeys(type_columns,
+                              self.datatype_names_reversed[datatype]))
         return self
 
-    def load(self, folder = None, file_name = None, file_path = None,
-             file_format = None):
-        """Loads DataFrame into Ingredients instance from a file."""
-        setattr(self, self.default_df, self.inventory.load(
-                folder = folder,
-                file_name = file_name,
-                file_path = file_path,
-                file_format = file_format))
+    def load(self, name = None, file_path = None, folder = None,
+             file_name = None, file_format = None):
+        """Loads DataFrame or Series into Ingredients instance from a file.
+
+        Parameters:
+            name: name of attribute for DataFrame or Series to be stored.
+            file_path: a complete file path for the file to be saved.
+            folder: a path to the folder where the file should be saved (not
+                used if file_path is passed).
+            file_name: a string containing the name of the file to be saved
+                without the file extension (not used if file_path is passed).
+            file_format: a string matching one the file formats in
+                Inventory.extensions.
+        """
+        # If name is not provided, the attribute name in default_df is used.
+        if not name:
+            name = self.default_df
+        setattr(self, name, self.inventory.load(file_path = file_path,
+                                                folder = folder,
+                                                file_name = file_name,
+                                                file_format = file_format))
         return self
 
     def prepare(self):
         """Prepares Ingredients class instance."""
         if self.verbose:
             print('Preparing ingredients')
-        if (not (isinstance(getattr(self, self.default_df), pd.DataFrame)
-                 or isinstance(getattr(self, self.default_df), pd.Series))
-                 and self.auto_load):
-            self.load()
+        # If self.df is a path_name, the file located there is imported.
+        if (not(isinstance(self.df, pd.DataFrame) or
+                isinstance(self.df, pd.Series))
+                and os.path.isfile(self.df)):
+            self.load(name = 'df', file_path = self.df)
         # Initializes a list of dropped column names so that users can track
         # which features are omitted from analysis.
         self.dropped_columns = []
         # If datatypes passed, checks to see if columns are in df. Otherwise,
         # datatypes are inferred.
         self._initialize_datatypes()
+        # Sets class for summarizing DataFrames in Ingredients.
         self.summarizer = Summary()
         return self
 
     @check_df
-    def save(self, df = None, folder = None, file_name = None,
-             file_path = None, file_format = None):
-        """Exports a DataFrame or Series attribute to disc."""
+    def save(self, df = None, file_path = None, folder = None, file_name = None,
+             file_format = None):
+        """Exports a DataFrame or Series attribute to disc.
+
+        Parameters:
+            df: a pandas DataFrame.
+            file_path: a complete file path for the file to be saved.
+            folder: a path to the folder where the file should be saved (not
+                used if file_path is passed).
+            file_name: a string containing the name of the file to be saved
+                without the file extension (not used if file_path is passed).
+            file_format: a string matching one the file formats in
+                Inventory.extensions.
+        """
+        if self.verbose:
+            print('Saving ingredients')
         self.inventory.save(variable = df,
+                            file_path = file_path,
                             folder = folder,
                             file_name = file_name,
-                            file_path = file_path,
                             file_format = file_format)
         return
 
-    def save_drops(self, file_name = 'dropped_columns', export_path = ''):
-        """Saves dropped_columns into a .csv file."""
+    def save_dropped(self, file_name = 'dropped_columns', file_format = 'csv'):
+        """Saves dropped_columns into a file
+
+        Parameters:
+            file_name: string containing name of file to be exported.
+            file_format: string of file extension from Inventory.extensions.
+        """
+        # Deduplicates dropped_columns list
         self.dropped_columns = list(unique_everseen(self.dropped_columns))
-        if not export_path:
-            export_path = self.inventory.create_path(
-                    folder = self.inventory.experiment,
-                    file_name = file_name,
-                    file_format = 'csv')
         if self.dropped_columns:
             if self.verbose:
                 print('Exporting dropped feature list')
-            with open(export_path, 'wb') as export_file:
-                csv_writer = csv.writer(export_file)
-                csv_writer.writerow(self.dropped_columns)
+            self.inventory.save(variable = self.dropped_columns,
+                                folder = self.inventory.experiment,
+                                file_name = file_name,
+                                file_format = file_format)
+        elif self.verbose:
+            print('No features were dropped during preprocessing.')
         return
 
     @check_df
     def smart_fill(self, df = None, columns = None):
         """Fills na values in DataFrame to defaults based upon the datatype
         listed in the columns dictionary.
+
+        Parameters:
+            df: a pandas DataFrame.
+            columns: list of columns to fill missing values in.
         """
         for column in self._check_columns(columns):
-            if column in df.columns:
-                default_value = self.default_values[self.columns[column]]
+            if column in df:
+                default_value = self.default_values[self.datatypes[column]]
                 df[column].fillna(default_value, inplace = True)
             else:
                 error = column + ' is not in DataFrame'
@@ -691,135 +795,38 @@ class Ingredients(object):
 
     @check_df
     def split_xy(self, df = None, label = 'label'):
-        """Splits ingredients into x and y based upon the label passed."""
+        """Splits df into x and y based upon the label passed.
+
+        Parameters:
+            df: a pandas DataFrame.
+            label: name of column(s) to be stored in self.y
+        """
         self.x = df.drop(label, axis = 'columns')
         self.y = df[label]
+        # drops columns in self.y from datatypes dictionary.
         self._crosscheck_columns(df = self.x)
         return self
 
     @check_df
-    def summarize(self, df = None, export_path = '', export_summary = True,
-                  transpose = True):
-        """Creates a DataFrame of common summary data.
+    def summarize(self, df = None, transpose = True, file_name = 'data_summary',
+                  file_format = 'csv'):
+        """Creates and exports a DataFrame of common summary data using the
+        Summary class.
 
-        summarize is more inclusive than pandas.describe() and includes
-        boolean and numerical columns by default. If an export_path is passed,
-        the summary table is automatically saved to disc.
+        Parameters:
+            df: a pandas DataFrame.
+            transpose: boolean value indicating whether the df columns should be
+                listed horizontally (True) or vertically (False) in report.
+            file_name: string containing name of file to be exported.
+            file_format: string of file extension from Inventory.extensions.
         """
-#        summary_columns = ['variable', 'datatype', 'count', 'min', 'q1',
-#                           'median', 'q3', 'max', 'mad', 'mean', 'stan_dev',
-#                           'mode', 'sum']
-#        self.summary = pd.DataFrame(columns = summary_columns)
-#        for i, col in enumerate(df.columns):
-#            new_row = pd.Series(index = summary_columns)
-#            new_row['variable'] = col
-#            new_row['datatype'] = df[col].dtype
-#            new_row['count'] = len(df[col])
-#            if df[col].dtype == bool:
-#                df[col] = df[col].astype(int)
-#            if df[col].dtype.kind in 'bifcu':
-##                new_row['min'] = df[col].min()
-#                new_row['min'] = getattr(df[col], 'min')()
-#                new_row['q1'] = getattr(df[col], 'quantile')(0.25)
-#                new_row['median'] = df[col].median()
-#                new_row['q3'] = df[col].quantile(0.75)
-#                new_row['max'] = df[col].max()
-#                new_row['mad'] = df[col].mad()
-#                new_row['mean'] = df[col].mean()
-#                new_row['stan_dev'] = df[col].std()
-#                new_row['mode'] = df[col].mode()[0]
-#                new_row['sum'] = df[col].sum()
-#            self.summary.loc[len(self.summary)] = new_row
-#        self.summary.sort_values('variable', inplace = True)
-#        if not transpose:
-#            self.summary = self.summary.transpose()
-#            df_header = False
-#            df_index = True
-#        else:
-#            df_header = True
-#            df_index = False
-#        if export_summary:
-#            if self.verbose:
-#                print('Saving ingredients summary data')
-#            self.inventory.save(variable = df,
-#                                folder = self.inventory.experiment,
-#                                file_format = 'csv',
-#                                file_name = 'data_summary',
-#                                header = df_header,
-#                                index = df_index)
         self.summarizer.start(df = df, transpose = transpose)
         if self.verbose:
             print('Saving ingredients summary data')
         self.inventory.save(variable = self.summarizer.report,
                             folder = self.inventory.experiment,
-                            file_format = 'csv',
-                            file_name = 'data_summary',
+                            file_name = file_name,
+                            file_format = file_format,
                             header = self.summarizer.df_header,
                             index = self.summarizer.df_index)
-        return self
-
-@dataclass
-class Summary(object):
-
-    auto_prepare : bool = True
-
-    def __post_init__(self):
-        self._set_defaults()
-        if self.auto_prepare:
-            self.prepare()
-        return self
-
-    def _set_defaults(self):
-        self.options = {'datatype' : ['dtype'],
-                        'count' : 'count',
-                        'min' :'min',
-                        'q1' : ['quantile', 0.25],
-                        'median' : 'median',
-                        'q3' : ['quantile', 0.75],
-                        'max' : 'max',
-                        'mad' : 'mad',
-                        'mean' : 'mean',
-                        'stan_dev' : 'std',
-                        'mode' : ['mode', [0]],
-                        'sum' : 'sum',
-                        'kurtosis' : 'kurtosis',
-                        'skew' : 'skew',
-                        'variance' : 'var',
-                        'stan_error' : 'sem',
-                        'unique' : 'nunique'}
-        return self
-
-    def prepare(self):
-        self.columns = ['variable']
-        self.columns.extend(list(self.options.keys()))
-        self.report = pd.DataFrame(columns = self.columns)
-        return self
-
-    def start(self, df = None, transpose = True):
-        for i, column in enumerate(df.columns):
-            row = pd.Series(index = self.columns)
-            row['variable'] = column
-            if df[column].dtype == bool:
-                df[column] = df[column].astype(int)
-            if df[column].dtype.kind in 'bifcu':
-                for key, value in self.options.items():
-                    if isinstance(value, str):
-                        row[key] = getattr(df[column], value)()
-                    elif isinstance(value, list):
-                        if len(value) < 2:
-                            row[key] = getattr(df[column], value[0])
-                        elif isinstance(value[1], list):
-                            row[key] = getattr(df[column],
-                               value[0])()[value[1]]
-                        else:
-                            row[key] = getattr(df[column],
-                               value[0])(value[1])
-            self.report.loc[len(self.report)] = row
-        if not transpose:
-            self.report = self.report.transpose()
-            self.df_header = False
-            self.df_index = True
-        else:
-            self.df_header = True
-            self.df_index = False
         return self

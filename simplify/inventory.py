@@ -29,7 +29,7 @@ class Inventory(object):
             called when the class is instanced.
     """
     menu : object
-    root_folder : str = '..'
+    root_folder : str = ''
     data_folder : str = 'data'
     results_folder : str = 'results'
     datetime_naming : bool = True
@@ -95,7 +95,7 @@ class Inventory(object):
             subfolders: a list of subfolder names forming the tree branch.
         """
         for subfolder in listify(subfolders):
-            temp_folder = self._create_folder(folder = root_folder,
+            temp_folder = self.create_folder(folder = root_folder,
                                               subfolder = subfolder)
             setattr(self, subfolder, temp_folder)
             root_folder = temp_folder
@@ -214,15 +214,16 @@ class Inventory(object):
                 elif hasattr(self, variable):
                     new_kwargs.update({variable : getattr(self, variable)})
         return new_kwargs
-#
-#    def _check_subfolder(self, folder, subfolder):
-#        if subfolder:
-#            if folder and os.path.isdir(folder):
-#                folder = os.path.join(folder, subfolder)
-#            else:
-#                folder = os.path.join(getattr(self, folder), subfolder)
-#        self._make_folder(folder = folder)
-#        return folder
+
+    def _check_root_folder(self):
+        if self.root_folder:
+            if os.path.isdir(self.root_folder):
+                self.root = self.root_folder
+            else:
+                self.root = os.path.abspath(self.root_folder)
+        else:
+            self.root = os.path.join('..', '..')
+        return self
 
     def _check_test_data(self, test_data = False, test_rows = None):
         """Checks value of local test_data variable. If not supplied, the
@@ -243,16 +244,6 @@ class Inventory(object):
             if not test_rows:
                 test_rows = self.test_rows
             return test_rows
-
-    def _create_folder(self, folder, subfolder = None):
-        """Creates folder path."""
-        if subfolder:
-            if folder and os.path.isdir(folder):
-                folder = os.path.join(folder, subfolder)
-            else:
-                folder = os.path.join(getattr(self, folder), subfolder)
-        self._make_folder(folder = folder)
-        return folder
 
     def _get_file_format(self, io_status):
         if getattr(self, io_status + '_folder')[self.step] in ['raw']:
@@ -457,7 +448,7 @@ class Inventory(object):
             subfolders: list of subfolder names to be created.
         """
         for subfolder in listify(subfolders):
-            temp_folder = self._create_folder(folder = root_folder,
+            temp_folder = self.create_folder(folder = root_folder,
                                               subfolder = subfolder)
             setattr(self, subfolder, temp_folder)
         return self
@@ -492,6 +483,16 @@ class Inventory(object):
         extension = self.extensions[file_format]
         return glob.glob(os.path.join(folder, '**', '*' + extension),
                          recursive = include_subfolders)
+
+    def create_folder(self, folder, subfolder = None):
+        """Creates folder path."""
+        if subfolder:
+            if folder and os.path.isdir(folder):
+                folder = os.path.join(folder, subfolder)
+            else:
+                folder = os.path.join(getattr(self, folder), subfolder)
+        self._make_folder(folder = folder)
+        return folder
 
     def create_path(self, folder = None, file_name = None, file_format = None,
                     io_status = None):
@@ -620,7 +621,7 @@ class Inventory(object):
         """Creates data and results folders as well as other default subfolders
         (mirroring the cookie_cutter folder tree by default).
         """
-        self.root = os.path.abspath(self.root_folder)
+        self._check_root_folder()
         self.add_folders(root_folder = self.root,
                          subfolders = [self.data_folder, self.results_folder])
         self.add_folders(root_folder = self.data,

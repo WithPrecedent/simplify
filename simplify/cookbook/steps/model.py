@@ -106,7 +106,7 @@ class Model(CookbookStep):
                         'svm_sigmoid' : SVC,
 #                        'tensor_flow' : KerasClassifier,
 #                        'torch' : NeuralNetClassifier,
-                        'xgb' : XGBClassifier}
+                        'xgboost' : XGBClassifier}
         return self
 
     def _set_cluster(self):
@@ -143,7 +143,7 @@ class Model(CookbookStep):
                         'svm_sigmoid' : SVR,
 #                        'tensor_flow' : KerasRegressor,
 #                        'torch' : NeuralNetRegressor,
-                        'xgb' : XGBRegressor}
+                        'xgboost' : XGBRegressor}
         return self
 
     def _specific_parameters(self):
@@ -198,7 +198,7 @@ class Model(CookbookStep):
         self.parameters = new_parameters
         return self
 
-    def _xgb_parameters(self):
+    def _xgboost_parameters(self):
         if not hasattr(self, 'scale_pos_weight'):
             self.scale_pos_weight = 1
         if self.gpu:
