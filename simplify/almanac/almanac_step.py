@@ -1,7 +1,7 @@
 
 from dataclasses import dataclass
 
-from ..implements.step import Step
+from ..step import Step
 
 
 @dataclass

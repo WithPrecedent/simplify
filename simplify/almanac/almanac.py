@@ -7,8 +7,8 @@ from dataclasses import dataclass
 
 from .plan import Plan
 from .steps import Sow, Harvest, Clean, Bundle, Deliver
-from ..implements.tools import listify
-from ..implements.planner import Planner
+from ..tools import listify
+from ..planner import Planner
 
 
 @dataclass
@@ -99,7 +99,7 @@ class Almanac(Planner):
             self.columns = {self.index_column : int}
             if self.metadata_columns:
                 self.columns.update(self.metadata_columns)
-        self.columns.update(dict.fromkeys(organizer.columns), str)
+        self.columns.update(dict.fromkeys(self.columns, str))
         return self
 
     def _set_defaults(self):

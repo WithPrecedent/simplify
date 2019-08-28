@@ -95,8 +95,8 @@ class Inventory(object):
             subfolders: a list of subfolder names forming the tree branch.
         """
         for subfolder in listify(subfolders):
-            temp_folder = self.create_folder(folder = root_folder,
-                                             subfolder = subfolder)
+            temp_folder = self._create_folder(folder = root_folder,
+                                              subfolder = subfolder)
             setattr(self, subfolder, temp_folder)
             root_folder = temp_folder
         return self
@@ -243,6 +243,16 @@ class Inventory(object):
             if not test_rows:
                 test_rows = self.test_rows
             return test_rows
+
+    def _create_folder(self, folder, subfolder = None):
+        """Creates folder path."""
+        if subfolder:
+            if folder and os.path.isdir(folder):
+                folder = os.path.join(folder, subfolder)
+            else:
+                folder = os.path.join(getattr(self, folder), subfolder)
+        self._make_folder(folder = folder)
+        return folder
 
     def _get_file_format(self, io_status):
         if getattr(self, io_status + '_folder')[self.step] in ['raw']:
@@ -447,8 +457,8 @@ class Inventory(object):
             subfolders: list of subfolder names to be created.
         """
         for subfolder in listify(subfolders):
-            temp_folder = self.create_folder(folder = root_folder,
-                                             subfolder = subfolder)
+            temp_folder = self._create_folder(folder = root_folder,
+                                              subfolder = subfolder)
             setattr(self, subfolder, temp_folder)
         return self
 
@@ -482,16 +492,6 @@ class Inventory(object):
         extension = self.extensions[file_format]
         return glob.glob(os.path.join(folder, '**', '*' + extension),
                          recursive = include_subfolders)
-
-    def create_folder(self, folder, subfolder = None):
-        """Creates folder path."""
-        if subfolder:
-            if folder and os.path.isdir(folder):
-                folder = os.path.join(folder, subfolder)
-            else:
-                folder = os.path.join(getattr(self, folder), subfolder)
-        self._make_folder(folder = folder)
-        return folder
 
     def create_path(self, folder = None, file_name = None, file_format = None,
                     io_status = None):

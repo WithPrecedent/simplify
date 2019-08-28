@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 import os
 
-from ...implements.retool import ReTool
+from ...retool import ReTool
 from ..almanac_step import AlmanacStep
 
 
@@ -18,19 +18,19 @@ class Harvest(AlmanacStep):
         return self
 
     def _prepare_organize(self, key):
-        file_name = 'organizer_' + key + '.csv'
+        file_path = os.path.join(self.inventory.instructions,
+                                 'organizer_' + key + '.csv')
         self.parameters = {'technique' : self.technique,
-                           'file_path' : os.path.join(self.inventory.external,
-                                                      file_name)}
+                           'file_path' : file_path}
         algorithm = self.options[self.technique](**self.parameters)
         self._set_columns(algorithm)
         return algorithm
 
     def _prepare_parse(self, key):
-        file_name = 'parser_' + key + '.csv'
+        file_path = os.path.join(self.inventory.instructions,
+                                 'parser_' + key + '.csv')
         self.parameters = {'technique' : self.technique,
-                           'file_path' : os.path.join(self.inventory.external,
-                                                      file_name)}
+                           'file_path' : file_path}
         algorithm = self.options[self.technique](**self.parameters)
         return algorithm
 

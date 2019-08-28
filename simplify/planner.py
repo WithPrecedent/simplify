@@ -28,6 +28,9 @@ class Planner(object):
         # Calls default setter method if it exists.
         if hasattr(self, '_set_defaults'):
             self._set_defaults()
+        # Calls folder setter method if it exists.
+        if hasattr(self, '_set_folders'):
+            self._set_folders()
         # Checks menu, inventory, and other attributes in self.checks list.
         self._checks()
         # Outputs Planner status to console if verbose option is selected.
