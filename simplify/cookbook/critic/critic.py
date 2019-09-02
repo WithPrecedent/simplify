@@ -3,9 +3,11 @@ from dataclasses import dataclass
 
 from .presentation import Presentation
 from .review import Review
+from ...core.base import SimpleClass
+
 
 @dataclass
-class Critic(object):
+class Critic(SimpleClass):
 
     menu : object
     inventory : object
@@ -13,18 +15,15 @@ class Critic(object):
     auto_prepare : bool = True
 
     def __post_init__(self):
-        self._set_defaults()
-        if self.auto_prepare:
-            self.prepare()
+        super().__post_init__()
         return self
 
     def _inject(self):
         self.menu.inject(instance = Review,
-                           sections = ['general', 'cookbook', 'files',
-                                       'review'])
+                         sections = ['general', 'cookbook', 'files', 'review'])
         self.menu.inject(instance = Presentation,
-                           sections = ['general', 'files', 'review',
-                                       'presentation'])
+                         sections = ['general', 'files', 'review',
+                                     'presentation'])
         return self
 
     def _set_defaults(self):

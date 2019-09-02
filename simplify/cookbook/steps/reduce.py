@@ -35,10 +35,11 @@ class Reduce(CookbookStep):
                         'chi2' : chi2,
                         'mutual_class' : mutual_info_classif,
                         'mutual_regress' : mutual_info_regression}
+        self.selected_parameters = True
         return self
 
-    def _add_parameters(self, estimator):
-        if self.technique == 'rfe':
+    def _set_parameters(self, estimator):
+        if self.technique in ['rfe', 'rfecv']:
             self.default_parameters = {'n_features_to_select' : 10,
                                        'step' : 1}
             self.runtime_parameters = {'estimator' : estimator}
@@ -53,41 +54,30 @@ class Reduce(CookbookStep):
         elif self.technique == 'custom':
             self.default_parameters = {'threshold' : 'mean'}
             self.runtime_parameters = {'estimator' : estimator}
+        self._check_parameters()
+        self._select_parameters()
+        self.parameters.update({'estimator' : estimator})
+        if 'k' in self.parameters:
+            self.num_features = self.parameters['k']
+        else:
+            self.num_features = self.parameters['n_features_to_select']
+        return self
+
+    def prepare(self):
+        """All preparation has to be at runtime for reduce because of the
+        possible inclusion of a fit estimator."""
+        pass
         return self
 
     def start(self, ingredients, recipe, estimator = None):
         if self.technique != 'none':
             if not estimator:
                 estimator = recipe.model.algorithm
-            self._add_parameters(estimator)
-            self.prepare()
-            if self.parameters['score_func']:
-                self.parameters['score_func'] = (
-                        self.scorers[self.parameters['score_func']])
-            if 'k' in self.parameters:
-                self.num_features = self.parameters['k']
-            else:
-                self.num_features = self.parameters['n_features_to_select']
-            if recipe.data_to_use in ['full']:
-                if len(ingredients.x.columns) > self.num_features:
-                    self.algorithm.fit(ingredients.x, ingredients.y)
-                    mask = self.algorithm.get_support()
-                    new_features = ingredients.x.columns[mask]
-                    ingredients.x = self.algorithm.transform(ingredients.x)
-                    ingredients.x = pd.DataFrame(ingredients.x,
-                                                 columns = new_features)
-            else:
-                if len(ingredients.x_train.columns) > self.num_features:
-                    self.algorithm.fit(ingredients.x_train,
-                                       ingredients.y_train)
-                    mask = self.algorithm.get_support()
-                    new_features = ingredients.x_train.columns[mask]
-                    ingredients.x_train = self.algorithm.transform(
-                            ingredients.x_train)
-                    ingredients.x_train = pd.DataFrame(ingredients.x_train,
-                                                       columns = new_features)
-                    ingredients.x_test = pd.DataFrame(ingredients.x_test,
-                                                      columns = new_features)
-                    ingredients.x = pd.DataFrame(ingredients.x,
-                                                 columns = new_features)
+            self._set_parameters(estimator)
+            self.algorithm = self.options[self.technique](**self.parameters)
+            if len(ingredients.x_train.columns) > self.num_features:
+                self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+                mask = ~self.algorithm.get_support()
+                ingredients.drop_columns(df = ingredients.x_train, mask = mask)
+                ingredients.drop_columns(df = ingredients.x_test, mask = mask)
         return ingredients

@@ -9,8 +9,7 @@ from itertools import product
 from .critic import Critic
 from .recipe import Recipe
 from .steps import Cleave, Encode, Mix, Model, Reduce, Sample, Scale, Split
-from ..tools import listify
-from ..planner import Planner
+from ..core.planner import Planner
 
 
 @dataclass
@@ -39,6 +38,8 @@ class Cookbook(Planner):
             changes, prepare should be called when those changes are complete.
         name: a string designating the name of the class which should be
             identical to the section of the menu with relevant settings.
+        step: string name of step used for various conform methods in the
+            simplify package.
     """
     menu : object = None
     inventory : object = None
@@ -65,14 +66,14 @@ class Cookbook(Planner):
             self.best_recipe = recipe
             self.best_recipe_score = self.critic.review.report.loc[
                     self.critic.review.report.index[-1],
-                    listify(self.metrics)[0]]
+                    self.listify(self.metrics)[0]]
         elif (self.critic.review.report.loc[
                 self.critic.review.report.index[-1],
-                listify(self.metrics)[0]] > self.best_recipe_score):
+                self.listify(self.metrics)[0]] > self.best_recipe_score):
             self.best_recipe = recipe
             self.best_recipe_score = self.critic.review.report.loc[
                     self.critic.review.report.index[-1],
-                    listify(self.metrics)[0]]
+                    self.listify(self.metrics)[0]]
         return self
 
     def _compute_hyperparameters(self):
@@ -112,7 +113,7 @@ class Cookbook(Planner):
         self.step_lists = []
         for step in self.options.keys():
             # Stores each step attribute in a list
-            setattr(self, step, listify(getattr(self, step)))
+            setattr(self, step, self.listify(getattr(self, step)))
             # Adds step to a list of all step lists
             self.step_lists.append(getattr(self, step))
         # Creates a list of all possible permutations of step techniques
@@ -164,7 +165,7 @@ class Cookbook(Planner):
         """
         if hasattr(self, 'naming_classes') and self.naming_classes:
             subfolder = 'recipe_'
-            for step in listify(self.naming_classes):
+            for step in self.listify(self.naming_classes):
                 subfolder += getattr(recipe, step).technique + '_'
             subfolder += str(recipe.number)
             self.inventory.recipe = self.inventory.create_folder(
@@ -237,7 +238,7 @@ class Cookbook(Planner):
         """Prints output to the console about the best recipe."""
         if self.verbose:
             print('The best test recipe, based upon the',
-                  listify(self.metrics)[0], 'metric with a score of',
+                  self.listify(self.metrics)[0], 'metric with a score of',
                   f'{self.best_recipe_score : 4.4f}', 'is:')
             for technique in self.best_recipe.techniques:
                 print(technique.capitalize(), ':',
@@ -300,12 +301,12 @@ class Cookbook(Planner):
                 is provided, self.critic.review is saved.
         """
         if not review:
-            review = getattr(self.critic.review,
-                             self.model_type + '_report')
+            review = self.critic.review.report
         self.inventory.save(variable = review,
-                            folder = self.inventory.recipe,
-                            file_name = self.model_type + '_report',
-                            file_format = 'csv')
+                            folder = self.inventory.experiment,
+                            file_name = self.model_type + '_review',
+                            file_format = 'csv',
+                            header = True)
         return
 
     def start(self, ingredients = None):
@@ -325,7 +326,7 @@ class Cookbook(Planner):
             self.save_recipe(recipe = recipe)
             self.critic.start(recipe = recipe)
             self._check_best(recipe = recipe)
-            self.save_review()
             # To conserve memory, each recipe is deleted after being exported.
             del(recipe)
+#        self.save_review()
         return self

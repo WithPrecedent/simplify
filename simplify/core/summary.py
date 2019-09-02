@@ -3,9 +3,11 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from .base import SimpleClass
+
 
 @dataclass
-class Summary(object):
+class Summary(SimpleClass):
     """Stores and exports a DataFrame of summary data for pandas DataFrame.
 
     Summary is more inclusive than pandas.describe() and includes
@@ -19,9 +21,7 @@ class Summary(object):
     auto_prepare : bool = True
 
     def __post_init__(self):
-        self._set_defaults()
-        if self.auto_prepare:
-            self.prepare()
+        super().__post_init__()
         return self
 
     def _set_defaults(self):

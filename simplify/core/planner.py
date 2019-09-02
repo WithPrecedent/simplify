@@ -1,63 +1,25 @@
 
 from dataclasses import dataclass
 import os
-import warnings
 
 import pandas as pd
 
-from .inventory import Inventory
-from .menu import Menu
-from .tools import listify
+from .base import SimpleClass
 from .ingredients import Ingredients
 
+
 @dataclass
-class Planner(object):
+class Planner(SimpleClass):
     """Parent class for Cookbook and Almanac to provide shared methods for
     creating data science workflows. Can also be subclassed to create other
     Planners.
     """
 
     def __post_init__(self):
-        """Sets class instance defaults and calls prepare method if
-        auto_prepare = True.
-        """
-        # Removes various python warnings from console output.
-        warnings.filterwarnings('ignore')
-        # Creates menu attribute if not passed when class is instanced.
-        self._check_menu()
-        # Calls default setter method if it exists.
-        if hasattr(self, '_set_defaults'):
-            self._set_defaults()
-        # Calls folder setter method if it exists.
-        if hasattr(self, '_set_folders'):
-            self._set_folders()
-        # Checks menu, inventory, and other attributes in self.checks list.
-        self._checks()
+        super().__post_init__()
         # Outputs Planner status to console if verbose option is selected.
         if self.verbose:
             print('Creating', self.name, 'planner')
-        # Calls prepare method if subclass has an auto_prepare attribute that
-        # is set to True.
-        if hasattr(self, 'auto_prepare') and self.auto_prepare:
-            self.prepare()
-        return self
-
-    def __call__(self, *args, **kwargs):
-        """When called as a function, a Planner class or subclass instance will
-        return the start method.
-        """
-        return self.start(*args, **kwargs)
-
-    def __str__(self):
-        """Returns lowercase name of class."""
-        return self.__class__.__name__.lower()
-
-    def _checks(self):
-        """Checks attributes from self.checks and initializes them if they do
-        not exist by calling the appropriate method.
-        """
-        for check in self.checks:
-            getattr(self, '_check_' + check)()
         return self
 
     def _check_ingredients(self, ingredients = None):
@@ -98,53 +60,14 @@ class Planner(object):
                                            inventory = self.inventory)
         return self
 
-    def _check_inventory(self):
-        """Adds a Inventory instance with default menu if one is not passed
-        when a Planner subclass is instanced.
-        """
-        if not self.inventory:
-            self.inventory = Inventory(menu = self.menu)
-        if self.name in ['cookbook']:
-            self.inventory.conform(step = 'cook')
-        else:
-            self.inventory.conform(step = self.step)
-        return self
-
-    def _check_menu(self):
-        """Loads menu from an .ini file if a string is passed to menu instead
-        of a menu instance. injects sections of menu to Planner instance.
-        """
-        if isinstance(self.menu, str):
-            self.menu = Menu(file_path = self.menu)
-        # Adds attributes to class from appropriate sections of the menu.
-        sections = ['general', 'files']
-        if hasattr(self, 'name') and self.name in self.menu.configuration:
-            sections.append(self.name)
-        self.menu.inject(instance = self, sections = sections)
-        return self
-
-    def _check_name(self):
-        """Checks if name attribute exists. If not, a default name is used.
-        """
-        if not hasattr(self, 'name'):
-            self.name = 'planner'
-        if self.name in self.menu.configuration:
-            self.menu.inject(instance = self, sections = [self.name])
-        return self
-
-    def _check_options(self):
-        if not hasattr(self, 'options'):
-            self.options = {}
-        return self
-
     def _check_steps(self):
         if not self.steps:
             if hasattr(self, self.name + '_steps'):
-                self.steps = listify(getattr(self, self.name + '_steps'))
+                self.steps = self.listify(getattr(self, self.name + '_steps'))
             else:
                 self.steps = []
         else:
-            self.steps = listify(self.steps)
+            self.steps = self.listify(self.steps)
         if self.steps:
             self.step = self.steps[0]
         return self
@@ -162,7 +85,7 @@ class Planner(object):
         """Adds menu and inventory instances to step classes and injects
         general menu attributes.
         """
-        for step in listify(self.steps):
+        for step in self.listify(self.steps):
             self.options[step].menu = self.menu
             self.menu.inject(instance = self.options[step],
                                sections = ['general'])
@@ -173,7 +96,7 @@ class Planner(object):
         """ Declares defaults for Planner."""
         self.options = {}
         self.plan_class = None
-        self.checks = ['steps', 'inventory', 'ingredients', 'name', 'options']
+        self.checks = ['steps', 'inventory', 'ingredients']
         self.state_attributes = ['inventory', 'ingredients']
         return self
 
@@ -185,7 +108,7 @@ class Planner(object):
             self.options[step].add_options(techniques = techniques,
                                            algorithms = algorithms)
         else:
-            options = dict(zip(listify(techniques), listify(algorithms)))
+            options = dict(zip(self.listify(techniques), self.listify(algorithms)))
             self.options.update(options)
         return self
 

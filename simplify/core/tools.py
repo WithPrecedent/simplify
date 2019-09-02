@@ -1,45 +1,24 @@
 import re
 
-from more_itertools import unique_everseen
 import pandas as pd
 
-def add_prefix(iterable, prefix):
-    """Adds prefix to list, dict keys, pandas dataframe, or pandas series."""
-    if isinstance(iterable, list):
-        return [f'{prefix}_{value}' for value in iterable]
-    elif isinstance(iterable, dict):
-        return {f'{prefix}_{key}' : value for key, value in iterable.items()}
-    elif isinstance(iterable, pd.Series):
-        return iterable.add_prefix(prefix)
-    elif isinstance(iterable, pd.DataFrame):
-        return iterable.add_prefix(prefix)
-
-def add_suffix(iterable, suffix):
-    """Adds suffix to list, dict keys, pandas dataframe, or pandas series."""
-    if isinstance(iterable, list):
-        return [f'{value}_{suffix}' for value in iterable]
-    elif isinstance(iterable, dict):
-        return {f'{key}_{suffix}' : value for key, value in iterable.items()}
-    elif isinstance(iterable, pd.Series):
-        return iterable.add_suffix(suffix)
-    elif isinstance(iterable, pd.DataFrame):
-        return iterable.add_suffix(suffix)
+def listify(variable):
+    """Checks to see if the variable is stored in a list. If not, the
+    variable is converted to a list or a list of 'none' is created if the
+    variable is empty.
+    """
+    if not variable:
+        return ['none']
+    elif isinstance(variable, list):
+        return variable
+    else:
+        return [variable]
 
 def convert_time(seconds):
     """Function that converts seconds into hours, minutes, and seconds."""
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
     return hours, minutes, seconds
-
-def deduplicate(iterable):
-    """Adds suffix to list, pandas dataframe, or pandas series."""
-    if isinstance(iterable, list):
-        return list(unique_everseen(iterable))
-# Needs implementation for pandas
-    elif isinstance(iterable, pd.Series):
-        return iterable
-    elif isinstance(iterable, pd.DataFrame):
-        return iterable
 
 def list_to_string(variable):
     """Converts a list to a string with a comma and space separating each
@@ -54,18 +33,6 @@ def list_to_string(variable):
         msg = 'Value must be a list or pandas series containing lists'
         raise TypeError(msg)
     return out_value
-
-def listify(variable):
-    """Checks to see if the variable is stored in a list. If not, the variable
-    is converted to a list or a list of 'none' is created if the variable is
-    empty.
-    """
-    if not variable:
-        return ['none']
-    elif isinstance(variable, list):
-        return variable
-    else:
-        return [variable]
 
 def no_breaks(variable, in_column = None):
     """Removes line breaks and replaces them with single spaces. Also,
@@ -112,31 +79,6 @@ def remove_excess(variable, excess, in_column = None):
         variable = re.sub(excess, '', variable)
         variable = variable.strip()
     return variable
-
-
-def typify(variable):
-    """Converts strings to list (if ', ' is present), int, float, or boolean
-    datatypes based upon the content of the string. If no alternative datatype
-    is found, the variable is returned in its original form.
-    """
-    if ', ' in variable:
-        return variable.split(', ')
-    elif re.search('\d', variable):
-        try:
-            return int(variable)
-        except ValueError:
-            try:
-                return float(variable)
-            except ValueError:
-                return variable
-    elif variable in ['True', 'true', 'TRUE']:
-        return True
-    elif variable in ['False', 'false', 'FALSE']:
-        return False
-    elif variable in ['None', 'none', 'NONE']:
-        return None
-    else:
-        return variable
 
 def word_count(variable):
     """Returns word court for a string."""

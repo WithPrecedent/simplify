@@ -12,13 +12,13 @@ from sklearn.linear_model import (BayesianRidge, Lasso, LassoLars,
                                   LinearRegression, LogisticRegression, Ridge)
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.svm import OneClassSVM, SVC, SVR
-#from skopt import BayesSearchCV
+from skopt import BayesSearchCV
 #from keras.wrappers.scikit_learn import KerasClassifier, KerasRegressor
 #from pystan import StanModel
 from xgboost import XGBClassifier, XGBRegressor
 
-from ...technique import Technique
-from ...tools import listify
+from ...core.technique import Technique
+from ...core.tools import listify
 from ..cookbook_step import CookbookStep
 
 
@@ -53,17 +53,6 @@ class Model(CookbookStep):
             self.parameters = {}
         return self
 
-    def _check_runtime_parameters(self):
-        """Checks if class has runtime_parameters and, if so, adds them to
-        the parameters attribute.
-        """
-        if hasattr(self, 'runtime_parameters') and self.runtime_parameters:
-            self.runtime_parameters.update({'random_state' : self.seed})
-        else:
-            self.runtime_parameters = {'random_state' : self.seed}
-        self.parameters.update(self.runtime_parameters)
-        return
-
     def _parse_parameters(self):
         """
 
@@ -92,6 +81,7 @@ class Model(CookbookStep):
                 space = self.space,
                 seed = self.seed,
                 verbose = self.verbose)
+        self.searcher.prepare()
         return self
 
     def _set_classifier(self):
@@ -202,19 +192,10 @@ class Model(CookbookStep):
         if not hasattr(self, 'scale_pos_weight'):
             self.scale_pos_weight = 1
         if self.gpu:
-            if self.verbose:
-                print('Using GPU')
-            self.runtime_parameters.update(
-                    {'tree_method' : 'gpu_exact'})
+            self.runtime_parameters.update({'tree_method' : 'gpu_exact'})
         elif self.verbose:
             print('Using CPU')
-        if self.hyperparameter_search:
-            self.space.update({'scale_pos_weight' :
-                               uniform(self.scale_pos_weight / 2,
-                               self.scale_pos_weight * 2)})
-        else:
-            self.parameters.update(
-                    {'scale_pos_weight' : self.scale_pos_weight})
+        self.parameters.update({'scale_pos_weight' : self.scale_pos_weight})
         return self
 
     def fit_transform(self, x, y):
@@ -225,9 +206,8 @@ class Model(CookbookStep):
         """Adds parameters to algorithm."""
         if not hasattr(self, 'parameters') or not self.parameters:
             self.parameters = self.menu[self.technique]
-        self._check_runtime_parameters()
-        self._parse_parameters()
         self._specific_parameters()
+        self._parse_parameters()
         if self.technique != 'none':
             self.algorithm = self.options[self.technique](**self.parameters)
         if self.hyperparameter_search:
@@ -266,8 +246,8 @@ class Search(Technique):
 
     def _set_defaults(self):
         self.options = {'random' : RandomizedSearchCV,
-                        'grid' : GridSearchCV}
-#                       'bayes' : BayesSearchCV}
+                        'grid' : GridSearchCV,
+                        'bayes' : BayesSearchCV}
         self.runtime_parameters = {'estimator' : self.estimator,
                                    'param_distributions' : self.space,
                                    'random_state' : self.seed}

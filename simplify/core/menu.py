@@ -1,8 +1,9 @@
 
 from configparser import ConfigParser
 from dataclasses import dataclass
+import re
 
-from .tools import listify, typify
+from .tools import listify
 
 
 @dataclass
@@ -151,7 +152,7 @@ class Menu(object):
         if self.infer_types:
             for section, nested_dict in self.configuration.items():
                 for key, value in nested_dict.items():
-                    self.configuration[section][key] = typify(value)
+                    self.configuration[section][key] = self.typify(value)
         return self
 
     def _set_configuration(self):
@@ -213,3 +214,30 @@ class Menu(object):
     def prepare(self):
         self._infer_types()
         return self
+
+
+    @staticmethod
+    def typify(variable):
+        """Converts strings to list (if ', ' is present), int, float, or
+        boolean datatypes based upon the content of the string. If no
+        alternative datatype is found, the variable is returned in its original
+        form.
+        """
+        if ', ' in variable:
+            return variable.split(', ')
+        elif re.search('\d', variable):
+            try:
+                return int(variable)
+            except ValueError:
+                try:
+                    return float(variable)
+                except ValueError:
+                    return variable
+        elif variable in ['True', 'true', 'TRUE']:
+            return True
+        elif variable in ['False', 'false', 'FALSE']:
+            return False
+        elif variable in ['None', 'none', 'NONE']:
+            return None
+        else:
+            return variable

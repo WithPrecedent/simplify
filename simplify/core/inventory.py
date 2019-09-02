@@ -8,6 +8,7 @@ import pickle
 import pandas as pd
 
 from .tools import listify
+from .types import FileTypes
 
 
 @dataclass
@@ -36,12 +37,10 @@ class Inventory(object):
     auto_prepare : bool = True
 
     def __post_init__(self):
-        """injects select settings as attributes, sets default attributes,
-        and calls prepare method if auto_prepare = True.
-        """
         self.menu.inject(instance = self, sections = ['general', 'files'])
         self._set_defaults()
-        if self.auto_prepare:
+        # Calls prepare method if it exists and auto_prepare is True.
+        if hasattr(self, 'auto_prepare') and self.auto_prepare:
             self.prepare()
         return self
 
@@ -385,15 +384,7 @@ class Inventory(object):
         to False. If False, a default folder named 'experiment' will be used.
         Also, creates a dictionary for file_format names and extensions.
         """
-        self.extensions = {'csv' : '.csv',
-                           'excel' : '.xlsx',
-                           'feather' : '.ftr',
-                           'h5' : '.hdf',
-                           'hdf' : '.hdf',
-                           'pickle' : '.pkl',
-                           'png' : '.png',
-                           'text' : '.txt',
-                           'txt' : '.txt'}
+        self.extensions = FileTypes()
         self.data_subfolders = ['raw', 'interim', 'processed', 'external']
         self.default_kwargs = {'index' : False,
                                'header' : None,

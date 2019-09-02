@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from ..step import Step
+from ..core.step import Step
 
 
 @dataclass
@@ -39,10 +39,10 @@ class CookbookStep(Step):
         if isinstance(y, pd.Series):
             self.y_col = self.label
         return self
-
-    def conform(self):
-        self.inventory.step = 'cook'
-        return self
+#
+#    def conform(self):
+#        self.inventory.step = 'cook'
+#        return self
 
     def fit(self, x, y = None):
         """Generic fit method for partial compatibility to sklearn."""
@@ -61,11 +61,9 @@ class CookbookStep(Step):
 
     def prepare(self):
         """Adds parameters to algorithm and sets import/export folders."""
-        self._set_folders()
-        self.conform()
+#        self.conform()
         self._check_parameters()
         self._select_parameters()
-        self._check_runtime_parameters()
         if self.technique != 'none':
             self.algorithm = self.options[self.technique](**self.parameters)
         return self

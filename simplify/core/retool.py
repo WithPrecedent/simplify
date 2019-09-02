@@ -4,11 +4,11 @@ import numpy as np
 import pandas as pd
 import re
 
-from more_itertools import unique_everseen
+from .base import SimpleClass
 
 
 @dataclass
-class ReTool(object):
+class ReTool(SimpleClass):
     """Contains shared methods for regex tools in the ReTool package.
 
     ReTool aims to simplify and speed up creating expressions tables (pseudo-
@@ -94,16 +94,6 @@ class ReTool(object):
         return self
 
     def _set_defaults(self):
-        # Sets default values for missing data based upon datatype of column.
-        self.default_values = {'bool' : False,
-                               'float' : 0.0,
-                               'int' : 0,
-                               'list' : [],
-                               'pattern' : '',
-                               'patterns' : [],
-                               'remove' : '',
-                               'replace' : '',
-                               'str' : ''}
         # Sets str names for corresponding regex compiling flags.
         self.flag_options = {'ignorecase' : re.IGNORECASE,
                              'dotall' : re.DOTALL,
@@ -287,14 +277,14 @@ class ReFrame(ReMatch):
     and output columns. Regular expressions are used as keys and may be
     compliled with or without any flag selected.
 
-    If out_type is bool, new dataframe columns are created with headers derived
+    If out_type is boolean, new dataframe columns are created with headers derived
     from the values in the dictionary. A boolean value is returned.
 
     if out_type is 'pattern', a single column is used or created with the name
     passed in 'out_column.' The return is the matched values from the
     regular expression expressions table.
 
-    If out_type is str, int or float, a single column is used or created
+    If out_type is string, integer or float, a single column is used or created
     with the header name passed in 'out_column.' The return is the matched
     value of the key in the expressions table.
 
@@ -311,7 +301,7 @@ class ReFrame(ReMatch):
     def __post_init__(self):
         return self
 
-    def _bool(self, df):
+    def _boolean(self, df):
         df[self.out_column] = np.where(
                 df[self.source].str.contains(self.key, True,
                 self.default_values[self.datatype]))
@@ -323,14 +313,14 @@ class ReFrame(ReMatch):
         return df
 
     def _float(self, df):
-        df = self._str(df)
+        df = self._string(df)
         df[self.out_column] = pd.to_numeric(df[self.out_column],
                                             errors = 'coerce',
                                             downcast = float)
         return df
 
-    def _int(self, df):
-        df = self._str(df)
+    def _integer(self, df):
+        df = self._string(df)
         df[self.out_column] = pd.to_numeric(df[self.out_column],
                                             errors = 'coerce',
                                             downcast = 'integer')
@@ -348,7 +338,7 @@ class ReFrame(ReMatch):
         df[self.value] = df[self.source].replace(self.key, '')
         return df
 
-    def _str(self, df):
+    def _string(self, df):
         df[self.out_column] = np.where(
                 df[self.source].str.contains(self.key),
                      self.value, self.default_values[self.datatype])
@@ -367,7 +357,7 @@ class ReSearch(ReMatch):
         super().__post_init__()
         return self
 
-    def _bool(self, df):
+    def _boolean(self, df):
         if re.search(self.key, self.source):
             df[self.out_column] = True
         else:
@@ -375,12 +365,12 @@ class ReSearch(ReMatch):
         return df
 
     def _float(self, df):
-        df = self._str(df)
+        df = self._string(df)
         df[self.out_column] = float(df[self.out_column])
         return df
 
-    def _int(self, df):
-        df = self._str(df)
+    def _integer(self, df):
+        df = self._string(df)
         df[self.out_column] = int(df[self.out_column])
         return df
 
@@ -388,7 +378,7 @@ class ReSearch(ReMatch):
         temp_list = []
         temp_list += re.findall(self.key, self.source)
         if temp_list:
-            temp_list = list(unique_everseen(temp_list))
+            temp_list = list(self.deduplicate(temp_list))
             df[self.out_column] = temp_list
         else:
             df[self.out_column] = self.default_values[self.datatype]
@@ -405,7 +395,7 @@ class ReSearch(ReMatch):
                     self.key, self.source).group(0).strip()
         return df
 
-    def _str(self, df):
+    def _string(self, df):
         if re.search(self.key, self.source):
             df[self.out_column] = self.value
         else:
@@ -447,5 +437,5 @@ class ReOrganize(ReMatch):
                         self.key, source).group(0).strip()
                 source = re.sub(self.key, '', source)
             else:
-                df[self.out_column] = self.default_values['str']
+                df[self.out_column] = self.default_values['string']
         return df, source

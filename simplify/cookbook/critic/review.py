@@ -7,12 +7,12 @@ import sklearn.metrics as met
 #from eli5 import show_weights
 from shap import DeepExplainer, KernelExplainer, LinearExplainer, TreeExplainer
 
-from ...tools import listify
 from ..cookbook_step import CookbookStep
+from ...core.base import SimpleClass
 
 
 @dataclass
-class Review(object):
+class Review(SimpleClass):
     """Computes and stores machine learning experiment results.
 
     Review creates and stores a results report and other general
@@ -152,7 +152,7 @@ class Review(object):
         return self
 
     def _explain(self):
-        for explainer in listify(self.explainers):
+        for explainer in self.listify(self.explainers):
             explain_package = self.explainer_options[explainer]
             explain_package()
         return self
@@ -208,7 +208,7 @@ class Review(object):
         for step in self.recipe.techniques:
             self.columns.update({step : step})
         self.columns_list = list(self.columns.keys())
-        self.columns_list.extend(listify(self.metrics))
+        self.columns_list.extend(self.listify(self.metrics))
         self.report = pd.DataFrame(columns = self.columns_list)
         return self
 
@@ -216,6 +216,7 @@ class Review(object):
         """Sets default metrics for scores dataframe based upon the type of
         model used.
         """
+        getattr(self, '_default_' + self.model_type)()
         self.special_metrics = {
                 'fbeta' : {'beta' : 1},
                 'f1_weighted' : {'average' : 'weighted'},
@@ -223,7 +224,6 @@ class Review(object):
                 'recall_weighted' : {'average' : 'weighted'}}
         self.negative_metrics = ['brier_loss_score', 'neg_log_loss',
                                  'zero_one']
-        getattr(self, '_default_' + self.model_type)()
         return self
 
     def _set_explainers(self):

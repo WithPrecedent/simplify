@@ -1,17 +1,20 @@
 
 from dataclasses import dataclass
 
+from math import ceil, sqrt
+from matplotlib import gridspec
 import matplotlib.pyplot as plt
+from mlxtend.plotting import plot_decision_regions
 import numpy as np
 import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from ...tools import listify
+from ...core.base import SimpleClass
 
 
 @dataclass
-class Presentation(object):
+class Presentation(SimpleClass):
     """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
     """
@@ -19,7 +22,7 @@ class Presentation(object):
     name : str = 'presentation'
 
     def __post_init__(self):
-        self._set_defaults()
+        super().__post_init__()
         return self
 
     def _check_length(self, df, max_display):
@@ -32,8 +35,8 @@ class Presentation(object):
 
     def _default_classifier(self):
         """Sets default plots for classifier algorithms."""
-        self.plots = ['confusion', 'heat_map','ks_statistic', 'pr_curve',
-                      'roc_curve']
+        self.plots = ['confusion', 'heat_map',
+                      'ks_statistic', 'pr_curve', 'roc_curve']
         return self
 
     def _default_cluster(self):
@@ -51,6 +54,11 @@ class Presentation(object):
         self._set_style()
         self._set_options()
         getattr(self, '_default_' + self.model_type)()
+        return self
+
+    def _set_grid(self, recipes):
+        size = ceil(sqrt(self.len(recipes)))
+        self.grid = gridspec.GridSpec(size, size)
         return self
 
     def _set_style(self):
@@ -79,6 +87,7 @@ class Presentation(object):
                         'cluster_tree' : self.cluster_tree,
                         'confusion' : self.confusion,
                         'cumulative_gain' : self.cumulative,
+                        'decision_boundaries' : self.decision_boundaries,
                         'elbow' : self.elbow_curve,
                         'heat_map' : self.heat_map,
                         'histogram' : self.histogram,
@@ -125,19 +134,25 @@ class Presentation(object):
         self.save(file_name)
         return self
 
+    def decision_boundaries(self, file_name = 'decision_boundaries.png'):
+        plot_decision_regions(X = self.x, y = self.y, clf = self.estimator,
+                              legend = 2)
+        self.save(file_name)
+        return self
+
     def elbow_curve(self, file_name = 'elbow_curve.png'):
         skplt.metrics.plot_elbow_curve(self.estimator, self.x)
         self.save(file_name)
         return self
 
     def heat_map(self, file_name = 'heat_map.png', **kwargs):
-        sns.heatmap(self.x, fmt = '.3%', **kwargs)
+        sns.heatmap(self.x, annot = True, fmt = '.3%', **kwargs)
         self.save(file_name)
         return self
 
     def histogram(self, features = None, file_name = 'histogram.png',
                   **kwargs):
-        for feature in listify(features):
+        for feature in self.listify(features):
             sns.distplot(self.x[feature], feature, **kwargs)
             self.save(feature + '_' + file_name)
         return self

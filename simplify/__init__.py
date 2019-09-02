@@ -3,17 +3,19 @@
   :synopsis: data science made simple
 """
 
-from .decorators import timer
-from .ingredients import Ingredients
-from .inventory import Inventory
-from .menu import Menu
+import core
+from core.decorators import timer
+from core.ingredients import Ingredients
+from core.inventory import Inventory
+from core.menu import Menu
 
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = ['Ingredients',
+__all__ = ['core',
+           'Ingredients',
            'Inventory',
            'Menu',
            'timer']

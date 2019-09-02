@@ -129,6 +129,8 @@ class Almanac(Planner):
 
     def start(self, ingredients = None):
         """Completes an iteration of an Almanac."""
+        if not ingredients:
+            ingredients = self.ingredients
         for plan in self.plans:
             self.step = plan.name
             # Adds initial columns dictionary to ingredients instance.

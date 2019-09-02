@@ -42,7 +42,6 @@ class Split(CookbookStep):
         """Adds parameters to algorithm."""
         self._check_parameters()
         self._select_parameters()
-        self._check_runtime_parameters()
         if self.technique in ['train_test']:
             self.parameters.update({'n_splits' : 1})
         if self.technique != 'none':
