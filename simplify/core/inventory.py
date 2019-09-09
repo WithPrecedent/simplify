@@ -7,16 +7,17 @@ import pickle
 
 import pandas as pd
 
-from .tools import listify
-from .types import FileTypes
+from simplify.core.base import SimpleClass
+from simplify.core.tools import listify
+from simplify.core.types import FileTypes
 
 
 @dataclass
-class Inventory(object):
+class Inventory(SimpleClass):
     """Creates and stores dynamic and static file paths, loads and saves
     various file types, and properly formats files for import and export.
 
-    Attributes:
+    Parameters:
 
         menu: an instance of Menu.
         root_folder: a string including the complete path from which the other
@@ -28,6 +29,10 @@ class Inventory(object):
             results are not overwritten).
         auto_prepare: boolean value as to whether prepare method should be
             called when the class is instanced.
+        auto_start: sets whether the start method should be called when the
+            class is instanced. It should generally be set to true, unless
+            auto_prepare is False and extensive changes to the inventory
+            options are anticipated.
     """
     menu : object
     root_folder : str = ''
@@ -35,13 +40,12 @@ class Inventory(object):
     results_folder : str = 'results'
     datetime_naming : bool = True
     auto_prepare : bool = True
+    auto_start : bool = True
 
     def __post_init__(self):
-        self.menu.inject(instance = self, sections = ['general', 'files'])
-        self._set_defaults()
-        # Calls prepare method if it exists and auto_prepare is True.
-        if hasattr(self, 'auto_prepare') and self.auto_prepare:
-            self.prepare()
+        # Adds additional section of menu to be injected as local attributes.
+        self.menu_sections = ['files']
+        super().__post_init__()
         return self
 
     @property
@@ -251,6 +255,13 @@ class Inventory(object):
             return self.interim_format
         elif getattr(self, io_status + '_folder')[self.step] in ['processed']:
             return self.final_format
+        return self
+
+    def _inject_base(self):
+        """Injects parent class, SimpleClass with this Inventory instance so
+        that the instance is available to other files in the siMpLify package.
+        """
+        SimpleClass.inventory = self
         return self
 
     def _load_csv(self, file_path, **kwargs):
@@ -648,3 +659,8 @@ class Inventory(object):
                                          io_status = 'export')
         getattr(self, '_save_' + file_format)(variable, file_path, **kwargs)
         return
+
+    def start(self):
+        """Injects Inventory instance into base SimpleClass."""
+        self._inject_base()
+        return self

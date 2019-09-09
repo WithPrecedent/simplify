@@ -1,15 +1,18 @@
 """
-cookbook.py is the primary control file for the siMpLify package. It contains
-the Cookbook class, which handles the cookbook construction and utilization.
+cookbook.py is the primary control file for the siMpLify data analysis package.
+It contains the Cookbook class, which handles the cookbook construction and
+utilization.
 """
 from dataclasses import dataclass
 import datetime
 from itertools import product
 
-from .critic import Critic
-from .recipe import Recipe
-from .steps import Cleave, Encode, Mix, Model, Reduce, Sample, Scale, Split
-from ..core.planner import Planner
+from simplify.cookbook.critic import Critic
+from simplify.cookbook.recipe import Recipe
+from simplify.cookbook.steps import (Cleave, Encode, Mix, Model, Reduce,
+                                     Sample, Scale, Split)
+from simplify.core.decorators import check_arguments
+from simplify.core.planner import Planner
 
 
 @dataclass
@@ -62,7 +65,7 @@ class Cookbook(Planner):
         Parameters:
             recipe: an instance of Recipe.
         """
-        if not self.best_recipe:
+        if not hasattr(self, 'best_recipe') or not self.best_recipe:
             self.best_recipe = recipe
             self.best_recipe_score = self.critic.review.report.loc[
                     self.critic.review.report.index[-1],
@@ -122,7 +125,7 @@ class Cookbook(Planner):
         return self
 
     def _set_defaults(self):
-        """ Declares default step names and classes in a Cookbook recipe."""
+        """ Declares default step names and plan_class in a Cookbook recipe."""
         # Initially sets defaults from parent class.
         super()._set_defaults()
         # Sets options for default steps of a Recipe.
@@ -134,11 +137,11 @@ class Cookbook(Planner):
                         'sampler' : Sample,
                         'reducer' : Reduce,
                         'model' : Model}
-        # Assigns the particular plan_class to Recipe so that parent class
+        # Assigns the particular plan_class to Recipe so that the parent class
         # methods will point to the proper plan class.
         self.plan_class = Recipe
-        # Initializes the best_recipe.
-        self.best_recipe = None
+        # Adds GPU check to other checks to be performed.
+        self.checks.append('gpu')
         return self
 
     def _set_experiment_folder(self):
@@ -220,8 +223,6 @@ class Cookbook(Planner):
         # Unlike Almanac, Cookbook doesn't require state changes at each step.
         self.conform(step = 'cook')
         self._set_experiment_folder()
-        self._prepare_plan_class()
-        self._prepare_steps()
         self._prepare_recipes()
         self.critic = Critic(menu = self.menu, inventory = self.inventory)
         # Using training, test, validate sets creates two separate loops
@@ -309,24 +310,24 @@ class Cookbook(Planner):
                             header = True)
         return
 
+    @check_arguments
     def start(self, ingredients = None):
         """Completes an iteration of a Cookbook.
 
         Parameters:
             ingredients: an Instance of Ingredients. If passsed, it will be
-                assigned to self.ingredients. If not passed, self.ingredients
-                will be used.
+                assigned to self.ingredients. If not passed, and if it already
+                exists, self.ingredients will be used.
         """
-        if ingredients:
-            self.ingredients = ingredients
+#        if ingredients:
+#            self.ingredients = ingredients
         for recipe in self.recipes:
             if self.verbose:
                 print('Testing ' + recipe.name + ' ' + str(recipe.number))
-            recipe.start(ingredients = self.ingredients)
+            recipe.start(ingredients = ingredients)
             self.save_recipe(recipe = recipe)
             self.critic.start(recipe = recipe)
             self._check_best(recipe = recipe)
             # To conserve memory, each recipe is deleted after being exported.
             del(recipe)
-#        self.save_review()
         return self

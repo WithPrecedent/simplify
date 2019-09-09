@@ -1,12 +1,13 @@
 
 from dataclasses import dataclass
+from functools import wraps
+from inspect import getfullargspec
 import os
 
 import numpy as np
 import pandas as pd
 
 from .base import SimpleClass
-from .decorators import check_df
 from .summary import Summary
 from .types import DataTypes
 
@@ -78,7 +79,7 @@ class Ingredients(SimpleClass):
         if attr in ['x', 'y', 'x_train', 'y_train', 'x_test', 'y_test']:
             return self.__dict__[self.options[attr]]
         elif attr in ['booleans', 'floats', 'integers', 'strings',
-                    'categoricals', 'lists', 'datetimes', 'timedeltas']:
+                      'categoricals', 'lists', 'datetimes', 'timedeltas']:
             return self._get_columns_by_type(attr[:-1])
         elif (attr in ['scalers', 'encoders', 'mixers']
               and attr not in self.__dict__):
@@ -120,6 +121,52 @@ class Ingredients(SimpleClass):
         else:
             self.__dict__[attr] = value
             return self
+
+    def check_df(method):
+        """Decorator which automatically uses the default DataFrame if one
+        is not passed to the decorated method.
+
+        Parameters:
+            method: wrapped method.
+        """
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            argspec = getfullargspec(method)
+            unpassed_args = argspec.args[len(args):]
+            if 'df' in argspec.args and 'df' in unpassed_args:
+                kwargs.update({'df' : getattr(self, self.default_df)})
+            return method(self, *args, **kwargs)
+        return wrapper
+
+    def column_list(method):
+        """Decorator which creates a complete column list from kwargs passed
+        to wrapped method.
+
+        Parameters:
+            method: wrapped method.
+        """
+        arguments_to_check = ['columns', 'prefixes', 'mask']
+        new_kwargs = {}
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            argspec = getfullargspec(method)
+            unpassed_args = argspec.args[len(args):]
+            if ('columns' in unpassed_args
+                    and 'prefixes' in unpassed_args
+                    and 'mask' in unpassed_args):
+                columns = list(self.datatypes.keys())
+            else:
+                for argument in arguments_to_check:
+                    if argument in kwargs:
+                        new_kwargs[argument] = kwargs[argument]
+                    else:
+                        new_kwargs[argument] = None
+                    if argument in ['prefixes', 'mask'] and argument in kwargs:
+                        del kwargs[argument]
+                columns = self.create_column_list(**new_kwargs)
+                kwargs.update({'columns' : columns})
+            return method(self, **kwargs)
+        return wrapper
 
     @property
     def full(self):
@@ -172,9 +219,9 @@ class Ingredients(SimpleClass):
     @check_df
     def _crosscheck_columns(self, df = None):
         """Removes any columns in datatypes dictionary, but not in df."""
-#        for column, datatype in self.datatypes.items():
-#            if column not in df.columns:
-#                del self.datatypes[column]
+        for column, datatype in self.datatypes.items():
+            if column not in df.columns:
+                del self.datatypes[column]
         return self
 
     def _get_columns_by_type(self, datatype):
@@ -302,6 +349,7 @@ class Ingredients(SimpleClass):
         df = func(df, **kwargs)
         return self
 
+    @column_list
     @check_df
     def auto_categorize(self, df = None, columns = None, threshold = 10):
         """Automatically assesses each column to determine if it has less than
@@ -327,9 +375,9 @@ class Ingredients(SimpleClass):
                 raise KeyError(error)
         return self
 
+    @column_list
     @check_df
-    def change_datatype(self, df = None, columns = None, prefixes = None,
-                        datatype = str):
+    def change_datatype(self, df = None, columns = None, datatype = str):
         """Changes column datatypes of columns passed or columns with the
         prefixes passed. datatype becomes the new datatype for the columns.
 
@@ -341,13 +389,7 @@ class Ingredients(SimpleClass):
             datatype: a string containing the datatype to convert the columns
                 and columns with prefixes to.
         """
-        if prefixes or columns:
-            columns_list = self.create_column_list(df = df,
-                                                   prefixes = prefixes,
-                                                   columns = columns)
-        else:
-            columns_list = self.datatypes.keys()
-        for column in columns_list:
+        for column in columns:
             self.datatypes[column] = datatype
         self.convert_column_datatypes(df = df)
         return self
@@ -396,6 +438,7 @@ class Ingredients(SimpleClass):
         self.downcast(df = df)
         return self
 
+    @column_list
     @check_df
     def convert_rare(self, df = None, columns = None, threshold = 0):
         """Converts categories rarely appearing within categorical columns
@@ -445,9 +488,9 @@ class Ingredients(SimpleClass):
                 if boolean:
                     column_names.append(feature)
         else:
+            temp_list = []
+            prefixes_list = []
             if prefixes:
-                temp_list = []
-                prefixes_list = []
                 for prefix in self.listify(prefixes):
                     temp_list = [col for col in df if col.startswith(prefix)]
                     prefixes_list.extend(temp_list)
@@ -460,6 +503,7 @@ class Ingredients(SimpleClass):
                 column_names = prefixes_list
         return column_names
 
+    @column_list
     def create_series(self, columns = None, return_series = False):
         """Creates a Series (row) with the datatypes in columns.
 
@@ -483,6 +527,7 @@ class Ingredients(SimpleClass):
             setattr(self, self.default_df, row)
             return self
 
+    @column_list
     @check_df
     def decorrelate(self, df = None, columns = None, threshold = 0.95):
         """Drops all but one column from highly correlated groups of columns.
@@ -505,6 +550,7 @@ class Ingredients(SimpleClass):
         self.drop_columns(columns = corrs)
         return self
 
+    @column_list
     @check_df
     def downcast(self, df = None, columns = None):
         """Decreases memory usage by downcasting datatypes. For numerical
@@ -544,9 +590,9 @@ class Ingredients(SimpleClass):
                 raise KeyError(error)
         return self
 
+    @column_list
     @check_df
-    def drop_columns(self, df = None, columns = None, prefixes = None,
-                     mask = None):
+    def drop_columns(self, df = None, columns = None):
         """Drops list of columns and columns with prefixes listed. In addition,
         any dropped columns are stored in the cumulative dropped_columns
         list.
@@ -558,13 +604,11 @@ class Ingredients(SimpleClass):
             mask: numpy array, list, or pandas Series, of booleans of columns
                 to drop.
         """
-        columns = self.create_column_list(columns = columns,
-                                          prefixes = prefixes,
-                                          mask = mask)
         df.drop(columns, axis = 'columns', inplace = True)
         self.dropped_columns.extend(columns)
         return self
 
+    @column_list
     @check_df
     def drop_infrequent(self, df = None, columns = None, threshold = 0):
         """Drops boolean columns that rarely are True. This differs
@@ -652,6 +696,7 @@ class Ingredients(SimpleClass):
             print('No features were dropped during preprocessing.')
         return
 
+    @column_list
     @check_df
     def smart_fill(self, df = None, columns = None):
         """Fills na values in DataFrame to defaults based upon the datatype
@@ -682,7 +727,7 @@ class Ingredients(SimpleClass):
         self.x = df.drop(label, axis = 'columns')
         self.y = df[label]
         # drops columns in self.y from datatypes dictionary.
-#        self._crosscheck_columns(df = self.x)
+        self._crosscheck_columns(df = self.x)
         return self
 
     @check_df

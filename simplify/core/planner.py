@@ -10,9 +10,9 @@ from .ingredients import Ingredients
 
 @dataclass
 class Planner(SimpleClass):
-    """Parent class for Cookbook and Almanac to provide shared methods for
-    creating data science workflows. Can also be subclassed to create other
-    Planners.
+    """Parent class for select siMpLify classes to provide shared methods for
+    creating data science workflows. It can also be subclassed to create other
+    Planners beyond those included in the package.
     """
 
     def __post_init__(self):
@@ -71,32 +71,32 @@ class Planner(SimpleClass):
         if self.steps:
             self.step = self.steps[0]
         return self
-
-    def _prepare_plan_class(self):
-        """Adds menu and inventory instances to plan_class and injects
-        general menu attributes.
-        """
-        self.plan_class.menu = self.menu
-        self.menu.inject(instance = self.plan_class, sections = ['general'])
-        self.plan_class.inventory = self.inventory
-        return self
-
-    def _prepare_steps(self):
-        """Adds menu and inventory instances to step classes and injects
-        general menu attributes.
-        """
-        for step in self.listify(self.steps):
-            self.options[step].menu = self.menu
-            self.menu.inject(instance = self.options[step],
-                               sections = ['general'])
-            self.options[step].inventory = self.inventory
-        return self
+#
+#    def _prepare_plan_class(self):
+#        """Adds menu and inventory instances to plan_class and injects
+#        general menu attributes.
+#        """
+#        self.plan_class.menu = self.menu
+#        self.menu.inject(instance = self.plan_class, sections = ['general'])
+#        self.plan_class.inventory = self.inventory
+#        return self
+#
+#    def _prepare_steps(self):
+#        """Adds menu and inventory instances to step classes and injects
+#        general menu attributes.
+#        """
+#        for step in self.listify(self.steps):
+#            self.options[step].menu = self.menu
+#            self.menu.inject(instance = self.options[step],
+#                               sections = ['general'])
+#            self.options[step].inventory = self.inventory
+#        return self
 
     def _set_defaults(self):
         """ Declares defaults for Planner."""
         self.options = {}
         self.plan_class = None
-        self.checks = ['steps', 'inventory', 'ingredients']
+        self.checks = ['steps', 'ingredients']
         self.state_attributes = ['inventory', 'ingredients']
         return self
 
@@ -108,7 +108,8 @@ class Planner(SimpleClass):
             self.options[step].add_options(techniques = techniques,
                                            algorithms = algorithms)
         else:
-            options = dict(zip(self.listify(techniques), self.listify(algorithms)))
+            options = dict(zip(self.listify(techniques),
+                               self.listify(algorithms)))
             self.options.update(options)
         return self
 

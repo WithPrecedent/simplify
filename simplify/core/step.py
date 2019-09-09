@@ -25,6 +25,8 @@ class Step(SimpleClass):
                 self.parameters = self.default_parameters
             else:
                 self.parameters = {}
+        if hasattr(self, 'runtime_parameters') and self.runtime_parameters:
+            self.parameters.update(self.runtime_parameters)
         return self
 
     def _select_parameters(self, parameters_to_use = None):

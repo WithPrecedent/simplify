@@ -3,11 +3,12 @@ from configparser import ConfigParser
 from dataclasses import dataclass
 import re
 
-from .tools import listify
+from simplify.core.base import SimpleClass
+from simplify.core.tools import listify
 
 
 @dataclass
-class Menu(object):
+class Menu(SimpleClass):
     """Loads and/or stores user settings.
 
     Menu creates a nested dictionary, converting dictionary values to
@@ -27,9 +28,9 @@ class Menu(object):
         2) Pass a prebuilt nested dictionary for storage in the Menu class.
 
     Whichever option is chosen, the nested menu dictionary is stored in the
-    attribute .config. Users can store any section of the configuration
-    dictionary as attributes in a class instance by using the inject
-    method.
+    attribute .configuration. Users can store any key/value pairs in a section
+    of the configuration dictionary as attributes in a class instance by using
+    the inject method.
 
     If infer_types is set to True (the default option), the dictionary values
     are automatically converted to appropriate datatypes.
@@ -54,13 +55,13 @@ class Menu(object):
                 self.menu = Menu()
                 self.menu.inject(instance = self, sections = ['general'])
 
-    The result will be that an instance of Fakeclass will contain .verbose and
-    .file_type as attributes that are appropriately typed.
+    The result will be that an instance of Fakeclass will contain verbose and
+    file_type as attributes that are appropriately typed.
 
     Because Menu uses ConfigParser, it only allows 2-level menu dictionaries.
     The desire for accessibility and simplicity dictated this limitation.
 
-    Attributes:
+    Parameters:
 
         file_path: string of where the menu .ini file is located.
         configuration: two-level nested dictionary storing menu. If a file_path
@@ -68,19 +69,24 @@ class Menu(object):
         infer_types: boolean variable determines whether values in
             configuration are converted to other types (True) or left as
             strings (False).
+        auto_prepare: sets whether to automatically call the prepare method
+            when the class is instanced. If you do not plan to make any
+            adjustments to the class otpions, this parameter should be set to
+            True. If you plan to make such changes, prepare should be called
+            when those changes are complete.
+        auto_start: sets whether the start method should be called when the
+            class is instanced. It should generally be set to true, unless
+            auto_prepare is False and extensive changes to the menu options
+            are anticipated.
     """
     file_path : str
     configuration : object = None
     infer_types : bool = True
     auto_prepare : bool = True
+    auto_start : bool = True
 
     def __post_init__(self):
-        """Initializes the configuration attribute and converts the dictionary
-        values to the proper types if infer_types is True.
-        """
-        self._set_configuration()
-        if self.auto_prepare:
-            self.prepare()
+        super().__post_init__()
         return self
 
     def __delitem__(self, key):
@@ -145,6 +151,19 @@ class Menu(object):
         """Returns the configuration dictionary."""
         return self.configuration
 
+    def _create_configuration(self, file_path):
+        """Creates a configuration dictionary from a file.
+
+        Parameters:
+            file_path: full path where the configuration file is located. The
+                file format must be compatiable with ConfigParser.
+        """
+        configuration = ConfigParser(dict_type = dict)
+        configuration.optionxform = lambda option : option
+        configuration.read(file_path)
+        configuration = dict(configuration._sections)
+        return configuration
+
     def _infer_types(self):
         """If infer_types is True, all dictionary values in configuration are
         converted to the appropriate type.
@@ -155,16 +174,22 @@ class Menu(object):
                     self.configuration[section][key] = self.typify(value)
         return self
 
-    def _set_configuration(self):
+    def _inject_base(self):
+        """Injects parent class, SimpleClass with this Menu instance so that
+        the instance is available to other files in the siMpLify package. It
+        also adds the 'general' dictionary keys as attributes to SimpleClass.
+        """
+        SimpleClass.menu = self
+        self.inject(instance = SimpleClass, sections = ['general'])
+        return self
+
+    def _set_defaults(self):
         """Loads configuration dictionary using ConfigParser if configuration
         does not presently exist.
         """
         if not self.configuration:
-            configuration = ConfigParser(dict_type = dict)
-            configuration.optionxform = lambda option : option
-            configuration.read(self.file_path)
-            # noinspection PyProtectedMember
-            self.configuration = dict(configuration._sections)
+            self.configuration = self._create_configuration(
+                    file_path = self.file_path)
         return self
 
     def add_settings(self, new_settings):
@@ -179,16 +204,13 @@ class Menu(object):
         if isinstance(new_settings, dict):
             self.configuration.update(new_settings)
         elif isinstance(new_settings, str):
-            configuration = ConfigParser(dict_type = dict)
-            configuration.optionxform = lambda option : option
-            configuration.read(new_settings)
-            # noinspection PyProtectedMember
-            self.configuration.update(dict(configuration._sections))
+            self.configuration.update(
+                    self._create_configuration(file_path = new_settings))
         elif (hasattr(new_settings, 'configuration')
                 and isinstance(new_settings.configuration, dict)):
             self.configuration.update(new_settings.configuration)
         else:
-            error_message = 'new_options must be dict, Menu instance, or str'
+            error_message = 'new_options must be dict, Menu instance, or path'
             raise TypeError(error_message)
         return self
 
@@ -212,9 +234,14 @@ class Menu(object):
         return
 
     def prepare(self):
+        """Prepares instance of Menu."""
         self._infer_types()
         return self
 
+    def start(self):
+        """Injects Menu instance into base SimpleClass."""
+        self._inject_base()
+        return self
 
     @staticmethod
     def typify(variable):

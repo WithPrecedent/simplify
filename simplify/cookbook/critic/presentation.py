@@ -10,7 +10,7 @@ import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from ...core.base import SimpleClass
+from simplify.core.base import SimpleClass
 
 
 @dataclass

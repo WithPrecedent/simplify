@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import load_breast_cancer
 
-from simplify import Ingredients, Inventory, Menu
+from simplify import Menu, Inventory, Ingredients
 from simplify.cookbook import Cookbook
 
 # Loads cancer data and converts from numpy arrays to pandas dataframe.

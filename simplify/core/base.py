@@ -5,9 +5,7 @@ import warnings
 
 from more_itertools import unique_everseen
 import pandas as pd
-
-from .inventory import Inventory
-from .menu import Menu
+from tensorflow.test import is_gpu_available
 
 
 @dataclass
@@ -59,6 +57,7 @@ class SimpleClass(ABC):
         after running __post_init__. Any args and kwargs will only be passed
         to the start method.
         """
+        self.menu = menu
         self.auto_prepare = True
         self.__post_init__()
         return self.start(*args, **kwargs)
@@ -109,11 +108,31 @@ class SimpleClass(ABC):
         """Returns lowercase name of class."""
         return self.__class__.__name__.lower()
 
+    def _check_gpu(self):
+        """If gpu status is not set, checks if the local machine has a GPU
+        capable of supporting included machine learning algorithms."""
+        if hasattr(self, 'gpu'):
+            if self.gpu and self.verbose:
+                print('Using GPU')
+            elif self.verbose:
+                print('Using CPU')
+        elif is_gpu_available:
+            self.gpu = True
+            if self.verbose:
+                print('Using GPU')
+        else:
+            self.gpu = False
+            if self.verbose:
+                print('Using CPU')
+        return self
+
     def _check_inventory(self):
         """Adds an Inventory instance with default menu if one is not passed
         when subclass is instanced.
         """
         if not self.inventory:
+            # Inventory imported within function to avoid circular dependency.
+            from simplify.core.inventory import Inventory
             self.inventory = Inventory(menu = self.menu)
         return self
 
@@ -134,11 +153,16 @@ class SimpleClass(ABC):
         using user settings stored in or default.
         """
         if isinstance(self.menu, str):
+            # Menu imported within function to avoid circular dependency.
+            from simplify.core.menu import Menu
             self.menu = Menu(file_path = self.menu)
         # Adds attributes to class from appropriate sections of the menu.
         sections = ['general']
         if hasattr(self, 'menu_sections') and self.menu_sections:
-            sections.append(self.menu_sections)
+            if isinstance(self.menu_sections, str):
+                sections.append(self.menu_sections)
+            else:
+                sections.extend(self.menu_sections)
         if (hasattr(self, 'name')
                 and self.name in self.menu.configuration
                 and not self.name in sections):

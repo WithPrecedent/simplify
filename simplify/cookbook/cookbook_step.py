@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from ..core.step import Step
+from simplify.core.step import Step
 
 
 @dataclass
@@ -28,10 +28,6 @@ class CookbookStep(Step):
     def _get_indices(self, df, columns):
         """Gets column indices for a list of column names."""
         return [df.columns.get_loc(col) for col in columns]
-
-    def _list_type(self, test_list, data_type):
-        """Tests whether any item in a list is of the passed data type."""
-        return any(isinstance(i, data_type) for i in test_list)
 
     def _store_feature_names(self, x, y = None):
         """Stores feature names."""

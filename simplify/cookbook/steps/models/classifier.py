@@ -1,0 +1,48 @@
+
+from dataclasses import dataclass
+
+from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
+
+from .algorithm import Algorithm
+
+
+@dataclass
+class Classifier(Algorithm):
+    """Applies machine learning classifier algorithms based upon user
+    selections.
+    """
+
+    technique : str = ''
+    parameters : object = None
+    auto_prepare : bool = True
+    name : str = 'classifier'
+
+    def __post_init__(self):
+        super().__post_init__()
+        return self
+
+    def _set_defaults(self):
+        self.checks = ['menu']
+        self.options = {'adaboost' : AdaBoostClassifier,
+                        'baseline_classifier' : DummyClassifier,
+                        'logit' : LogisticRegression,
+                        'random_forest' : RandomForestClassifier,
+                        'svm_linear' : SVC,
+                        'svm_poly' : SVC,
+                        'svm_rbf' : SVC,
+                        'svm_sigmoid' : SVC,
+                        'xgboost' : XGBClassifier}
+        self.model_parameters = {'baseline' : {'strategy' : 'most_frequent'},
+                                 'svm_linear' : {'kernel' : 'linear',
+                                                 'probability' : True},
+                                 'svm_poly' : {'kernel' : 'poly',
+                                               'probability' : True},
+                                 'svm_rbf' : {'kernel' : 'rbf',
+                                              'probability' : True},
+                                 'svm_sigmoid' : {'kernel' : 'sigmoid',
+                                                  'probability' : True}}
+        return self

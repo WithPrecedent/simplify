@@ -6,23 +6,6 @@ from types import FunctionType
 
 from .tools import convert_time, listify
 
-def check_df(method):
-    """Decorator which automatically uses the default DataFrame if one
-    is not passed to the decorated method.
-
-    Parameters:
-        method: wrapped method within a class instance.
-    """
-
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        argspec = getfullargspec(method)
-        unpassed_args = argspec.args[len(args):]
-        if 'df' in argspec.args and 'df' in unpassed_args:
-            kwargs.update({'df' : getattr(self, self.default_df)})
-        return method(self, *args, **kwargs)
-
-    return wrapper
 
 def check_arguments(method, excludes = None):
     """Decorator which uses class instance attribute of the same name as a
