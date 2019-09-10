@@ -22,7 +22,7 @@ class Scale(CookbookStep):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'bins' : KBinsDiscretizer,
 #                        'gauss' : Gaussify,
                         'maxabs' : MaxAbsScaler,
@@ -81,7 +81,7 @@ class Scale(CookbookStep):
 #        super().__post_init__()
 #        return self
 #
-#    def _set_defaults(self):
+#    def _define(self):
 #        self.options = {'box-cox' : PowerTransformer,
 #                        'yeo-johnson' : PowerTransformer}
 #        self.default_parameters = {'standardize' : False,

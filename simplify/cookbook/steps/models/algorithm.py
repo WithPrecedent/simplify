@@ -3,8 +3,8 @@ from dataclasses import dataclass
 
 from scipy.stats import randint, uniform
 
-from .search import Search
-from ....core.technique import Technique
+from simplify.cookbook.steps.models.search import Search
+from simplify.core.technique import Technique
 
 
 @dataclass
@@ -71,8 +71,8 @@ class Algorithm(Technique):
 
     def prepare(self):
         self._add_specific_parameters()
-#        if self.gpu:
-#            self._gpu_parameters()
+       if self.gpu:
+           self._gpu_parameters()
         self._parse_parameters()
         if self.hyperparameter_search:
             self._prepare_search()

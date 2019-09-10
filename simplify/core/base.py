@@ -1,24 +1,32 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Dict
 import warnings
 
 from more_itertools import unique_everseen
+from numpy import datetime64
 import pandas as pd
+from pandas.api.types import CategoricalDtype
 from tensorflow.test import is_gpu_available
+
+from simplify.core import tools
 
 
 @dataclass
-class SimpleMachine(ABC):
+class SimpleClass(ABC):
     """Absract base class for major classes in siMpLify package to support
     a common class structure and allow sharing of access methods.
 
     To use the class, a subclass must have the following methods:
-        _outline: a private method which sets the default values for the
+        _define: a private method which sets the default values for the
             subclass, and usually includes the self.options dictionary.
         prepare: a method which, after the user has set all options in the
             preferred manner, constructs the objects which can parse, modify,
             process, or analyze data.
+    The following methods are not strictly required but should be used if
+    the subclass is transforming data or other variable (as opposed to merely
+    containing data or variables):
         start: method which applies the prepared objects to passed data or
             other variables.
 
@@ -38,16 +46,18 @@ class SimpleMachine(ABC):
         # instanced. Injects attributes from menu settings to subclass.
         if hasattr(self, 'menu'):
             self._check_menu()
-        # Calls _outline private method to set up class defaults.
-        self._outline()
+        # Calls _define private method to set up class defaults.
+        self._define()
+        # Adds staticmethods listed in self.tools (if it exists).
+        self._add_tools()
         # Runs attribute checks from list in self.checks (if it exists).
         self._run_checks()
         # Calls prepare method if it exists and auto_prepare is True.
         if hasattr(self, 'auto_prepare') and self.auto_prepare:
             self.prepare()
-        # Calls start method if it exists and auto_start is True.
-        if hasattr(self, 'auto_start') and self.auto_start:
-            self.start()
+            # Calls start method if it exists and auto_start is True.
+            if hasattr(self, 'auto_start') and self.auto_start:
+                self.start()
         return self
 
     def __call__(self, menu, *args, **kwargs):
@@ -62,6 +72,7 @@ class SimpleMachine(ABC):
         """
         self.menu = menu
         self.auto_prepare = True
+        self.auto_start = False
         self.__post_init__()
         return self.start(*args, **kwargs)
 
@@ -126,6 +137,14 @@ class SimpleMachine(ABC):
         """Returns lowercase name of class."""
         return self.__class__.__name__.lower()
 
+    def _add_tools(self):
+        """Adds listed functions as staticmethods to subclass."""
+        if hasattr(self, 'tools') and self.tools:
+            for tool in self.tools:
+                setattr(self, tool.__name__, staticmethod(
+                    getattr(tools, tool)))
+        return self
+
     def _check_gpu(self):
         """If gpu status is not set, checks if the local machine has a GPU
         capable of supporting included machine learning algorithms."""
@@ -153,17 +172,6 @@ class SimpleMachine(ABC):
             from simplify.core.inventory import Inventory
             self.inventory = Inventory(menu = self.menu)
         return self
-#
-#    def _check_lengths(self, variable1, variable2):
-#        """Returns boolean value whether two list variables are of the same
-#        length. If a string is passed, it is converted to a 1 item list for
-#        comparison.
-#
-#        Parameters:
-#            variable1: string or list.
-#            variable2: string or list.
-#        """
-#        return len(self.listify(variable1) == self.listify(variable2))
 
     def _check_menu(self):
         """Loads menu from an .ini file if a string is passed to menu instead
@@ -189,7 +197,15 @@ class SimpleMachine(ABC):
         return self
 
     @abstractmethod
-    def _outline(self):
+    def _define(self):
+        """Required method that sets default values for a subclass. 
+
+        A dict called 'options' should be defined here for subclasses to use 
+        much of the functionality of SimpleClass.
+
+        Generally, 'checks', and 'tools' attributes should be set here if the 
+        subclass wants to make use of those attributes and related methods. 
+        """
         pass
         return self
 
@@ -203,57 +219,13 @@ class SimpleMachine(ABC):
                 getattr(self, '_check_' + check)()
         return self
 
-    @staticmethod
-    def add_prefix(iterable, prefix):
-        """Adds prefix to list, dict keys, pandas dataframe, or pandas series.
+    def conform(self, step):
+        """Sets 'step' attribute to current step in siMpLify. This is used
+        to maintain a universal state in the package for subclasses that are
+        state dependent.
         """
-        if isinstance(iterable, list):
-            return [f'{prefix}_{value}' for value in iterable]
-        elif isinstance(iterable, dict):
-            return (
-                {f'{prefix}_{key}' : value for key, value in iterable.items()})
-        elif isinstance(iterable, pd.Series):
-            return iterable.add_prefix(prefix)
-        elif isinstance(iterable, pd.DataFrame):
-            return iterable.add_prefix(prefix)
-
-    @staticmethod
-    def add_suffix(iterable, suffix):
-        """Adds suffix to list, dict keys, pandas dataframe, or pandas series.
-        """
-        if isinstance(iterable, list):
-            return [f'{value}_{suffix}' for value in iterable]
-        elif isinstance(iterable, dict):
-            return (
-                {f'{key}_{suffix}' : value for key, value in iterable.items()})
-        elif isinstance(iterable, pd.Series):
-            return iterable.add_suffix(suffix)
-        elif isinstance(iterable, pd.DataFrame):
-            return iterable.add_suffix(suffix)
-
-    @staticmethod
-    def deduplicate(iterable):
-        """Adds suffix to list, pandas dataframe, or pandas series."""
-        if isinstance(iterable, list):
-            return list(unique_everseen(iterable))
-# Needs implementation for pandas
-        elif isinstance(iterable, pd.Series):
-            return iterable
-        elif isinstance(iterable, pd.DataFrame):
-            return iterable
-
-    @staticmethod
-    def listify(variable):
-        """Checks to see if the variable is stored in a list. If not, the
-        variable is converted to a list or a list of 'none' is created if the
-        variable is empty.
-        """
-        if not variable:
-            return ['none']
-        elif isinstance(variable, list):
-            return variable
-        else:
-            return [variable]
+        self.step = step
+        return self
 
     def load(self, name = None, file_path = None, folder = None,
              file_name = None, file_format = None):
@@ -277,6 +249,11 @@ class SimpleMachine(ABC):
 
     @abstractmethod
     def prepare(self):
+        """Required method which creates any objects to be applied to data or
+        variables. In the case of iterative classes, such as Planner, this 
+        method should construct any plans to be later implemented by the start
+        method.
+        """
         pass
         return self
 
@@ -304,7 +281,118 @@ class SimpleMachine(ABC):
                             file_format = file_format)
         return
 
-    @abstractmethod
-    def start(self, variable = None):
+    def start(self, variable = None, **kwargs):
+        """Optional method that implements all of the prepared objects on the
+        passed variable. The variable is returned after being transformed by
+        called methods.
+        
+        Parameters:
+            variable: any variable. In most cases in the siMpLify package, 
+                variable is an instance of Ingredients. However, any variable
+                or datatype can be used here.
+            **kwargs: other parameters can be added to method as needed or 
+                **kwargs can be used.
+        """
         pass
         return variable
+
+@dataclass
+class SimpleType(ABC):
+    """Parent abstract base class for setting dictionaries related to data and 
+    file types.
+
+    To use the class, a subclass must have the following methods:
+        _define: a private method which sets the default values for the
+            subclass. This method should define two dictionaries:
+                name_to_type: a dict with strings as keys corresponding to 
+                    datatype values.
+                default_values: a dict with strings as keys matching those in
+                    'name_to_type' and default values for those datatypes.
+    
+    With those basic dictionaries, a reverse dictionary ('type_to_name') is
+    created and a variety of dunder methods are implemented to make using the
+    type structures easier.
+    """
+
+    def __post_init__(self):
+        if hasattr(self, '_define'):
+            self._define()
+            self._create_reversed()
+        return self
+
+    def __getattr__(self, attr):
+        """Returns dict methods applied to 'name_to_type' attribute if those 
+        methods are sought from the class instance.
+
+        Parameters:
+            attr: attribute sought.
+        """
+        if attr in ['clear', 'items', 'pop', 'keys', 'update', 'values']:
+            return getattr(self.name_to_type, attr)
+        elif attr in self.__dict__:
+            return self.__dict__[attr]
+        elif attr.startswith('__') and attr.endswith('__'):
+            raise AttributeError
+        else:
+            return None
+
+    def __getitem__(self, item):
+        """Returns item if item is in 'name_to_type' or 'type_to_name'."""
+        if item in self.name_to_type:
+            return self.name_to_type[item]
+        elif item in self.type_to_name:
+            return self.type_to_name[item]
+        else:
+            error = item + ' is not in a recognized type.'
+            raise KeyError(error)
+
+    def __iter__(self):
+        """Returns 'name_to_type.items()' to mirror dict functionality."""
+        return self.name_to_type.items()
+
+    def __setitem__(self, item, value):
+        """Sets item to 'value' in 'name_to_type' and reverse in 'type_to_name'.
+        If the class has 'default_values', then:
+            if 'value' matches a 'key' in type_to_name, the same default value 
+            is applied. Otherwise, None is used as the default_value.
+        """
+        self.name_to_type.update({item : value})
+        self.type_to_name.update({value : item})
+        if hasattr(self, 'default_values'):
+            if value in self.type_to_name:
+                self.default_values.update({item : self.type_to_name[value]})
+            else:
+                self.default_values.update({item : None})
+        return self
+
+    def _create_reversed(self):
+        """ Creates reversed dictionary of 'name_to_type' and stores it in
+        'type_to_name'.
+        """
+        self.type_to_name = {
+            value : key for key, value in self.name_to_type.items()}
+        return self
+
+    @abstractmethod
+    def _define(self):
+        """Required method that sets default values for a subclass."""
+        pass
+        return self
+
+    def keys(self):
+        """Returns keys from 'name_to_type' to mirror dict functionality."""
+        return self.name_to_type.keys()
+
+    def set_type(self, name, python_type, default_value = None):
+        """Adds or replaces datatype with corresponding default value, if
+        applicable.
+        """
+        self.type_to_name.update({name : python_type})
+        self._create_reversed()
+        if default_value and hasattr(self, 'default_values'):
+            self.default_values.update({name : default_value})
+        return self
+
+    def values(self):
+        """Returns values from 'name_to_type' to mirror dict functionality."""
+        return self.name_to_type.values()

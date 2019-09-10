@@ -21,7 +21,7 @@ class Split(CookbookStep):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'group_kfold' : GroupKFold,
                         'kfold' : KFold,
                         'stratified' : StratifiedKFold,

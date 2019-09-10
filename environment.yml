@@ -1,0 +1,36 @@
+name: model
+channels:
+- conda-forge
+dependencies:
+- python>=3.6
+- category_encoders
+- configparser
+- cython
+- dataclasses
+- eli5
+- git
+- glob2
+- imbalanced-learn 
+- matplotlib
+- more-itertools
+- numpy
+- pandas
+- pip
+- pip:
+  - yellowbrick
+  - mlextend
+  - xgboost
+  - tensorflow==2.0.0-rc0
+  - treeinterpreter
+- pyqt
+- pystan
+- python-docx
+- pytorch
+- scikit-learn
+- scikit-optimize
+- scipy
+- seaborn
+- shap
+- sqlalchemy
+- statsmodels
+- sympy

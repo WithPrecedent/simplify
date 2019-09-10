@@ -15,7 +15,7 @@ class Bundle(AlmanacStep):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'merger' : Merger}
         self.needed_parameters = {'merger' : ['index_columns', 'merge_type']}
         return self

@@ -1,10 +1,10 @@
 
 from configparser import ConfigParser
 from dataclasses import dataclass
+import os
 import re
 
 from simplify.core.base import SimpleClass
-from simplify.core.tools import listify
 
 
 @dataclass
@@ -63,23 +63,20 @@ class Menu(SimpleClass):
 
     Parameters:
 
-        file_path: string of where the menu .ini file is located.
-        configuration: two-level nested dictionary storing menu. If a file_path
-            is provided, configuration will automatically be created.
+        configuration: either a file_path or two-level nested dictionary storing 
+            settings. If a file_path is provided, A nested dict will 
+            automatically be created from the file and stored in 
+            'configuration'.
         infer_types: boolean variable determines whether values in
-            configuration are converted to other types (True) or left as
+            'configuration' are converted to other types (True) or left as
             strings (False).
-        auto_prepare: sets whether to automatically call the prepare method
-            when the class is instanced. If you do not plan to make any
-            adjustments to the class otpions, this parameter should be set to
-            True. If you plan to make such changes, prepare should be called
-            when those changes are complete.
-        auto_start: sets whether the start method should be called when the
-            class is instanced. It should generally be set to true, unless
-            auto_prepare is False and extensive changes to the menu options
-            are anticipated.
+        auto_prepare: sets whether to automatically call the 'prepare' method
+            when the class is instanced. Unless adding a new source for 
+            configuration settings, this should be set to True.
+        auto_start: sets whether to automatically call the 'start' method
+            when the class is instanced. Unless adding a new source for 
+            configuration settings, this should be set to True.
     """
-    file_path : str
     configuration : object = None
     infer_types : bool = True
     auto_prepare : bool = True
@@ -114,17 +111,26 @@ class Menu(SimpleClass):
 
     def __getitem__(self, key):
         """Returns a section of the configuration dictionary or, if none is
-        found, an empty dictionary.
+        found, it looks at keys within sections. If no match is still found,
+        it returns an empty dictionary.
 
         Parameters:
 
             key: the name of the dictionary key for which the value is
                 sought.
         """
+        found_value = False
         if key in self.configuration:
+            found_value = True
             return self.configuration[key]
         else:
+            for config_key, config_value in self.configuration.items():
+                if key in config_value:
+                    found_value = True
+                    return self.configuration[config_key]
+        if not found_value:
             return {}
+        
 
     def __setitem__(self, section, nested_dict):
         """Creates a new subsection in a specified section of the configuration
@@ -151,18 +157,49 @@ class Menu(SimpleClass):
         """Returns the configuration dictionary."""
         return self.configuration
 
-    def _create_configuration(self, file_path):
-        """Creates a configuration dictionary from a file.
+    def _check_configuration(self):
+        if self.configuration:
+            if os.path.isfile(self.configuration):
+                if '.ini' in self.configuration:
+                    self.technique = 'ini_file'
+                elif '.py' in self.configuration:
+                    self.technique = 'py_file'
+                else:
+                    error = 'configuration file must be .py or .ini file'
+                    raise FileNotFoundError(error)
+            elif not isinstance(self.configuration, dict):
+                error = 'configuration must be dict or file path'
+                raise TypeError(error)
+        else:
+            error = 'configuration dict or path needed to instance Menu'
+            raise AttributeError(error)
+        return self
 
-        Parameters:
-            file_path: full path where the configuration file is located. The
-                file format must be compatiable with ConfigParser.
-        """
+    def _create_from_ini(self):
+        """Creates a configuration dictionary from an .ini file."""
         configuration = ConfigParser(dict_type = dict)
         configuration.optionxform = lambda option : option
-        configuration.read(file_path)
-        configuration = dict(configuration._sections)
-        return configuration
+        configuration.read(self.configuration)
+        self.configuration = dict(configuration._sections)
+        return self
+
+    def _create_from_py(self):
+        """Creates a configuration dictionary from an .py file."""
+        pass
+        return self
+
+    def _define(self):
+        """Loads configuration dictionary using ConfigParser if configuration
+        does not presently exist.
+        """
+        # Lists tools from siMpLify package that should be added as local
+        # staticmethods.
+        self.tools = ['listify', 'typify']
+        # Sets options for creating 'configuration'.
+        self.options = {'py_file' : self._create_from_py,
+                        'ini_file' : self._create_from_ini,
+                        'dict' : None}
+        return self
 
     def _infer_types(self):
         """If infer_types is True, all dictionary values in configuration are
@@ -183,16 +220,41 @@ class Menu(SimpleClass):
         self.inject(instance = SimpleClass, sections = ['general'])
         return self
 
-    def _set_defaults(self):
-        """Loads configuration dictionary using ConfigParser if configuration
-        does not presently exist.
+    def inject(self, instance, sections, override = False):
+        """Stores the section or sections of the configuration dictionary in
+        the passed class instance as attributes to that class instance.
+
+        Parameters:
+
+            instance: either a class instance or class to which attributes
+                should be added.
+            sections: the sections of the configuration dictionary which should
+                have items added as attributes to instance.
+            override: if True, even existing attributes in instance will be
+                replaced by configuration dictionary items.
         """
-        if not self.configuration:
-            self.configuration = self._create_configuration(
-                    file_path = self.file_path)
+        for section in self.listify(sections):
+            for key, value in self.configuration[section].items():
+                if not hasattr(instance, key) or override:
+                    setattr(instance, key, value)
+        return
+
+    def prepare(self):
+        """Prepares instance of Menu by checking passed configuration parameter.
+        """
+        self._check_options()
         return self
 
-    def add_settings(self, new_settings):
+    def start(self):
+        """Creates configuration setttings and injects Menu into SimpleClass.
+        """
+        if self.options(self.technique):
+            self.options(self.technique)()
+        self._infer_types()
+        self._inject_base()
+        return self
+
+    def update(self, new_settings):
         """Adds new settings to the configuration dictionary.
 
         Parameters:
@@ -213,58 +275,3 @@ class Menu(SimpleClass):
             error_message = 'new_options must be dict, Menu instance, or path'
             raise TypeError(error_message)
         return self
-
-    def inject(self, instance, sections, override = False):
-        """Stores the section or sections of the configuration dictionary in
-        the passed class instance as attributes to that class instance.
-
-        Parameters:
-
-            instance: either a class instance or class to which attributes
-                should be added.
-            sections: the sections of the configuration dictionary which should
-                have items added as attributes to instance.
-            override: if True, even existing attributes in instance will be
-                replaced by configuration dictionary items.
-        """
-        for section in listify(sections):
-            for key, value in self.configuration[section].items():
-                if not hasattr(instance, key) or override:
-                    setattr(instance, key, value)
-        return
-
-    def prepare(self):
-        """Prepares instance of Menu."""
-        self._infer_types()
-        return self
-
-    def start(self):
-        """Injects Menu instance into base SimpleClass."""
-        self._inject_base()
-        return self
-
-    @staticmethod
-    def typify(variable):
-        """Converts strings to list (if ', ' is present), int, float, or
-        boolean datatypes based upon the content of the string. If no
-        alternative datatype is found, the variable is returned in its original
-        form.
-        """
-        if ', ' in variable:
-            return variable.split(', ')
-        elif re.search('\d', variable):
-            try:
-                return int(variable)
-            except ValueError:
-                try:
-                    return float(variable)
-                except ValueError:
-                    return variable
-        elif variable in ['True', 'true', 'TRUE']:
-            return True
-        elif variable in ['False', 'false', 'FALSE']:
-            return False
-        elif variable in ['None', 'none', 'NONE']:
-            return None
-        else:
-            return variable

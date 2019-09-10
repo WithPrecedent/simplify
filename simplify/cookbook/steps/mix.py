@@ -18,7 +18,7 @@ class Mix(CookbookStep):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'polynomial' : PolynomialEncoder,
                         'quotient' : self.quotient_features,
                         'sum' : self.sum_features,

@@ -18,7 +18,7 @@ class Cleave(CookbookStep):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {}
         self.default_parameters = {}
         self.algorithm = self._cleave

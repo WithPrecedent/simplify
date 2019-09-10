@@ -4,12 +4,12 @@ import os
 
 import pandas as pd
 
-from simplify.core.base import SimpleMachine
+from simplify.core.base import SimpleClass
 from simplify.core.ingredients import Ingredients
 
 
 @dataclass
-class Planner(SimpleMachine):
+class Planner(SimpleClass):
     """Parent class for select siMpLify classes to provide shared methods for
     creating data science workflows. It can also be subclassed to create other
     Planners beyond those included in the package.
@@ -19,7 +19,7 @@ class Planner(SimpleMachine):
         super().__post_init__()
         # Outputs Planner status to console if verbose option is selected.
         if self.verbose:
-            print('Creating', self.name)
+            print('Creating', self)
         return self
 
     def _check_ingredients(self, ingredients = None):
@@ -39,79 +39,73 @@ class Planner(SimpleMachine):
             self.ingredients = ingredients
         if (isinstance(self.ingredients, pd.Series)
                 or isinstance(self.ingredients, pd.DataFrame)):
-            self.ingredients = Ingredients(menu = self.menu,
-                                           inventory = self.inventory,
-                                           df = self.ingredients)
+            self.ingredients = Ingredients(df = self.ingredients)
         elif isinstance(self.ingredients, str):
             if os.path.isfile(self.ingredients):
                 df = self.inventory.load(folder = self.inventory.data,
                                          file_name = self.ingredients)
-                self.ingredients = Ingredients(menu = self.menu,
-                                               inventory = self.inventory,
-                                               df = df)
+                self.ingredients = Ingredients(df = df)
             elif os.path.isdir(self.ingredients):
                 self.inventory.create_glob(folder = self.ingredients)
-                self.ingredients = Ingredients(menu = self.menu,
-                                               inventory = self.inventory,
-                                               auto_load = False)
+                self.ingredients = Ingredients()
         elif not self.ingredients:
-            self.ingredients = Ingredients(menu = self.menu,
-                                           inventory = self.inventory)
+            self.ingredients = Ingredients()
         return self
 
     def _check_steps(self):
-        if not self.steps:
+        if not hasattr(self, 'steps') or not self.steps:
             if hasattr(self, self.name + '_steps'):
                 self.steps = self.listify(getattr(self, self.name + '_steps'))
             else:
                 self.steps = []
         else:
             self.steps = self.listify(self.steps)
-        if self.steps:
+        if not hasattr(self, 'step') or not self.step:
             self.step = self.steps[0]
         return self
 
-    def _outline(self):
+    def _define(self):
         """ Declares defaults for Planner."""
         self.options = {}
+        self.tools = ['listify']
         self.plan_class = None
         self.checks = ['steps', 'ingredients']
         self.state_attributes = ['inventory', 'ingredients']
         return self
 
-    def add_options(self, step = None, techniques = None, algorithms = None):
-        """Adds new technique name and corresponding algorithm to the options
-        dictionary.
-        """
-        if step:
-            self.options[step].add_options(techniques = techniques,
-                                           algorithms = algorithms)
-        else:
-            options = dict(zip(self.listify(techniques),
-                               self.listify(algorithms)))
-            self.options.update(options)
-        return self
+    # def add_options(self, step = None, techniques = None, algorithms = None):
+    #     """Adds new technique name and corresponding algorithm to the options
+    #     dictionary.
+    #     """
+    #     if step:
+    #         self.options[step].add_options(techniques = techniques,
+    #                                        algorithms = algorithms)
+    #     else:
+    #         options = dict(zip(self.listify(techniques),
+    #                            self.listify(algorithms)))
+    #         self.options.update(options)
+    #     return self
 
-    def add_parameters(self, step, parameters):
-        """Adds parameter sets to the parameters dictionary of a prescribed
-        step. """
-        self.options[step].add_parameters(parameters = parameters)
-        return self
+    # def add_parameters(self, step, parameters):
+    #     """Adds parameter sets to the parameters dictionary of a prescribed
+    #     step. """
+    #     self.options[step].add_parameters(parameters = parameters)
+    #     return self
 
-    def add_runtime_parameters(self, step, parameters):
-        """Adds runtime_parameter sets to the parameters dictionary of a
-        prescribed step."""
-        self.options[step].add_runtime_parameters(parameters = parameters)
-        return self
+    # def add_runtime_parameters(self, step, parameters):
+    #     """Adds runtime_parameter sets to the parameters dictionary of a
+    #     prescribed step."""
+    #     self.options[step].add_runtime_parameters(parameters = parameters)
+    #     return self
 
-    def add_step_class(self, step_name, step_class):
-        self.options.update({step_name, step_class})
-        return self
+    # def add_step_class(self, step_name, step_class):
+    #     self.options.update({step_name, step_class})
+    #     return self
 
-    def add_technique(self, step, technique, parameters = None):
-        tool_instance = self.options[step](technique = technique,
-                                           parameters = parameters)
-        return tool_instance
+    # def add_technique(self, step, technique, parameters = None):
+    #     tool_instance = self.options[step](technique = technique,
+    #                                        parameters = parameters)
+    #     return tool_instance
 
     def conform(self, step = None):
         if not step:

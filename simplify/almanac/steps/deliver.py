@@ -25,7 +25,7 @@ class Deliver(AlmanacStep):
         self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'shapers' : Shaper,
                         'streamliners' : Streamliner}
         self.needed_parameters = {'shapers' : ['shape_type', 'stubs',

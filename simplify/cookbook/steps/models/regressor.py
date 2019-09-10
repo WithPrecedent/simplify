@@ -25,7 +25,7 @@ class Regressor(Algorithm):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'adaboost' : AdaBoostRegressor,
                         'baseline_regressor' : DummyRegressor,
                         'bayes_ridge' : BayesianRidge,

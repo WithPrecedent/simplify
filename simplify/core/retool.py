@@ -41,7 +41,7 @@ class ReTool(SimpleClass):
     auto_prepare : bool = True
 
     def __post_init__(self):
-        self._set_defaults()
+        self._define()
         if self.auto_prepare:
             self.prepare()
         return self
@@ -93,7 +93,7 @@ class ReTool(SimpleClass):
                 self.keys).to_dict()[self.values])
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         # Sets str names for corresponding regex compiling flags.
         self.flag_options = {'ignorecase' : re.IGNORECASE,
                              'dotall' : re.DOTALL,

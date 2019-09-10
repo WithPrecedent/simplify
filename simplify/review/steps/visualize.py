@@ -10,15 +10,14 @@ import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from simplify.core.base import SimpleClass
+from simplify.core.step import Step
 
 
 @dataclass
-class Presentation(SimpleClass):
+class Visualize(Step):
     """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
     """
-    inventory : object
     name : str = 'presentation'
 
     def __post_init__(self):
@@ -49,7 +48,7 @@ class Presentation(SimpleClass):
         self.plots = ['heat_map', 'linear', 'residuals']
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         """Sets default styles, options, and plots."""
         self._set_style()
         self._set_options()

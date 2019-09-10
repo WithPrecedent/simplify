@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.insert(0, os.path.join('..', 'simplify'))
 
 import pandas as pd
 import numpy as np
@@ -12,26 +14,24 @@ cancer = load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
 # Initializes core simplify classes.
-menu = Menu(file_path = 'cancer_settings.ini')
-inventory = Inventory(menu = menu, root_folder = os.path.join('..', '..'))
-ingredients = Ingredients(menu = menu, inventory = inventory, df = df)
-# Creates instance of Data with the cancer dataframe.
-cookbook = Cookbook(menu = menu,
-                    inventory = inventory,
-                    ingredients = ingredients)
+menu = Menu(configuration = os.path.join('examples', 'cancer_settings.ini'))
+inventory = Inventory(root_folder = os.path.join('..', '..'))
+ingredients = Ingredients(df = df)
 # Converts label to boolean type - conversion from numpy arrays leaves all
 # columns as float type.
-cookbook.ingredients.change_datatype(columns = 'target', datatype = 'boolean')
+ingredients.change_datatype(columns = 'target', datatype = 'boolean')
 # Fills missing ingredients with appropriate default values based on column
 # datatype.
-cookbook.ingredients.smart_fill()
-# Creates and exports a table of summary statistics from the dataframe.
-cookbook.ingredients.summarize()
-# Iterates through every recipe and exports plots from each recipe.
+ingredients.smart_fill()
+# Creates instance of Data with the cancer dataframe.
+cookbook = Cookbook(ingredients = ingredients)
+# Iterates through every recipe and exports plots, explainers, and other
+# metrics from each recipe.
 cookbook.start()
 # Saves the recipes, results, and cookbook.
 cookbook.save_everything()
-# Outputs information about the best recipe.
+# Outputs information about the best recipe to the terminal.
 cookbook.print_best()
-# Saves ingredients file.
+# Saves ingredients file with predictions or predicted probabilities added 
+# (based on options in menu).
 cookbook.ingredients.save(file_name = 'cancer_df')

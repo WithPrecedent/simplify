@@ -8,39 +8,39 @@ import pickle
 import pandas as pd
 
 from simplify.core.base import SimpleClass
-from simplify.core.tools import listify
 from simplify.core.types import FileTypes
 
 
 @dataclass
 class Inventory(SimpleClass):
-    """Creates and stores dynamic and static file paths, loads and saves
-    various file types, and properly formats files for import and export.
+    """Creates and stores dynamic and static file paths and properly formats 
+    files for import and export.
 
     Parameters:
 
-        menu: an instance of Menu.
         root_folder: a string including the complete path from which the other
-            paths and folders used by Inventory stem.
-        data_folder: a string containing the data folder name.
-        results_folder: a string containing the results folder name.
+            paths and folders used by Inventory.
+        data_folder: a string containing the data subfolder name or a complete
+            path if the 'data_folder' is not off of 'root_folder'.
+        results_folder: a string containing the results subfolder name or a 
+            complete path if the 'results_folder' is not off of 'root_folder'.
         datetime_naming: a boolean value setting whether the date and time
             should be used to create experiment subfolders (so that prior
             results are not overwritten).
-        auto_prepare: boolean value as to whether prepare method should be
-            called when the class is instanced.
-        auto_start: sets whether the start method should be called when the
-            class is instanced. It should generally be set to true, unless
-            auto_prepare is False and extensive changes to the inventory
-            options are anticipated.
+        auto_prepare: sets whether to automatically call the 'prepare' method
+            when the class is instanced. Unless making major changes to the
+            file structure (beyond the 'root_folder', 'data_folder', and 
+            'results_folder' parameters), this should be set to True.
+        auto_start: sets whether to automatically call the 'start' method
+            when the class is instanced. Unless making major changes to the
+            file structure (beyond the 'root_folder', 'data_folder', and 
+            'results_folder' parameters), this should be set to True.
     """
-    menu : object
     root_folder : str = ''
     data_folder : str = 'data'
     results_folder : str = 'results'
     datetime_naming : bool = True
     auto_prepare : bool = True
-    auto_start : bool = True
 
     def __post_init__(self):
         # Adds additional section of menu to be injected as local attributes.
@@ -51,7 +51,7 @@ class Inventory(SimpleClass):
     @property
     def file_in(self):
         if self.import_folder[self.step] in ['raw']:
-            return 'glob'
+            return self.folder_in
         else:
             return list(self.import_folder.keys())[list(
                     self.import_folder.keys()).index(self.step) - 1] + '_data'
@@ -59,18 +59,18 @@ class Inventory(SimpleClass):
     @property
     def file_out(self):
         if self.export_folder[self.step] in ['raw']:
-            return 'glob'
+            return self.folder_out
         else:
             return list(self.export_folder.keys())[list(
                     self.export_folder.keys()).index(self.step)] + '_data'
 
     @property
     def folder_in(self):
-        return getattr(self, self.import_folder[self.step])
+        return getattr(self, self.options[self.step])[0]
 
     @property
     def folder_out(self):
-        return getattr(self, self.export_folder[self.step])
+        return getattr(self, self.options[self.step])[1]
 
     @property
     def format_in(self):
@@ -97,7 +97,7 @@ class Inventory(SimpleClass):
                 created.
             subfolders: a list of subfolder names forming the tree branch.
         """
-        for subfolder in listify(subfolders):
+        for subfolder in self.listify(subfolders):
             temp_folder = self.create_folder(folder = root_folder,
                                               subfolder = subfolder)
             setattr(self, subfolder, temp_folder)
@@ -248,14 +248,44 @@ class Inventory(SimpleClass):
                 test_rows = self.test_rows
             return test_rows
 
-    def _get_file_format(self, io_status):
-        if getattr(self, io_status + '_folder')[self.step] in ['raw']:
-            return self.source_format
-        elif getattr(self, io_status + '_folder')[self.step] in ['interim']:
-            return self.interim_format
-        elif getattr(self, io_status + '_folder')[self.step] in ['processed']:
-            return self.final_format
+    def _define(self):
+        """Creates data, results, and experiment folders based upon passed
+        parameters. The experiment folder name is based upon the date and time
+        to avoid overwriting previous experiments unless datetime_naming is set
+        to False. If False, a default folder named 'experiment' will be used.
+        Also, creates a dictionary for file_format names and extensions.
+        """
+        self.tools = ['listify']
+        self.extensions = FileTypes()
+        self.data_subfolders = ['raw', 'interim', 'processed', 'external']
+        self.default_kwargs = {'index' : False,
+                               'header' : None,
+                               'low_memory' : False,
+                               'dialect' : 'excel',
+                               'usecols' : None,
+                               'columns' : None,
+                               'nrows' : None,
+                               'index_col' : False}
+        self.options = {'sow' : ['raw', 'raw'],
+                        'harvest' : ['raw', 'interim'],
+                        'clean' : ['interim', 'interim'],
+                        'bundle' : ['interim', 'interim'],
+                        'deliver' : ['interim', 'processed'],
+                        'cook' : ['processed', 'processed']}
+        self.options_index = {'import' : 0,
+                              'export' : 1}
         return self
+
+    def _get_file_format(self, io_status):
+        if (self.options[self.step][self.options_index[io_status]] 
+                in ['raw']):
+            return self.source_format
+        elif (self.options[self.step][self.options_index[io_status]]
+                in ['interim']):
+            return self.interim_format
+        elif (self.options[self.step][self.options_index[io_status]] 
+                in ['processed']):
+            return self.final_format
 
     def _inject_base(self):
         """Injects parent class, SimpleClass with this Inventory instance so
@@ -388,37 +418,6 @@ class Inventory(SimpleClass):
         variable.close()
         return
 
-    def _set_defaults(self):
-        """Creates data, results, and experiment folders based upon passed
-        parameters. The experiment folder name is based upon the date and time
-        to avoid overwriting previous experiments unless datetime_naming is set
-        to False. If False, a default folder named 'experiment' will be used.
-        Also, creates a dictionary for file_format names and extensions.
-        """
-        self.extensions = FileTypes()
-        self.data_subfolders = ['raw', 'interim', 'processed', 'external']
-        self.default_kwargs = {'index' : False,
-                               'header' : None,
-                               'low_memory' : False,
-                               'dialect' : 'excel',
-                               'usecols' : None,
-                               'columns' : None,
-                               'nrows' : None,
-                               'index_col' : False}
-        self.import_folder = {'sow' : 'raw',
-                              'harvest' : 'raw',
-                              'clean' : 'interim',
-                              'bundle' : 'interim',
-                              'deliver' : 'interim',
-                              'cook' : 'processed'}
-        self.export_folder = {'sow' : 'raw',
-                              'harvest' : 'interim',
-                              'clean' : 'interim',
-                              'bundle' : 'interim',
-                              'deliver' : 'processed',
-                              'cook' : 'processed'}
-        return self
-
     def add_file_format(self, file_format, extension, load_method,
                         save_method):
         """Adds or replaces a file extension option.
@@ -449,7 +448,7 @@ class Inventory(SimpleClass):
             root_folder: path of folder where subfolders should be created.
             subfolders: list of subfolder names to be created.
         """
-        for subfolder in listify(subfolders):
+        for subfolder in self.listify(subfolders):
             temp_folder = self.create_folder(folder = root_folder,
                                               subfolder = subfolder)
             setattr(self, subfolder, temp_folder)
@@ -466,11 +465,6 @@ class Inventory(SimpleClass):
         for folder, subfolders in folder_tree.items():
             self._add_branch(root_folder = folder,
                              subfolders = subfolders)
-        return self
-
-    def conform(self, step):
-        """Sets self.step to current step in siMpLify."""
-        self.step = step
         return self
 
     def create_batch(self, folder = None, file_format = None,
@@ -550,7 +544,7 @@ class Inventory(SimpleClass):
         """
         instance.data_in = self.path_in
         instance.data_out = self.path_out
-        for section in listify(sections):
+        for section in self.listify(sections):
             if hasattr(self, section + '_in') and override:
                 setattr(instance, section + '_in',
                         getattr(self, section + '_in'))
@@ -662,5 +656,5 @@ class Inventory(SimpleClass):
 
     def start(self):
         """Injects Inventory instance into base SimpleClass."""
-        self._inject_base()
+        self._inject_base()       
         return self

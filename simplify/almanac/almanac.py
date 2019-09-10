@@ -102,9 +102,9 @@ class Almanac(Planner):
         self.columns.update(dict.fromkeys(self.columns, str))
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         """ Declares default step names and classes in an Almanac."""
-        super()._set_defaults()
+        super()._define()
         self.options = {'sow' : Sow,
                         'harvest' : Harvest,
                         'clean' : Clean,

@@ -17,7 +17,7 @@ class Sow(AlmanacStep):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'convert' : Convert,
                         'download' : Download,
                         'scrape' : Scrape,

@@ -7,11 +7,9 @@ from dataclasses import dataclass
 import datetime
 from itertools import product
 
-from simplify.cookbook.critic import Critic
 from simplify.cookbook.recipe import Recipe
 from simplify.cookbook.steps import (Cleave, Encode, Mix, Model, Reduce,
                                      Sample, Scale, Split)
-from simplify.core.decorators import check_arguments
 from simplify.core.planner import Planner
 
 
@@ -20,17 +18,13 @@ class Cookbook(Planner):
     """Dynamically creates recipes for final preprocessing, machine learning,
     and data analysis using a unified interface and architecture.
 
-    Attributes:
-        menu: an instance of Menu or a string containing the path where a menu
-            settings file exists.
-        inventory: an instance of Inventory. If one is not passed when Cookbook
-            is instanced, one will be created with default options.
-        steps: an ordered list of step names to be completed. This argument
-            should only be passed if the user whiches to override the Menu
-            steps.
+    Parameters:
         ingredients: an instance of Ingredients (or a subclass).
+        steps: an ordered list of step names to be completed. This argument
+            should only be passed if the user whiches to override the steps
+            listed in menu.configuration.
         recipes: a list of instances of Recipe which Cookbook creates through
-            the prepare method and applies through the start method.
+            the 'prepare' method and applies through the 'star't method.
             Ordinarily, recipes is not passed when Cookbook is instanced, but
             the argument is included if the user wishes to reexamine past
             recipes or manually create recipes.
@@ -44,14 +38,13 @@ class Cookbook(Planner):
         step: string name of step used for various conform methods in the
             simplify package.
     """
-    menu : object = None
-    inventory : object = None
-    steps : object = None
     ingredients : object = None
+    steps : object = None  
     recipes : object = None
-    auto_prepare : bool = True
     name : str = 'cookbook'
     step : str = 'cook'
+    auto_prepare : bool = True
+    auto_start : bool = True
 
     def __post_init__(self):
         """Sets up the core attributes of a Cookbook instance."""
@@ -124,10 +117,9 @@ class Cookbook(Planner):
         self.all_recipes = list(map(list, product(*self.step_lists)))
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         """ Declares default step names and plan_class in a Cookbook recipe."""
-        # Initially sets defaults from parent class.
-        super()._set_defaults()
+        self.tools = ['check_arguments']
         # Sets options for default steps of a Recipe.
         self.options = {'scaler' : Scale,
                         'splitter' : Split,

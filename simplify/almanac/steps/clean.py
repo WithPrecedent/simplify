@@ -18,7 +18,7 @@ class Clean(AlmanacStep):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'keyword' : ReTool,
                         'combiner' : Combine}
         return self
@@ -63,7 +63,7 @@ class Combine(object):
                         self.method))
         return ingredients
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'all' : self._combine_all,
                         'any' : self._combine_any,
                         'dict' : self._dict}

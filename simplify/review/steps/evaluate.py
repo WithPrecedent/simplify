@@ -2,91 +2,24 @@
 from dataclasses import dataclass
 
 import pandas as pd
-from sklearn import metrics
 
-from simplify.cookbook.cookbook_step import CookbookStep
-from simplify.core.planner import Planner
-from simplify.review.evaluate import Evaluate
-from simplify.review.report import Report
-from simplify.review.summarize import Summarize
-from simplify.review.visualize import Visualize
+from simplify.core.step import Step
+from simplify.core.technique import Technique
 
 
 @dataclass
-class Critic(Planner):
-    """Computes and stores machine learning experiment results.
+class Evaluate(Step):
+    """Core class for evaluating the results of data analysis performed by
+    the siMpLify Cookbook.
 
-    Review creates and stores a results report and other general
-    scorers/metrics for machine learning based upon the type of model used in
-    the siMpLify package. Users can manually add metrics not already included
-    in the metrics dictionary by passing them to Results.add_metric.
-
-    Attributes:
-        name: a string designating the name of the class which should be
-            identical to the section of the menu with relevant settings.
-        auto_prepare: sets whether to automatically call the prepare method
-            when the class is instanced. If you do not plan to make any
-            adjustments to the options or metrics beyond the menu, this option
-            should be set to True. If you plan to make such changes, prepare
-            should be called when those changes are complete.
     """
-    name : str = 'review'
-    auto_prepare : bool = True
-
-    def __post_init__(self):
-        super().__post_init__()
-        return self
-
-    def _print_classifier_results(self, recipe):
-        """Prints to console basic results separate from report."""
-        print('These are the results using the', recipe.model.technique,
-              'model')
-        if recipe.splicer.technique != 'none':
-            print('Testing', recipe.splicer.technique, 'predictors')
-        print('Confusion Matrix:')
-        print(self.confusion)
-        print('Classification Report:')
-        print(self.classification_report)
-        return self
-
-    def _set_defaults(self):
-        """Sets default options for Recipe Review."""
-        self.options = {'evaluate' : Evaluate,
-                        'visualize' : Visualize,
-                        'summarize' : Summarize,
-                        'report' : Report}
-        return self
-
-    def prepare(self):
-        return self
-
-    def start(self, recipe):
-        """Evaluates recipe with various tools and prepares report."""
-        if self.verbose:
-            print('Evaluating recipe')
-        self.recipe = recipe
-        if not hasattr(self, 'columns'):
-            self._set_columns()
-        self._create_predictions()
-        self._add_result()
-        self._confusion_matrix()
-        getattr(self, '_' + self.model_type + '_report')()
-        self._feature_summaries()
-        for evaluator in self.listify(self.evaluators):
-            evaluate_package = self.evaluator_options[evaluator]
-            evaluate_package()
-        return self
-
-
-@dataclass
-class Evaluate(SimpleClass):
 
     def __post_init__(self):
         """Sets up the core attributes of an Evaluator instance."""
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'eli5' : Eli5Evaluator,
                         'shap' : ShapEvaluator,
                         'skater' : SkaterEvaluator,
@@ -100,14 +33,14 @@ class Evaluate(SimpleClass):
         return self
 
 @dataclass
-class Eli5Evaluator(Evaluator):
+class Eli5Evaluator(Technique):
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
 
         from eli5 import explain_prediction_df, explain_weights_df
         from eli5.sklearn import PermutationImportance
@@ -142,14 +75,14 @@ class Eli5Evaluator(Evaluator):
         return self
 
 @dataclass
-class ShapEvaluator(Evaluator):
+class ShapEvaluator(Technique):
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         from shap import (DeepExplainer, KernelExplainer, LinearExplainer,
                           TreeExplainer)
 
@@ -197,7 +130,7 @@ class ShapEvaluator(Evaluator):
         return self
 
 @dataclass
-class SklearnEvaluator(Evaluator):
+class SklearnEvaluator(Technique):
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
@@ -221,6 +154,7 @@ class SklearnEvaluator(Evaluator):
         return self
 
     def _default_classifier(self):
+        from sklearn import metrics
         self.options = {
                 'accuracy' : metrics.accuracy_score,
                 'balanced_accuracy' : metrics.balanced_accuracy_score,
@@ -241,6 +175,7 @@ class SklearnEvaluator(Evaluator):
         return self
 
     def _default_clusterer(self):
+        from sklearn import metrics
         self.options = {
                 'adjusted_mutual_info' : metrics.adjusted_mutual_info_score,
                 'adjusted_rand' : metrics.adjusted_rand_score,
@@ -260,6 +195,7 @@ class SklearnEvaluator(Evaluator):
         return self
 
     def _default_regressor(self):
+        from sklearn import metrics
         self.options = {
                 'explained_variance' : metrics.explained_variance_score,
                 'max_error' : metrics.max_error,
@@ -287,7 +223,7 @@ class SklearnEvaluator(Evaluator):
                                             inplace = True)
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         getattr(self, '_default_' + self.model_type)()
         self.special_metrics = {
                 'fbeta' : {'beta' : 1},
@@ -309,7 +245,7 @@ class SklearnEvaluator(Evaluator):
         if special_parameters:
            self.special_metrics.update({name : special_parameters})
         if negative_metric:
-           self.special_metrics.append[name]
+           self.negative_metrics.append[name]
         return self
 
     def prepare(self):
@@ -348,65 +284,12 @@ class SklearnEvaluator(Evaluator):
         return self
 
 @dataclass
-class SkaterEvaluator(Evaluator):
+class SkaterEvaluator(Technique):
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
-        return self
-
-class Report(SimpleClass):
-
-
-    def _check_algorithm(self, step):
-        """Returns appropriate algorithm to the report attribute."""
-        if step.technique in ['none', 'all']:
-            return step.technique
-        else:
-            return step.algorithm
-
-
-    def _classifier_report(self):
-        self.classifier_report_default = metrics.classification_report(
-                self.recipe.ingredients.y_test,
-                self.predictions)
-        self.classifier_report_dict = metrics.classification_report(
-                self.recipe.ingredients.y_test,
-                self.predictions,
-                output_dict = True)
-        self.classifier_report = pd.DataFrame(
-                self.classifier_report_dict).transpose()
-        return self
-
-
-    def _cluster_report(self):
-        return self
-
-    def _format_step(self, attribute):
-        if getattr(self.recipe, attribute).technique in ['none', 'all']:
-            step_column = getattr(self.recipe, attribute).technique
-        else:
-            technique = getattr(self.recipe, attribute).technique
-            parameters = getattr(self.recipe, attribute).parameters
-            step_column = f'{technique}, parameters = {parameters}'
-        return step_column
-
-    def _regressor_report(self):
-        return self
-
-
-    def _set_columns(self):
-        """Sets columns and options for report."""
-        self.columns = {'recipe_number' : 'number',
-                        'options' : 'techniques',
-                        'seed' : 'seed',
-                        'validation_set' : 'val_set'}
-        for step in self.recipe.techniques:
-            self.columns.update({step : step})
-        self.columns_list = list(self.columns.keys())
-        self.columns_list.extend(self.listify(self.metrics))
-        self.report = pd.DataFrame(columns = self.columns_list)
+    def _define(self):
         return self

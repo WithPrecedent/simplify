@@ -34,7 +34,7 @@ class Harvest(AlmanacStep):
         algorithm = self.options[self.technique](**self.parameters)
         return algorithm
 
-    def _set_defaults(self):
+    def _define(self):
         self.options = {'organize' : ReTool,
                         'parse' : ReTool}
         return self

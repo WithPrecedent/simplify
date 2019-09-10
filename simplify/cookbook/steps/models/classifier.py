@@ -7,7 +7,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-from .algorithm import Algorithm
+from simplify.cookbook.steps.models.algorithm import Algorithm
 
 
 @dataclass
@@ -25,7 +25,7 @@ class Classifier(Algorithm):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
+    def _define(self):
         self.checks = ['menu']
         self.options = {'adaboost' : AdaBoostClassifier,
                         'baseline_classifier' : DummyClassifier,

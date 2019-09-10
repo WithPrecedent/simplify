@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from .base import SimpleClass
+from simplify.core.base import SimpleClass
 
 
 @dataclass
@@ -24,8 +24,8 @@ class Summary(SimpleClass):
         super().__post_init__()
         return self
 
-    def _set_defaults(self):
-        """Sets options for Summary."""
+    def _define(self):
+        """Sets options for Summarize class."""
         self.options = {'datatype' : ['dtype'],
                         'count' : 'count',
                         'min' :'min',
@@ -52,7 +52,7 @@ class Summary(SimpleClass):
         self.report = pd.DataFrame(columns = self.columns)
         return self
 
-    def start(self, df = None, transpose = True):
+    def _start_report(self, df = None, transpose = True):
         """Completes report with data from df.
 
         Parameters:
@@ -60,7 +60,7 @@ class Summary(SimpleClass):
             transpose: boolean value indicating whether the df columns should be
                 listed horizontally (True) or vertically (False) in report.
         """
-        for i, column in enumerate(df.columns):
+        for column in df.columns:
             row = pd.Series(index = self.columns)
             row['variable'] = column
             if df[column].dtype == bool:
@@ -86,4 +86,27 @@ class Summary(SimpleClass):
         else:
             self.df_header = True
             self.df_index = False
+        return self
+
+    def start(self, df = None, transpose = True, file_name = 'data_summary', 
+              file_format = 'csv'):
+        """Creates and exports a DataFrame of common summary data using the
+        Summary class.
+
+        Parameters:
+            df: a pandas DataFrame.
+            transpose: boolean value indicating whether the df columns should
+                be listed horizontally (True) or vertically (False) in report.
+            file_name: string containing name of file to be exported.
+            file_format: string of file extension from Inventory.extensions.
+        """
+        self._start_report(df = df, transpose = transpose)
+        if self.verbose:
+            print('Saving summary data')
+        self.inventory.save(variable = self._start_report.report,
+                            folder = self.inventory.experiment,
+                            file_name = file_name,
+                            file_format = file_format,
+                            header = self._start_report.df_header,
+                            index = self._start_report.df_index)
         return self

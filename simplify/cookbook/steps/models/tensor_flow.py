@@ -42,7 +42,7 @@ class TFModel(Algorithm):
 #                               'datetime' : datetime64,
 #                               'timedelta' : timedelta}
 
-    def _set_defaults(self):
+    def _define(self):
         self.model_parameters = {'build_fn' : self._tensor_flow_model,
                                  'batch_size' : 10,
                                  'epochs' : 2}
