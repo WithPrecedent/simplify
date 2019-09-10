@@ -9,16 +9,16 @@ from tensorflow.test import is_gpu_available
 
 
 @dataclass
-class SimpleClass(ABC):
+class SimpleMachine(ABC):
     """Absract base class for major classes in siMpLify package to support
     a common class structure and allow sharing of access methods.
 
     To use the class, a subclass must have the following methods:
-        _set_defaults: a private method which sets the default values for the
+        _outline: a private method which sets the default values for the
             subclass, and usually includes the self.options dictionary.
-        prepare: a method which, after the use has set all options in the
-            preferred manner. This method constructs the objects which can
-            parse, modify, process, or analyze data.
+        prepare: a method which, after the user has set all options in the
+            preferred manner, constructs the objects which can parse, modify,
+            process, or analyze data.
         start: method which applies the prepared objects to passed data or
             other variables.
 
@@ -38,16 +38,14 @@ class SimpleClass(ABC):
         # instanced. Injects attributes from menu settings to subclass.
         if hasattr(self, 'menu'):
             self._check_menu()
-        # Initializes options dictionary.
-        self.options = {}
-        # Calls _set_defaults private method if it exists.
-        self._set_defaults()
+        # Calls _outline private method to set up class defaults.
+        self._outline()
         # Runs attribute checks from list in self.checks (if it exists).
-        self.run_checks()
+        self._run_checks()
         # Calls prepare method if it exists and auto_prepare is True.
         if hasattr(self, 'auto_prepare') and self.auto_prepare:
             self.prepare()
-        # Calls start method if it exists and auto_prepare is True.
+        # Calls start method if it exists and auto_start is True.
         if hasattr(self, 'auto_start') and self.auto_start:
             self.start()
         return self
@@ -56,6 +54,11 @@ class SimpleClass(ABC):
         """When called as a function, a subclass will return the start method
         after running __post_init__. Any args and kwargs will only be passed
         to the start method.
+
+        Parameters:
+            menu: an instance of Menu or path where a menu configuration file
+                is located must be passed when a subclass is called as a
+                function.
         """
         self.menu = menu
         self.auto_prepare = True
@@ -81,6 +84,22 @@ class SimpleClass(ABC):
             raise KeyError(error)
         return self
 
+    def __getattr__(self, attr):
+        """Returns dict methods applied to options attribute if those methods
+        are sought from the class instance.
+
+        Parameters:
+            attr: attribute sought.
+        """
+        if attr in ['clear', 'items', 'pop', 'keys', 'update', 'values']:
+            return getattr(self.options, attr)
+        elif attr in self.__dict__:
+            return self.__dict__[attr]
+        elif attr.startswith('__') and attr.endswith('__'):
+            raise AttributeError
+        else:
+            return None
+
     def __getitem__(self, item):
         """Returns item if item is in self.options or is an atttribute."""
         if item in self.options:
@@ -88,8 +107,7 @@ class SimpleClass(ABC):
         elif hasattr(self, item):
             return getattr(self, item)
         else:
-            error = item + ' is not in ' + self.__class__.__name__
-            raise KeyError(error)
+            return None
 
     def __iter__(self):
         """Returns options.items() to mirror dict functionality."""
@@ -130,22 +148,22 @@ class SimpleClass(ABC):
         """Adds an Inventory instance with default menu if one is not passed
         when subclass is instanced.
         """
-        if not self.inventory:
+        if not hasattr(self, 'inventory') or not self.inventory:
             # Inventory imported within function to avoid circular dependency.
             from simplify.core.inventory import Inventory
             self.inventory = Inventory(menu = self.menu)
         return self
-
-    def _check_lengths(self, variable1, variable2):
-        """Returns boolean value whether two list variables are of the same
-        length. If a string is passed, it is converted to a 1 item list for
-        comparison.
-
-        Parameters:
-            variable1: string or list.
-            variable2: string or list.
-        """
-        return len(self.listify(variable1) == self.listify(variable2))
+#
+#    def _check_lengths(self, variable1, variable2):
+#        """Returns boolean value whether two list variables are of the same
+#        length. If a string is passed, it is converted to a 1 item list for
+#        comparison.
+#
+#        Parameters:
+#            variable1: string or list.
+#            variable2: string or list.
+#        """
+#        return len(self.listify(variable1) == self.listify(variable2))
 
     def _check_menu(self):
         """Loads menu from an .ini file if a string is passed to menu instead
@@ -171,8 +189,18 @@ class SimpleClass(ABC):
         return self
 
     @abstractmethod
-    def _set_defaults(self):
+    def _outline(self):
         pass
+        return self
+
+    def _run_checks(self):
+        """Checks attributes from self.checks and initializes them if they do
+        not exist by calling the appropriate method. Those methods should
+        have the prefix _check_ followed by the string in self.checks.
+        """
+        if hasattr(self, 'checks') and self.checks:
+            for check in self.checks:
+                getattr(self, '_check_' + check)()
         return self
 
     @staticmethod
@@ -182,7 +210,8 @@ class SimpleClass(ABC):
         if isinstance(iterable, list):
             return [f'{prefix}_{value}' for value in iterable]
         elif isinstance(iterable, dict):
-            return {f'{prefix}_{key}' : value for key, value in iterable.items()}
+            return (
+                {f'{prefix}_{key}' : value for key, value in iterable.items()})
         elif isinstance(iterable, pd.Series):
             return iterable.add_prefix(prefix)
         elif isinstance(iterable, pd.DataFrame):
@@ -195,7 +224,8 @@ class SimpleClass(ABC):
         if isinstance(iterable, list):
             return [f'{value}_{suffix}' for value in iterable]
         elif isinstance(iterable, dict):
-            return {f'{key}_{suffix}' : value for key, value in iterable.items()}
+            return (
+                {f'{key}_{suffix}' : value for key, value in iterable.items()})
         elif isinstance(iterable, pd.Series):
             return iterable.add_suffix(suffix)
         elif isinstance(iterable, pd.DataFrame):
@@ -211,10 +241,6 @@ class SimpleClass(ABC):
             return iterable
         elif isinstance(iterable, pd.DataFrame):
             return iterable
-
-    def keys(self):
-        """Returns keys from options to mirror dict functionality."""
-        return self.options.keys()
 
     @staticmethod
     def listify(variable):
@@ -254,16 +280,6 @@ class SimpleClass(ABC):
         pass
         return self
 
-    def run_checks(self):
-        """Checks attributes from self.checks and initializes them if they do
-        not exist by calling the appropriate method. Those methods should
-        have the prefix _check_ followed by the string in self.checks.
-        """
-        if hasattr(self, 'checks') and self.checks:
-            for check in self.checks:
-                getattr(self, '_check_' + check)()
-        return self
-
     def save(self, variable = None, file_path = None, folder = None,
              file_name = None, file_format = None):
         """Exports a variable or attribute to disc.
@@ -292,7 +308,3 @@ class SimpleClass(ABC):
     def start(self, variable = None):
         pass
         return variable
-
-    def values(self):
-        """Returns values from options to mirror dict functionality."""
-        return self.options.values()

@@ -4,12 +4,12 @@ import os
 
 import pandas as pd
 
-from .base import SimpleClass
-from .ingredients import Ingredients
+from simplify.core.base import SimpleMachine
+from simplify.core.ingredients import Ingredients
 
 
 @dataclass
-class Planner(SimpleClass):
+class Planner(SimpleMachine):
     """Parent class for select siMpLify classes to provide shared methods for
     creating data science workflows. It can also be subclassed to create other
     Planners beyond those included in the package.
@@ -19,7 +19,7 @@ class Planner(SimpleClass):
         super().__post_init__()
         # Outputs Planner status to console if verbose option is selected.
         if self.verbose:
-            print('Creating', self.name, 'planner')
+            print('Creating', self.name)
         return self
 
     def _check_ingredients(self, ingredients = None):
@@ -55,7 +55,6 @@ class Planner(SimpleClass):
                                                inventory = self.inventory,
                                                auto_load = False)
         elif not self.ingredients:
-            print('yes')
             self.ingredients = Ingredients(menu = self.menu,
                                            inventory = self.inventory)
         return self
@@ -71,28 +70,8 @@ class Planner(SimpleClass):
         if self.steps:
             self.step = self.steps[0]
         return self
-#
-#    def _prepare_plan_class(self):
-#        """Adds menu and inventory instances to plan_class and injects
-#        general menu attributes.
-#        """
-#        self.plan_class.menu = self.menu
-#        self.menu.inject(instance = self.plan_class, sections = ['general'])
-#        self.plan_class.inventory = self.inventory
-#        return self
-#
-#    def _prepare_steps(self):
-#        """Adds menu and inventory instances to step classes and injects
-#        general menu attributes.
-#        """
-#        for step in self.listify(self.steps):
-#            self.options[step].menu = self.menu
-#            self.menu.inject(instance = self.options[step],
-#                               sections = ['general'])
-#            self.options[step].inventory = self.inventory
-#        return self
 
-    def _set_defaults(self):
+    def _outline(self):
         """ Declares defaults for Planner."""
         self.options = {}
         self.plan_class = None

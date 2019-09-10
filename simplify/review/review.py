@@ -5,11 +5,15 @@ import pandas as pd
 from sklearn import metrics
 
 from simplify.cookbook.cookbook_step import CookbookStep
-from simplify.core.base import SimpleClass
+from simplify.core.planner import Planner
+from simplify.review.evaluate import Evaluate
+from simplify.review.report import Report
+from simplify.review.summarize import Summarize
+from simplify.review.visualize import Visualize
 
 
 @dataclass
-class Review(SimpleClass):
+class Critic(Planner):
     """Computes and stores machine learning experiment results.
 
     Review creates and stores a results report and other general
@@ -33,25 +37,6 @@ class Review(SimpleClass):
         super().__post_init__()
         return self
 
-    def _check_algorithm(self, step):
-        """Returns appropriate algorithm to the report attribute."""
-        if step.technique in ['none', 'all']:
-            return step.technique
-        else:
-            return step.algorithm
-
-    def _cluster_report(self):
-        return self
-
-    def _format_step(self, attribute):
-        if getattr(self.recipe, attribute).technique in ['none', 'all']:
-            step_column = getattr(self.recipe, attribute).technique
-        else:
-            technique = getattr(self.recipe, attribute).technique
-            parameters = getattr(self.recipe, attribute).parameters
-            step_column = f'{technique}, parameters = {parameters}'
-        return step_column
-
     def _print_classifier_results(self, recipe):
         """Prints to console basic results separate from report."""
         print('These are the results using the', recipe.model.technique,
@@ -64,40 +49,13 @@ class Review(SimpleClass):
         print(self.classification_report)
         return self
 
-    def _regressor_report(self):
-        return self
-
-    def _set_columns(self):
-        """Sets columns and options for report."""
-        self.columns = {'recipe_number' : 'number',
-                        'options' : 'techniques',
-                        'seed' : 'seed',
-                        'validation_set' : 'val_set'}
-        for step in self.recipe.techniques:
-            self.columns.update({step : step})
-        self.columns_list = list(self.columns.keys())
-        self.columns_list.extend(self.listify(self.metrics))
-        self.report = pd.DataFrame(columns = self.columns_list)
-        return self
-
     def _set_defaults(self):
-        """Sets default metrics for scores dataframe based upon the type of
-        model used.
-        """
-        self.options = {'eli5' : Eli5Evaluator,
-                        'lime' : LimeEvaluator,
-                        'shap' : ShapEvaluator,
-                        'sklearn' : SklearnEvaluator,
-                        'tree' : TreeEvaluator}
+        """Sets default options for Recipe Review."""
+        self.options = {'evaluate' : Evaluate,
+                        'visualize' : Visualize,
+                        'summarize' : Summarize,
+                        'report' : Report}
         return self
-
-    def _set_techniques(self):
-        if self.evaluators == 'all':
-            self.techniques = list(self.options.keys())
-        else:
-            self.techniques = self.listify(self.evalutors)
-        return self
-
 
     def prepare(self):
         return self
@@ -121,7 +79,7 @@ class Review(SimpleClass):
 
 
 @dataclass
-class Evaluator(SimpleClass):
+class Evaluate(SimpleClass):
 
     def __post_init__(self):
         """Sets up the core attributes of an Evaluator instance."""
@@ -129,8 +87,16 @@ class Evaluator(SimpleClass):
         return self
 
     def _set_defaults(self):
+        self.options = {'eli5' : Eli5Evaluator,
+                        'shap' : ShapEvaluator,
+                        'skater' : SkaterEvaluator,
+                        'sklearn' : SklearnEvaluator}
 
-        self.options = {}
+    def prepare(self):
+        if self.evaluators == 'all':
+            self.techniques = list(self.options.keys())
+        else:
+            self.techniques = self.listify(self.evalutors)
         return self
 
 @dataclass
@@ -174,19 +140,6 @@ class Eli5Evaluator(Evaluator):
                 self.permutation_importances,
                 feature_names = self.recipe.ingredients.columns.keys())
         return self
-
-
-@dataclass
-class LimeEvaluator(Evaluator):
-
-    def __post_init__(self):
-        """Sets up the core attributes of a ShapEvaluator instance."""
-        super().__post_init__()
-        return self
-
-    def _set_defaults(self):
-        return self
-
 
 @dataclass
 class ShapEvaluator(Evaluator):
@@ -251,21 +204,9 @@ class SklearnEvaluator(Evaluator):
         super().__post_init__()
         return self
 
-    def _classifier_report(self):
-        self.classifier_report_default = metrics.classification_report(
-                self.recipe.ingredients.y_test,
-                self.predictions)
-        self.classifier_report_dict = metrics.classification_report(
-                self.recipe.ingredients.y_test,
-                self.predictions,
-                output_dict = True)
-        self.classifier_report = pd.DataFrame(
-                self.classifier_report_dict).transpose()
-        return self
-
     def _confusion_matrix(self):
-        self.confusion = metrics.confusion_matrix(self.recipe.ingredients.y_test,
-                                                  self.predictions)
+        self.confusion = metrics.confusion_matrix(
+                self.recipe.ingredients.y_test, self.predictions)
         return self
 
     def _create_predictions(self):
@@ -407,7 +348,7 @@ class SklearnEvaluator(Evaluator):
         return self
 
 @dataclass
-class TreeEvaluator(Evaluator):
+class SkaterEvaluator(Evaluator):
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
@@ -417,4 +358,55 @@ class TreeEvaluator(Evaluator):
     def _set_defaults(self):
         return self
 
+class Report(SimpleClass):
 
+
+    def _check_algorithm(self, step):
+        """Returns appropriate algorithm to the report attribute."""
+        if step.technique in ['none', 'all']:
+            return step.technique
+        else:
+            return step.algorithm
+
+
+    def _classifier_report(self):
+        self.classifier_report_default = metrics.classification_report(
+                self.recipe.ingredients.y_test,
+                self.predictions)
+        self.classifier_report_dict = metrics.classification_report(
+                self.recipe.ingredients.y_test,
+                self.predictions,
+                output_dict = True)
+        self.classifier_report = pd.DataFrame(
+                self.classifier_report_dict).transpose()
+        return self
+
+
+    def _cluster_report(self):
+        return self
+
+    def _format_step(self, attribute):
+        if getattr(self.recipe, attribute).technique in ['none', 'all']:
+            step_column = getattr(self.recipe, attribute).technique
+        else:
+            technique = getattr(self.recipe, attribute).technique
+            parameters = getattr(self.recipe, attribute).parameters
+            step_column = f'{technique}, parameters = {parameters}'
+        return step_column
+
+    def _regressor_report(self):
+        return self
+
+
+    def _set_columns(self):
+        """Sets columns and options for report."""
+        self.columns = {'recipe_number' : 'number',
+                        'options' : 'techniques',
+                        'seed' : 'seed',
+                        'validation_set' : 'val_set'}
+        for step in self.recipe.techniques:
+            self.columns.update({step : step})
+        self.columns_list = list(self.columns.keys())
+        self.columns_list.extend(self.listify(self.metrics))
+        self.report = pd.DataFrame(columns = self.columns_list)
+        return self

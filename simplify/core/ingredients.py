@@ -7,13 +7,12 @@ import os
 import numpy as np
 import pandas as pd
 
-from .base import SimpleClass
 from .summary import Summary
 from .types import DataTypes
 
 
 @dataclass
-class Ingredients(SimpleClass):
+class Ingredients(object):
     """Imports, stores, and exports pandas DataFrames and Series, as well as
     related information about those data containers.
 
@@ -69,7 +68,11 @@ class Ingredients(SimpleClass):
     prefixes : object = None
 
     def __post_init__(self):
-        super().__post_init__()
+        # Creates menu attribute if string passed to menu when the class was
+        # instanced and injects local attributes from menu configuration.
+        self._check_menu()
+        # Calls _outline private method to set up class defaults.
+        self._outline()
         return self
 
     def __getattr__(self, attr):
@@ -216,6 +219,29 @@ class Ingredients(SimpleClass):
             columns: list of column names."""
         return columns or list(self.datatypes.keys())
 
+    def _check_menu(self):
+        """Loads menu from an .ini file if a string is passed to menu instead
+        of a menu instance. Injects sections of menu to class instance
+        using user settings stored in or default.
+        """
+        if isinstance(self.menu, str):
+            # Menu imported within function to avoid circular dependency.
+            from simplify.core.menu import Menu
+            self.menu = Menu(file_path = self.menu)
+        # Adds attributes to class from appropriate sections of the menu.
+        sections = ['general']
+        if hasattr(self, 'menu_sections') and self.menu_sections:
+            if isinstance(self.menu_sections, str):
+                sections.append(self.menu_sections)
+            else:
+                sections.extend(self.menu_sections)
+        if (hasattr(self, 'name')
+                and self.name in self.menu.configuration
+                and not self.name in sections):
+            sections.append(self.name)
+        self.menu.inject(instance = self, sections = sections)
+        return self
+
     @check_df
     def _crosscheck_columns(self, df = None):
         """Removes any columns in datatypes dictionary, but not in df."""
@@ -256,6 +282,28 @@ class Ingredients(SimpleClass):
                 break
         return self
 
+    def _outline(self):
+        """Sets defaults for Ingredients when class is instanced."""
+        # Declares dictionary of DataFrames contained in Ingredients to allow
+        # temporary remapping of attributes in __getattr__.
+        self.default_options = {'x' : 'x',
+                                'y' : 'y',
+                                'x_train' : 'x_train',
+                                'y_train' : 'y_train',
+                                'x_test' : 'x_test',
+                                'y_test' : 'y_test',
+                                'x_val' : 'x_val',
+                                'y_val' : 'y_val'}
+        self.all_datatypes = DataTypes()
+        if not self.datatypes:
+            self.datatypes = {}
+        if not self.sections:
+            self.sections = {}
+        # Maps class properties to appropriate DataFrames using the default
+        # train_test setting.
+        self._remap_dataframes(data_to_use = 'train_test')
+        return self
+
     def _remap_dataframes(self, data_to_use = None):
         """Remaps DataFrames returned by various properties of Ingredients so
         that methods and classes of siMpLify can use the same labels for
@@ -289,28 +337,6 @@ class Ingredients(SimpleClass):
         elif data_to_use == 'val':
             self.options['x'] = 'x_val'
             self.options['y'] = 'y_val'
-        return self
-
-    def _set_defaults(self):
-        """Sets defaults for Ingredients when class is instanced."""
-        # Declares dictionary of DataFrames contained in Ingredients to allow
-        # temporary remapping of attributes in __getattr__.
-        self.default_options = {'x' : 'x',
-                                'y' : 'y',
-                                'x_train' : 'x_train',
-                                'y_train' : 'y_train',
-                                'x_test' : 'x_test',
-                                'y_test' : 'y_test',
-                                'x_val' : 'x_val',
-                                'y_val' : 'y_val'}
-        self.all_datatypes = DataTypes()
-        if not self.datatypes:
-            self.datatypes = {}
-        if not self.sections:
-            self.sections = {}
-        # Maps class properties to appropriate DataFrames using the default
-        # train_test setting.
-        self._remap_dataframes(data_to_use = 'train_test')
         return self
 
     @check_df
