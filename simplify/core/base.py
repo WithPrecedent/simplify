@@ -40,7 +40,7 @@ class SimpleClass(ABC):
         warnings.filterwarnings('ignore')
         # Creates menu attribute if string passed to menu when subclass was
         # instanced. Injects attributes from menu settings to subclass.
-        if hasattr(self, 'menu') and self.__class__.__name__ != 'Menu':
+        if self.__class__.__name__ != 'Menu':
             self._check_menu()
         # Calls plan method to set up class instance defaults.
         self.plan()
@@ -192,7 +192,7 @@ class SimpleClass(ABC):
         of a menu instance. Injects sections of menu to subclass instance
         using user settings stored in or default.
         """
-        if isinstance(self.menu, str):
+        if hasattr(self, 'menu') and isinstance(self.menu, str):
             # Menu imported within function to avoid circular dependency.
             from simplify.core.menu import Menu
             self.menu = Menu(file_path = self.menu)
@@ -207,6 +207,7 @@ class SimpleClass(ABC):
                 and self.name in self.menu.configuration
                 and not self.name in sections):
             sections.append(self.name)
+        print('sections', sections)
         self.menu.inject(instance = self, sections = sections)
         return self
 

@@ -267,9 +267,11 @@ class Menu(SimpleClass, SimpleUtilities):
                 replaced by configuration dictionary items.
         """
         for section in self.listify(sections):
+            print(section)
             for key, value in self.configuration[section].items():
                 if not hasattr(instance, key) or override:
                     setattr(instance, key, value)
+                    print('attribute injected', getattr(instance, key))
         return
 
     def prepare(self):

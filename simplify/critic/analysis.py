@@ -36,7 +36,7 @@ class Analysis(SimpleClass):
     ingredients : object = None
     recipes : object = None
     steps : object = None
-    name : str = 'review'
+    name : str = 'analysis'
     auto_prepare : bool = True
     auto_perform : bool = False
 
