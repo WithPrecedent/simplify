@@ -24,10 +24,10 @@ class Technique(SimpleClass):
         self.tool = self.options[self.technique](**self.parameters)
         return self
 
-    def start(self, ingredients):
+    def perform(self, ingredients):
         ingredients = self.tool(ingredients)
         return ingredients
 
     def transform(self, ingredients):
-        ingredients = self.start(ingredients = ingredients)
+        ingredients = self.perform(ingredients = ingredients)
         return ingredients

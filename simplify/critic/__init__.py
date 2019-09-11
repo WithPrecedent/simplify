@@ -3,10 +3,10 @@
   :synopsis: model evaluation and visualization made simple
 """
 
-from .critic import Critic
+from .analysis import Analysis
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = ['Critic']
+__all__ = ['Analysis']

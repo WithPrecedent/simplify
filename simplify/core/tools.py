@@ -58,9 +58,9 @@ def timer(process = None):
     def shell_timer(_function):
 
         def decorated(*args, **kwargs):
-            start_time = time.time()
+            perform_time = time.time()
             result = _function(*args, **kwargs)
-            total_time = time.time() - start_time
+            total_time = time.time() - perform_time
             h, m, s = convert_time(total_time)
             print(f'{process} completed in %d:%02d:%02d' % (h, m, s))
             return result

@@ -63,9 +63,11 @@ class Menu(SimpleClass, SimpleUtilities):
     The desire for accessibility and simplicity dictated this limitation.
 
     Parameters:
-        configuration: either a file_path or two-level nested dictionary storing
-            settings. If a file_path is provided, A nested dict will
-            automatically be created from the file and stored in
+        configuration: either a file path, file name, or two-level nested 
+            dictionary storing settings. If a file path is provided, A nested 
+            dict will automatically be created from the file and stored in
+            'configuration'. If a file name is provided, Menu will look for it
+            in the current working directory and store its contents in 
             'configuration'.
         infer_types: boolean variable determines whether values in
             'configuration' are converted to other types (True) or left as
@@ -73,14 +75,14 @@ class Menu(SimpleClass, SimpleUtilities):
         auto_prepare: sets whether to automatically call the 'prepare' method
             when the class is instanced. Unless adding a new source for
             configuration settings, this should be set to True.
-        auto_start: sets whether to automatically call the 'start' method
+        auto_perform: sets whether to automatically call the 'perform' method
             when the class is instanced. Unless adding a new source for
             configuration settings, this should be set to True.
     """
     configuration : object = None
     infer_types : bool = True
     auto_prepare : bool = True
-    auto_start : bool = True
+    auto_perform : bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -158,9 +160,11 @@ class Menu(SimpleClass, SimpleUtilities):
         return self.configuration
 
     def _check_configuration(self):
+        """Checks the datatype of 'configuration' and sets 'technique' to 
+        properly prepare 'configuration'.
+        """
         if self.configuration:
-            print(os.path.abspath(self.configuration))
-            if os.path.isfile(os.path.abspath(self.configuration)):
+            if isinstance(self.configuration, str):           
                 if '.ini' in self.configuration:
                     self.technique = 'ini_file'
                 elif '.py' in self.configuration:
@@ -168,6 +172,9 @@ class Menu(SimpleClass, SimpleUtilities):
                 else:
                     error = 'configuration file must be .py or .ini file'
                     raise FileNotFoundError(error)
+                if not os.path.isfile(os.path.abspath(self.configuration)):
+                    self.configuration = os.path.join(os.getcwd(), 
+                                                      self.configuration)
             elif not isinstance(self.configuration, dict):
                 error = 'configuration must be dict or file path'
                 raise TypeError(error)
@@ -189,7 +196,7 @@ class Menu(SimpleClass, SimpleUtilities):
         pass
         return self
 
-    def _define(self):
+    def plan(self):
         """Loads configuration dictionary using ConfigParser if configuration
         does not presently exist.
         """
@@ -271,7 +278,7 @@ class Menu(SimpleClass, SimpleUtilities):
         self._check_configuration()
         return self
 
-    def start(self):
+    def perform(self):
         """Creates configuration setttings and injects Menu into SimpleClass.
         """
         if self.options[self.technique]:

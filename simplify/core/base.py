@@ -15,7 +15,7 @@ class SimpleClass(ABC):
     a common class structure and allow sharing of access methods.
 
     To use the class, a subclass must have the following methods:
-        _define: a private method which sets the default values for the
+        plan: a method which sets the default values for the
             subclass, and usually includes the self.options dictionary.
         prepare: a method which, after the user has set all options in the
             preferred manner, constructs the objects which can parse, modify,
@@ -23,15 +23,15 @@ class SimpleClass(ABC):
     The following methods are not strictly required but should be used if
     the subclass is transforming data or other variable (as opposed to merely
     containing data or variables):
-        start: method which applies the prepared objects to passed data or
+        perform: method which applies the prepared objects to passed data or
             other variables.
 
     To use the access dunder methods, the subclass should include self.options,
     a dictionary containing different strategies, algorithms, containers, or
     other objects.
 
-    If the subclass includes boolean attributes of auto_prepare or auto_start,
-    and those attributes are set to True, then the prepare and/or start methods
+    If the subclass includes boolean attributes of auto_prepare or auto_perform,
+    and those attributes are set to True, then the prepare and/or perform methods
     are called when the class is instanced.
     """
 
@@ -42,24 +42,24 @@ class SimpleClass(ABC):
         # instanced. Injects attributes from menu settings to subclass.
         if hasattr(self, 'menu') and self.__class__.__name__ != 'Menu':
             self._check_menu()
-        # Calls _define private method to set up class defaults.
-        self._define()
+        # Calls plan method to set up class instance defaults.
+        self.plan()
         # Runs attribute checks from list in self.checks (if it exists).
-        self._run_checks()
+        self._perform_checks()
         # Calls prepare method if it exists and auto_prepare is True.
         if hasattr(self, 'auto_prepare') and self.auto_prepare:
             self.prepare()
-            # Calls start method if it exists and auto_start is True.
-            if hasattr(self, 'auto_start') and self.auto_start:
-                self.start()
+            # Calls perform method if it exists and auto_perform is True.
+            if hasattr(self, 'auto_perform') and self.auto_perform:
+                self.perform()
         return self
 
     """ Magic Methods """
 
     def __call__(self, menu, *args, **kwargs):
-        """When called as a function, a subclass will return the start method
+        """When called as a function, a subclass will return the perform method
         after running __post_init__. Any args and kwargs will only be passed
-        to the start method.
+        to the perform method.
 
         Parameters:
             menu: an instance of Menu or path where a menu configuration file
@@ -68,9 +68,9 @@ class SimpleClass(ABC):
         """
         self.menu = menu
         self.auto_prepare = True
-        self.auto_start = False
+        self.auto_perform = False
         self.__post_init__()
-        return self.start(*args, **kwargs)
+        return self.perform(*args, **kwargs)
 
     def __contains__(self, item):
         """Checks if item is in self.options; returns boolean."""
@@ -211,9 +211,17 @@ class SimpleClass(ABC):
         return self
 
     def _check_steps(self):
+        """Checks for 'steps' attribute or finds an attribute with the class
+        'name' prefix followed by 'steps' if 'steps' does not already exist or
+        is None.
+        """
         if not hasattr(self, 'steps') or not self.steps:
             if hasattr(self, self.name + '_steps'):
-                self.steps = self.listify(getattr(self, self.name + '_steps'))
+                if getattr(self, self.name + '_steps') in ['all', 'default']:             
+                    self.steps = list(self.options.keys())
+                else:
+                    self.steps = self.listify(getattr(
+                        self, self.name + '_steps'))
             else:
                 self.steps = []
         else:
@@ -222,20 +230,7 @@ class SimpleClass(ABC):
             self.step = self.steps[0]
         return self
 
-    @abstractmethod
-    def _define(self):
-        """Required method that sets default values for a subclass.
-
-        A dict called 'options' should be defined here for subclasses to use
-        much of the functionality of SimpleClass.
-
-        Generally, the 'checks' attribute should be set here if the subclass
-        wants to make use of related methods.
-        """
-        pass
-        return self
-
-    def _run_checks(self):
+    def _perform_checks(self):
         """Checks attributes from self.checks and initializes them if they do
         not exist by calling the appropriate method. Those methods should
         have the prefix _check_ followed by the string in self.checks.
@@ -300,14 +295,42 @@ class SimpleClass(ABC):
         return self
 
     @abstractmethod
-    def prepare(self):
-        """Required method which creates any objects to be applied to data or
-        variables. In the case of iterative classes, such as Cookbook, this
-        method should construct any plans to be later implemented by the start
-        method.
+    def plan(self):
+        """Required method that sets default values for a subclass.
+
+        A dict called 'options' should be defined here for subclasses to use
+        much of the functionality of SimpleClass.
+
+        Generally, the 'checks' attribute should be set here if the subclass
+        wants to make use of related methods.
         """
         pass
         return self
+    
+    @abstractmethod
+    def prepare(self):
+        """Required method which creates any objects to be applied to data or
+        variables. In the case of iterative classes, such as Cookbook, this
+        method should construct any plans to be later implemented by the 
+        'perform' method.
+        """
+        pass
+        return self
+
+    def perform(self, variable = None, **kwargs):
+        """Optional method that implements all of the prepared objects on the
+        passed variable. The variable is returned after being transformed by
+        called methods.
+
+        Parameters:
+            variable: any variable. In most cases in the siMpLify package,
+                variable is an instance of Ingredients. However, any variable
+                or datatype can be used here.
+            **kwargs: other parameters can be added to method as needed or
+                **kwargs can be used.
+        """
+        pass
+        return variable
 
     def save(self, variable = None, file_path = None, folder = None,
              file_name = None, file_format = None):
@@ -333,28 +356,14 @@ class SimpleClass(ABC):
                             file_format = file_format)
         return
 
-    def start(self, variable = None, **kwargs):
-        """Optional method that implements all of the prepared objects on the
-        passed variable. The variable is returned after being transformed by
-        called methods.
-
-        Parameters:
-            variable: any variable. In most cases in the siMpLify package,
-                variable is an instance of Ingredients. However, any variable
-                or datatype can be used here.
-            **kwargs: other parameters can be added to method as needed or
-                **kwargs can be used.
-        """
-        pass
-        return variable
 
 @dataclass
 class SimpleType(ABC):
-    """Parent abstract base class for setting dictionaries related to data and
-    file types.
+    """Parent abstract base class for setting dictionaries related to datatypes 
+    and file types.
 
     To use the class, a subclass must have the following methods:
-        _define: a private method which sets the default values for the
+        plan: a method which sets the default values for the
             subclass. This method should define two dictionaries:
                 name_to_type: a dict with strings as keys corresponding to
                     datatype values.
@@ -367,8 +376,8 @@ class SimpleType(ABC):
     """
 
     def __post_init__(self):
-        if hasattr(self, '_define'):
-            self._define()
+        if hasattr(self, 'plan'):
+            self.plan()
             self._create_reversed()
         return self
 
@@ -429,17 +438,17 @@ class SimpleType(ABC):
             value : key for key, value in self.name_to_type.items()}
         return self
 
-    @abstractmethod
-    def _define(self):
-        """Required method that sets default values for a subclass."""
-        pass
-        return self
-
     """ Public Methods """
 
     def keys(self):
         """Returns keys from 'name_to_type' to mirror dict functionality."""
         return self.name_to_type.keys()
+
+    @abstractmethod
+    def plan(self):
+        """Required method that sets default values for a subclass."""
+        pass
+        return self
 
     def save(self):
         """Exports the subclass to disc in pickle format."""

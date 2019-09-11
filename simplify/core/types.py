@@ -16,7 +16,7 @@ class DataTypes(SimpleType):
         super().__post_init__()
         return self
 
-    def _define(self):
+    def plan(self):
         """Sets default values related to datatypes."""
         # Sets string names of various datatypes available.
         self.name_to_type = {'boolean' : bool,
@@ -46,7 +46,7 @@ class FileTypes(SimpleType):
         super().__post_init__()
         return self
 
-    def _define(self):
+    def plan(self):
         """Sets default values related to filetypes."""
         # Sets string names of various datatypes available.
         self.name_to_type = {'csv' : '.csv',
@@ -69,7 +69,7 @@ class ReTypes(SimpleType):
         super().__post_init__()
         return self
 
-    def _define(self):
+    def plan(self):
         """Sets default values related to ReTool datatypes."""
         # Sets string names for python and special datatypes.
         self.name_to_type = {'boolean' : bool,

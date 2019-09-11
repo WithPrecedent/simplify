@@ -48,7 +48,7 @@ class Visualize(Step):
         self.plots = ['heat_map', 'linear', 'residuals']
         return self
 
-    def _define(self):
+    def plan(self):
         """Sets default styles, options, and plots."""
         self._set_style()
         self._set_options()
@@ -282,7 +282,7 @@ class Visualize(Step):
         self.save(file_name)
         return self
 
-    def start(self, recipe, review, plot_list = None):
+    def perform(self, recipe, review, plot_list = None):
         if self.verbose:
             print('Creating and exporting visuals')
         self.recipe = recipe

@@ -9,7 +9,7 @@ from simplify.core.base import SimpleClass
 
 @dataclass
 class Step(SimpleClass):
-    """Parent class for Almanac, Cookbook, and Review steps in the siMpLify
+    """Parent class for Harvest, Cookbook, and Review steps in the siMpLify
     package. The class can also be subclassed in the creation of other
     Planner classes."""
 
@@ -32,7 +32,7 @@ class Step(SimpleClass):
             self.parameters.update(self.runtime_parameters)
         return self
 
-    def _define(self):
+    def plan(self):
         if not hasattr(self, 'options'):
             self.options = {}
         if not hasattr(self, 'parameters'):
@@ -97,7 +97,7 @@ class Step(SimpleClass):
             self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def start(self, ingredients, recipe):
+    def perform(self, ingredients, recipe):
         """Generic implement method for adding ingredients into recipe and
         applying the appropriate algorithm.
         """
@@ -149,8 +149,8 @@ class Step(SimpleClass):
     #     self.algorithms.append(self.options[self.technique](*self.parameters))
     #     return self
 
-    # def _start_generic(self, ingredients, algorithm):
-    #     ingredients.df = algorithm.start(df = ingredients.df,
+    # def _perform_generic(self, ingredients, algorithm):
+    #     ingredients.df = algorithm.perform(df = ingredients.df,
     #                                      source = ingredients.source)
     #     return self
 
@@ -175,15 +175,15 @@ class Step(SimpleClass):
     #                     self.options[self.technique](**self.parameters))
     #     return self
 
-    # def start(self, ingredients):
+    # def perform(self, ingredients):
     #     for algorithm in self.algorithms:
-    #         if hasattr(self, '_start_' + self.technique):
+    #         if hasattr(self, '_perform_' + self.technique):
     #             ingredients = getattr(
-    #                     self, '_start_' + self.technique)(
+    #                     self, '_perform_' + self.technique)(
     #                             ingredients = ingredients,
     #                             algorithm = algorithm)
     #         else:
-    #             getattr(self, '_start_generic')(
+    #             getattr(self, '_perform_generic')(
     #                             ingredients = ingredients,
     #                             algorithm = algorithm)
     #     return ingredients

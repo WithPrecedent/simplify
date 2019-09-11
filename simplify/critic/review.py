@@ -85,7 +85,7 @@ class Review(SimpleClass):
         self.report = pd.DataFrame(columns = self.columns_list)
         return self
 
-    def start(self, recipe):
+    def perform(self, recipe):
         self.recipe = recipe
         if not hasattr(self, 'columns'):
             self._set_columns()

@@ -19,7 +19,7 @@ class Evaluate(Step):
         super().__post_init__()
         return self
 
-    def _define(self):
+    def plan(self):
         self.options = {'eli5' : Eli5Evaluator,
                         'shap' : ShapEvaluator,
                         'skater' : SkaterEvaluator,
@@ -40,7 +40,7 @@ class Eli5Evaluator(Technique):
         super().__post_init__()
         return self
 
-    def _define(self):
+    def plan(self):
 
         from eli5 import explain_prediction_df, explain_weights_df
         from eli5.sklearn import PermutationImportance
@@ -63,7 +63,7 @@ class Eli5Evaluator(Technique):
                        'xgboost' : 'specific'}
         return self
 
-    def start(self):
+    def perform(self):
         self.permutation_importances = PermutationImportance(
                 self.recipe.model.algorithm,
                 random_state = self.seed).fit(
@@ -82,7 +82,7 @@ class ShapEvaluator(Technique):
         super().__post_init__()
         return self
 
-    def _define(self):
+    def plan(self):
         from shap import (DeepExplainer, KernelExplainer, LinearExplainer,
                           TreeExplainer)
 
@@ -106,7 +106,7 @@ class ShapEvaluator(Technique):
                        'xgboost' : 'tree'}
         return self
 
-    def start(self):
+    def perform(self):
         """Applies shap evaluator to data based upon type of model used."""
         if self.recipe.model.technique in self.shap_models:
             self.shap_method_type = self.shap_models[
@@ -223,7 +223,7 @@ class SklearnEvaluator(Technique):
                                             inplace = True)
         return self
 
-    def _define(self):
+    def plan(self):
         getattr(self, '_default_' + self.model_type)()
         self.special_metrics = {
                 'fbeta' : {'beta' : 1},
@@ -253,7 +253,7 @@ class SklearnEvaluator(Technique):
         self.options.update(self.score_options)
         return self
 
-    def start(self):
+    def perform(self):
         """Prepares the results of a single recipe application to be added to
         the .report dataframe.
         """
@@ -291,5 +291,5 @@ class SkaterEvaluator(Technique):
         super().__post_init__()
         return self
 
-    def _define(self):
+    def plan(self):
         return self

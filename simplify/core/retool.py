@@ -41,7 +41,7 @@ class ReTool(SimpleClass):
     auto_prepare : bool = True
 
     def __post_init__(self):
-        self._define()
+        self.plan()
         if self.auto_prepare:
             self.prepare()
         return self
@@ -93,7 +93,7 @@ class ReTool(SimpleClass):
                 self.keys).to_dict()[self.values])
         return self
 
-    def _define(self):
+    def plan(self):
         # Sets str names for corresponding regex compiling flags.
         self.flag_options = {'ignorecase' : re.IGNORECASE,
                              'dotall' : re.DOTALL,
@@ -149,15 +149,15 @@ class ReTool(SimpleClass):
         self._set_matcher()
         return self
 
-    def start(self, ingredients = None, df = None, source = None,
+    def perform(self, ingredients = None, df = None, source = None,
               remove_from_source = True):
         df, source = self._check_ingredients(ingredients = ingredients,
                                              df = df,
                                              source = source)
         if remove_from_source:
-            df, source = self.matcher.start(df = df, source = source)
+            df, source = self.matcher.perform(df = df, source = source)
         else:
-            df = self.matcher.start(df = df, source = source)
+            df = self.matcher.perform(df = df, source = source)
         return ingredients
 
     def update(self, key, value):
@@ -256,7 +256,7 @@ class ReMatch(object):
             self.source = self.value
         return self
 
-    def start(self, df):
+    def perform(self, df):
         for self.key, self.value in self.expressions.items():
             self._set_source()
             self.section = self.sections[self.value]
@@ -429,7 +429,7 @@ class ReOrganize(ReMatch):
     def __post_init__(self):
         return self
 
-    def start(self, df, source):
+    def perform(self, df, source):
         for self.key, self.value in self.expressions.items():
             self._set_out_column()
             if re.search(self.key, source):

@@ -32,7 +32,7 @@ class Inventory(SimpleClass, SimpleUtilities):
             when the class is instanced. Unless making major changes to the
             file structure (beyond the 'root_folder', 'data_folder', and
             'results_folder' parameters), this should be set to True.
-        auto_start: sets whether to automatically call the 'start' method
+        auto_perform: sets whether to automatically call the 'perform' method
             when the class is instanced.
     """
     root_folder : str = ''
@@ -40,7 +40,7 @@ class Inventory(SimpleClass, SimpleUtilities):
     results_folder : str = 'results'
     datetime_naming : bool = True
     auto_prepare : bool = True
-    auto_start : bool = True
+    auto_perform : bool = True
 
     def __post_init__(self):
         # Adds additional section of menu to be injected as local attributes.
@@ -248,7 +248,7 @@ class Inventory(SimpleClass, SimpleUtilities):
                 test_rows = self.test_rows
             return test_rows
 
-    def _define(self):
+    def plan(self):
         """Creates data, results, and experiment folders based upon passed
         parameters. The experiment folder name is based upon the date and time
         to avoid overwriting previous experiments unless datetime_naming is set
@@ -267,7 +267,7 @@ class Inventory(SimpleClass, SimpleUtilities):
                                'nrows' : None,
                                'index_col' : False}
         self.options = {'sow' : ['raw', 'raw'],
-                        'harvest' : ['raw', 'interim'],
+                        'reap' : ['raw', 'interim'],
                         'clean' : ['interim', 'interim'],
                         'bundle' : ['interim', 'interim'],
                         'deliver' : ['interim', 'processed'],
@@ -569,7 +569,7 @@ class Inventory(SimpleClass, SimpleUtilities):
             for file_path in self.batch:
                 ingredients.source = self.load(file_path = file_path)
                 for plan in plans:
-                    ingredients = plan.start(ingredients = ingredients)
+                    ingredients = plan.perform(ingredients = ingredients)
             if return_ingredients:
                 return ingredients
             else:
@@ -577,7 +577,7 @@ class Inventory(SimpleClass, SimpleUtilities):
         else:
             for file_path in self.batch:
                 for plan in plans:
-                    plan.start()
+                    plan.perform()
             return self
 
     def load(self, file_path = None, folder = None, file_name = None,
@@ -654,7 +654,7 @@ class Inventory(SimpleClass, SimpleUtilities):
         getattr(self, '_save_' + file_format)(variable, file_path, **kwargs)
         return
 
-    def start(self):
+    def perform(self):
         """Injects Inventory instance into base SimpleClass."""
         self._inject_base()
         return self

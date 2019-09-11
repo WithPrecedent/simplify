@@ -18,9 +18,7 @@ class Planner(SimpleClass):
             print('Creating', self)
         return self
 
-
-
-    def _define(self):
+    def plan(self):
         """ Declares defaults for Planner."""
         self.options = {}
         self.tools = ['listify']

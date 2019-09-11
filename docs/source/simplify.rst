@@ -12,10 +12,10 @@ Subpackages
 Submodules
 ----------
 
-simplify.cookbook module
+simplify.chef module
 ------------------------
 
-.. automodule:: simplify.cookbook
+.. automodule:: simplify.chef
     :members:
     :undoc-members:
     :show-inheritance:

@@ -54,7 +54,7 @@ class Ingredients(SimpleClass, SimpleUtilities):
         auto_prepare: a boolean variable indicating whether prepare method
             should be called when the class is instanced. This should
             generally be set to True.
-        auto_start: a boolean variable indicating whether the 'start' method
+        auto_perform: a boolean variable indicating whether the 'perform' method
             should be called when the class is instanced. This should only be
             set to True if the any of the DataFrame attributes is a file
             path and you want the file loaded into that attribute.
@@ -73,7 +73,7 @@ class Ingredients(SimpleClass, SimpleUtilities):
     datatypes : object = None
     prefixes : object = None
     auto_prepare : bool = True
-    auto_start : bool = False
+    auto_perform : bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -232,7 +232,7 @@ class Ingredients(SimpleClass, SimpleUtilities):
         """Returns the full dataset divided into x and y."""
         return self.options['x'], self.options['y']
 
-    """ Private Methods """
+    """ private methods """
 
     def _check_columns(self, columns = None):
         """Returns self.datatypes if columns doesn't exist.
@@ -249,7 +249,7 @@ class Ingredients(SimpleClass, SimpleUtilities):
                 del self.datatypes[column]
         return self
 
-    def _define(self):
+    def plan(self):
         """Sets defaults for Ingredients when class is instanced."""
         # Declares dictionary of DataFrames contained in Ingredients to allow
         # temporary remapping of attributes in __getattr__. __setattr does
@@ -440,7 +440,7 @@ class Ingredients(SimpleClass, SimpleUtilities):
         """
         self.step = step
         for column, datatype in self.datatypes.items():
-            if self.step in ['harvest', 'clean']:
+            if self.step in ['reap', 'clean']:
                 if datatype in ['category', 'encoder', 'interactor']:
                     self.datatypes[column] = str
             elif self.step in ['bundle', 'deliver']:

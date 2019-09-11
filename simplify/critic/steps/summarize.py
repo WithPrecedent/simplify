@@ -20,18 +20,18 @@ class Summarize(SimpleClass):
             settings.
         auto_prepare: a boolean value that sets whether the prepare method is
             automatically called when the class is instanced.
-        auto_start: sets whether to automatically call the 'start' method
+        auto_perform: sets whether to automatically call the 'perform' method
             when the class is instanced.
     """
     name : str = 'summarizer'
     auto_prepare : bool = True
-    auto_start : bool = True
+    auto_perform : bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def _define(self):
+    def plan(self):
         """Sets options for Summarize class."""
         self.options = {'datatype' : ['dtype'],
                         'count' : 'count',
@@ -59,7 +59,7 @@ class Summarize(SimpleClass):
         self.report = pd.DataFrame(columns = self.columns)
         return self
 
-    def _start_report(self, df = None, transpose = True):
+    def _perform_report(self, df = None, transpose = True):
         """Completes report with data from df.
 
         Parameters:
@@ -95,7 +95,7 @@ class Summarize(SimpleClass):
             self.df_index = False
         return self
 
-    def start(self, df = None, transpose = True, file_name = 'data_summary',
+    def perform(self, df = None, transpose = True, file_name = 'data_summary',
               file_format = 'csv'):
         """Creates and exports a DataFrame of common summary data using the
         Summary class.
@@ -107,13 +107,13 @@ class Summarize(SimpleClass):
             file_name: string containing name of file to be exported.
             file_format: string of file extension from Inventory.extensions.
         """
-        self._start_report(df = df, transpose = transpose)
+        self._perform_report(df = df, transpose = transpose)
         if self.verbose:
             print('Saving summary data')
-        self.inventory.save(variable = self._start_report.report,
+        self.inventory.save(variable = self._perform_report.report,
                             folder = self.inventory.experiment,
                             file_name = file_name,
                             file_format = file_format,
-                            header = self._start_report.df_header,
-                            index = self._start_report.df_index)
+                            header = self._perform_report.df_header,
+                            index = self._perform_report.df_index)
         return self

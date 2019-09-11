@@ -102,7 +102,7 @@ The examples folder, from which the above settings are taken, currently shows ho
     from sklearn.datasets import load_breast_cancer
 
     from simplify import Ingredients, Inventory, Menu
-    from simplify.cookbook import Cookbook
+    from simplify.chef import Cookbook
 
     # Loads cancer data and converts from numpy arrays to pandas dataframe.
     cancer = load_breast_cancer()
@@ -126,7 +126,7 @@ The examples folder, from which the above settings are taken, currently shows ho
                         inventory = inventory,
                         ingredients = ingredients)
     # Iterates through every recipe and exports plots from each recipe.
-    cookbook.start()
+    cookbook.perform()
     # Creates and exports a table of summary statistics from the dataframe.
     ingredients.summarize()
     # Saves the recipes, results, and cookbook.
@@ -145,4 +145,4 @@ That's it. From that, all possible recipes are created. Each recipe gets its own
 ![](visuals/shap_summary.png.png?raw=true)
 ![](visuals/shap_interactions.png.png?raw=true)
 
-Documentation and the Harvest class, which aids with data munging, wrangling, and parsing, are forthcoming.
+Documentation and the Reap class, which aids with data munging, wrangling, and parsing, are forthcoming.
