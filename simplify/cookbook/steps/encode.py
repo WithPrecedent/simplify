@@ -6,11 +6,11 @@ from category_encoders import (BackwardDifferenceEncoder, BaseNEncoder,
                                LeaveOneOutEncoder, OneHotEncoder,
                                OrdinalEncoder, SumEncoder, TargetEncoder)
 
-from ..cookbook_step import CookbookStep
+from simplify.core.step import Step
 
 
 @dataclass
-class Encode(CookbookStep):
+class Encode(Step):
     """Encodes categorical variables according to selected algorithms."""
     technique : str = ''
     parameters : object = None

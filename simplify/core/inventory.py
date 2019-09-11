@@ -8,12 +8,13 @@ import pickle
 import pandas as pd
 
 from simplify.core.base import SimpleClass
+from simplify.core.tools import SimpleUtilities
 from simplify.core.types import FileTypes
 
 
 @dataclass
-class Inventory(SimpleClass):
-    """Creates and stores dynamic and static file paths and properly formats 
+class Inventory(SimpleClass, SimpleUtilities):
+    """Creates and stores dynamic and static file paths and properly formats
     files for import and export.
 
     Parameters:
@@ -22,25 +23,24 @@ class Inventory(SimpleClass):
             paths and folders used by Inventory.
         data_folder: a string containing the data subfolder name or a complete
             path if the 'data_folder' is not off of 'root_folder'.
-        results_folder: a string containing the results subfolder name or a 
+        results_folder: a string containing the results subfolder name or a
             complete path if the 'results_folder' is not off of 'root_folder'.
         datetime_naming: a boolean value setting whether the date and time
             should be used to create experiment subfolders (so that prior
             results are not overwritten).
         auto_prepare: sets whether to automatically call the 'prepare' method
             when the class is instanced. Unless making major changes to the
-            file structure (beyond the 'root_folder', 'data_folder', and 
+            file structure (beyond the 'root_folder', 'data_folder', and
             'results_folder' parameters), this should be set to True.
         auto_start: sets whether to automatically call the 'start' method
-            when the class is instanced. Unless making major changes to the
-            file structure (beyond the 'root_folder', 'data_folder', and 
-            'results_folder' parameters), this should be set to True.
+            when the class is instanced.
     """
     root_folder : str = ''
     data_folder : str = 'data'
     results_folder : str = 'results'
     datetime_naming : bool = True
     auto_prepare : bool = True
+    auto_start : bool = True
 
     def __post_init__(self):
         # Adds additional section of menu to be injected as local attributes.
@@ -277,13 +277,13 @@ class Inventory(SimpleClass):
         return self
 
     def _get_file_format(self, io_status):
-        if (self.options[self.step][self.options_index[io_status]] 
+        if (self.options[self.step][self.options_index[io_status]]
                 in ['raw']):
             return self.source_format
         elif (self.options[self.step][self.options_index[io_status]]
                 in ['interim']):
             return self.interim_format
-        elif (self.options[self.step][self.options_index[io_status]] 
+        elif (self.options[self.step][self.options_index[io_status]]
                 in ['processed']):
             return self.final_format
 
@@ -656,5 +656,5 @@ class Inventory(SimpleClass):
 
     def start(self):
         """Injects Inventory instance into base SimpleClass."""
-        self._inject_base()       
+        self._inject_base()
         return self

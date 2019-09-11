@@ -1,16 +1,12 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict
+import os
 import warnings
 
 from more_itertools import unique_everseen
-from numpy import datetime64
 import pandas as pd
-from pandas.api.types import CategoricalDtype
 from tensorflow.test import is_gpu_available
-
-from simplify.core import tools
 
 
 @dataclass
@@ -44,12 +40,10 @@ class SimpleClass(ABC):
         warnings.filterwarnings('ignore')
         # Creates menu attribute if string passed to menu when subclass was
         # instanced. Injects attributes from menu settings to subclass.
-        if hasattr(self, 'menu'):
+        if hasattr(self, 'menu') and self.__class__.__name__ != 'Menu':
             self._check_menu()
         # Calls _define private method to set up class defaults.
         self._define()
-        # Adds staticmethods listed in self.tools (if it exists).
-        self._add_tools()
         # Runs attribute checks from list in self.checks (if it exists).
         self._run_checks()
         # Calls prepare method if it exists and auto_prepare is True.
@@ -59,6 +53,8 @@ class SimpleClass(ABC):
             if hasattr(self, 'auto_start') and self.auto_start:
                 self.start()
         return self
+
+    """ Magic Methods """
 
     def __call__(self, menu, *args, **kwargs):
         """When called as a function, a subclass will return the start method
@@ -124,26 +120,12 @@ class SimpleClass(ABC):
         """Returns options.items() to mirror dict functionality."""
         return self.options.items()
 
-    def __repr__(self):
-        """Returns __str__."""
-        return self.__str__()
-
     def __setitem__(self, item, value):
         """Adds item and value to options dictionary."""
         self.options[item] = value
         return self
 
-    def __str__(self):
-        """Returns lowercase name of class."""
-        return self.__class__.__name__.lower()
-
-    def _add_tools(self):
-        """Adds listed functions as staticmethods to subclass."""
-        if hasattr(self, 'tools') and self.tools:
-            for tool in self.tools:
-                setattr(self, tool.__name__, staticmethod(
-                    getattr(tools, tool)))
-        return self
+    """ Private Methods """
 
     def _check_gpu(self):
         """If gpu status is not set, checks if the local machine has a GPU
@@ -161,6 +143,38 @@ class SimpleClass(ABC):
             self.gpu = False
             if self.verbose:
                 print('Using CPU')
+        return self
+
+    def _check_ingredients(self, ingredients = None):
+        """Checks if ingredients attribute exists. If so, it determines if it
+        contains a file folder, file path, or Ingredients instance. Depending
+        upon its type, different actions are taken to actually create an
+        Ingredients instance. If ingredients is None, then an Ingredients
+        instance is created with no pandas DataFrames within it.
+
+        Parameters:
+            ingredients: an Ingredients instance, a file path containing a
+                DataFrame or Series to add to an Ingredients instance, or
+                a folder containing files to be used to compose Ingredients
+                DataFrames and/or Series.
+        """
+        # Ingredients imported within function to avoid circular dependency.
+        from simplify.core.ingredients import Ingredients
+        if ingredients:
+            self.ingredients = ingredients
+        if (isinstance(self.ingredients, pd.Series)
+                or isinstance(self.ingredients, pd.DataFrame)):
+            self.ingredients = Ingredients(df = self.ingredients)
+        elif isinstance(self.ingredients, str):
+            if os.path.isfile(self.ingredients):
+                df = self.inventory.load(folder = self.inventory.data,
+                                         file_name = self.ingredients)
+                self.ingredients = Ingredients(df = df)
+            elif os.path.isdir(self.ingredients):
+                self.inventory.create_glob(folder = self.ingredients)
+                self.ingredients = Ingredients()
+        elif not self.ingredients:
+            self.ingredients = Ingredients()
         return self
 
     def _check_inventory(self):
@@ -196,15 +210,27 @@ class SimpleClass(ABC):
         self.menu.inject(instance = self, sections = sections)
         return self
 
+    def _check_steps(self):
+        if not hasattr(self, 'steps') or not self.steps:
+            if hasattr(self, self.name + '_steps'):
+                self.steps = self.listify(getattr(self, self.name + '_steps'))
+            else:
+                self.steps = []
+        else:
+            self.steps = self.listify(self.steps)
+        if not hasattr(self, 'step') or not self.step:
+            self.step = self.steps[0]
+        return self
+
     @abstractmethod
     def _define(self):
-        """Required method that sets default values for a subclass. 
+        """Required method that sets default values for a subclass.
 
-        A dict called 'options' should be defined here for subclasses to use 
+        A dict called 'options' should be defined here for subclasses to use
         much of the functionality of SimpleClass.
 
-        Generally, 'checks', and 'tools' attributes should be set here if the 
-        subclass wants to make use of those attributes and related methods. 
+        Generally, the 'checks' attribute should be set here if the subclass
+        wants to make use of related methods.
         """
         pass
         return self
@@ -219,6 +245,8 @@ class SimpleClass(ABC):
                 getattr(self, '_check_' + check)()
         return self
 
+    """ Public Methods """
+
     def conform(self, step):
         """Sets 'step' attribute to current step in siMpLify. This is used
         to maintain a universal state in the package for subclasses that are
@@ -226,6 +254,30 @@ class SimpleClass(ABC):
         """
         self.step = step
         return self
+
+    @staticmethod
+    def deduplicate(iterable):
+        """Adds suffix to list, pandas dataframe, or pandas series."""
+        if isinstance(iterable, list):
+            return list(unique_everseen(iterable))
+    # Needs implementation for pandas
+        elif isinstance(iterable, pd.Series):
+            return iterable
+        elif isinstance(iterable, pd.DataFrame):
+            return iterable
+
+    @staticmethod
+    def listify(variable):
+        """Checks to see if the variable is stored in a list. If not, the
+        variable is converted to a list or a list of 'none' is created if the
+        variable is empty.
+        """
+        if not variable:
+            return ['none']
+        elif isinstance(variable, list):
+            return variable
+        else:
+            return [variable]
 
     def load(self, name = None, file_path = None, folder = None,
              file_name = None, file_format = None):
@@ -250,7 +302,7 @@ class SimpleClass(ABC):
     @abstractmethod
     def prepare(self):
         """Required method which creates any objects to be applied to data or
-        variables. In the case of iterative classes, such as Planner, this 
+        variables. In the case of iterative classes, such as Cookbook, this
         method should construct any plans to be later implemented by the start
         method.
         """
@@ -285,12 +337,12 @@ class SimpleClass(ABC):
         """Optional method that implements all of the prepared objects on the
         passed variable. The variable is returned after being transformed by
         called methods.
-        
+
         Parameters:
-            variable: any variable. In most cases in the siMpLify package, 
+            variable: any variable. In most cases in the siMpLify package,
                 variable is an instance of Ingredients. However, any variable
                 or datatype can be used here.
-            **kwargs: other parameters can be added to method as needed or 
+            **kwargs: other parameters can be added to method as needed or
                 **kwargs can be used.
         """
         pass
@@ -298,17 +350,17 @@ class SimpleClass(ABC):
 
 @dataclass
 class SimpleType(ABC):
-    """Parent abstract base class for setting dictionaries related to data and 
+    """Parent abstract base class for setting dictionaries related to data and
     file types.
 
     To use the class, a subclass must have the following methods:
         _define: a private method which sets the default values for the
             subclass. This method should define two dictionaries:
-                name_to_type: a dict with strings as keys corresponding to 
+                name_to_type: a dict with strings as keys corresponding to
                     datatype values.
                 default_values: a dict with strings as keys matching those in
                     'name_to_type' and default values for those datatypes.
-    
+
     With those basic dictionaries, a reverse dictionary ('type_to_name') is
     created and a variety of dunder methods are implemented to make using the
     type structures easier.
@@ -320,8 +372,10 @@ class SimpleType(ABC):
             self._create_reversed()
         return self
 
+    """ Magic Methods """
+
     def __getattr__(self, attr):
-        """Returns dict methods applied to 'name_to_type' attribute if those 
+        """Returns dict methods applied to 'name_to_type' attribute if those
         methods are sought from the class instance.
 
         Parameters:
@@ -353,7 +407,7 @@ class SimpleType(ABC):
     def __setitem__(self, item, value):
         """Sets item to 'value' in 'name_to_type' and reverse in 'type_to_name'.
         If the class has 'default_values', then:
-            if 'value' matches a 'key' in type_to_name, the same default value 
+            if 'value' matches a 'key' in type_to_name, the same default value
             is applied. Otherwise, None is used as the default_value.
         """
         self.name_to_type.update({item : value})
@@ -364,6 +418,8 @@ class SimpleType(ABC):
             else:
                 self.default_values.update({item : None})
         return self
+
+    """ Private Methods """
 
     def _create_reversed(self):
         """ Creates reversed dictionary of 'name_to_type' and stores it in
@@ -379,11 +435,23 @@ class SimpleType(ABC):
         pass
         return self
 
+    """ Public Methods """
+
     def keys(self):
         """Returns keys from 'name_to_type' to mirror dict functionality."""
         return self.name_to_type.keys()
 
-    def set_type(self, name, python_type, default_value = None):
+    def save(self):
+        """Exports the subclass to disc in pickle format."""
+        export_folder = getattr(self.inventory, self.export_folder)
+        file_name = self.__class__.__name__.lower()
+        self.inventory.save(variable = self,
+                            folder = export_folder,
+                            file_name = file_name,
+                            file_format = 'pickle')
+        return self
+
+    def update(self, name, python_type, default_value = None):
         """Adds or replaces datatype with corresponding default value, if
         applicable.
         """

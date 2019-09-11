@@ -71,7 +71,7 @@ class Algorithm(Technique):
 
     def prepare(self):
         self._add_specific_parameters()
-       if self.gpu:
+        if self.gpu:
            self._gpu_parameters()
         self._parse_parameters()
         if self.hyperparameter_search:

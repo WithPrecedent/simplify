@@ -1,11 +1,11 @@
 
 from dataclasses import dataclass
 
-from ..cookbook_step import CookbookStep
+from simplify.core.step import Step
 
 
 @dataclass
-class Cleave(CookbookStep):
+class Cleave(Step):
     """Contains different groups of features (to allow comparison among them)
     used in the siMpLify package.
     """

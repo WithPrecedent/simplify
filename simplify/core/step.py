@@ -4,8 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from .base import SimpleClass
-from .tools import listify
+from simplify.core.base import SimpleClass
 
 
 @dataclass
@@ -111,7 +110,7 @@ class Step(SimpleClass):
         """Generic transform method for partial compatibility to sklearn."""
         x = self.algorithm.transform(x)
         return x
-            
+
     def update_parameters(self, parameters):
         """Adds a parameter set to parameters dictionary."""
         if isinstance(parameters, dict):
@@ -137,7 +136,7 @@ class Step(SimpleClass):
             error = 'runtime_parameters must be a dict type'
             raise TypeError(error)
 
-        
+
     # def conform(self):
     #     self.inventory.step = self.__class__.__name__.lower()
     #     return self

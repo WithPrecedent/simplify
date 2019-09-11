@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from .models.classifier import Classifier
 from .models.clusterer import Clusterer
 from .models.regressor import Regressor
-from ..cookbook_step import CookbookStep
+from simplify.core.step import Step
 
 
 @dataclass
-class Model(CookbookStep):
+class Model(Step):
     """Applies machine learning algorithms based upon user selections."""
     technique : str = ''
     parameters : object = None

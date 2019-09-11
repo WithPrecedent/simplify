@@ -5,28 +5,23 @@ the planning and implementation for data gathering and preparation.
 """
 from dataclasses import dataclass
 
-from .plan import Plan
-from .steps import Sow, Harvest, Clean, Bundle, Deliver
-from ..tools import listify
-from ..planner import Planner
+from simplify.almanac.plan import Plan
+from simplify.almanac.steps import Sow, Harvest, Clean, Bundle, Deliver
+from simplify.core.base import SimpleClass
 
 
 @dataclass
-class Almanac(Planner):
+class Almanac(SimpleClass):
     """Implements data parsing, wrangling, munging, merging, engineering, and
     cleaning methods for the siMpLify package.
 
-    Attributes:
+    Parameters:
 
-        menu: an instance of Menu or a string containing the path where a menu
-            settings file exists.
-        inventory: an instance of Inventory. If one is not passed when Almanac
-            is instanced, one will be created with default options.
-        steps: an ordered list of step names to be completed. This argument
-            should only be passed if the user wishes to override the Menu
-            steps.
         ingredients: an instance of Ingredients (or a subclass).
-        plans: a list of instances of almanac_steps which Almanac creates
+        steps: an ordered list of step names to be completed. This argument
+            should only be passed if the user whiches to override the steps
+            listed in menu.configuration.
+        plans: a list of instances of steps which Almanac creates
             through the prepare method and applies through the start method.
             Ordinarily, a list of plan is not passed when Almanac is
             instanced, but the argument is included if the user wishes to
@@ -36,20 +31,21 @@ class Almanac(Planner):
             and instead pass the needed settings in dictionary form (with the
             keys corresponding to the names of techniques used and the values
             including the parameters to be used).
+        name: a string designating the name of the class which should be
+            identical to the section of the menu configuration with relevant
+            settings.
         auto_prepare: a boolean value that sets whether the prepare method is
             automatically called when the class is instanced.
-        name: a string designating the name of the class which should be
-            identical to the section of the menu with relevant settings.
+        auto_start: sets whether to automatically call the 'start' method
+            when the class is instanced.
+
     """
-    menu : object = None
-    inventory : object = None
-    steps : object = None
     ingredients : object = None
+    steps : object = None
     plans : object = None
-    auto_prepare : bool = True
-    index_column : str = 'index_universal'
-    metadata_columns : object = None
     name : str = 'almanac'
+    auto_prepare : bool = True
+    auto_start : bool = True
 
     def __post_init__(self):
         """Sets up the core attributes of Almanac."""
@@ -76,6 +72,11 @@ class Almanac(Planner):
                 self.sections = self.default_sections
             else:
                 self.sections = {}
+        return self
+
+    def _define(self):
+        self.index_column = 'index_universal'
+        self.metadata_columns = []
         return self
 
     def _prepare_plan(self):

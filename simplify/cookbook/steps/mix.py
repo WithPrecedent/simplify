@@ -3,11 +3,11 @@ from dataclasses import dataclass
 
 from category_encoders import PolynomialEncoder
 
-from ..cookbook_step import CookbookStep
+from simplify.core.step import Step
 
 
 @dataclass
-class Mix(CookbookStep):
+class Mix(Step):
     """Computes new features using different algorithms selected."""
     technique : str = ''
     parameters : object = None

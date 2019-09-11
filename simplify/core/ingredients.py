@@ -8,11 +8,12 @@ import numpy as np
 import pandas as pd
 
 from simplify.core.base import SimpleClass
+from simplify.core.tools import SimpleUtilities
 from simplify.core.types import DataTypes
 
 
 @dataclass
-class Ingredients(SimpleClass):
+class Ingredients(SimpleClass, SimpleUtilities):
     """Imports, stores, and exports pandas DataFrames and Series, as well as
     related information about those data containers.
 
@@ -30,35 +31,35 @@ class Ingredients(SimpleClass):
 
     Parameters:
 
-        df: a pandas DataFrame, Series, or a file_path. This argument should be 
+        df: a pandas DataFrame, Series, or a file_path. This argument should be
             passed if the user has a pre-existing dataset.
         default_df: a string listing the current default DataFrame or Series
             attribute that will be used when a specific DataFrame is not passed
-            to a method within the class. The default value is initially set to 
+            to a method within the class. The default value is initially set to
             'df'. The decorator check_df will look to the default_df to pick
             the appropriate DataFrame in situatios where no DataFrame is passed
             to a method.
         x, y, x_train, y_train, x_test, y_test, x_val, y_val: DataFrames or
-            Series, or file paths. These  need not be passed when the class is 
-            instanced. They are merely listed for users who already have divided 
+            Series, or file paths. These  need not be passed when the class is
+            instanced. They are merely listed for users who already have divided
             datasets and still wish to use the siMpLify package.
         datatypes: dictionary containing column names and datatypes for
             DataFrames or Series. Ingredients assumes that all data containers
             within the instance are related and share a pool of column names and
             types.
         prefixes: dictionary containing list of prefixes for columns and
-            corresponding datatypes for default DataFrame. Ingredients assumes 
+            corresponding datatypes for default DataFrame. Ingredients assumes
             that all data containers within the instance are related and share a
             pool of column names and types.
         auto_prepare: a boolean variable indicating whether prepare method
-            should be called when the class is instanced. This should 
+            should be called when the class is instanced. This should
             generally be set to True.
         auto_start: a boolean variable indicating whether the 'start' method
             should be called when the class is instanced. This should only be
             set to True if the any of the DataFrame attributes is a file
             path and you want the file loaded into that attribute.
 
-    """  
+    """
     df : object = None
     default_df : str = 'df'
     x : object = None
@@ -93,8 +94,8 @@ class Ingredients(SimpleClass):
                       'categoricals', 'lists', 'datetimes', 'timedeltas']:
             return self._get_columns_by_type(attr[:-1])
         elif attr in ['numerics']:
-            return (self._get_columns_by_type('float') 
-                    + self._get_columns_by_type('integer')) 
+            return (self._get_columns_by_type('float')
+                    + self._get_columns_by_type('integer'))
         elif (attr in ['scalers', 'encoders', 'mixers']
               and attr not in self.__dict__):
             return getattr(self, '_get_default_' + attr)()
@@ -231,14 +232,14 @@ class Ingredients(SimpleClass):
         """Returns the full dataset divided into x and y."""
         return self.options['x'], self.options['y']
 
+    """ Private Methods """
+
     def _check_columns(self, columns = None):
         """Returns self.datatypes if columns doesn't exist.
 
         Parameters:
             columns: list of column names."""
         return columns or list(self.datatypes.keys())
-
-    """ Private Methods """
 
     @check_df
     def _crosscheck_columns(self, df = None):
@@ -271,6 +272,9 @@ class Ingredients(SimpleClass):
         # Maps class properties to appropriate DataFrames using the default
         # train_test setting.
         self._remap_dataframes(data_to_use = 'train_test')
+        # Initializes a list of dropped column names so that users can track
+        # which features are omitted from analysis.
+        self.dropped_columns = []
         return self
 
     def _get_columns_by_type(self, datatype):
@@ -451,7 +455,7 @@ class Ingredients(SimpleClass):
         'datatypes' dictionary.
 
         Parameters:
-            df: pandas DataFrame or Series. If none is provided, the default 
+            df: pandas DataFrame or Series. If none is provided, the default
                 DataFrame or Series is used.
             raise_errors: a boolean variable indicating whether errors should
                 be raised when converting datatypes or ignored.
@@ -631,7 +635,7 @@ class Ingredients(SimpleClass):
         list.
 
         Parameters:
-            df: pandas DataFrame or Series. If none is provided, the default 
+            df: pandas DataFrame or Series. If none is provided, the default
                 DataFrame or Series is used.
             columns: list of columns to drop.
             prefixes: list of prefixes for columns to drop.
@@ -683,7 +687,7 @@ class Ingredients(SimpleClass):
         inferred.
 
         Parameters:
-            df: pandas DataFrame or Series. If none is provided, the default 
+            df: pandas DataFrame or Series. If none is provided, the default
                 DataFrame or Series is used.
         """
         if not self.datatypes:
@@ -700,17 +704,14 @@ class Ingredients(SimpleClass):
         """Prepares Ingredients class instance."""
         if self.verbose:
             print('Preparing ingredients')
-        # If 'df' or other DataFrame attribute is a file path, the file located 
+        # If 'df' or other DataFrame attribute is a file path, the file located
         # there is imported.
         for df_name in self.options.keys():
             if (not(isinstance(getattr(self, df_name), pd.DataFrame) or
                     isinstance(getattr(self, df_name), pd.Series))
-                    and getattr(self, df_name) 
+                    and getattr(self, df_name)
                     and os.path.isfile(getattr(self, df_name))):
                 self.load(name = df_name, file_path = self.df)
-        # Initializes a list of dropped column names so that users can track
-        # which features are omitted from analysis.
-        self.dropped_columns = []
         # If datatypes passed, checks to see if columns are in df. Otherwise,
         # datatypes are inferred.
         self._initialize_datatypes()

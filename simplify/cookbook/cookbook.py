@@ -10,11 +10,13 @@ from itertools import product
 from simplify.cookbook.recipe import Recipe
 from simplify.cookbook.steps import (Cleave, Encode, Mix, Model, Reduce,
                                      Sample, Scale, Split)
-from simplify.core.planner import Planner
+from simplify.core.base import SimpleClass
+from simplify.review.critic import Critic
+from simplify.core.tools import check_arguments, SimpleUtilities
 
 
 @dataclass
-class Cookbook(Planner):
+class Cookbook(SimpleClass, SimpleUtilities):
     """Dynamically creates recipes for final preprocessing, machine learning,
     and data analysis using a unified interface and architecture.
 
@@ -28,21 +30,24 @@ class Cookbook(Planner):
             Ordinarily, recipes is not passed when Cookbook is instanced, but
             the argument is included if the user wishes to reexamine past
             recipes or manually create recipes.
-        auto_prepare: sets whether to automatically call the prepare method
-            when the class is instanced. If you do not plan to make any
-            adjustments to the steps, techniques, or algorithms beyond the
-            menu, this option should be set to True. If you plan to make such
-            changes, prepare should be called when those changes are complete.
         name: a string designating the name of the class which should be
-            identical to the section of the menu with relevant settings.
+            identical to the section of the menu configuration with relevant
+            settings.
         step: string name of step used for various conform methods in the
             simplify package.
+        auto_prepare: sets whether to automatically call the 'prepare' method
+            when the class is instanced. If you do not plan to make any
+            adjustments to the steps, techniques, or algorithms beyond the
+            menu configuration, this option should be set to True. If you plan
+            to make such changes, 'prepare' should be called when those changes
+            are complete.
+        auto_start: sets whether to automatically call the 'start' method
+            when the class is instanced.
     """
     ingredients : object = None
-    steps : object = None  
+    steps : object = None
     recipes : object = None
     name : str = 'cookbook'
-    step : str = 'cook'
     auto_prepare : bool = True
     auto_start : bool = True
 
@@ -85,6 +90,23 @@ class Cookbook(Planner):
                                   ((self.ingredients.y == 1).sum())) - 1
         return self
 
+    def _define(self):
+        """ Declares default step names and plan_class in a Cookbook recipe."""
+        # Sets options for default steps of a Recipe.
+        self.options = {'scaler' : Scale,
+                        'splitter' : Split,
+                        'encoder' : Encode,
+                        'mixer' : Mix,
+                        'cleaver' : Cleave,
+                        'sampler' : Sample,
+                        'reducer' : Reduce,
+                        'model' : Model}
+        # Adds GPU check to other checks to be performed.
+        self.checks = ['gpu', 'ingredients', 'steps']
+        self.step = 'cook'
+        self.export_folder = 'experiment'
+        return self
+
     def _prepare_one_loop(self, data_to_use):
         """Prepares one set of recipes from all_recipes as applied to a
         specific training/testing set.
@@ -115,25 +137,6 @@ class Cookbook(Planner):
         # Creates a list of all possible permutations of step techniques
         # selected. Each item in the the list is a 'plan'
         self.all_recipes = list(map(list, product(*self.step_lists)))
-        return self
-
-    def _define(self):
-        """ Declares default step names and plan_class in a Cookbook recipe."""
-        self.tools = ['check_arguments']
-        # Sets options for default steps of a Recipe.
-        self.options = {'scaler' : Scale,
-                        'splitter' : Split,
-                        'encoder' : Encode,
-                        'mixer' : Mix,
-                        'cleaver' : Cleave,
-                        'sampler' : Sample,
-                        'reducer' : Reduce,
-                        'model' : Model}
-        # Assigns the particular plan_class to Recipe so that the parent class
-        # methods will point to the proper plan class.
-        self.plan_class = Recipe
-        # Adds GPU check to other checks to be performed.
-        self.checks.append('gpu')
         return self
 
     def _set_experiment_folder(self):
@@ -216,7 +219,7 @@ class Cookbook(Planner):
         self.conform(step = 'cook')
         self._set_experiment_folder()
         self._prepare_recipes()
-        self.critic = Critic(menu = self.menu, inventory = self.inventory)
+        self.critic = Critic()
         # Using training, test, validate sets creates two separate loops
         # through all recipes: one with the test set, one with the validation
         # set.

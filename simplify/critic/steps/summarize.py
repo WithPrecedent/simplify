@@ -7,7 +7,7 @@ from simplify.core.base import SimpleClass
 
 
 @dataclass
-class Summary(SimpleClass):
+class Summarize(SimpleClass):
     """Stores and exports a DataFrame of summary data for pandas DataFrame.
 
     Summary is more inclusive than pandas.describe() and includes
@@ -15,10 +15,17 @@ class Summary(SimpleClass):
     metrics can easily be added to the report DataFrame.
 
     Parameters:
-        auto_prepare: a boolean value indicating whether the prepare
-            method should be automatically called.
+        name: a string designating the name of the class which should be
+            identical to the section of the menu configuration with relevant
+            settings.
+        auto_prepare: a boolean value that sets whether the prepare method is
+            automatically called when the class is instanced.
+        auto_start: sets whether to automatically call the 'start' method
+            when the class is instanced.
     """
+    name : str = 'summarizer'
     auto_prepare : bool = True
+    auto_start : bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -88,7 +95,7 @@ class Summary(SimpleClass):
             self.df_index = False
         return self
 
-    def start(self, df = None, transpose = True, file_name = 'data_summary', 
+    def start(self, df = None, transpose = True, file_name = 'data_summary',
               file_format = 'csv'):
         """Creates and exports a DataFrame of common summary data using the
         Summary class.

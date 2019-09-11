@@ -1,11 +1,7 @@
 
 from dataclasses import dataclass
-import os
-
-import pandas as pd
 
 from simplify.core.base import SimpleClass
-from simplify.core.ingredients import Ingredients
 
 
 @dataclass
@@ -22,54 +18,14 @@ class Planner(SimpleClass):
             print('Creating', self)
         return self
 
-    def _check_ingredients(self, ingredients = None):
-        """Checks if ingredients attribute exists. If so, it determines if it
-        contains a file folder, file path, or Ingredients instance. Depending
-        upon its type, different actions are taken to actually create an
-        Ingredients instance. If ingredients is None, then an Ingredients
-        instance is created with no pandas DataFrames within it.
 
-        Parameters:
-            ingredients: an Ingredients instance, a file path containing a
-                DataFrame or Series to add to an Ingredients instance, or
-                a folder containing files to be used to compose Ingredients
-                DataFrames and/or Series.
-        """
-        if ingredients:
-            self.ingredients = ingredients
-        if (isinstance(self.ingredients, pd.Series)
-                or isinstance(self.ingredients, pd.DataFrame)):
-            self.ingredients = Ingredients(df = self.ingredients)
-        elif isinstance(self.ingredients, str):
-            if os.path.isfile(self.ingredients):
-                df = self.inventory.load(folder = self.inventory.data,
-                                         file_name = self.ingredients)
-                self.ingredients = Ingredients(df = df)
-            elif os.path.isdir(self.ingredients):
-                self.inventory.create_glob(folder = self.ingredients)
-                self.ingredients = Ingredients()
-        elif not self.ingredients:
-            self.ingredients = Ingredients()
-        return self
-
-    def _check_steps(self):
-        if not hasattr(self, 'steps') or not self.steps:
-            if hasattr(self, self.name + '_steps'):
-                self.steps = self.listify(getattr(self, self.name + '_steps'))
-            else:
-                self.steps = []
-        else:
-            self.steps = self.listify(self.steps)
-        if not hasattr(self, 'step') or not self.step:
-            self.step = self.steps[0]
-        return self
 
     def _define(self):
         """ Declares defaults for Planner."""
         self.options = {}
         self.tools = ['listify']
         self.plan_class = None
-        self.checks = ['steps', 'ingredients']
+        self.checks = ['steps', 'inventory', 'ingredients']
         self.state_attributes = ['inventory', 'ingredients']
         return self
 

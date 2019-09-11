@@ -6,12 +6,12 @@ from sklearn.preprocessing import (KBinsDiscretizer, MaxAbsScaler,
                                    QuantileTransformer, RobustScaler,
                                    StandardScaler)
 
-from ..cookbook_step import CookbookStep
+from simplify.core.step import Step
 from ...core.technique import Technique
 
 
 @dataclass
-class Scale(CookbookStep):
+class Scale(Step):
     """Scales numerical data according to selected algorithm."""
     technique : str = ''
     parameters : object = None

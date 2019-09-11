@@ -1,6 +1,4 @@
 import os
-import sys
-sys.path.insert(0, os.path.join('..', 'simplify'))
 
 import pandas as pd
 import numpy as np
@@ -14,7 +12,7 @@ cancer = load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
 # Initializes core simplify classes.
-menu = Menu(configuration = os.path.join('examples', 'cancer_settings.ini'))
+menu = Menu(configuration = 'cancer_settings.ini')
 inventory = Inventory(root_folder = os.path.join('..', '..'))
 ingredients = Ingredients(df = df)
 # Converts label to boolean type - conversion from numpy arrays leaves all
@@ -32,6 +30,6 @@ cookbook.start()
 cookbook.save_everything()
 # Outputs information about the best recipe to the terminal.
 cookbook.print_best()
-# Saves ingredients file with predictions or predicted probabilities added 
+# Saves ingredients file with predictions or predicted probabilities added
 # (based on options in menu).
 cookbook.ingredients.save(file_name = 'cancer_df')

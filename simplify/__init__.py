@@ -3,7 +3,7 @@
   :synopsis: data science made simple
 """
 
-from .core.gadgets import timer
+from .core.tools import timer
 from .core.menu import Menu
 from .core.inventory import Inventory
 from .core.ingredients import Ingredients

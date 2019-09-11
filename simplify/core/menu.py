@@ -5,10 +5,11 @@ import os
 import re
 
 from simplify.core.base import SimpleClass
+from simplify.core.tools import SimpleUtilities
 
 
 @dataclass
-class Menu(SimpleClass):
+class Menu(SimpleClass, SimpleUtilities):
     """Loads and/or stores user settings.
 
     Menu creates a nested dictionary, converting dictionary values to
@@ -62,19 +63,18 @@ class Menu(SimpleClass):
     The desire for accessibility and simplicity dictated this limitation.
 
     Parameters:
-
-        configuration: either a file_path or two-level nested dictionary storing 
-            settings. If a file_path is provided, A nested dict will 
-            automatically be created from the file and stored in 
+        configuration: either a file_path or two-level nested dictionary storing
+            settings. If a file_path is provided, A nested dict will
+            automatically be created from the file and stored in
             'configuration'.
         infer_types: boolean variable determines whether values in
             'configuration' are converted to other types (True) or left as
             strings (False).
         auto_prepare: sets whether to automatically call the 'prepare' method
-            when the class is instanced. Unless adding a new source for 
+            when the class is instanced. Unless adding a new source for
             configuration settings, this should be set to True.
         auto_start: sets whether to automatically call the 'start' method
-            when the class is instanced. Unless adding a new source for 
+            when the class is instanced. Unless adding a new source for
             configuration settings, this should be set to True.
     """
     configuration : object = None
@@ -130,7 +130,7 @@ class Menu(SimpleClass):
                     return self.configuration[config_key]
         if not found_value:
             return {}
-        
+
 
     def __setitem__(self, section, nested_dict):
         """Creates a new subsection in a specified section of the configuration
@@ -159,7 +159,8 @@ class Menu(SimpleClass):
 
     def _check_configuration(self):
         if self.configuration:
-            if os.path.isfile(self.configuration):
+            print(os.path.abspath(self.configuration))
+            if os.path.isfile(os.path.abspath(self.configuration)):
                 if '.ini' in self.configuration:
                     self.technique = 'ini_file'
                 elif '.py' in self.configuration:
@@ -208,7 +209,7 @@ class Menu(SimpleClass):
         if self.infer_types:
             for section, nested_dict in self.configuration.items():
                 for key, value in nested_dict.items():
-                    self.configuration[section][key] = self.typify(value)
+                    self.configuration[section][key] = self._typify(value)
         return self
 
     def _inject_base(self):
@@ -219,6 +220,31 @@ class Menu(SimpleClass):
         SimpleClass.menu = self
         self.inject(instance = SimpleClass, sections = ['general'])
         return self
+
+    def _typify(self, variable):
+        """Converts strings to list (if ', ' is present), int, float, or
+        boolean datatypes based upon the content of the string. If no
+        alternative datatype is found, the variable is returned in its original
+        form.
+        """
+        if ', ' in variable:
+            return variable.split(', ')
+        elif re.search('\d', variable):
+            try:
+                return int(variable)
+            except ValueError:
+                try:
+                    return float(variable)
+                except ValueError:
+                    return variable
+        elif variable in ['True', 'true', 'TRUE']:
+            return True
+        elif variable in ['False', 'false', 'FALSE']:
+            return False
+        elif variable in ['None', 'none', 'NONE']:
+            return None
+        else:
+            return variable
 
     def inject(self, instance, sections, override = False):
         """Stores the section or sections of the configuration dictionary in
@@ -242,14 +268,14 @@ class Menu(SimpleClass):
     def prepare(self):
         """Prepares instance of Menu by checking passed configuration parameter.
         """
-        self._check_options()
+        self._check_configuration()
         return self
 
     def start(self):
         """Creates configuration setttings and injects Menu into SimpleClass.
         """
-        if self.options(self.technique):
-            self.options(self.technique)()
+        if self.options[self.technique]:
+            self.options[self.technique]()
         self._infer_types()
         self._inject_base()
         return self

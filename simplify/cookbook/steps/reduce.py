@@ -7,11 +7,10 @@ from sklearn.feature_selection import (chi2, f_classif, mutual_info_classif,
                                        SelectKBest, SelectFdr, SelectFpr,
                                        SelectFromModel)
 
-from ..cookbook_step import CookbookStep
-
+from simplify.core.step import Step
 
 @dataclass
-class Reduce(CookbookStep):
+class Reduce(Step):
     """Reduces features using different algorithms, including the model
     algorithm.
     """

@@ -12,6 +12,7 @@ from .sample import Sample
 from .scale import Scale
 from .split import Split
 
+
 __all__ = ['Cleave',
            'Encode',
            'Mix',
