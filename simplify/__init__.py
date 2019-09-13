@@ -3,10 +3,7 @@
   :synopsis: data science made simple
 """
 
-from .core.tools import timer
-from .core.menu import Menu
-from .core.inventory import Inventory
-from .core.ingredients import Ingredients
+from .core.base import timer, Menu, Inventory, Ingredients
 
 __version__ = '0.1.1'
 

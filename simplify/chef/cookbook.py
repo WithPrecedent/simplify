@@ -1,14 +1,14 @@
 """
-cookbook.py is the primary control file for the siMpLify data analysis package.
-It contains the Cookbook class, which handles the cookbook construction and
-utilization.
+cookbook.py is the primary control file for the siMpLify machine learning
+package. It contains the Cookbook class, which handles the cookbook
+construction and utilization.
 """
 from dataclasses import dataclass
 import datetime
 from itertools import product
 
 from simplify.chef.recipe import Recipe
-from simplify.chef.steps import (Cleave, Encode, Mix, Model, Reduce, Sample, 
+from simplify.chef.steps import (Cleave, Encode, Mix, Model, Reduce, Sample,
                                  Scale, Split)
 from simplify.core.base import SimpleClass
 from simplify.core.tools import check_arguments
@@ -17,24 +17,22 @@ from simplify.critic.analysis import Analysis
 
 @dataclass
 class Cookbook(SimpleClass):
-    """Dynamically creates recipes for final preprocessing, machine learning,
-    and data analysis using a unified interface and architecture.
+    """Dynamically creates recipes for staging, machine learning, and data
+    analysis using a unified interface and architecture.
 
     Parameters:
         ingredients: an instance of Ingredients (or a subclass).
         steps: an ordered list of step names to be completed. This argument
-            should only be passed if the user whiches to override the steps
-            listed in menu.configuration.
+            should only be passed if the user wishes to override the steps
+            listed in the menu.
         recipes: a list of instances of Recipe which Cookbook creates through
-            the 'prepare' method and applies through the 'star't method.
-            Ordinarily, recipes is not passed when Cookbook is instanced, but
+            the 'prepare' method and applies through the 'perform' method.
+            Ordinarily, 'recipes' is not passed when Cookbook is instanced, but
             the argument is included if the user wishes to reexamine past
-            recipes or manually create recipes.
+            recipes or manually create new recipes.
         name: a string designating the name of the class which should be
             identical to the section of the menu configuration with relevant
             settings.
-        step: string name of step used for various conform methods in the
-            simplify package.
         auto_prepare: sets whether to automatically call the 'prepare' method
             when the class is instanced. If you do not plan to make any
             adjustments to the steps, techniques, or algorithms beyond the
@@ -63,17 +61,17 @@ class Cookbook(SimpleClass):
         Parameters:
             recipe: an instance of Recipe.
         """
-        if not hasattr(self, 'best_recipe') or not self.best_recipe:
+        if not hasattr(self, 'best_recipe') or self.best_recipe is None:
             self.best_recipe = recipe
-            self.best_recipe_score = self.critic.review.report.loc[
-                    self.critic.review.report.index[-1],
+            self.best_recipe_score = self.analysis.review.report.loc[
+                    self.analysis.review.report.index[-1],
                     self.listify(self.metrics)[0]]
-        elif (self.critic.review.report.loc[
-                self.critic.review.report.index[-1],
+        elif (self.analysis.review.report.loc[
+                self.analysis.review.report.index[-1],
                 self.listify(self.metrics)[0]] > self.best_recipe_score):
             self.best_recipe = recipe
-            self.best_recipe_score = self.critic.review.report.loc[
-                    self.critic.review.report.index[-1],
+            self.best_recipe_score = self.analysis.review.report.loc[
+                    self.analysis.review.report.index[-1],
                     self.listify(self.metrics)[0]]
         return self
 
@@ -90,23 +88,6 @@ class Cookbook(SimpleClass):
                                   ((self.ingredients.y == 1).sum())) - 1
         return self
 
-    def plan(self):
-        """ Declares default step names and plan_class in a Cookbook recipe."""
-        # Sets options for default steps of a Recipe.
-        self.options = {'scaler' : Scale,
-                        'splitter' : Split,
-                        'encoder' : Encode,
-                        'mixer' : Mix,
-                        'cleaver' : Cleave,
-                        'sampler' : Sample,
-                        'reducer' : Reduce,
-                        'model' : Model}
-        # Adds GPU check to other checks to be performed.
-        self.checks = ['gpu', 'ingredients', 'steps']
-        self.step = 'cook'
-        self.export_folder = 'experiment'
-        return self
-
     def _prepare_one_loop(self, data_to_use):
         """Prepares one set of recipes from all_recipes as applied to a
         specific training/testing set.
@@ -116,7 +97,7 @@ class Cookbook(SimpleClass):
                 which will return the appropriate training/testing set.
         """
         for i, plan in enumerate(self.all_recipes):
-            plan_instance = self.plan_class(techniques = self.steps)
+            plan_instance = Recipe(techniques = self.steps)
             setattr(plan_instance, 'number', i + 1)
             setattr(plan_instance, 'data_to_use', data_to_use)
             for j, step in enumerate(self.options.keys()):
@@ -209,6 +190,23 @@ class Cookbook(SimpleClass):
                                                      file_format = 'pickle'))
         return self
 
+    def plan(self):
+        """ Declares default step names and plan_class in a Cookbook recipe."""
+        # Sets options for default steps of a Recipe.
+        self.options = {'scaler' : Scale,
+                        'splitter' : Split,
+                        'encoder' : Encode,
+                        'mixer' : Mix,
+                        'cleaver' : Cleave,
+                        'sampler' : Sample,
+                        'reducer' : Reduce,
+                        'model' : Model}
+        # Adds GPU check to other checks to be performed.
+        self.checks = ['gpu', 'ingredients', 'steps']
+        self.step = 'cook'
+        self.export_folder = 'experiment'
+        return self
+
     def prepare(self):
         """Creates a planner with all possible selected permutations of
         methods. Each set of methods is stored in a list of instances of the
@@ -219,7 +217,7 @@ class Cookbook(SimpleClass):
         self.conform(step = 'cook')
         self._set_experiment_folder()
         self._prepare_recipes()
-        self.critic = Analysis()
+        self.analysis = Analysis()
         # Using training, test, validate sets creates two separate loops
         # through all recipes: one with the test set, one with the validation
         # set.
@@ -294,10 +292,10 @@ class Cookbook(SimpleClass):
 
         Parameters:
             review: the attribute review from an instance of Analysis. If none
-                is provided, self.critic.review is saved.
+                is provided, self.analysis.review is saved.
         """
         if not review:
-            review = self.critic.review.report
+            review = self.analysis.review.report
         self.inventory.save(variable = review,
                             folder = self.inventory.experiment,
                             file_name = self.model_type + '_review',
@@ -321,7 +319,7 @@ class Cookbook(SimpleClass):
                 print('Testing ' + recipe.name + ' ' + str(recipe.number))
             recipe.perform(ingredients = ingredients)
             self.save_recipe(recipe = recipe)
-            self.critic.perform(recipe = recipe)
+            self.analysis.perform(recipe = recipe)
             self._check_best(recipe = recipe)
             # To conserve memory, each recipe is deleted after being exported.
             del(recipe)

@@ -5,10 +5,7 @@ class, which the review and evaluation process.
 """
 from dataclasses import dataclass
 
-import pandas as pd
-
 from simplify.core.base import SimpleClass
-from simplify.core.technique import Technique
 from simplify.critic.steps import Summarize, Evaluate, Visualize
 
 
@@ -45,7 +42,7 @@ class Analysis(SimpleClass):
         return self
 
     def plan(self):
-        """Sets default options for the Analysis review."""
+        """Sets default options for the crtic's review."""
         self.options = {'summarize' : Summarize,
                         'evaluate' : Evaluate,
                         'visualize' : Visualize}
@@ -55,7 +52,6 @@ class Analysis(SimpleClass):
         return self
 
     def prepare(self):
-
         self.reviews = []
         for step in self.steps:
             self.reviews.append(self.options[step])

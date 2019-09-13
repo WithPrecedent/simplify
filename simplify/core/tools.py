@@ -37,37 +37,6 @@ def check_arguments(method, excludes = None):
 
     return wrapper
 
-def convert_time(seconds):
-    """Function that converts seconds into hours, minutes, and seconds."""
-    minutes, seconds = divmod(seconds, 60)
-    hours, minutes = divmod(minutes, 60)
-    return hours, minutes, seconds
-
-def timer(process = None):
-    """Decorator for computing the length of time a process takes.
-
-    Parameters:
-        process: string containing name of class or method."""
-
-    if not process:
-        if isinstance(process, FunctionType):
-            process = process.__name__
-        else:
-            process = process.__class__.__name__
-
-    def shell_timer(_function):
-
-        def decorated(*args, **kwargs):
-            perform_time = time.time()
-            result = _function(*args, **kwargs)
-            total_time = time.time() - perform_time
-            h, m, s = convert_time(total_time)
-            print(f'{process} completed in %d:%02d:%02d' % (h, m, s))
-            return result
-
-        return decorated
-
-    return shell_timer
 
 """ Mixins """
 
