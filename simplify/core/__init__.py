@@ -1,5 +1,5 @@
 """
-.. module:: siMpLify_core
+.. module:: siMpLify core
   :synopsis: siMpLify base classes and functions
 """
 

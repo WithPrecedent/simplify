@@ -9,7 +9,7 @@ from simplify.core.technique import Technique
 
 @dataclass
 class Evaluate(Step):
-    """Core class for evaluating the results of data analysis performed by
+    """Core class for evaluating the results of data analysis produceed by
     the siMpLify Cookbook.
 
     """
@@ -19,13 +19,13 @@ class Evaluate(Step):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'eli5' : Eli5Evaluator,
                         'shap' : ShapEvaluator,
                         'skater' : SkaterEvaluator,
                         'sklearn' : SklearnEvaluator}
 
-    def prepare(self):
+    def finalize(self):
         if self.evaluators == 'all':
             self.techniques = list(self.options.keys())
         else:
@@ -40,7 +40,7 @@ class Eli5Evaluator(Technique):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
 
         from eli5 import explain_prediction_df, explain_weights_df
         from eli5.sklearn import PermutationImportance
@@ -63,7 +63,7 @@ class Eli5Evaluator(Technique):
                        'xgboost' : 'specific'}
         return self
 
-    def perform(self):
+    def produce(self):
         self.permutation_importances = PermutationImportance(
                 self.recipe.model.algorithm,
                 random_state = self.seed).fit(
@@ -82,7 +82,7 @@ class ShapEvaluator(Technique):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         from shap import (DeepExplainer, KernelExplainer, LinearExplainer,
                           TreeExplainer)
 
@@ -106,7 +106,7 @@ class ShapEvaluator(Technique):
                        'xgboost' : 'tree'}
         return self
 
-    def perform(self):
+    def produce(self):
         """Applies shap evaluator to data based upon type of model used."""
         if self.recipe.model.technique in self.shap_models:
             self.shap_method_type = self.shap_models[
@@ -223,7 +223,7 @@ class SklearnEvaluator(Technique):
                                             inplace = True)
         return self
 
-    def plan(self):
+    def draft(self):
         getattr(self, '_default_' + self.model_type)()
         self.special_metrics = {
                 'fbeta' : {'beta' : 1},
@@ -234,7 +234,7 @@ class SklearnEvaluator(Technique):
                                  'zero_one']
         return self
 
-    def add_metric(self, name, metric, special_type = None,
+    def edit_metric(self, name, metric, special_type = None,
                    special_parameters = None, negative_metric = False):
         """Allows user to manually add a metric to report."""
         self.options.update({name : metric})
@@ -248,12 +248,12 @@ class SklearnEvaluator(Technique):
            self.negative_metrics.append[name]
         return self
 
-    def prepare(self):
+    def finalize(self):
         self.options.update(self.prob_options)
         self.options.update(self.score_options)
         return self
 
-    def perform(self):
+    def produce(self):
         """Prepares the results of a single recipe application to be added to
         the .report dataframe.
         """
@@ -291,5 +291,5 @@ class SkaterEvaluator(Technique):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         return self

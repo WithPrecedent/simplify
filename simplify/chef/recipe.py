@@ -10,7 +10,7 @@ class Recipe(object):
         techniques: a list of techniques containing the classes to be used at
             each stage of a Recipe.
         name: a string designating the name of the class which should be
-            identical to the section of the menu with relevant settings.
+            identical to the section of the idea with relevant settings.
     """
     techniques : object = None
     name : str = 'recipe'
@@ -21,9 +21,9 @@ class Recipe(object):
 
     def __call__(self, *args, **kwargs):
         """When called as a function, a Recipe class or subclass instance will
-        return the perform method.
+        return the produce method.
         """
-        return self.perform(*args, **kwargs)
+        return self.produce(*args, **kwargs)
 
     def _check_attributes(self):
         """Checks if corresponding attribute exists for every item in the
@@ -35,7 +35,7 @@ class Recipe(object):
                 raise AttributeError(error)
         return self
 
-    def prepare(self):
+    def finalize(self):
         """Prepares instance of Recipe."""
         self._check_attributes()
         # Creates a boolean attribute as to whether the validation set is being
@@ -46,7 +46,7 @@ class Recipe(object):
             self.val_set = False
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         """Applies the Recipe methods to the passed ingredients."""
         techniques = self.techniques.copy()
         self.ingredients = ingredients
@@ -56,7 +56,7 @@ class Recipe(object):
         for technique in self.techniques:
             techniques.remove(technique)
             if technique != 'splitter':
-                self.ingredients = getattr(self, technique).perform(
+                self.ingredients = getattr(self, technique).produce(
                         self.ingredients, self)
             else:
                 break
@@ -69,6 +69,6 @@ class Recipe(object):
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
            for technique in techniques:
-                self.ingredients = getattr(self, technique).perform(
+                self.ingredients = getattr(self, technique).produce(
                         self.ingredients, self)
         return self

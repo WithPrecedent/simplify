@@ -1,5 +1,5 @@
 """
-.. module:: siMpLify cookbook
+.. module:: siMpLify chef
   :synopsis: machine learning made simple
 """
 

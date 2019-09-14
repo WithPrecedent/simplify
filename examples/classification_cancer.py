@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import load_breast_cancer
 
-from simplify import Menu, Inventory, Ingredients
+from simplify import Idea, Depot, Ingredients
 from simplify.chef import Cookbook
 
 # Loads cancer data and converts from numpy arrays to pandas dataframe.
@@ -13,8 +13,8 @@ cancer = load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
 # Initializes core simplify classes.
-menu = Menu(configuration = 'cancer_settings.ini')
-inventory = Inventory(root_folder = os.path.join('..', '..'))
+idea = Idea(configuration = 'cancer_settings.ini')
+depot = Depot(root_folder = os.path.join('..', '..'))
 ingredients = Ingredients(df = df)
 # Converts label to boolean type - conversion from numpy arrays leaves all
 # columns as float type.
@@ -26,11 +26,11 @@ ingredients.smart_fill()
 cookbook = Cookbook(ingredients = ingredients)
 # Iterates through every recipe and exports plots, explainers, and other
 # metrics from each recipe.
-cookbook.perform()
+cookbook.produce()
 # Saves the recipes, results, and cookbook.
 cookbook.save_everything()
 # Outputs information about the best recipe to the terminal.
 cookbook.print_best()
 # Saves ingredients file with predictions or predicted probabilities added
-# (based on options in menu).
+# (based on options in idea).
 cookbook.ingredients.save(file_name = 'cancer_df')

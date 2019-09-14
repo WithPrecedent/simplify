@@ -12,27 +12,27 @@ class Clean(HarvestStep):
 
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'keyword' : ReTool,
                         'combiner' : Combine}
         return self
 
-    def _perform_combiner(self, ingredients):
-        ingredients = self.algorithm.perform(ingredients)
+    def _produce_combiner(self, ingredients):
+        ingredients = self.algorithm.produce(ingredients)
         return ingredients
 
-    def _perform_keyword(self, ingredients):
-        ingredients.df = self.algorithm.perform(ingredients.df)
+    def _produce_keyword(self, ingredients):
+        ingredients.df = self.algorithm.produce(ingredients.df)
         return ingredients
 
-    def perform(self, ingredients):
-        ingredients = getattr(self, '_perform_' + self.technique)(ingredients)
+    def produce(self, ingredients):
+        ingredients = getattr(self, '_produce_' + self.technique)(ingredients)
         return ingredients
 
 @dataclass
@@ -63,7 +63,7 @@ class Combine(object):
                         self.method))
         return ingredients
 
-    def plan(self):
+    def draft(self):
         self.options = {'all' : self._combine_all,
                         'any' : self._combine_any,
                         'dict' : self._dict}
@@ -73,6 +73,6 @@ class Combine(object):
             self.algorithm = self._dict
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         self.ingredients = self.algorithm(ingredients)
         return ingredients

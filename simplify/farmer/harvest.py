@@ -4,17 +4,17 @@ from dataclasses import dataclass
 from ..tools import listify
 
 @dataclass
-class Almanac(object):
+class Harvest(object):
     """Defines rules for sowing, reaping, cleaning, bundling, and delivering
     data as part of the siMpLify Harvest subpackage.
 
     Attributes:
         techniques: a list of Harvest step techniques to complete.
         name: a string designating the name of the class which should be
-            identical to the section of the menu with relevant settings.
+            identical to the section of the idea with relevant settings.
     """
     techniques : object = None
-    name : str = 'plan'
+    name : str = 'draft'
     index_column : str = 'index_universal'
 
     def __post_init__(self):
@@ -38,44 +38,44 @@ class Almanac(object):
 #            self.column_names = list(variable.columns.keys())
 #        return self
 
-    def _perform_file(self, ingredients):
+    def _produce_file(self, ingredients):
         with open(
-                self.inventory.path_in, mode = 'r', errors = 'ignore',
-                encoding = self.menu['files']['file_encoding']) as a_file:
+                self.depot.path_in, mode = 'r', errors = 'ignore',
+                encoding = self.idea['files']['file_encoding']) as a_file:
             ingredients.source = a_file.read()
             for technique in self.techniques:
-                ingredients = technique.perform(ingredients = ingredients)
-            self.inventory.save(variable = ingredients.df)
+                ingredients = technique.produce(ingredients = ingredients)
+            self.depot.save(variable = ingredients.df)
         return ingredients
 
-    def _perform_glob(self, ingredients):
-        self.inventory.initialize_writer(
-                file_path = self.inventory.path_out)
+    def _produce_glob(self, ingredients):
+        self.depot.initialize_writer(
+                file_path = self.depot.path_out)
         ingredients.create_series()
-        for file_num, a_path in enumerate(self.inventory.path_in):
+        for file_num, a_path in enumerate(self.depot.path_in):
             if (file_num + 1) % 100 == 0 and self.verbose:
                 print(file_num + 1, 'files parsed')
             with open(
                     a_path, mode = 'r', errors = 'ignore',
-                    encoding = self.menu['files']['file_encoding']) as a_file:
+                    encoding = self.idea['files']['file_encoding']) as a_file:
                 ingredients.source = a_file.read()
                 print(ingredients.df)
                 ingredients.df[self.index_column] = file_num + 1
                 for technique in self.techniques:
-                    ingredients = technique.perform(ingredients = ingredients)
-                self.inventory.save(variable = ingredients.df)
+                    ingredients = technique.produce(ingredients = ingredients)
+                self.depot.save(variable = ingredients.df)
         return ingredients
 
-    def prepare(self):
+    def finalize(self):
 #        self._check_attributes()
 #        for technique in self.techniques:
 #            self._set_columns(variable = technique)
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         """Applies the Harvest technique classes to the passed ingredients."""
-        if isinstance(self.inventory.path_in, list):
-            ingredients = self._perform_glob(ingredients = ingredients)
+        if isinstance(self.depot.path_in, list):
+            ingredients = self._produce_glob(ingredients = ingredients)
         else:
-            ingredients = self._perform_file(ingredients = ingredients)
+            ingredients = self._produce_file(ingredients = ingredients)
         return ingredients

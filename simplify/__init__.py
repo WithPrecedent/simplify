@@ -3,13 +3,13 @@
   :synopsis: data science made simple
 """
 
-from .core.base import timer, Menu, Inventory, Ingredients
+from .core.base import timer, Idea, Depot, Ingredients
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
 __all__ = ['timer',
-           'Menu',
-           'Inventory',
+           'Idea',
+           'Depot',
            'Ingredients']

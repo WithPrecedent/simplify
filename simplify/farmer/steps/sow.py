@@ -11,13 +11,13 @@ class Sow(HarvestStep):
 
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'convert' : Convert,
                         'download' : Download,
                         'scrape' : Scrape,
@@ -36,8 +36,8 @@ class Sow(HarvestStep):
             self.export_folder = 'external'
         return self
 
-    def perform(self, ingredients):
-        self.algorithm.perform(ingredients)
+    def produce(self, ingredients):
+        self.algorithm.produce(ingredients)
         return ingredients
 
 @dataclass
@@ -52,17 +52,17 @@ class Convert(object):
         return self
 
     def _make_path(self, file_name):
-        file_path = os.path.join(self.inventory.external, file_name)
+        file_path = os.path.join(self.depot.external, file_name)
         return file_path
 
-    def prepare(self):
+    def finalize(self):
         self.file_path_in = self.make_path(self.file_in)
         self.file_path_out = self.make_path(self.file_out)
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         converted = self.method(file_path = self.file_path_in)
-        self.inventory.save_df(converted, file_path = self.file_path_out)
+        self.depot.save_df(converted, file_path = self.file_path_out)
         return self
 
 @dataclass
@@ -76,9 +76,9 @@ class Download(object):
         super().__post_init__()
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         """Downloads file from a URL if the file is available."""
-        file_path = os.path.join(self.inventory.external,
+        file_path = os.path.join(self.depot.external,
                                  self.file_name)
         file_response = requests.get(self.file_url)
         with open(file_path, 'wb') as file:
@@ -97,8 +97,8 @@ class Scrape(object):
         super().__post_init__()
         return self
 
-    def perform(self, ingredients):
-        file_path = os.path.join(self.inventory.external, self.file_name)
+    def produce(self, ingredients):
+        file_path = os.path.join(self.depot.external, self.file_name)
         return self
 
 @dataclass
@@ -112,7 +112,7 @@ class Split(object):
         super().__post_init__()
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         self.method(in_folder = self.in_folder,
                     out_folder = self.out_folder)
         return self

@@ -22,7 +22,7 @@ class Search(Technique):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'random' : RandomizedSearchCV,
                         'grid' : GridSearchCV,
                         'bayes' : BayesSearchCV}
@@ -31,7 +31,7 @@ class Search(Technique):
                                    'random_state' : self.seed}
         return self
 
-    def prepare(self):
+    def finalize(self):
         if 'refit' in self.parameters:
             self.parameters['scoring'] = self.listify(
                     self.parameters['scoring'])[0]
@@ -39,7 +39,7 @@ class Search(Technique):
         self.tool = self.options[self.technique](**self.parameters)
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         if self.verbose:
             print('Searching for best hyperparameters using',
                   self.technique, 'search algorithm')

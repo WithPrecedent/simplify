@@ -9,23 +9,23 @@ class Bundle(HarvestStep):
     """Class for combining different datasets."""
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'merger' : Merger}
         self.needed_parameters = {'merger' : ['index_columns', 'merge_type']}
         return self
 
-    def prepare(self):
+    def finalize(self):
         self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def perform(self, ingredients):
-        ingredients = self.algorithm.perform(ingredients)
+    def produce(self, ingredients):
+        ingredients = self.algorithm.produce(ingredients)
         return ingredients
 
 @dataclass
@@ -37,5 +37,5 @@ class Merger(object):
     def __post_init__(self):
         return self
 
-    def perform(self, ingredients, sources):
+    def produce(self, ingredients, sources):
         return ingredients

@@ -155,7 +155,7 @@ man_pages = [
 
 # Grouping the document tree into Texinfo files. List of tuples
 # (source start file, target name, title, author,
-#  dir menu entry, description, category)
+#  dir idea entry, description, category)
 texinfo_documents = [
     (master_doc, 'siMpLify', 'siMpLify Documentation',
      author, 'siMpLify', 'One line description of project.',

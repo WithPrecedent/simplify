@@ -11,7 +11,7 @@ class TFModel(Algorithm):
     """Applies machine learning algorithms based upon user selections."""
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     name : str = 'model'
 
     def __post_init__(self):
@@ -42,7 +42,7 @@ class TFModel(Algorithm):
 #                               'datetime' : datetime64,
 #                               'timedelta' : timedelta}
 
-    def plan(self):
+    def draft(self):
         self.model_parameters = {'build_fn' : self._tensor_flow_model,
                                  'batch_size' : 10,
                                  'epochs' : 2}

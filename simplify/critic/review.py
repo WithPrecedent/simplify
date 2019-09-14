@@ -11,25 +11,21 @@ class Review(SimpleClass):
     Report creates and stores a results report and other general
     scorers/metrics for machine learning based upon the type of model used in
     the siMpLify package. Users can manually add metrics not already included
-    in the metrics dictionary by passing them to Results.add_metric.
+    in the metrics dictionary by passing them to Results.edit_metric.
 
     Attributes:
         name: a string designating the name of the class which should be
-            identical to the section of the menu with relevant settings.
-        auto_prepare: sets whether to automatically call the prepare method
-            when the class is instanced. If you do not plan to make any
-            adjustments to the options or metrics beyond the menu, this option
-            should be set to True. If you plan to make such changes, prepare
+            identical to the section of the idea with relevant settings.
+        auto_finalize: sets whether to automatically call the finalize method
+            when the class is instanced. If you do not draft to make any
+            adjustments to the options or metrics beyond the idea, this option
+            should be set to True. If you draft to make such changes, finalize
             should be called when those changes are complete.
     """
 
-    def _check_algorithm(self, step):
-        """Returns appropriate algorithm to the report attribute."""
-        if step.technique in ['none', 'all']:
-            return step.technique
-        else:
-            return step.algorithm
-
+    def __post_init__(self):
+        super().__post_init__()  
+        return self
 
     def _classifier_report(self):
         self.classifier_report_default = metrics.classification_report(
@@ -85,12 +81,17 @@ class Review(SimpleClass):
         self.report = pd.DataFrame(columns = self.columns_list)
         return self
 
-    def perform(self, recipe):
+    def draft(self):
+        self.export_folder = 'experiment'
+        self.export_file_name = 'review'
+        self.export_file_format = self.results_format
+        
+    def produce(self, recipe):
         self.recipe = recipe
         if not hasattr(self, 'columns'):
             self._set_columns()
         self._create_predictions()
-        self._add_result()
+        self._edit_result()
         self._confusion_matrix()
         getattr(self, '_' + self.model_type + '_report')()
         return self

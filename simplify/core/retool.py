@@ -8,6 +8,39 @@ from .base import SimpleClass
 
 
 @dataclass
+class ReTypes(SimpleType):
+    """Stores dictionaries related to specialized types used by the ReTool
+    subpackage.
+    """
+    def __post_init__(self):
+        super().__post_init__()
+        return self
+
+    def draft(self):
+        """Sets default values related to ReTool datatypes."""
+        # Sets string names for python and special datatypes.
+        self.name_to_type = {'boolean' : bool,
+                             'float' : float,
+                             'integer' : int,
+                             'list' : list,
+                             'pattern' : 'pattern',
+                             'patterns' : 'patterns',
+                             'remove' : 'remove',
+                             'replace' : 'replace',
+                             'string' : str}
+        # Sets default values for missing data based upon datatype of column.
+        self.default_values = {'boolean' : False,
+                               'float' : 0.0,
+                               'integer' : 0,
+                               'list' : [],
+                               'pattern' : '',
+                               'patterns' : [],
+                               'remove' : '',
+                               'replace' : '',
+                               'string' : ''}
+        return self
+
+@dataclass
 class ReTool(SimpleClass):
     """Contains shared methods for regex tools in the ReTool package.
 
@@ -37,13 +70,13 @@ class ReTool(SimpleClass):
     file_path : str = ''
     encoding : str = 'windows-1252'
     section_prefix : str = 'section'
-    add_prefixes : bool = True
-    auto_prepare : bool = True
+    edit_prefixes : bool = True
+    auto_finalize : bool = True
 
     def __post_init__(self):
-        self.plan()
-        if self.auto_prepare:
-            self.prepare()
+        self.draft()
+        if self.auto_finalize:
+            self.finalize()
         return self
 
     def _aggregate_flags(self, row):
@@ -93,7 +126,7 @@ class ReTool(SimpleClass):
                 self.keys).to_dict()[self.values])
         return self
 
-    def plan(self):
+    def draft(self):
         # Sets str names for corresponding regex compiling flags.
         self.flag_options = {'ignorecase' : re.IGNORECASE,
                              'dotall' : re.DOTALL,
@@ -112,20 +145,20 @@ class ReTool(SimpleClass):
         parameters = {'expressions' : self.expressions,
                       'sections' : self.sections,
                       'datatypes' : self.datatypes,
-                      'add_prefixes' : self.add_prefixes,
+                      'edit_prefixes' : self.edit_prefixes,
                       'section_prefix' : self.section_prefix}
         self.matcher = self.options[self.technique](**parameters)
         self.matcher.default_values = self.default_values
         return self
 
-    def prepare(self):
+    def finalize(self):
         if self.file_path:
             tool = ReLoad(keys = self.keys,
                           values = self.values,
                           sections = self.sections,
                           datatypes = self.datatypes,
                           file_path = self.file_path,
-                          auto_prepare = self.auto_prepare,
+                          auto_finalize = self.auto_finalize,
                           encoding = self.encoding,
                           section_prefix = self.section_prefix,
                           flag_options = self.flag_options)
@@ -136,7 +169,7 @@ class ReTool(SimpleClass):
                            datatypes = self.datatypes,
                            flags = self.flags,
                            zipped = self.zipped,
-                           auto_prepare = self.auto_prepare,
+                           auto_finalize = self.auto_finalize,
                            section_prefix = self.section_prefix,
                            flag_options = self.flag_options)
             self.keys = tool.keys
@@ -149,15 +182,15 @@ class ReTool(SimpleClass):
         self._set_matcher()
         return self
 
-    def perform(self, ingredients = None, df = None, source = None,
+    def produce(self, ingredients = None, df = None, source = None,
               remove_from_source = True):
         df, source = self._check_ingredients(ingredients = ingredients,
                                              df = df,
                                              source = source)
         if remove_from_source:
-            df, source = self.matcher.perform(df = df, source = source)
+            df, source = self.matcher.produce(df = df, source = source)
         else:
-            df = self.matcher.perform(df = df, source = source)
+            df = self.matcher.produce(df = df, source = source)
         return ingredients
 
     def update(self, key, value):
@@ -173,16 +206,16 @@ class ReBuild(object):
     datatypes : str = 'datatypes'
     flags : object = None
     zipped : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     section_prefix : str = 'section'
     flag_options : object = None
 
     def __post_init__(self):
-        if self.auto_prepare:
-            self.prepare()
+        if self.auto_finalize:
+            self.finalize()
         return self
 
-    def prepare(self):
+    def finalize(self):
         """Builds regular expressions table."""
         self.expressions = pd.DataFrame(list(zip(self.keys, self.values)),
                                         columns = ['keys', 'values'])
@@ -203,14 +236,14 @@ class ReLoad(object):
     sections : str = 'sections'
     datatypes : str = 'datatypes'
     file_path : str = ''
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     encoding : str = 'windows-1252'
     section_prefix : str = 'section'
     flag_options : object = None
 
     def __post_init__(self):
-        if self.auto_prepare:
-            self.prepare()
+        if self.auto_finalize:
+            self.finalize()
         return self
 
     def _explode_sections(self):
@@ -218,7 +251,7 @@ class ReLoad(object):
             self.expressions.explode(column = 'section')
         return self
 
-    def prepare(self):
+    def finalize(self):
         """Loads data for expressions table from .csv file, converts keys to
         strings, and removes a common encording error character.
         """
@@ -243,7 +276,7 @@ class ReMatch(object):
         return self
 
     def _set_out_column(self):
-        if self.add_prefixes:
+        if self.edit_prefixes:
             self.out_column = self.section_prefix + '_' + self.value
         else:
             self.out_column = self.value
@@ -256,7 +289,7 @@ class ReMatch(object):
             self.source = self.value
         return self
 
-    def perform(self, df):
+    def produce(self, df):
         for self.key, self.value in self.expressions.items():
             self._set_source()
             self.section = self.sections[self.value]
@@ -295,7 +328,7 @@ class ReFrame(ReMatch):
     expressions : object
     sections : object
     datatypes : object
-    add_prefixes : bool = True
+    edit_prefixes : bool = True
     section_prefix : str = 'section'
 
     def __post_init__(self):
@@ -309,7 +342,7 @@ class ReFrame(ReMatch):
 
     def _divider(self, df):
         df = df.join(df[self.source].str.split(
-                self.key, expand = True).add_prefix(self.value))
+                self.key, expand = True).edit_prefix(self.value))
         return df
 
     def _float(self, df):
@@ -350,7 +383,7 @@ class ReSearch(ReMatch):
     expressions : object
     sections : object
     datatypes : object
-    add_prefixes : bool = True
+    edit_prefixes : bool = True
     section_prefix : str = 'section'
 
     def __post_init__(self):
@@ -423,13 +456,13 @@ class ReOrganize(ReMatch):
     expressions : object
     sections : object
     datatypes : object
-    add_prefixes : bool = True
+    edit_prefixes : bool = True
     section_prefix : str = 'section'
 
     def __post_init__(self):
         return self
 
-    def perform(self, df, source):
+    def produce(self, df, source):
         for self.key, self.value in self.expressions.items():
             self._set_out_column()
             if re.search(self.key, source):

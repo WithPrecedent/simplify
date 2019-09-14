@@ -12,7 +12,7 @@ class Technique(SimpleClass):
         return self
 
     def fit(self):
-        self.prepare()
+        self.finalize()
         return self
 
     def fit_transform(self, ingredients):
@@ -20,14 +20,14 @@ class Technique(SimpleClass):
         ingredients = self.transform(ingredients = ingredients)
         return ingredients
 
-    def prepare(self):
+    def finalize(self):
         self.tool = self.options[self.technique](**self.parameters)
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         ingredients = self.tool(ingredients)
         return ingredients
 
     def transform(self, ingredients):
-        ingredients = self.perform(ingredients = ingredients)
+        ingredients = self.produce(ingredients = ingredients)
         return ingredients

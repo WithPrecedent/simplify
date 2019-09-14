@@ -69,7 +69,7 @@ siMpLify contains the following accessible classes:
         stored, and all of the metrics used for that recipe.
     Evaluator: applies user-selected or default metrics for each recipe and
         passes those results for storage in Results.table.
-    Plotter: prepares and exports plots and other visualizations based upon
+    Plotter: finalizes and exports plots and other visualizations based upon
         the model type and Evaluator and Estimator methods.
     Filer: creates and contains the path structure for loading data and
         settings as well as saving results, data, and plots.

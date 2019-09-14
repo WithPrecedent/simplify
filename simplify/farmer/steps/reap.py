@@ -11,14 +11,14 @@ class Reap(HarvestStep):
 
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def _prepare_organize(self, key):
-        file_path = os.path.join(self.inventory.instructions,
+    def _finalize_organize(self, key):
+        file_path = os.path.join(self.depot.instructions,
                                  'organizer_' + key + '.csv')
         self.parameters = {'technique' : self.technique,
                            'file_path' : file_path}
@@ -26,15 +26,15 @@ class Reap(HarvestStep):
         self._set_columns(algorithm)
         return algorithm
 
-    def _prepare_parse(self, key):
-        file_path = os.path.join(self.inventory.instructions,
+    def _finalize_parse(self, key):
+        file_path = os.path.join(self.depot.instructions,
                                  'parser_' + key + '.csv')
         self.parameters = {'technique' : self.technique,
                            'file_path' : file_path}
         algorithm = self.options[self.technique](**self.parameters)
         return algorithm
 
-    def plan(self):
+    def draft(self):
         self.options = {'organize' : ReTool,
                         'parse' : ReTool}
         return self
@@ -48,22 +48,22 @@ class Reap(HarvestStep):
         self.columns.extend(new_columns)
         return self
 
-    def _perform_organize(self, ingredients, algorithm):
-        ingredients.df, ingredients.source = algorithm.perform(
+    def _produce_organize(self, ingredients, algorithm):
+        ingredients.df, ingredients.source = algorithm.produce(
                 df = ingredients.df, source = ingredients.source)
         return ingredients
 
-    def _perform_parse(self, ingredients, algorithm):
-        ingredients.df = algorithm.perform(df = ingredients.df,
+    def _produce_parse(self, ingredients, algorithm):
+        ingredients.df = algorithm.produce(df = ingredients.df,
                                          source = ingredients.source)
         return ingredients
 
-    def prepare(self):
+    def finalize(self):
         for key in self.parameters:
-            if hasattr(self, '_prepare_' + self.technique):
+            if hasattr(self, '_finalize_' + self.technique):
                 algorithm = getattr(
-                        self, '_prepare_' + self.technique)(key = key)
+                        self, '_finalize_' + self.technique)(key = key)
             else:
-                algorithm = getattr(self, '_prepare_generic_list')(key = key)
+                algorithm = getattr(self, '_finalize_generic_list')(key = key)
             self.algorithms.append(algorithm)
         return self

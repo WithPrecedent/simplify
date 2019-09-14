@@ -16,7 +16,7 @@ class Clusterer(Algorithm):
 
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     name : str = 'clusterer'
 
     def __post_init__(self):
@@ -24,7 +24,7 @@ class Clusterer(Algorithm):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'affinity' : AffinityPropagation,
                         'agglomerative' : AgglomerativeClustering,
                         'birch' : Birch,

@@ -14,14 +14,14 @@ class Split(Step):
     """
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     name : str = 'splitter'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'group_kfold' : GroupKFold,
                         'kfold' : KFold,
                         'stratified' : StratifiedKFold,
@@ -38,7 +38,7 @@ class Split(Step):
         self.selected_parameters = True
         return self
 
-    def prepare(self):
+    def finalize(self):
         """Adds parameters to algorithm."""
         self._check_parameters()
         self._select_parameters()

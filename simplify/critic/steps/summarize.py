@@ -16,22 +16,22 @@ class Summarize(SimpleClass):
 
     Parameters:
         name: a string designating the name of the class which should be
-            identical to the section of the menu configuration with relevant
+            identical to the section of the idea configuration with relevant
             settings.
-        auto_prepare: a boolean value that sets whether the prepare method is
+        auto_finalize: a boolean value that sets whether the finalize method is
             automatically called when the class is instanced.
-        auto_perform: sets whether to automatically call the 'perform' method
+        auto_produce: sets whether to automatically call the 'produce' method
             when the class is instanced.
     """
     name : str = 'summarizer'
-    auto_prepare : bool = True
-    auto_perform : bool = True
+    auto_finalize : bool = True
+    auto_produce : bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         """Sets options for Summarize class."""
         self.options = {'datatype' : ['dtype'],
                         'count' : 'count',
@@ -52,14 +52,14 @@ class Summarize(SimpleClass):
                         'unique' : 'nunique'}
         return self
 
-    def prepare(self):
+    def finalize(self):
         """Prepares columns list for Summary report and initializes report."""
         self.columns = ['variable']
         self.columns.extend(list(self.options.keys()))
         self.report = pd.DataFrame(columns = self.columns)
         return self
 
-    def _perform_report(self, df = None, transpose = True):
+    def _produce_report(self, df = None, transpose = True):
         """Completes report with data from df.
 
         Parameters:
@@ -95,7 +95,7 @@ class Summarize(SimpleClass):
             self.df_index = False
         return self
 
-    def perform(self, df = None, transpose = True, file_name = 'data_summary',
+    def produce(self, df = None, transpose = True, file_name = 'data_summary',
               file_format = 'csv'):
         """Creates and exports a DataFrame of common summary data using the
         Summary class.
@@ -105,15 +105,15 @@ class Summarize(SimpleClass):
             transpose: boolean value indicating whether the df columns should
                 be listed horizontally (True) or vertically (False) in report.
             file_name: string containing name of file to be exported.
-            file_format: string of file extension from Inventory.extensions.
+            file_format: string of file extension from Depot.extensions.
         """
-        self._perform_report(df = df, transpose = transpose)
+        self._produce_report(df = df, transpose = transpose)
         if self.verbose:
             print('Saving summary data')
-        self.inventory.save(variable = self._perform_report.report,
-                            folder = self.inventory.experiment,
+        self.depot.save(variable = self._produce_report.report,
+                            folder = self.depot.experiment,
                             file_name = file_name,
                             file_format = file_format,
-                            header = self._perform_report.df_header,
-                            index = self._perform_report.df_index)
+                            header = self._produce_report.df_header,
+                            index = self._produce_report.df_index)
         return self

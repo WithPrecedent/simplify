@@ -101,19 +101,19 @@ The examples folder, from which the above settings are taken, currently shows ho
 
     from sklearn.datasets import load_breast_cancer
 
-    from simplify import Ingredients, Inventory, Menu
+    from simplify import Ingredients, Depot, Idea
     from simplify.chef import Cookbook
 
     # Loads cancer data and converts from numpy arrays to pandas dataframe.
     cancer = load_breast_cancer()
     df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                       columns = np.append(cancer['feature_names'], ['target']))
-    # Loads menu file.
-    menu = Menu(file_path = 'cancer_settings.ini')
-    inventory = Inventory(menu = menu)
+    # Loads idea file.
+    idea = Idea(file_path = 'cancer_settings.ini')
+    depot = Depot(idea = idea)
     # Creates instance of Data with the cancer dataframe.
-    ingredients = Ingredients(menu = menu,
-                              inventory = inventory,
+    ingredients = Ingredients(idea = idea,
+                              depot = depot,
                               df = df)
     # Converts label to boolean type - conversion from numpy arrays leaves all
     # columns as float type.
@@ -122,11 +122,11 @@ The examples folder, from which the above settings are taken, currently shows ho
     # datatype.
     ingredients.smart_fillna()
     # Creates instance of Cookbook.
-    cookbook = Cookbook(menu = menu,
-                        inventory = inventory,
+    cookbook = Cookbook(idea = idea,
+                        depot = depot,
                         ingredients = ingredients)
     # Iterates through every recipe and exports plots from each recipe.
-    cookbook.perform()
+    cookbook.produce()
     # Creates and exports a table of summary statistics from the dataframe.
     ingredients.summarize()
     # Saves the recipes, results, and cookbook.

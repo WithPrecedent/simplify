@@ -11,14 +11,14 @@ class Cleave(Step):
     """
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     name : str = 'cleaver'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {}
         self.default_parameters = {}
         self.algorithm = self._cleave
@@ -36,7 +36,7 @@ class Cleave(Step):
                                             inplace = True)
         return ingredients
 
-    def _prepare_cleaves(self):
+    def _finalize_cleaves(self):
         for group, columns in self.options.items():
             self.test_columns.extend(columns)
         if self.parameters['include_all']:
@@ -50,8 +50,8 @@ class Cleave(Step):
         self.options.update({cleave_group : columns})
         return self
 
-    def perform(self, ingredients, recipe):
+    def produce(self, ingredients, recipe):
         if self.technique != 'none':
-            self._prepare_cleaves()
+            self._finalize_cleaves()
             ingredients = self.algorithm(ingredients)
         return ingredients

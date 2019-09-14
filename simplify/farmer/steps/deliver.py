@@ -11,21 +11,21 @@ class Deliver(HarvestStep):
 
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def _prepare_shapers(self, harvest):
+    def _finalize_shapers(self, harvest):
         self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def _prepare_streamliners(self, harvest):
+    def _finalize_streamliners(self, harvest):
         self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'shapers' : Shaper,
                         'streamliners' : Streamliner}
         self.needed_parameters = {'shapers' : ['shape_type', 'stubs',
@@ -34,8 +34,8 @@ class Deliver(HarvestStep):
                                   'streamliners' : ['method']}
         return self
 
-    def perform(self, ingredients):
-        ingredients = self.algorithm.perform(ingredients)
+    def produce(self, ingredients):
+        ingredients = self.algorithm.produce(ingredients)
         return ingredients
 
 @dataclass
@@ -71,7 +71,7 @@ class Shaper(object):
         return df
 
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         ingredients.df = getattr(self, '_' + self.shape_type)(ingredients.df)
         return ingredients
 
@@ -83,6 +83,6 @@ class Streamliner(object):
     def __post_init__(self):
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         ingredients = self.method(ingredients)
         return ingredients

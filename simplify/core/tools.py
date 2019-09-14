@@ -44,7 +44,7 @@ def check_arguments(method, excludes = None):
 class SimpleIterables(object):
 
     @staticmethod
-    def add_prefix(iterable, prefix):
+    def edit_prefix(iterable, prefix):
         """Adds prefix to list, dict keys, pandas dataframe, or pandas series.
         """
         if isinstance(iterable, list):
@@ -53,12 +53,12 @@ class SimpleIterables(object):
             return (
                 {f'{prefix}_{key}' : value for key, value in iterable.items()})
         elif isinstance(iterable, pd.Series):
-            return iterable.add_prefix(prefix)
+            return iterable.edit_prefix(prefix)
         elif isinstance(iterable, pd.DataFrame):
-            return iterable.add_prefix(prefix)
+            return iterable.edit_prefix(prefix)
 
     @staticmethod
-    def add_suffix(iterable, suffix):
+    def edit_suffix(iterable, suffix):
         """Adds suffix to list, dict keys, pandas dataframe, or pandas series.
         """
         if isinstance(iterable, list):
@@ -67,9 +67,9 @@ class SimpleIterables(object):
             return (
                 {f'{key}_{suffix}' : value for key, value in iterable.items()})
         elif isinstance(iterable, pd.Series):
-            return iterable.add_suffix(suffix)
+            return iterable.edit_suffix(suffix)
         elif isinstance(iterable, pd.DataFrame):
-            return iterable.add_suffix(suffix)
+            return iterable.edit_suffix(suffix)
 
 @dataclass
 class SimpleParser(object):

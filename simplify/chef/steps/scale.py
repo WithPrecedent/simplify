@@ -15,14 +15,14 @@ class Scale(Step):
     """Scales numerical data according to selected algorithm."""
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     name : str = 'scaler'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'bins' : KBinsDiscretizer,
 #                        'gauss' : Gaussify,
                         'maxabs' : MaxAbsScaler,
@@ -40,7 +40,7 @@ class Scale(Step):
         self.selected_parameters = True
         return self
 
-    def prepare(self):
+    def finalize(self):
         """Adds parameters to algorithm and sets import/export folders."""
 #        self.conform()
         self._check_parameters()
@@ -53,13 +53,13 @@ class Scale(Step):
             self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def perform(self, ingredients, recipe = None, columns = None):
+    def produce(self, ingredients, recipe = None, columns = None):
         if self.technique != 'none':
             if not columns:
                 columns = ingredients.scalers
             self._store_feature_names(x = ingredients.x)
             if self.technique == 'gauss':
-                ingredients = self.algorithm.perform(ingredients = ingredients,
+                ingredients = self.algorithm.produce(ingredients = ingredients,
                                                    columns = columns)
             else:
                 ingredients.x[columns] = self.fit_transform(
@@ -75,20 +75,20 @@ class Scale(Step):
 #
 #    technique : str = ''
 #    parameters : object = None
-#    auto_prepare : bool = True
+#    auto_finalize : bool = True
 #
 #    def __post_init__(self):
 #        super().__post_init__()
 #        return self
 #
-#    def plan(self):
+#    def draft(self):
 #        self.options = {'box-cox' : PowerTransformer,
 #                        'yeo-johnson' : PowerTransformer}
 #        self.default_parameters = {'standardize' : False,
 #                                   'copy' : self.parameters['copy']}
 #        return self
 #
-#    def prepare(self):
+#    def finalize(self):
 #        self.positive_tool = PowerTransformer(method = 'box_cox',
 #                                              **self.default_parameters)
 #        self.negative_tool = PowerTransformer(method = 'yeo_johnson',
@@ -96,7 +96,7 @@ class Scale(Step):
 #        self.rescaler = MinMaxScaler(copy = self.parameters['copy'])
 #        return self
 #
-#    def perform(self, ingredients, columns):
+#    def produce(self, ingredients, columns):
 #        for column in columns:
 #            if ingredients.x[column].min() >= 0:
 #                ingredients.x[column] = self.positive_tool.fit_transform(

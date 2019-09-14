@@ -14,7 +14,7 @@ from simplify.core.step import Step
 
 
 @dataclass
-class Visualize(Step):
+class Canvas(Step):
     """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
     """
@@ -48,7 +48,7 @@ class Visualize(Step):
         self.plots = ['heat_map', 'linear', 'residuals']
         return self
 
-    def plan(self):
+    def draft(self):
         """Sets default styles, options, and plots."""
         self._set_style()
         self._set_options()
@@ -107,7 +107,7 @@ class Visualize(Step):
                         'silhouette' : self.silhouette}
         return self
 
-#    def _add_dependency_plots(self):
+#    def _edit_dependency_plots(self):
 #        if self.dependency_plots in ['splices']:
 #
 #        return self
@@ -188,7 +188,7 @@ class Visualize(Step):
         self.save(file_name)
         return self
 
-    def prepare(self):
+    def finalize(self):
         return self
 
     def pr_plot(self, file_name = 'pr_curve.png'):
@@ -208,8 +208,8 @@ class Visualize(Step):
         return self
 
     def save(self, file_name):
-        self.inventory.save(variable = plt,
-                            folder = self.inventory.recipe,
+        self.depot.save(variable = plt,
+                            folder = self.depot.recipe,
                             file_name = file_name,
                             file_format = 'png')
         return self
@@ -282,7 +282,7 @@ class Visualize(Step):
         self.save(file_name)
         return self
 
-    def perform(self, recipe, review, plot_list = None):
+    def produce(self, recipe, review, plot_list = None):
         if self.verbose:
             print('Creating and exporting visuals')
         self.recipe = recipe
@@ -299,7 +299,7 @@ class Visualize(Step):
             if self.review.shap_method_type == 'tree':
                 self.plots.append('shap_interactions')
 #        if self.dependency_plots != 'none':
-#            self._add_dependency_plots()
+#            self._edit_dependency_plots()
         for plot in self.plots:
             self.options[plot]()
         return self

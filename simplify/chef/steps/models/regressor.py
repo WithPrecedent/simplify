@@ -18,14 +18,14 @@ class Regressor(Algorithm):
 
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     name : str = 'regressor'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options = {'adaboost' : AdaBoostRegressor,
                         'baseline_regressor' : DummyRegressor,
                         'bayes_ridge' : BayesianRidge,

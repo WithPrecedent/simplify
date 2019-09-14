@@ -18,15 +18,15 @@ class Classifier(Algorithm):
 
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     name : str = 'classifier'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
-        self.checks = ['menu']
+    def draft(self):
+        self.checks = ['idea']
         self.options = {'adaboost' : AdaBoostClassifier,
                         'baseline_classifier' : DummyClassifier,
                         'logit' : LogisticRegression,

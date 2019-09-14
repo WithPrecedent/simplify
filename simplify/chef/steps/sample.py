@@ -14,14 +14,14 @@ class Sample(Step):
     """Synthetically resamples data according to selected algorithm."""
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     name : str = 'sampler'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options  = {'adasyn' : ADASYN,
                          'cluster' : ClusterCentroids,
                          'knn' : AllKNN,
@@ -36,7 +36,7 @@ class Sample(Step):
         self.runtime_parameters = {'random_state' : self.seed}
         return self
 
-    def _add_parameters(self, ingredients, columns = None):
+    def _edit_parameters(self, ingredients, columns = None):
         if self.technique in ['smotenc']:
             if columns:
                 cat_features = self._get_indices(ingredients.x, columns)
@@ -47,7 +47,7 @@ class Sample(Step):
         return self
 
     def fit(self, x, y, columns = None):
-        self._add_parameters(x, columns)
+        self._edit_parameters(x, columns)
         return self
 
     def fit_transform(self, x, y):
@@ -55,9 +55,9 @@ class Sample(Step):
         x = self.transform(x, y)
         return x
 
-    def perform(self, ingredients, recipe, columns = None):
+    def produce(self, ingredients, recipe, columns = None):
         if self.technique != 'none':
-            self._add_parameters(ingredients.x, columns)
+            self._edit_parameters(ingredients.x, columns)
             if recipe.data_to_use in ['full']:
                 self._store_feature_names(ingredients.x, ingredients.y)
                 resampled_x, resampled_y = self.algorithm.fit_resample(

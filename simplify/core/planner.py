@@ -18,21 +18,21 @@ class Planner(SimpleClass):
             print('Creating', self)
         return self
 
-    def plan(self):
+    def draft(self):
         """ Declares defaults for Planner."""
         self.options = {}
         self.tools = ['listify']
-        self.plan_class = None
-        self.checks = ['steps', 'inventory', 'ingredients']
-        self.state_attributes = ['inventory', 'ingredients']
+        self.draft_class = None
+        self.checks = ['steps', 'depot', 'ingredients']
+        self.state_attributes = ['depot', 'ingredients']
         return self
 
-    # def add_options(self, step = None, techniques = None, algorithms = None):
+    # def edit_options(self, step = None, techniques = None, algorithms = None):
     #     """Adds new technique name and corresponding algorithm to the options
     #     dictionary.
     #     """
     #     if step:
-    #         self.options[step].add_options(techniques = techniques,
+    #         self.options[step].edit_options(techniques = techniques,
     #                                        algorithms = algorithms)
     #     else:
     #         options = dict(zip(self.listify(techniques),
@@ -40,23 +40,23 @@ class Planner(SimpleClass):
     #         self.options.update(options)
     #     return self
 
-    # def add_parameters(self, step, parameters):
+    # def edit_parameters(self, step, parameters):
     #     """Adds parameter sets to the parameters dictionary of a prescribed
     #     step. """
-    #     self.options[step].add_parameters(parameters = parameters)
+    #     self.options[step].edit_parameters(parameters = parameters)
     #     return self
 
-    # def add_runtime_parameters(self, step, parameters):
+    # def edit_runtime_parameters(self, step, parameters):
     #     """Adds runtime_parameter sets to the parameters dictionary of a
     #     prescribed step."""
-    #     self.options[step].add_runtime_parameters(parameters = parameters)
+    #     self.options[step].edit_runtime_parameters(parameters = parameters)
     #     return self
 
-    # def add_step_class(self, step_name, step_class):
+    # def edit_step_class(self, step_name, step_class):
     #     self.options.update({step_name, step_class})
     #     return self
 
-    # def add_technique(self, step, technique, parameters = None):
+    # def edit_technique(self, step, technique, parameters = None):
     #     tool_instance = self.options[step](technique = technique,
     #                                        parameters = parameters)
     #     return tool_instance
@@ -69,18 +69,18 @@ class Planner(SimpleClass):
         return self
 
     def save(self):
-        """Exports the list of plans to disc as one object."""
-        self.inventory.save(variable = self,
-                            folder = self.inventory.experiment,
+        """Exports the list of drafts to disc as one object."""
+        self.depot.save(variable = self,
+                            folder = self.depot.experiment,
                             file_name = self.name,
                             file_format = 'pickle')
         return self
 
-    def save_plan(self, plan, file_path = None):
-        """Saves an instance of the plan class."""
-        self.inventory.save(variable = plan,
+    def save_draft(self, draft, file_path = None):
+        """Saves an instance of the draft class."""
+        self.depot.save(variable = draft,
                             file_path = file_path,
-                            folder = getattr(self.inventory, plan.name),
+                            folder = getattr(self.depot, draft.name),
                             file_name = 'recipe',
                             file_format = 'pickle')
         return self

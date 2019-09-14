@@ -16,14 +16,14 @@ class Reduce(Step):
     """
     technique : str = ''
     parameters : object = None
-    auto_prepare : bool = True
+    auto_finalize : bool = True
     name : str = 'reducer'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def plan(self):
+    def draft(self):
         self.options  = {'kbest' : SelectKBest,
                          'fdr' : SelectFdr,
                          'fpr' : SelectFpr,
@@ -62,13 +62,13 @@ class Reduce(Step):
             self.num_features = self.parameters['n_features_to_select']
         return self
 
-    def prepare(self):
+    def finalize(self):
         """All preparation has to be at runtime for reduce because of the
         possible inclusion of a fit estimator."""
         pass
         return self
 
-    def perform(self, ingredients, recipe, estimator = None):
+    def produce(self, ingredients, recipe, estimator = None):
         if self.technique != 'none':
             if not estimator:
                 estimator = recipe.model.algorithm

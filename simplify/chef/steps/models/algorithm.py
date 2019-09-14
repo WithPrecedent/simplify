@@ -14,7 +14,7 @@ class Algorithm(Technique):
         super().__post_init__()
         return self
 
-    def _add_specific_parameters(self):
+    def _edit_specific_parameters(self):
         if (hasattr(self, 'model_parameters')
                 and self.technique in self.model_parameters):
            self.parameters.update(self.model_parameters[self.technique])
@@ -57,31 +57,31 @@ class Algorithm(Technique):
         self.parameters = new_parameters
         return self
 
-    def _prepare_search(self):
-        """Instances and prepares search technique class."""
+    def _finalize_search(self):
+        """Instances and finalizes search technique class."""
         self.searcher = Search(
-                technique = self.menu['cookbook']['search_algorithm'],
+                technique = self.idea['cookbook']['search_algorithm'],
                 estimator = self.algorithm,
                 parameters = self.search_parameters,
                 space = self.space,
                 seed = self.seed,
                 verbose = self.verbose)
-        self.searcher.prepare()
+        self.searcher.finalize()
         return self
 
-    def prepare(self):
-        self._add_specific_parameters()
+    def finalize(self):
+        self._edit_specific_parameters()
         if self.gpu:
            self._gpu_parameters()
         self._parse_parameters()
         if self.hyperparameter_search:
-            self._prepare_search()
+            self._finalize_search()
         self.tool = self.options[self.technique](**self.parameters)
         return self
 
-    def perform(self, ingredients):
+    def produce(self, ingredients):
         if self.hyperparameter_search:
-            self.searcher.perform(ingredients = ingredients)
+            self.searcher.produce(ingredients = ingredients)
             self.tool = self.searcher.best_estimator
         else:
             self.tool.fit(ingredients.x_train, ingredients.y_train)

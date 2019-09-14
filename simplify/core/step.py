@@ -9,7 +9,7 @@ from simplify.core.base import SimpleClass
 
 @dataclass
 class Step(SimpleClass):
-    """Parent class for Harvest, Cookbook, and Review steps in the siMpLify
+    """Parent class for Almanac, Cookbook, and Review steps in the siMpLify
     package. The class can also be subclassed in the creation of other
     Planner classes."""
 
@@ -17,13 +17,15 @@ class Step(SimpleClass):
         super().__post_init__()
         return self
 
+    """ Private Methods """
+    
     def _check_parameters(self):
         """Checks if parameters exists. If not, defaults are used. If there
         are no defaults, an empty dict is created for parameters.
         """
         if not hasattr(self, 'parameters') or self.parameters is None:
-            if hasattr(self, 'menu') and self.name in self.menu.configuration:
-                self.parameters = self.menu.configuration[self.name]
+            if hasattr(self, 'idea') and self.name in self.idea.configuration:
+                self.parameters = self.idea.configuration[self.name]
             elif hasattr(self, 'default_parameters'):
                 self.parameters = self.default_parameters
             else:
@@ -31,13 +33,13 @@ class Step(SimpleClass):
         if hasattr(self, 'runtime_parameters') and self.runtime_parameters:
             self.parameters.update(self.runtime_parameters)
         return self
-
-    def plan(self):
-        if not hasattr(self, 'options'):
-            self.options = {}
-        if not hasattr(self, 'parameters'):
-            self.parameters = {}
-        return self
+    
+    def _check_technique(self, step):
+        """Returns appropriate algorithm to the report attribute."""
+        if step.technique in ['none', 'all']:
+            return step.technique
+        else:
+            return step.algorithm
 
     def _get_feature_names(self, x, y = None):
         """Gets feature names if previously stored by _store_feature_names."""
@@ -50,11 +52,11 @@ class Step(SimpleClass):
 
     def _get_indices(self, df, columns):
         """Gets column indices for a list of column names."""
-        return [df.columns.get_loc(col) for col in columns]
+        return [df.columns.get_loc(column) for column in columns]
 
     def _select_parameters(self, parameters_to_use = None):
         """For subclasses that only need a subset of the parameters stored in
-        menu, this function selects that subset.
+        idea, this function selects that subset.
         """
         if hasattr(self, 'selected_parameters') and self.selected_parameters:
             if not parameters_to_use:
@@ -74,9 +76,30 @@ class Step(SimpleClass):
             self.y_col = self.label
         return self
 
+    """ Public Methods """
+    
+    def draft(self):
+        if not hasattr(self, 'options'):
+            self.options = {}
+        if not hasattr(self, 'parameters'):
+            self.parameters = {}
+        return self
+
+    def edit_parameters(self, parameters):
+        """Adds a parameter set to parameters dictionary."""
+        if isinstance(parameters, dict):
+            if not hasattr(self, 'parameters') or self.parameters is None:
+                self.parameters = parameters
+            else:
+                self.parameters.update(parameters)
+            return self
+        else:
+            error = 'parameters must be a dict type'
+            raise TypeError(error)
+
     def fit(self, x, y = None):
         """Generic fit method for partial compatibility to sklearn."""
-        self.prepare()
+        self.finalize()
         if isinstance(y, pd.Series):
             return self.algorithm.fit(x, y)
         else:
@@ -89,7 +112,7 @@ class Step(SimpleClass):
         x = self.transform(x)
         return x
 
-    def prepare(self):
+    def finalize(self):
         """Adds parameters to algorithm and sets import/export folders."""
         self._check_parameters()
         self._select_parameters()
@@ -97,7 +120,7 @@ class Step(SimpleClass):
             self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def perform(self, ingredients, recipe):
+    def produce(self, ingredients, recipe):
         """Generic implement method for adding ingredients into recipe and
         applying the appropriate algorithm.
         """
@@ -111,79 +134,53 @@ class Step(SimpleClass):
         x = self.algorithm.transform(x)
         return x
 
-    def update_parameters(self, parameters):
-        """Adds a parameter set to parameters dictionary."""
-        if isinstance(parameters, dict):
-            if not hasattr(self, 'parameters') or self.parameters is None:
-                self.parameters = parameters
-            else:
-                self.parameters.update(parameters)
-            return self
-        else:
-            error = 'parameters must be a dict type'
-            raise TypeError(error)
-
-    def update_runtime_parameters(self, parameters):
-        """Adds a runtime parameter set to runtime_parameters dictionary."""
-        if isinstance(parameters, dict):
-            if (not hasattr(self, 'runtime_parameters')
-                    or self.runtime_parameters is None):
-                self.runtime_parameters = parameters
-            else:
-                self.runtime_parameters.update(parameters)
-            return self
-        else:
-            error = 'runtime_parameters must be a dict type'
-            raise TypeError(error)
-
-
     # def conform(self):
-    #     self.inventory.step = self.__class__.__name__.lower()
+    #     self.depot.step = self.__class__.__name__.lower()
     #     return self
 
-    # def _prepare_generic_dict(self):
+    # def _finalize_generic_dict(self):
     #     self.algorithms.append(self.options[self.technique](**self.parameters))
     #     return self
 
-    # def _prepare_generic_list(self):
+    # def _finalize_generic_list(self):
     #     self.algorithms.append(self.options[self.technique](*self.parameters))
     #     return self
 
-    # def _perform_generic(self, ingredients, algorithm):
-    #     ingredients.df = algorithm.perform(df = ingredients.df,
+    # def _produce_generic(self, ingredients, algorithm):
+    #     ingredients.df = algorithm.produce(df = ingredients.df,
     #                                      source = ingredients.source)
     #     return self
 
-    # def prepare(self):
+    # def finalize(self):
     #     if isinstance(self.parameters, list):
     #         for key in self.parameters:
-    #             if hasattr(self, '_prepare_' + self.technique):
-    #                 getattr(self, '_prepare_' + self.technique)(key = key)
+    #             if hasattr(self, '_finalize_' + self.technique):
+    #                 getattr(self, '_finalize_' + self.technique)(key = key)
     #             else:
-    #                 getattr(self, '_prepare_generic_list')(key = key)
+    #                 getattr(self, '_finalize_generic_list')(key = key)
     #             self.algorithms.append(
     #                     self.options[self.technique](**self.parameters))
     #     elif isinstance(self.parameters, dict):
     #         for key, value in self.parameters.items():
-    #             if hasattr(self, '_prepare_' + self.technique):
-    #                 getattr(self, '_prepare_' + self.technique)(key = key,
+    #             if hasattr(self, '_finalize_' + self.technique):
+    #                 getattr(self, '_finalize_' + self.technique)(key = key,
     #                                                             value = value)
     #             else:
-    #                 getattr(self, '_prepare_generic_dict')(key = key,
+    #                 getattr(self, '_finalize_generic_dict')(key = key,
     #                                                        value = value)
     #             self.algorithms.append(
     #                     self.options[self.technique](**self.parameters))
     #     return self
 
-    # def perform(self, ingredients):
+    # def produce(self, ingredients):
     #     for algorithm in self.algorithms:
-    #         if hasattr(self, '_perform_' + self.technique):
+    #         if hasattr(self, '_produce_' + self.technique):
     #             ingredients = getattr(
-    #                     self, '_perform_' + self.technique)(
+    #                     self, '_produce_' + self.technique)(
     #                             ingredients = ingredients,
     #                             algorithm = algorithm)
     #         else:
-    #             getattr(self, '_perform_generic')(
+    #             getattr(self, '_produce_generic')(
     #                             ingredients = ingredients,
     #                             algorithm = algorithm)
     #     return ingredients
