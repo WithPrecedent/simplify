@@ -70,8 +70,7 @@ class Analysis(SimpleClass):
     def draft(self):
         """Sets default options for the crtic's review."""
         self.options = {'summarize' : Summarize,
-                        'evaluate' : Evaluate,
-                        'visualize' : Visualize}
+                        'evaluate' : Evaluate}
         self.checks = ['steps']
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.step = 'critic'
