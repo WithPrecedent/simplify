@@ -18,7 +18,7 @@ class Canvas(Step):
     """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
     """
-    name : str = 'presentation'
+    name : str = 'canvas'
 
     def __post_init__(self):
         super().__post_init__()
