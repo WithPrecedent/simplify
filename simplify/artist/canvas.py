@@ -10,11 +10,11 @@ import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleClass
 
 
 @dataclass
-class Canvas(Step):
+class Canvas(SimpleClass):
     """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
     """
@@ -108,7 +108,7 @@ class Canvas(Step):
         return self
 
 #    def _edit_dependency_plots(self):
-#        if self.dependency_plots in ['splices']:
+#        if self.dependency_plots in ['cleaves']:
 #
 #        return self
 
