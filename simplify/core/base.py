@@ -78,7 +78,7 @@ class SimpleClass(ABC):
         # Calls draft method to set up class instance defaults.
         self.draft()
         # Runs attribute checks from list in self.checks (if it exists).
-        self.run_checks()
+        self._run_checks()
         # Calls finalize method if it exists and auto_finalize is True.
         if hasattr(self, 'auto_finalize') and self.auto_finalize:
             self.finalize()
@@ -95,7 +95,7 @@ class SimpleClass(ABC):
         to the produce method.
 
         Parameters:
-            idea: an instance of Idea or path where a idea configuration file
+            idea: an instance of Idea or path where an Idea configuration file
                 is located must be passed when a subclass is called as a
                 function.
         """
@@ -277,7 +277,7 @@ class SimpleClass(ABC):
             self.step = self.steps[0]
         return self
 
-    def run_checks(self):
+    def _run_checks(self):
         """Checks attributes from 'checks' and runs corresponding methods based
         upon strings stored in 'checks'. Those methods should have the prefix 
         '_check_' followed by the string in the attribute 'checks' and have

@@ -1,44 +1,19 @@
+"""
+ReTool provides fast, easy-to-use tools for using regular expressions on
+pandas Series and DataFrames.
+
+The ReTool class is the controller class which assembles the proper 
+classes and methods to address the specified goals based upon the
+arguments passed.
+"""
 
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 import re
 
-from .base import SimpleClass
+from simplify.core.base import SimpleClass
 
-
-@dataclass
-class ReTypes(SimpleType):
-    """Stores dictionaries related to specialized types used by the ReTool
-    subpackage.
-    """
-    def __post_init__(self):
-        super().__post_init__()
-        return self
-
-    def draft(self):
-        """Sets default values related to ReTool datatypes."""
-        # Sets string names for python and special datatypes.
-        self.name_to_type = {'boolean' : bool,
-                             'float' : float,
-                             'integer' : int,
-                             'list' : list,
-                             'pattern' : 'pattern',
-                             'patterns' : 'patterns',
-                             'remove' : 'remove',
-                             'replace' : 'replace',
-                             'string' : str}
-        # Sets default values for missing data based upon datatype of column.
-        self.default_values = {'boolean' : False,
-                               'float' : 0.0,
-                               'integer' : 0,
-                               'list' : [],
-                               'pattern' : '',
-                               'patterns' : [],
-                               'remove' : '',
-                               'replace' : '',
-                               'string' : ''}
-        return self
 
 @dataclass
 class ReTool(SimpleClass):
@@ -197,6 +172,7 @@ class ReTool(SimpleClass):
         self.expressions.update({key : value})
         return self
 
+
 @dataclass
 class ReBuild(object):
 
@@ -227,6 +203,7 @@ class ReBuild(object):
             if self.flags and flag in self.flags:
                 self.expressions[flag] = True
         return self
+
 
 @dataclass
 class ReLoad(object):
@@ -269,6 +246,7 @@ class ReLoad(object):
                 self.expressions.set_index('section').to_dict()['datatype'])
         return self
 
+
 @dataclass
 class ReMatch(object):
 
@@ -297,6 +275,7 @@ class ReMatch(object):
             self._set_out_column()
             df = getattr(self, '_' + self.datatype)(df = df)
         return df
+
 
 @dataclass
 class ReFrame(ReMatch):
@@ -377,6 +356,7 @@ class ReFrame(ReMatch):
                      self.value, self.default_values[self.datatype])
         return df
 
+
 @dataclass
 class ReSearch(ReMatch):
 
@@ -436,6 +416,7 @@ class ReSearch(ReMatch):
         df[self.out_column] = str(df[self.out_column])
         return df
 
+
 @dataclass
 class ReOrganize(ReMatch):
     """Stores and applies string and regular expression matching methods to
@@ -472,3 +453,37 @@ class ReOrganize(ReMatch):
             else:
                 df[self.out_column] = self.default_values['string']
         return df, source
+    
+    
+@dataclass
+class ReTypes(SimpleType):
+    """Stores dictionaries related to specialized types used by the ReTool
+    subpackage.
+    """
+    def __post_init__(self):
+        super().__post_init__()
+        return self
+
+    def draft(self):
+        """Sets default attributes related to ReTool datatypes."""
+        # Sets string names for python and special datatypes.
+        self.name_to_type = {'boolean' : bool,
+                             'float' : float,
+                             'integer' : int,
+                             'list' : list,
+                             'pattern' : 'pattern',
+                             'patterns' : 'patterns',
+                             'remove' : 'remove',
+                             'replace' : 'replace',
+                             'string' : str}
+        # Sets default values for missing data based upon datatype of column.
+        self.default_values = {'boolean' : False,
+                               'float' : 0.0,
+                               'integer' : 0,
+                               'list' : [],
+                               'pattern' : '',
+                               'patterns' : [],
+                               'remove' : '',
+                               'replace' : '',
+                               'string' : ''}
+        return self
