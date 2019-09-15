@@ -4,11 +4,11 @@ from dataclasses import dataclass
 import numpy as np
 
 from ...retool import ReTool
-from ..harvest_step import HarvestStep
+from simplify.core.step import Step
 
 
 @dataclass
-class Clean(HarvestStep):
+class Clean(Step):
 
     technique : str = ''
     parameters : object = None

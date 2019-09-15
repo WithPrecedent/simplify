@@ -1,25 +1,23 @@
 
 from dataclasses import dataclass
 
-from .base import SimpleClass
+import pandas as pd
+
+from simplify.base.ingredients import Ingredients
+from simplify.base.manager import SimpleManager
 
 
 @dataclass
-class Technique(SimpleClass):
+class Technique(SimpleManager):
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def fit(self):
-        self.finalize()
+    def draft(self):
+        self.options = {}
         return self
-
-    def fit_transform(self, ingredients):
-        self.fit()
-        ingredients = self.transform(ingredients = ingredients)
-        return ingredients
-
+    
     def finalize(self):
         self.tool = self.options[self.technique](**self.parameters)
         return self
@@ -28,6 +26,35 @@ class Technique(SimpleClass):
         ingredients = self.tool(ingredients)
         return ingredients
 
-    def transform(self, ingredients):
-        ingredients = self.produce(ingredients = ingredients)
-        return ingredients
+    """ Scikit-Learn Compatibility Methods """
+    
+    def fit(self, x, y = None):
+        if hasattr(self.algorithm, 'fit'):
+            if isinstance(x, pd.DataFrame):
+                if y is None:
+                    self.algorithm.fit(x)
+                else:
+                    self.algorithm.fit(x, y)
+            elif isinstance(x, Ingredients):
+                self.algorithm.fit(Ingredients.x_train)
+        else:
+            self.finalize()
+        return self
+
+    def fit_transform(self, x, y = None):
+        self.fit(x = x, y = y)
+        self.transform(x = x, y = y)
+        return x
+
+    def transform(self, x, y = None):
+        if hasattr(self.algorithm, 'transform'):
+            if isinstance(x, pd.DataFrame):           
+                if y:
+                    x = self.algorithm.transform(x, y)
+                else:
+                    x = self.algorithm.transform(x)
+            elif isinstance(x, Ingredients):
+                x = self.produce(ingredients = x)
+        else:
+            x = self.produce(ingredients = x)
+        return x

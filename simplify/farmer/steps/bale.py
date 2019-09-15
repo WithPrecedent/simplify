@@ -1,11 +1,12 @@
 
 from dataclasses import dataclass
 
-from ..harvest_step import HarvestStep
+from simplify.core.step import Step
+from simplify.core.technique import Technique
 
 
 @dataclass
-class Bundle(HarvestStep):
+class Bale(Step):
     """Class for combining different datasets."""
     technique : str = ''
     parameters : object = None
@@ -29,7 +30,7 @@ class Bundle(HarvestStep):
         return ingredients
 
 @dataclass
-class Merger(object):
+class Merger(Technique):
 
     index_columns : object = None
     merge_type : str = ''

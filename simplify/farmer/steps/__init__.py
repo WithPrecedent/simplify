@@ -6,11 +6,11 @@
 from .sow import Sow
 from .reap import Reap
 from .clean import Clean
-from .bundle import Bundle
+from .bale import Bale
 from .deliver import Deliver
 
 __all__ = ['Sow',
            'Reap',
            'Clean',
-           'Bundle',
+           'Bale',
            'Deliver']

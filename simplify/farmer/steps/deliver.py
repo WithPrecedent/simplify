@@ -3,11 +3,11 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from ..harvest_step import HarvestStep
+from simplify.core.step import Step
 
 
 @dataclass
-class Deliver(HarvestStep):
+class Deliver(Step):
 
     technique : str = ''
     parameters : object = None

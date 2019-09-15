@@ -4,11 +4,11 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleClass
+from simplify.core.manager import SimpleManager
 
 
 @dataclass
-class Step(SimpleClass):
+class Step(SimpleManager):
     """Parent class for Almanac, Cookbook, and Review steps in the siMpLify
     package. The class can also be subclassed in the creation of other
     Planner classes."""

@@ -11,31 +11,6 @@ import pandas as pd
 
 """ Decorators """
 
-def check_arguments(method, excludes = None):
-    """Decorator which uses class instance attribute of the same name as a
-    passed parameter if no argument is passed for that parameter and the
-    parameter is not listed in excludes.
-
-    Parameters:
-        method: wrapped method within a class instance.
-        excludes: list or string of parameters for which a local attribute
-            should not be used.
-    """
-    if not excludes:
-        excludes = []
-    else:
-        excludes = self.listify(excludes)
-
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        argspec = getfullargspec(method)
-        unpassed_args = argspec.args[len(args):]
-        for unpassed in unpassed_args:
-            if unpassed not in excludes and hasattr(self, unpassed):
-                kwargs.update({unpassed : getattr(self, unpassed)})
-        return method(self, *args, **kwargs)
-
-    return wrapper
 
 
 """ Mixins """

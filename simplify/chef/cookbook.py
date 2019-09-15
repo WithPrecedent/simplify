@@ -1,22 +1,31 @@
 """
 cookbook.py is the primary control file for the siMpLify machine learning
-package. It contains the Cookbook class, which handles the cookbook
-construction and utilization.
+package. 
+
+Contents:
+
+    Cookbook: class which handles construction and utilization of recipes of
+        limited preprocessing and machine learning of data in the siMpLify
+        package.
+    Recipe: class which stores a particular set of techniques and algorithms
+        of limited preprocessing and machine learning operations.
+        
+    Both classes are subclasses to SimpleClass and follow its structural rules.
+    
 """
 from dataclasses import dataclass
 import datetime
 from itertools import product
 
-from simplify.chef.recipe import Recipe
 from simplify.chef.steps import (Cleave, Encode, Mix, Model, Reduce, Sample,
-                                     Scale, Split)
-from simplify.core.base import SimpleClass
-from simplify.core.tools import check_arguments
-from simplify.critic.critic import Critic
+                                 Scale, Split)
+from simplify.core.decorators import check_arguments
+from simplify.core.manager import SimpleManager
+from simplify.critic.analysis import Critic
 
 
 @dataclass
-class Cookbook(SimpleClass):
+class Cookbook(SimpleManager):
     """Dynamically creates recipes for staging, machine learning, and data
     analysis using a unified interface and architecture.
 
@@ -52,6 +61,7 @@ class Cookbook(SimpleClass):
     steps : object = None
     recipes : object = None
     name : str = 'cookbook'
+    planner_type : str = 'parallel'
     auto_finalize : bool = True
     auto_produce : bool = True
 
@@ -169,28 +179,6 @@ class Cookbook(SimpleClass):
         self.cleaves.append(cleave_group)
         return self
 
-    def edit_recipes(self, recipes):
-        """Adds a single recipe or list of recipes to 'recipes' attribute.
-
-        Parameters:
-            recipe: an instance of Recipe.
-        """
-        if hasattr(self, 'recipes'):
-            self.recipes.extend(self.listify(recipes))
-        else:
-            self.recipes = self.listify(recipes)
-        return self
-
-    def load_recipe(self, file_path):
-        """Imports a single recipe from disc and adds it to self.recipes.
-
-        Parameters:
-            file_path: a path where the file to be loaded is located.
-        """
-        self.edit_recipes(recipe = self.depot.load(file_path = file_path,
-                                                   file_format = 'pickle'))
-        return self
-
     def draft(self):
         """ Declares default step names and plan_class in a Cookbook recipe."""
         # Sets options for default steps of a Recipe.
@@ -206,6 +194,18 @@ class Cookbook(SimpleClass):
         self.checks = ['gpu', 'ingredients', 'steps']
         # Locks 'step' attribute at 'cook' for conform methods in package.
         self.step = 'cook'
+        return self
+
+    def edit_recipes(self, recipes):
+        """Adds a single recipe or list of recipes to 'recipes' attribute.
+
+        Parameters:
+            recipe: an instance of Recipe.
+        """
+        if hasattr(self, 'recipes'):
+            self.recipes.extend(self.listify(recipes))
+        else:
+            self.recipes = self.listify(recipes)
         return self
 
     def finalize(self):
@@ -228,6 +228,16 @@ class Cookbook(SimpleClass):
             self._finalize_one_loop(data_to_use = 'train_val')
         else:
             self._finalize_one_loop(data_to_use = self.data_to_use)
+        return self
+
+    def load_recipe(self, file_path):
+        """Imports a single recipe from disc and adds it to self.recipes.
+
+        Parameters:
+            file_path: a path where the file to be loaded is located.
+        """
+        self.edit_recipes(recipe = self.depot.load(file_path = file_path,
+                                                   file_format = 'pickle'))
         return self
 
     def print_best(self):
@@ -319,4 +329,76 @@ class Cookbook(SimpleClass):
             self._check_best(recipe = recipe)
             # To conserve memory, each recipe is deleted after being exported.
             del(recipe)
+        return self
+    
+    
+@dataclass
+class Recipe(SimpleManager):
+    """Defines rules for analyzing data in the siMpLify Cookbook subpackage.
+
+    Attributes:
+        techniques: a list of techniques containing the classes to be used at
+            each stage of a Recipe.
+        name: a string designating the name of the class which should be
+            identical to the section of the idea with relevant settings.
+    """
+    techniques : object = None
+    name : str = 'recipe'
+
+    def __post_init__(self):
+        pass
+        return self
+
+    def __call__(self, *args, **kwargs):
+        """When called as a function, a Recipe class or subclass instance will
+        return the produce method.
+        """
+        return self.produce(*args, **kwargs)
+
+    def _check_attributes(self):
+        """Checks if corresponding attribute exists for every item in the
+        self.techniques list.
+        """
+        for technique in self.techniques:
+            if not hasattr(self, technique):
+                error = technique + ' has not been passed to Recipe class.'
+                raise AttributeError(error)
+        return self
+
+    def finalize(self):
+        """Prepares instance of Recipe."""
+        self._check_attributes()
+        # Creates a boolean attribute as to whether the validation set is being
+        # used for later access by a Analysis instance.
+        if 'val' in self.data_to_use:
+            self.val_set = True
+        else:
+            self.val_set = False
+        return self
+
+    def produce(self, ingredients):
+        """Applies the Recipe methods to the passed ingredients."""
+        techniques = self.techniques.copy()
+        self.ingredients = ingredients
+        # noinspection PyProtectedMember
+        self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
+        self.ingredients.split_xy(label = self.label)
+        for technique in self.techniques:
+            techniques.remove(technique)
+            if technique != 'splitter':
+                self.ingredients = getattr(self, technique).produce(
+                        self.ingredients, self)
+            else:
+                break
+        for train_index, test_index in self.splitter.algorithm.split(
+                self.ingredients.x, self.ingredients.y):
+           self.ingredients.x_train, self.ingredients.x_test = (
+                   self.ingredients.x.iloc[train_index],
+                   self.ingredients.x.iloc[test_index])
+           self.ingredients.y_train, self.ingredients.y_test = (
+                   self.ingredients.y.iloc[train_index],
+                   self.ingredients.y.iloc[test_index])
+           for technique in techniques:
+                self.ingredients = getattr(self, technique).produce(
+                        self.ingredients, self)
         return self
