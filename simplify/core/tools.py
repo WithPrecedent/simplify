@@ -127,7 +127,7 @@ class SimpleUtilities(object):
         length. If a string is passed, it is converted to a 1 item list for
         comparison.
 
-        Parameters:
+        Args:
             variable1: string or list.
             variable2: string or list.
         """

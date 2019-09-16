@@ -3,12 +3,12 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.base.ingredients import Ingredients
-from simplify.base.manager import SimpleManager
+from simplify.core.base import Ingredients, SimpleManager
 
 
 @dataclass
 class Technique(SimpleManager):
+    """SimpleManager class used to create partial sklearn compatibility."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -16,14 +16,15 @@ class Technique(SimpleManager):
 
     def draft(self):
         self.options = {}
+        self.checks = ['idea']
         return self
     
     def finalize(self):
-        self.tool = self.options[self.technique](**self.parameters)
+        self.algorithm= self.options[self.technique](**self.parameters)
         return self
 
     def produce(self, ingredients):
-        ingredients = self.tool(ingredients)
+        ingredients = self.algorithm(ingredients)
         return ingredients
 
     """ Scikit-Learn Compatibility Methods """

@@ -15,13 +15,13 @@ class Classifier(Algorithm):
     """Applies machine learning classifier algorithms based upon user
     selections.
     """
-
     technique : str = ''
     parameters : object = None
     auto_finalize : bool = True
     name : str = 'classifier'
 
     def __post_init__(self):
+        
         super().__post_init__()
         return self
 

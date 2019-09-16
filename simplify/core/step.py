@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from simplify.core.manager import SimpleManager
+from simplify.core.base import SimpleManager
 
 
 @dataclass
@@ -14,6 +14,7 @@ class Step(SimpleManager):
     Planner classes."""
 
     def __post_init__(self):
+        self.idea_sections = ['cookbook']
         super().__post_init__()
         return self
 
@@ -83,6 +84,7 @@ class Step(SimpleManager):
             self.options = {}
         if not hasattr(self, 'parameters'):
             self.parameters = {}
+        self.checks = ['idea']
         return self
 
     def edit_parameters(self, parameters):

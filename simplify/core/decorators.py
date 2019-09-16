@@ -21,7 +21,7 @@ from types import FunctionType
 def convert_time(seconds):
     """Function that converts seconds into hours, minutes, and seconds.
     
-    Parameters:
+    Args:
         seconds: an int containing a nubmer of seconds.
     """
     minutes, seconds = divmod(seconds, 60)
@@ -31,7 +31,7 @@ def convert_time(seconds):
 def timer(process = None):
     """Decorator for computing the length of time a process takes.
 
-    Parameters:
+    Args:
         process: string containing name of class or method to be used in the
             output describing time elapsed.
     """
@@ -56,7 +56,7 @@ def check_arguments(method, excludes = None):
     passed parameter if no argument is passed for that parameter and the
     parameter is not listed in excludes.
 
-    Parameters:
+    Args:
         method: wrapped method within a class instance.
         excludes: list or string of parameters for which a local attribute
             should not be used.

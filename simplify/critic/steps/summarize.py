@@ -14,7 +14,7 @@ class Summarize(SimpleClass):
     boolean and numerical columns by default. It is also extensible: more
     metrics can easily be added to the report DataFrame.
 
-    Parameters:
+    Args:
         name: a string designating the name of the class which should be
             identical to the section of the idea configuration with relevant
             settings.
@@ -62,7 +62,7 @@ class Summarize(SimpleClass):
     def _produce_report(self, df = None, transpose = True):
         """Completes report with data from df.
 
-        Parameters:
+        Args:
             df: pandas DataFrame.
             transpose: boolean value indicating whether the df columns should be
                 listed horizontally (True) or vertically (False) in report.
@@ -100,7 +100,7 @@ class Summarize(SimpleClass):
         """Creates and exports a DataFrame of common summary data using the
         Summary class.
 
-        Parameters:
+        Args:
             df: a pandas DataFrame.
             transpose: boolean value indicating whether the df columns should
                 be listed horizontally (True) or vertically (False) in report.

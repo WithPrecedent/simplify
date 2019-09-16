@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\ProgramData\\Anaconda3\\envs\\develop\\python.exe",
+    "python.pythonPath": "C:\\Users\\coy365\\Miniconda3\\envs\\develop\\python.exe",
     "python.linting.pylintEnabled": false,
     "python.linting.pep8Enabled": true,
     "python.linting.enabled": false,

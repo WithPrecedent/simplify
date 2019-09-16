@@ -24,7 +24,7 @@ class Almanac(SimpleClass):
     """Implements data parsing, wrangling, munging, merging, engineering, and
     cleaning methods for the siMpLify package.
 
-    Parameters:
+    Args:
 
         ingredients: an instance of Ingredients (or a subclass). This argument
             need not be passed when the class is instanced, particularly if

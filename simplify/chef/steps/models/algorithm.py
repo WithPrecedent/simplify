@@ -2,6 +2,8 @@
 from dataclasses import dataclass
 
 from scipy.stats import randint, uniform
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from skopt import BayesSearchCV
 
 from simplify.chef.steps.models.search import Search
 from simplify.core.technique import Technique
@@ -11,9 +13,14 @@ from simplify.core.technique import Technique
 class Algorithm(Technique):
 
     def __post_init__(self):
+        self.idea_sections = ['cookbook']
         super().__post_init__()
         return self
 
+    def __call__(self, ingredients):
+        ingredients = self.produce(ingredients = ingredients)
+        return ingredients
+            
     def _edit_specific_parameters(self):
         if (hasattr(self, 'model_parameters')
                 and self.technique in self.model_parameters):
@@ -57,32 +64,24 @@ class Algorithm(Technique):
         self.parameters = new_parameters
         return self
 
-    def _finalize_search(self):
-        """Instances and finalizes search technique class."""
-        self.searcher = Search(
-                technique = self.idea['cookbook']['search_algorithm'],
-                estimator = self.algorithm,
-                parameters = self.search_parameters,
-                space = self.space,
-                seed = self.seed,
-                verbose = self.verbose)
-        self.searcher.finalize()
-        return self
-
     def finalize(self):
         self._edit_specific_parameters()
         if self.gpu:
            self._gpu_parameters()
         self._parse_parameters()
+        self.estimator = self.options[self.technique]
         if self.hyperparameter_search:
-            self._finalize_search()
-        self.tool = self.options[self.technique](**self.parameters)
+            parameters = {'estimator' : self.estimator,
+                          'space' : self.space}
+            self.searcher = Search(technique = self.search_technique,
+                                   parameters = parameters )
+        self.algorithm = self.estimator(**self.parameters)
         return self
 
     def produce(self, ingredients):
         if self.hyperparameter_search:
             self.searcher.produce(ingredients = ingredients)
-            self.tool = self.searcher.best_estimator
+            self.algorithm = self.searcher.best_estimator
         else:
-            self.tool.fit(ingredients.x_train, ingredients.y_train)
+            self.algorithm.fit(ingredients.x_train, ingredients.y_train)
         return ingredients

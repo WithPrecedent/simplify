@@ -18,12 +18,9 @@ from datetime import timedelta
 
 from numpy import datetime64
 from pandas.api.types import CategoricalDtype
-
-from simplify.core.base import SimpleClass
-
-
+   
 @dataclass
-class SimpleType(SimpleClass, ABC):
+class SimpleType(ABC):
     """Parent abstract base class for setting dictionaries related to datatypes 
     and file types.
 
@@ -41,7 +38,7 @@ class SimpleType(SimpleClass, ABC):
     """
 
     def __post_init__(self):
-        super().__post_init__()
+        self.draft()
         self._create_reversed()
         return self
 
@@ -51,7 +48,7 @@ class SimpleType(SimpleClass, ABC):
         """Returns dict methods applied to 'name_to_type' attribute if those
         methods are sought from the class instance. 
 
-        Parameters:
+        Args:
             attr: attribute sought.
         """
         if attr in self.__dict__:
@@ -82,7 +79,7 @@ class SimpleType(SimpleClass, ABC):
             if 'value' matches a 'key' in type_to_name, the same default value
             is applied. Otherwise, None is used as the default_value.
             
-        Parameters:
+        Args:
             item: key name to be set in 'name_to_type'.
             value: value to be set in 'name_to_type'.
         """
@@ -125,7 +122,7 @@ class SimpleType(SimpleClass, ABC):
         """Removes key from 'name_to_type' and 'type_to_name' to mirror dict 
         functionality.
         
-        Parameters:
+        Args:
             key: dict key to be removed.
         """
         self.name_to_type.pop(key)
@@ -136,7 +133,7 @@ class SimpleType(SimpleClass, ABC):
         """Adds values to 'name_to_type' and recreates reversed dict to mirror
         dict functionality.
         
-        Parameters:
+        Args:
             datatypes: a dictionary with keys of datatype names and values of 
                 datatypes.        
         """
@@ -188,7 +185,7 @@ class DataTypes(SimpleType):
         """Updates datatypes dictionary and its reverse with new keys and values
         from passed arguments.
         
-        Parameters:
+        Args:
             names: a string name or list of names for keys in the datatypes
                 dict.
             python_types: a python, numpy, pandas, or custom datatype or list
@@ -206,7 +203,7 @@ class DataTypes(SimpleType):
     def edit_default_values(self, default_values):
         """Updates 'default_values' dict'
         
-        Parameters:
+        Args:
             default_values: dict with keys of strings of datatypes and values
                 of default value for that datatype.
         """

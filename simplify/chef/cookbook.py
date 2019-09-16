@@ -20,8 +20,8 @@ from itertools import product
 from simplify.chef.steps import (Cleave, Encode, Mix, Model, Reduce, Sample,
                                  Scale, Split)
 from simplify.core.decorators import check_arguments
-from simplify.core.manager import SimpleManager
-from simplify.critic.analysis import Critic
+from simplify.core.base import SimpleManager
+from simplify.critic.analysis import Analysis
 
 
 @dataclass
@@ -29,7 +29,7 @@ class Cookbook(SimpleManager):
     """Dynamically creates recipes for staging, machine learning, and data
     analysis using a unified interface and architecture.
 
-    Parameters:
+    Args:
         ingredients: an instance of Ingredients (or a subclass). This argument
             does not need to be passed when the class is instanced. However,
             failing to do so will prevent the use of the Cleave step and the
@@ -61,7 +61,6 @@ class Cookbook(SimpleManager):
     steps : object = None
     recipes : object = None
     name : str = 'cookbook'
-    planner_type : str = 'parallel'
     auto_finalize : bool = True
     auto_produce : bool = True
 
@@ -90,45 +89,57 @@ class Cookbook(SimpleManager):
                                     ((self.ingredients.y == 1).sum())) - 1
         return self
 
-    def _finalize_one_loop(self, data_to_use):
-        """Prepares one set of recipes from all_recipes as applied to a
-        specific training/testing set.
+    # def _finalize_one_loop(self, data_to_use):
+    #     """Prepares one set of recipes from all_recipes as applied to a
+    #     specific training/testing set.
 
-        Parameters:
-            data_to_use: a string corresponding to an Ingredients property
-                which will return the appropriate training/testing set.
-        """
-        for i, recipe in enumerate(self.all_recipes):
-            recipe_instance = Recipe(techniques = self.steps)
-            # Adds number of recipe to recipe instance for differentiation.
-            setattr(recipe_instance, 'number', i + 1)
-            # Adds data used to recipe instance so that the information is 
-            # available for later use, if needed. 
-            setattr(recipe_instance, 'data_to_use', data_to_use)
-            # Attaches corrresponding technique to recipe instance for a 
-            # particular step in the recipe process.
-            for j, step in enumerate(self.options.keys()):
-                setattr(recipe_instance, step, self.options[step](recipe[j]))
-            recipe_instance.finalize()
-            self.recipes.append(recipe_instance)
-        return self
+    #     Args:
+    #         data_to_use: a string corresponding to an Ingredients property
+    #             which will return the appropriate training/testing set.
+    #     """
+    #     for i, recipe in enumerate(self.all_recipes):
+    #         recipe_instance = Recipe(techniques = self.steps)
+    #         # Adds number of recipe to recipe instance for differentiation.
+    #         setattr(recipe_instance, 'number', i + 1)
+    #         # Adds data used to recipe instance so that the information is 
+    #         # available for later use, if needed. 
+    #         setattr(recipe_instance, 'data_to_use', data_to_use)
+    #         # Attaches corrresponding technique to recipe instance for a 
+    #         # particular step in the recipe process.
+    #         for j, step in enumerate(self.options.keys()):
+    #             setattr(recipe_instance, step, self.options[step](recipe[j]))
+    #         recipe_instance.finalize()
+    #         self.recipes.append(recipe_instance)
+    #     return self
 
-    def _finalize_recipes(self):
-        """Creates all combinations of recipes from user options in the Idea
-        instance and stores those in 'all_recipes' attribute.
-        """
-        self.recipes = []
-        step_combinations = []
-        for step in self.options.keys():
-            # Stores each step attribute in a list
-            setattr(self, step, self.listify(getattr(self, step)))
-            # Adds step to a list of all step lists
-            step_combinations.append(getattr(self, step))
-        # Creates a list of all possible permutations of step techniques
-        # selected. Each item in the the list is a 'plan'
-        self.all_recipes = list(map(list, product(*step_combinations)))
-        return self
+    # def _finalize_recipes(self):
+    #     """Creates all combinations of recipes from user options in the Idea
+    #     instance and stores those in 'all_recipes' attribute.
+    #     """
+    #     self.recipes = []
+    #     step_combinations = []
+    #     for step in self.options.keys():
+    #         # Stores each step attribute in a list
+    #         setattr(self, step, self.listify(getattr(self, step)))
+    #         # Adds step to a list of all step lists
+    #         step_combinations.append(getattr(self, step))
+    #     # Creates a list of all possible permutations of step techniques
+    #     # selected. Each item in the the list is a 'plan'
+    #     self.all_recipes = list(map(list, product(*step_combinations)))
+    #     return self
 
+    def _produce_recipes(self):
+        for recipe in self.recipes:
+            if self.verbose:
+                print('Testing ' + recipe.name + ' ' + str(recipe.number))
+            recipe.produce(ingredients = self.ingredients)
+            self.save_recipe(recipe = recipe)
+            self.analysis.produce(recipe = recipe)
+            self._check_best(recipe = recipe)
+            # To conserve memory, each recipe is deleted after being exported.
+            del(recipe)       
+        return self 
+        
     def _set_experiment_folder(self):
         """Sets the experiment folder and corresponding attributes in this
         class's Depot instance based upon user settings.
@@ -145,7 +156,7 @@ class Cookbook(SimpleManager):
     def _set_recipe_folder(self, recipe):
         """Creates file or folder path for plan-specific exports.
 
-        Parameters:
+        Args:
             plan: an instance of Almanac or Recipe for which files are to be
                 saved.
             steps to use: a list of strings or single string containing names
@@ -165,7 +176,7 @@ class Cookbook(SimpleManager):
     def add_cleaves(self, cleave_group, prefixes = None, columns = None):
         """Adds cleaves to the list of cleaves.
 
-        Parameters:
+        Args:
             cleave_group: string naming the set of features in the group.
             prefixes: list or string of prefixes for columns to be included
                 within the cleave.
@@ -191,15 +202,18 @@ class Cookbook(SimpleManager):
                         'reducer' : Reduce,
                         'model' : Model}
         # Adds GPU check to other checks to be produceed.
-        self.checks = ['gpu', 'ingredients', 'steps']
+        self.checks = ['gpu', 'idea', 'steps', 'ingredients']
         # Locks 'step' attribute at 'cook' for conform methods in package.
         self.step = 'cook'
+        # Sets attributes to allow proper parent methods to be used.
+        self.manager_type = 'parallel'
+        self.plan_class = Recipe
         return self
 
     def edit_recipes(self, recipes):
         """Adds a single recipe or list of recipes to 'recipes' attribute.
 
-        Parameters:
+        Args:
             recipe: an instance of Recipe.
         """
         if hasattr(self, 'recipes'):
@@ -213,27 +227,18 @@ class Cookbook(SimpleManager):
         methods. Each set of methods is stored in a list of instances of the
         class stored in self.recipes.
         """
-        # Adds finalize search_parameters to Model class.
-        Model.search_parameters = self.idea['search_parameters']
         # Sets attributes for data analysis and export.
-        self.critic = Critic()
+        self.analysis = Analysis()
         self._set_experiment_folder()
-        # Creates all recipe combinations for Idea instance.
-        self._finalize_recipes() 
-        # Using training, test, validate sets creates two separate loops
-        # through all recipes: one with the test set, one with the validation
-        # set.
-        if 'train_test_val' in self.data_to_use:
-            self._finalize_one_loop(data_to_use = 'train_test')
-            self._finalize_one_loop(data_to_use = 'train_val')
-        else:
-            self._finalize_one_loop(data_to_use = self.data_to_use)
+        # Creates all recipe combinations and store Recipe instances in 
+        # 'recipes'.
+        self._finalize_parallel()
         return self
 
     def load_recipe(self, file_path):
         """Imports a single recipe from disc and adds it to self.recipes.
 
-        Parameters:
+        Args:
             file_path: a path where the file to be loaded is located.
         """
         self.edit_recipes(recipe = self.depot.load(file_path = file_path,
@@ -244,9 +249,29 @@ class Cookbook(SimpleManager):
         """Calls critic instance print_best method. The method is added here
         for easier accessibility.
         """
-        self.critic.print_best()
+        self.analysis.print_best()
         return self
-    
+
+    @check_arguments
+    def produce(self, ingredients = None):
+        """Completes an iteration of a Cookbook.
+
+        Args:
+            ingredients: an Instance of Ingredients. If passsed, it will be
+                assigned to self.ingredients. If not passed, and if it already
+                exists, self.ingredients will be used.
+        """
+        if ingredients:
+            self.ingredients = ingredients
+        if 'train_test_val' in self.data_to_use:
+            self.ingredients._remap_dataframes(data_to_use = 'train_test')
+            self._produce_recipes()
+            self.ingredients._remap_dataframes(data_to_use = 'train_val')
+            self._produce_recipes()
+        else:
+            self._produce_recipes()
+        return self
+        
     def save_all_recipes(self):
         """Saves all recipes in self.recipes to disc as individual files."""
         for recipe in self.recipes:
@@ -279,14 +304,14 @@ class Cookbook(SimpleManager):
     def save_recipe(self, recipe, file_path = None):
         """Exports a recipe to disc.
 
-        Parameters:
+        Args:
             recipe: an instance of Recipe.
             file_path: path of where file should be saved. If none, a default
                 file_path will be created from self.depot."""
         if self.verbose:
             print('Saving recipe', recipe.number)
         self._set_recipe_folder(recipe = recipe)
-        self.depot.save(variable = draft,
+        self.depot.save(variable = recipe,
                         file_path = file_path,
                         folder = self.depot.recipe,
                         file_name = 'recipe',
@@ -296,7 +321,7 @@ class Cookbook(SimpleManager):
     def save_review(self, review = None):
         """Exports the Analysis review to disc.
 
-        Parameters:
+        Args:
             review: the attribute review from an instance of Analysis. If none
                 is provided, self.analysis.review is saved.
         """
@@ -309,29 +334,7 @@ class Cookbook(SimpleManager):
                         header = True)
         return
 
-    @check_arguments
-    def produce(self, ingredients = None):
-        """Completes an iteration of a Cookbook.
 
-        Parameters:
-            ingredients: an Instance of Ingredients. If passsed, it will be
-                assigned to self.ingredients. If not passed, and if it already
-                exists, self.ingredients will be used.
-        """
-        if ingredients:
-            self.ingredients = ingredients
-        for recipe in self.recipes:
-            if self.verbose:
-                print('Testing ' + recipe.name + ' ' + str(recipe.number))
-            recipe.produce(ingredients = ingredients)
-            self.save_recipe(recipe = recipe)
-            self.analysis.produce(recipe = recipe)
-            self._check_best(recipe = recipe)
-            # To conserve memory, each recipe is deleted after being exported.
-            del(recipe)
-        return self
-    
-    
 @dataclass
 class Recipe(SimpleManager):
     """Defines rules for analyzing data in the siMpLify Cookbook subpackage.
@@ -346,7 +349,8 @@ class Recipe(SimpleManager):
     name : str = 'recipe'
 
     def __post_init__(self):
-        pass
+        self.idea_sections = ['cookbook']
+        super().__post_init__()
         return self
 
     def __call__(self, *args, **kwargs):
@@ -365,6 +369,10 @@ class Recipe(SimpleManager):
                 raise AttributeError(error)
         return self
 
+    def draft(self):
+        pass
+        return self
+        
     def finalize(self):
         """Prepares instance of Recipe."""
         self._check_attributes()

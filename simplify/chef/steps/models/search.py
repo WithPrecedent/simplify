@@ -9,16 +9,14 @@ from ....core.technique import Technique
 
 @dataclass
 class Search(Technique):
-
-
-    technique : str
-    estimator : object
-    parameters : object
-    space : object
-    seed : int
-    verbose : bool
+    
+    technique : str = ''
+    parameters : object = None
+    auto_finalize : bool = True
+    name : str = 'search_parameters'
 
     def __post_init__(self):
+        self.search_parameters = self.idea[self.name]
         super().__post_init__()
         return self
 
@@ -26,27 +24,29 @@ class Search(Technique):
         self.options = {'random' : RandomizedSearchCV,
                         'grid' : GridSearchCV,
                         'bayes' : BayesSearchCV}
-        self.runtime_parameters = {'estimator' : self.estimator,
-                                   'param_distributions' : self.space,
-                                   'random_state' : self.seed}
+        self.runtime_parameters = {
+            'estimator' : self.parameters['estimator'],
+            'param_distributions' : self.parameters['space'],
+            'random_state' : self.seed}
+        self.checks = ['idea']
         return self
 
     def finalize(self):
-        if 'refit' in self.parameters:
-            self.parameters['scoring'] = self.listify(
-                    self.parameters['scoring'])[0]
-        self.parameters.update(self.runtime_parameters)
-        self.tool = self.options[self.technique](**self.parameters)
+        if 'refit' in self.search_parameters:
+            self.search_parameters['scoring'] = self.listify(
+                    self.search_parameters['scoring'])[0]
+        self.search_parameters.update(self.runtime_parameters)
+        self.algorithm = self.options[self.technique](**self.search_parameters)
         return self
 
     def produce(self, ingredients):
         if self.verbose:
             print('Searching for best hyperparameters using',
                   self.technique, 'search algorithm')
-        self.tool.fit(ingredients.x_train, ingredients.y_train)
-        self.best_estimator = self.tool.best_estimator_
+        self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+        self.best_estimator = self.algorithm.best_estimator_
         if self.verbose:
-            print('The', self.parameters['scoring'],
+            print('The', self.search_parameters['scoring'],
                   'score of the best estimator for this model is',
-                  f'{self.tool.best_score_ : 4.4f}')
+                  f'{self.algorithm.best_score_ : 4.4f}')
         return self

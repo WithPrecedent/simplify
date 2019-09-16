@@ -16,6 +16,7 @@ class Model(Step):
     name : str = 'model'
 
     def __post_init__(self):
+        self.idea_sections = ['cookbook']
         super().__post_init__()
         return self
 
@@ -24,11 +25,8 @@ class Model(Step):
                         'clusterer' : Clusterer,
                         'regressor' : Regressor}
         self.runtime_parameters = {'random_state' : self.seed}
+        self.checks = ['idea']
         return self
-
-    def fit_transform(self, x, y):
-        error = 'fit_transform is not implemented for machine learning models'
-        raise NotImplementedError(error)
 
     def finalize(self):
         """Adds parameters to machine learning algorithm."""
@@ -42,6 +40,10 @@ class Model(Step):
             self.algorithm.finalize()
         return self
 
+    def fit_transform(self, x, y):
+        error = 'fit_transform is not implemented for machine learning models'
+        raise NotImplementedError(error)
+
     def produce(self, ingredients, recipe):
         """Applies model from recipe to ingredients data."""
         if self.technique != 'none':
@@ -53,3 +55,4 @@ class Model(Step):
     def transform(self, x, y):
         error = 'transform is not implemented for machine learning models'
         raise NotImplementedError(error)
+    
