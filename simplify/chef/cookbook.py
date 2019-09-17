@@ -129,15 +129,12 @@ class Cookbook(SimpleManager):
     #     return self
 
     def _produce_recipes(self):
-        for recipe in self.recipes:
+        for recipe_number, recipe in getattr(self, self.plan_iterable).items():
             if self.verbose:
-                print('Testing ' + recipe.name + ' ' + str(recipe.number))
+                print('Testing', recipe.name, str(recipe_number))
             recipe.produce(ingredients = self.ingredients)
             self.save_recipe(recipe = recipe)
-            self.analysis.produce(recipe = recipe)
-            self._check_best(recipe = recipe)
-            # To conserve memory, each recipe is deleted after being exported.
-            del(recipe)       
+            self.analysis.produce(recipes = recipe)  
         return self 
         
     def _set_experiment_folder(self):
@@ -165,7 +162,7 @@ class Cookbook(SimpleManager):
         if hasattr(self, 'naming_classes') and self.naming_classes is not None:
             subfolder = 'recipe_'
             for step in self.listify(self.naming_classes):
-                subfolder += getattr(recipe, step).technique + '_'
+                subfolder += recipe.techniques[step].technique + '_'
             subfolder += str(recipe.number)
             self.depot.recipe = self.depot.create_folder(
                 folder = self.depot.experiment, subfolder = subfolder)
@@ -208,6 +205,7 @@ class Cookbook(SimpleManager):
         # Sets attributes to allow proper parent methods to be used.
         self.manager_type = 'parallel'
         self.plan_class = Recipe
+        self.plan_iterable = 'recipes'
         return self
 
     def edit_recipes(self, recipes):
@@ -340,7 +338,7 @@ class Recipe(SimpleManager):
     """Defines rules for analyzing data in the siMpLify Cookbook subpackage.
 
     Attributes:
-        techniques: a list of techniques containing the classes to be used at
+        techniques(dict): techniques containing the classes to be used at
             each stage of a Recipe.
         name: a string designating the name of the class which should be
             identical to the section of the idea with relevant settings.
@@ -359,46 +357,32 @@ class Recipe(SimpleManager):
         """
         return self.produce(*args, **kwargs)
 
-    def _check_attributes(self):
-        """Checks if corresponding attribute exists for every item in the
-        self.techniques list.
-        """
-        for technique in self.techniques:
-            if not hasattr(self, technique):
-                error = technique + ' has not been passed to Recipe class.'
-                raise AttributeError(error)
-        return self
-
     def draft(self):
         pass
         return self
         
     def finalize(self):
-        """Prepares instance of Recipe."""
-        self._check_attributes()
-        # Creates a boolean attribute as to whether the validation set is being
-        # used for later access by a Analysis instance.
-        if 'val' in self.data_to_use:
-            self.val_set = True
-        else:
-            self.val_set = False
+        pass
         return self
 
     def produce(self, ingredients):
         """Applies the Recipe methods to the passed ingredients."""
         techniques = self.techniques.copy()
         self.ingredients = ingredients
-        # noinspection PyProtectedMember
-        self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
-        self.ingredients.split_xy(label = self.label)
-        for technique in self.techniques:
-            techniques.remove(technique)
-            if technique != 'splitter':
-                self.ingredients = getattr(self, technique).produce(
-                        self.ingredients, self)
-            else:
+        ingredients.split_xy(label = self.label)
+        # If using cross-validation or other data splitting technique, the 
+        # pre-split methods apply to the 'x' data. After the split, techniques
+        # must be incorporate the split into 'x_train' and 'x_test'.
+        for step in list(techniques.keys()):
+            techniques.pop(step)
+            if step == 'splitter':
                 break
-        for train_index, test_index in self.splitter.algorithm.split(
+            else:
+                self.ingredients = self.techniques[step].produce(
+                    ingredients = self.ingredients,
+                    recipe = self)
+        split_algorithm = self.techniques['splitter'].algorithm
+        for train_index, test_index in split_algorithm.split(
                 self.ingredients.x, self.ingredients.y):
            self.ingredients.x_train, self.ingredients.x_test = (
                    self.ingredients.x.iloc[train_index],
@@ -406,7 +390,8 @@ class Recipe(SimpleManager):
            self.ingredients.y_train, self.ingredients.y_test = (
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
-           for technique in techniques:
-                self.ingredients = getattr(self, technique).produce(
-                        self.ingredients, self)
+           for step, technique in techniques.items():
+                self.ingredients = technique.produce(
+                    ingredients = self.ingredients,
+                    recipe = self)
         return self

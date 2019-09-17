@@ -43,35 +43,11 @@ class Analysis(SimpleManager):
     def __post_init__(self):
         super().__post_init__()
         return self
-    
-    """ Private Methods """
-    
-    def _check_best(self, recipe):
-        """Checks if the current recipe is better than the current best recipe
-        based upon the primary scoring metric.
 
-        Args:
-            recipe: an instance of Recipe to be tested versus the current best
-                recipe stored in the 'best_recipe' attribute.
-        """
-        if not hasattr(self, 'best_recipe') or self.best_recipe is None:
-            self.best_recipe = recipe
-            self.best_recipe_score = self.analysis.review.report.loc[
-                    self.analysis.review.report.index[-1],
-                    self.listify(self.metrics)[0]]
-        elif (self.analysis.review.report.loc[
-                self.analysis.review.report.index[-1],
-                self.listify(self.metrics)[0]] > self.best_recipe_score):
-            self.best_recipe = recipe
-            self.best_recipe_score = self.analysis.review.report.loc[
-                    self.analysis.review.report.index[-1],
-                    self.listify(self.metrics)[0]]
-        return self
-    
     """ Public Methods """
     
     def draft(self):
-        """Sets default options for the crtic's review."""
+        """Sets default options for the Critic's analysis."""
         self.options = {'summarizer' : Summarize,
                         'evaluator' : Evaluate}
         self.checks = ['steps']
@@ -81,6 +57,7 @@ class Analysis(SimpleManager):
         self.manager_type = 'serial'
         # Sets 'plan_class' to allow use of parent methods.
         self.plan_class = Review
+        self.plan_iterable = 'reviews'
         return self
 
     def finalize(self):
@@ -90,25 +67,14 @@ class Analysis(SimpleManager):
         getattr(self, '_finalize_' + self.manager_type)()
         return self
 
-    def print_best(self):
-        """Prints output to the console about the best recipe."""
-        if self.verbose:
-            print('The best test recipe, based upon the',
-                  self.listify(self.metrics)[0], 'metric with a score of',
-                  f'{self.best_recipe_score : 4.4f}', 'is:')
-            for technique in self.best_recipe.techniques:
-                print(technique.capitalize(), ':',
-                      getattr(self.best_recipe, technique).technique)
-        return
-
     def produce(self, recipes = None):
         """Evaluates recipe with various tools and finalizes report."""
         if self.verbose:
             print('Evaluating recipes')
         for recipe in self.listify(recipes):   
             self._check_best(recipe = recipe)
-            for review_step, review_class in self.reviews.items():
-                review_class.produce(recipe = recipe)
+            for step, technique in getattr(self, self.plan_iterable).items():
+                technique.produce(recipe = recipe)
         return self
 
 
@@ -139,7 +105,29 @@ class Review(SimpleManager):
         self.idea_sections = ['analysis']
         super().__post_init__()  
         return self
+    
+    def _check_best(self, recipe):
+        """Checks if the current recipe is better than the current best recipe
+        based upon the primary scoring metric.
 
+        Args:
+            recipe: an instance of Recipe to be tested versus the current best
+                recipe stored in the 'best_recipe' attribute.
+        """
+        if not hasattr(self, 'best_recipe') or self.best_recipe is None:
+            self.best_recipe = recipe
+            self.best_recipe_score = self.report.loc[
+                    self.report.index[-1],
+                    self.listify(self.metrics)[0]]
+        elif (self.report.loc[
+                self.report.index[-1],
+                self.listify(self.metrics)[0]] > self.best_recipe_score):
+            self.best_recipe = recipe
+            self.best_recipe_score = self.report.loc[
+                    self.report.index[-1],
+                    self.listify(self.metrics)[0]]
+        return self
+    
     def _classifier_report(self):
         self.classifier_report_default = metrics.classification_report(
                 self.recipe.ingredients.y_test,
@@ -196,7 +184,18 @@ class Review(SimpleManager):
     def draft(self):
         self.options = {}
         return self
-        
+ 
+    def print_best(self):
+        """Prints output to the console about the best recipe."""
+        if self.verbose:
+            print('The best test recipe, based upon the',
+                  self.listify(self.metrics)[0], 'metric with a score of',
+                  f'{self.best_recipe_score : 4.4f}', 'is:')
+            for technique in self.best_recipe.techniques:
+                print(technique.capitalize(), ':',
+                      getattr(self.best_recipe, technique).technique)
+        return       
+    
     def produce(self, recipe):
         self.recipe = recipe
         if not hasattr(self, 'columns'):
