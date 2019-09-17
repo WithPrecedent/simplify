@@ -89,45 +89,6 @@ class Cookbook(SimpleManager):
                                     ((self.ingredients.y == 1).sum())) - 1
         return self
 
-    # def _finalize_one_loop(self, data_to_use):
-    #     """Prepares one set of recipes from all_recipes as applied to a
-    #     specific training/testing set.
-
-    #     Args:
-    #         data_to_use: a string corresponding to an Ingredients property
-    #             which will return the appropriate training/testing set.
-    #     """
-    #     for i, recipe in enumerate(self.all_recipes):
-    #         recipe_instance = Recipe(techniques = self.steps)
-    #         # Adds number of recipe to recipe instance for differentiation.
-    #         setattr(recipe_instance, 'number', i + 1)
-    #         # Adds data used to recipe instance so that the information is 
-    #         # available for later use, if needed. 
-    #         setattr(recipe_instance, 'data_to_use', data_to_use)
-    #         # Attaches corrresponding technique to recipe instance for a 
-    #         # particular step in the recipe process.
-    #         for j, step in enumerate(self.options.keys()):
-    #             setattr(recipe_instance, step, self.options[step](recipe[j]))
-    #         recipe_instance.finalize()
-    #         self.recipes.append(recipe_instance)
-    #     return self
-
-    # def _finalize_recipes(self):
-    #     """Creates all combinations of recipes from user options in the Idea
-    #     instance and stores those in 'all_recipes' attribute.
-    #     """
-    #     self.recipes = []
-    #     step_combinations = []
-    #     for step in self.options.keys():
-    #         # Stores each step attribute in a list
-    #         setattr(self, step, self.listify(getattr(self, step)))
-    #         # Adds step to a list of all step lists
-    #         step_combinations.append(getattr(self, step))
-    #     # Creates a list of all possible permutations of step techniques
-    #     # selected. Each item in the the list is a 'plan'
-    #     self.all_recipes = list(map(list, product(*step_combinations)))
-    #     return self
-
     def _produce_recipes(self):
         for recipe_number, recipe in getattr(self, self.plan_iterable).items():
             if self.verbose:
@@ -267,6 +228,7 @@ class Cookbook(SimpleManager):
             self.ingredients._remap_dataframes(data_to_use = 'train_val')
             self._produce_recipes()
         else:
+            self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
             self._produce_recipes()
         return self
         
