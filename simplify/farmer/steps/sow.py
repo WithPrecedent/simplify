@@ -3,11 +3,11 @@ from dataclasses import dataclass
 import os
 import requests
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Sow(Step):
+class Sow(SimpleStep):
 
     technique : str = ''
     parameters : object = None

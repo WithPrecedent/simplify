@@ -1,12 +1,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import Step
-from simplify.core.technique import Technique
+from simplify.core.base import SimpleStep
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Bale(Step):
+class Bale(SimpleStep):
     """Class for combining different datasets."""
     technique : str = ''
     parameters : object = None
@@ -30,7 +30,7 @@ class Bale(Step):
         return ingredients
 
 @dataclass
-class Merger(Technique):
+class Merger(SimpleStep):
 
     index_columns : object = None
     merge_type : str = ''

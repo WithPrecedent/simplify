@@ -1,11 +1,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Animate(Step):
+class Animate(SimpleStep):
     
     technique : str = ''
     parameters : object = None

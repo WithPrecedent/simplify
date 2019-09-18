@@ -6,11 +6,11 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from skopt import BayesSearchCV
 
 from simplify.chef.steps.models.search import Search
-from simplify.core.technique import Technique
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Algorithm(Technique):
+class Algorithm(SimpleStep):
 
     def __post_init__(self):
         self.idea_sections = ['cookbook']

@@ -6,11 +6,11 @@ from category_encoders import (BackwardDifferenceEncoder, BaseNEncoder,
                                LeaveOneOutEncoder, OneHotEncoder,
                                OrdinalEncoder, SumEncoder, TargetEncoder)
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Encode(Step):
+class Encode(SimpleStep):
     """Encodes categorical variables according to selected algorithms."""
     technique : str = ''
     parameters : object = None

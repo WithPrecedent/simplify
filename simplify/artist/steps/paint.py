@@ -10,11 +10,11 @@ import seaborn as sns
 from shap import dependence_plot, force_plot, summary_plot
 import scikitplot as skplt
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Paint(Step):
+class Paint(SimpleStep):
     
     technique : str = ''
     parameters : object = None

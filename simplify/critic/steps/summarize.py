@@ -3,11 +3,11 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Summarize(Step):
+class Summarize(SimpleStep):
     """Stores and exports a DataFrame of summary data for pandas DataFrame.
 
     Summary is more inclusive than pandas.describe() and includes

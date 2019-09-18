@@ -19,7 +19,7 @@ import warnings
 from more_itertools import unique_everseen
 import numpy as np
 import pandas as pd
-#from tensorflow.test import is_gpu_available
+from tensorflow.test import is_gpu_available
 
 from simplify.core.types import DataTypes, FileTypes
 
@@ -200,20 +200,20 @@ class SimpleClass(ABC):
         counting what qualifies, it is recommended to set the 'gpu' attribute
         directly or through an Idea instance.
         """
-#        if hasattr(self, 'gpu'):
-#            if self.gpu and self.verbose:
-#                print('Using GPU')
-#            elif self.verbose:
-#                print('Using CPU')
-#        elif is_gpu_available:
-#            self.gpu = True
-#            if self.verbose:
-#                print('Using GPU')
-#        else:
-#            self.gpu = False
-#            if self.verbose:
-#                print('Using CPU')
-        return self
+        if hasattr(self, 'gpu'):
+            if self.gpu and self.verbose:
+                print('Using GPU')
+            elif self.verbose:
+                print('Using CPU')
+        elif is_gpu_available:
+            self.gpu = True
+            if self.verbose:
+                print('Using GPU')
+        else:
+            self.gpu = False
+            if self.verbose:
+                print('Using CPU')
+            return self
 
     def _check_idea(self):
         """Loads Idea settings from a file if a string is passed instead of an
@@ -370,7 +370,7 @@ class SimpleClass(ABC):
             the 'options' dict.
             algorithms (object or list(object)): siMpLify compatible objects
                 which can be integrated in the package framework. If they are
-                custom algorithms, they should be subclassed from Technique to
+                custom algorithms, they should be subclassed from SimpleStep to
                 ensure compatibility.
             options (dict): a dictionary with keys of techniques and values of
                 algorithms. This should be passed if the user has already
@@ -1705,7 +1705,7 @@ class Ingredients(SimpleClass):
             that all data containers within the instance are related and share a
             pool of column names and types.
         auto_finalize(bool): whether 'finalize' method should be called when the
-        class is instanced. This should generally be set to True.
+            class is instanced. This should generally be set to True.
         state_dependent(bool): whether this class is depending upon the current
             state in the siMpLify package. Unless the user is radically changing
             the way siMpLify works, this should be set to True.
@@ -1888,6 +1888,15 @@ class Ingredients(SimpleClass):
         """
         return [k for k, v in self.datatypes.items() if v == datatype]
 
+    def _get_column_names(self, x, y = None):
+        """Gets feature names if previously stored by _store_column_names."""
+        x = pd.DataFrame(x, columns = self.x_cols)
+        if isinstance(y, np.ndarray):
+            y = pd.Series(y, name = self.y_col)
+            return x, y
+        else:
+            return x
+        
     def _get_default_encoders(self):
         """Returns list of categorical columns."""
         return self.categoricals
@@ -1899,6 +1908,10 @@ class Ingredients(SimpleClass):
     def _get_default_scalers(self):
         """Returns all numeric columns."""
         return self.integers + self.floats
+
+    def _get_indices(self, df, columns):
+        """Gets column indices for a list of column names."""
+        return [df.columns.get_loc(column) for column in columns]
 
     def _initialize_datatypes(self, df = None):
         """Initializes datatypes for columns of pandas DataFrame or Series if
@@ -1958,6 +1971,13 @@ class Ingredients(SimpleClass):
             self.using_validation_set = True
         return self
 
+    def _store_column_names(self, x, y = None):
+        """Stores feature names."""
+        self.x_cols = list(x.columns.values)
+        if isinstance(y, pd.Series):
+            self.y_col = self.label
+        return self
+    
     """ Public Methods """
 
     def draft(self):
@@ -2502,7 +2522,8 @@ class Ingredients(SimpleClass):
 
 @dataclass
 class SimpleManager(SimpleClass, ABC):
-    """Parent abstract base class for siMpLify planners, steps, and techniques.
+    """Parent abstract base class for siMpLify planners like Cookbook, Almanac,
+    and Analysis.
 
     This class adds a required 'produce' method and other methods useful to
     siMpLify classes which transform data or fit models.
@@ -2512,14 +2533,11 @@ class SimpleManager(SimpleClass, ABC):
     """
     def __post_init__(self):
         super().__post_init__()
-        # Outputs class status to console if verbose option is selected.
-        # if self.verbose:
-        #     print('Creating', self.name)
         return self
 
     """ Private Methods """
-
-    def _create_option_lists(self):
+  
+    def _create_technique_lists(self):
         """Creates list of option lists of techniques."""
         self.all_steps = []
         for step in self.options.keys():
@@ -2563,8 +2581,8 @@ class SimpleManager(SimpleClass, ABC):
         # technique from 'all_plans'.
         for i, plan in enumerate(self.all_plans):
             plan_instance = self._create_plan_instance(plan = plan)
-            plan_instance.number = i
-            getattr(self, self.plan_iterable).update({i : plan_instance})
+            plan_instance.number = i + 1
+            getattr(self, self.plan_iterable).update({i + 1 : plan_instance})
         return self
 
     def _finalize_serial(self):
@@ -2575,7 +2593,7 @@ class SimpleManager(SimpleClass, ABC):
         setattr(self, self.plan_iterable, self.plan_class(
             techniques = self.all_plans))
         return self
-
+    
     """ Public Methods """
 
     def draft(self):
@@ -2587,7 +2605,8 @@ class SimpleManager(SimpleClass, ABC):
 
     def finalize(self):
         """Finalizes"""
-        self._create_option_lists()
+        self._finalize_techniques()
+        self._create_technique_lists()
         self._create_plan_iterables()
         getattr(self, '_finalize_' + self.manager_type)()
         return self
@@ -2609,25 +2628,272 @@ class SimpleManager(SimpleClass, ABC):
         pass
         return variable
 
-    # Methods saved for possible later use.
+@dataclass
+class SimplePlan(SimpleClass):
+    """Class for containing plan classes like Recipe, Harvest, and Review.
+    
+    Args:
+        steps(dict): dictionary containing keys of step names (strings) and 
+            values of SimpleStep subclass instances.
+            
+    It is also a child class of SimpleClass. So, its documentation applies as
+    well."""
+    
+    steps : object = None
+    
+    def __post_init__(self):
+        # Adds name of SimpleManager subclass to sections to inject from Idea
+        # so that all of those section entries are available as local 
+        # attributes.
+        if hasattr(self, 'manager_name'):
+            self.idea_sections = [self.manager_name]
+        super().__post_init__()
+        return self
+    
+    def __call__(self, *args, **kwargs):
+        """When called as a function, a SimplePlan class or subclass instance 
+        will return the 'produce' method.
+        """
+        return self.produce(*args, **kwargs)
+ 
+    def draft(self):
+        """SimplePlan's generic 'draft' method requires no extra defaults."""
+        pass
+        return self
+        
+    def finalize(self):
+        """SimplePlan's generic 'finalize' method requires no extra preparation.
+        """
+        pass
+        return self
+    
+    def produce(self, variable):
+        setattr(self, variable.name, variable)    
+        for step, technique in steps.items():
+            if self.verbose:
+                print('Applying', step)
+            setattr(self, variable.name, technique.produce(variable))
+        return self
+ 
+    
+@dataclass
+class SimpleStep(SimpleClass): 
+    """Parent class for various steps in the siMpLify package. 
+    
+    SimpleStep, unlike other subclasses of SimpleClass, should have a 
+    'parameters' parameter as an attribute to the class instance for the 
+    included methods to work properly. Otherwise, 'parameters' will be set to
+    an empty dict.
+    
+    Args:
+        technique(str): name of technique that matches a string in the 'options'
+            keys or a wildcard value such as 'default', 'all', or 'none'.
+        parameters(dict): parameters to be attached to algorithm in 'options'
+            corresponding to 'technique'. This parameter need not be passed to 
+            the SimpleStep subclass if the parameters are in the accessible 
+            Idea instance or if the user wishes to use default parameters.
+        auto_finalize(bool): whether 'finalize' method should be called when the
+            class is instanced. This should generally be set to True.   
+            
+    It is also a child class of SimpleClass. So, its documentation applies as
+    well.    
+    """
+    technique : object = None
+    parameters : object = None
+    auto_finalize : bool = True
+    
+    def __post_init__(self):
+        # Adds name of SimpleManager subclass to sections to inject from Idea
+        # so that all of those section entries are available as local 
+        # attributes.
+        if hasattr(self, 'manager_name'):
+            self.idea_sections = [self.manager_name]
+        super().__post_init__()
+        return self
 
-    # def edit_parameters(self, step, parameters):
-    #     """Adds parameter sets to the parameters dictionary of a prescribed
-    #     step. """
-    #     self.options[step].edit_parameters(parameters = parameters)
-    #     return self
+    """ Private Methods """
+ 
+    def _check_wildcards(self, techniques):
+        """Converts 'all' or 'default' techniques to list of techniques.
+        
+        Args:
+            techniques(list or str): techniques names.
+            
+        Returns:
+            If 'all', all keys listed in 'options' dict are returned.
+            If 'default', 'default_techniques' are returned or, if they don't
+                exist, all keys listed in 'options' dict are returned.
+            Otherwise, 'techniques' is returned intact.
+        """
+        if techniques in ['all', ['all']]:
+            return self.options.keys()
+        elif techniques in ['default', ['default']]:
+            if hasattr(self, 'default_techniques') and self.default_techniques:
+                return self.default_techniques
+            else:
+                return self.options.keys()
+        else:
+            return techniques   
+                
+    def _finalize_parameters(self):
+        """Applies Idea settings or default parameters if none exist. 
+        
+        If 'parameters' is None, the accessible Idea instance is checked for a
+        section matching the 'name' attribute of the class instance. If no 
+        Idea parameters exist, 'default_parameters are used. If there are no 
+        'default_parameters', an empty dict is created for parameters.
+        
+        If 'runtime_parameters' exist in the subclass those are added to 
+        'parameters' as well.
+        """
+        if not hasattr(self, 'parameters') or self.parameters is None:
+            if self.name in self.idea.configuration:
+                self.parameters = self.idea.configuration[self.name]
+            elif (hasattr(self, 'default_parameters') 
+                    and self.default_parameters is not None):
+                self.parameters = self.default_parameters
+            else:
+                self.parameters = {}
+        if hasattr(self, 'runtime_parameters') and self.runtime_parameters:
+            self.parameters.update(self.runtime_parameters)
+        return self
+    
+    def _select_parameters(self, parameters_to_use = None):
+        """For subclasses that only need a subset of the parameters stored in
+        idea, this function selects that subset.
+        
+        Args:
+            parameters_to_use(list or str): list or string containing names of
+                parameters to include in final parameters dict.
+        """
+        if hasattr(self, 'selected_parameters') and self.selected_parameters:
+            if not parameters_to_use and hasattr(self, 'default_parameters'):
+                parameters_to_use = list(self.default_parameters.keys())
+            new_parameters = {}
+            if self.parameters:
+                for key, value in self.parameters.items():
+                    if key in self.listify(parameters_to_use):
+                        new_parameters.update({key : value})
+                self.parameters = new_parameters
+        return self
+    
+    """ Public Methods """
 
-    # def edit_runtime_parameters(self, step, parameters):
-    #     """Adds runtime_parameter sets to the parameters dictionary of a
-    #     prescribed step."""
-    #     self.options[step].edit_runtime_parameters(parameters = parameters)
-    #     return self
+    def draft(self):
+        """Default draft method which sets bare minimum requirements.
+        
+        This default draft should only be used if users are planning to manually
+        add all options and parameters to the SimpleStep subclass.
+        """
+        if not hasattr(self, 'options'):
+            self.options = {}
+        if not hasattr(self, 'parameters'):
+            self.parameters = {}
+        self.checks = ['idea']
+        return self
 
-    # def edit_step_class(self, step_name, step_class):
-    #     self.options.update({step_name, step_class})
-    #     return self
+    def edit_parameters(self, parameters):
+        """Adds a parameter set to parameters dictionary.
+        
+        Args:
+            parameters(dict): dictionary of parameters to be added to 
+                'parameters' of subclass.
+        
+        Raises:
+            TypeError: if 'parameters' is not dict type.
+        """
+        if isinstance(parameters, dict):
+            if not hasattr(self, 'parameters') or self.parameters is None:
+                self.parameters = parameters
+            else:
+                self.parameters.update(parameters)
+            return self
+        else:
+            error = 'parameters must be a dict type'
+            raise TypeError(error)
 
-    # def edit_technique(self, step, technique, parameters = None):
-    #     tool_instance = self.options[step](technique = technique,
-    #                                        parameters = parameters)
-    #     return tool_instance
+    def finalize(self):
+        """Finalizes parameters and adds 'parameters' to 'algorithm'."""
+        self._finalize_parameters()
+        self._select_parameters()
+        if self.technique != 'none':
+            self.algorithm = self.options[self.technique](**self.parameters)
+        else:
+            self.algorithm = None
+        return self
+
+    def produce(self, ingredients, plan = None):
+        """Generic implementation method for SimpleStep subclass.
+        
+        This method should only be used if the algorithm is to be applied to 
+        'x' and 'y' in ingredients and sklearn compatible 'fit' and 'transform'
+        methods are available.
+        
+        Args:
+            ingredients(Ingredients): an instance of Ingredients or subclass.
+            plan(SimplePlan subclass or instance): is not used by the generic
+                method but is made available as an optional keyword for 
+                compatibility with other 'produce'  methods. This parameter is 
+                used when the current SimpleStep subclass needs to look back at 
+                previous SimpleSteps (as in Cookbook steps).
+        """
+        if self.algorithm:
+            self.algorithm.fit(ingredients.x, ingredients.y)
+            ingredients.x = self.algorithm.transform(ingredients.x)
+        return ingredients
+
+    """ Scikit-Learn Compatibility Methods """
+
+    def fit(self, x, y = None):
+        """Generic fit method for partial compatibility to sklearn."""
+        if hasattr(self.algorithm, 'fit'):
+            if isinstance(x, pd.DataFrame):
+                if y is None:
+                    self.algorithm.fit(x)
+                else:
+                    self.algorithm.fit(x, y)
+            elif isinstance(x, Ingredients):
+                if y is None:
+                    self.algorithm.fit(x.x_train)
+                else:
+                    self.algorithm.fit(x.x_train, y.y_train)
+        else:
+            pass
+        return self
+
+    def fit_transform(self, x, y = None):
+        """Generic fit_transform method for partial compatibility to sklearn.
+        """
+        self.fit(x = x, y = y)
+        self.transform(x = x, y = y)
+        return x
+        
+    def transform(self, x, y = None):
+        """Generic transform method for partial compatibility to sklearn."""
+        if hasattr(self.algorithm, 'transform'):
+            if isinstance(x, pd.DataFrame):           
+                if y:
+                    x = self.algorithm.transform(x, y)
+                else:
+                    x = self.algorithm.transform(x)
+            elif isinstance(x, Ingredients):
+                if y is None:
+                    x.x_train = self.algorithm.transform(x.x_train)
+                else:
+                    x.x_train = self.algorithm.transform(x.x_train, y.y_train)
+        else:
+            pass
+        return x
+    
+@dataclass
+class SimpleTechnique(SimpleClass):
+      
+    def _finalize_techniques(self, techniques):    
+        self.techniques = self.listify(
+            self._check_wildcards(techniques = techniques))
+        return self
+       
+    def __post_init__(self):
+        super().__post_init__()
+        
+    

@@ -6,11 +6,11 @@ from imblearn.over_sampling import ADASYN, RandomOverSampler, SMOTE, SMOTENC
 from imblearn.under_sampling import (AllKNN, ClusterCentroids, NearMiss,
                                      RandomUnderSampler)
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Sample(Step):
+class Sample(SimpleStep):
     """Synthetically resamples data according to selected algorithm."""
     technique : str = ''
     parameters : object = None
@@ -59,18 +59,18 @@ class Sample(Step):
         if self.technique != 'none':
             self._edit_parameters(ingredients.x, columns)
             if recipe.data_to_use in ['full']:
-                self._store_feature_names(ingredients.x, ingredients.y)
+                self._store_column_names(ingredients.x, ingredients.y)
                 resampled_x, resampled_y = self.algorithm.fit_resample(
                         ingredients.x, ingredients.y)
-                ingredients.x, ingredients.y = self._get_feature_names(
+                ingredients.x, ingredients.y = self._get_column_names(
                         resampled_x, resampled_y)
             else:
-                self._store_feature_names(ingredients.x_train,
+                self._store_column_names(ingredients.x_train,
                                           ingredients.y_train)
                 resampled_x, resampled_y = self.algorithm.fit_resample(
                         ingredients.x_train, ingredients.y_train)
                 ingredients.x_train, ingredients.y_train = (
-                        self._get_feature_names(resampled_x, resampled_y))
+                        self._get_column_names(resampled_x, resampled_y))
         return ingredients
 
     def transform(self, x, y):

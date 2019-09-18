@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from skopt import BayesSearchCV
 
-from ....core.technique import Technique
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Search(Technique):
+class Search(SimpleStep):
     
     technique : str = ''
     parameters : object = None

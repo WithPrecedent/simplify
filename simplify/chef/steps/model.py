@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from .models.classifier import Classifier
 from .models.clusterer import Clusterer
 from .models.regressor import Regressor
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Model(Step):
+class Model(SimpleStep):
     """Applies machine learning algorithms based upon user selections."""
     technique : str = ''
     parameters : object = None
@@ -33,7 +33,7 @@ class Model(Step):
         if self.technique != 'none':
             if not hasattr(self, 'parameters') or not self.parameters:
                 self.parameters = self.idea[self.technique]
-            self._check_parameters()
+            self._finalize_parameters()
             self.algorithm = self.options[self.model_type](
                     technique = self.technique,
                     parameters = self.parameters)

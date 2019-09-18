@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from sklearn.model_selection import (GroupKFold, KFold, ShuffleSplit,
                                      StratifiedKFold, TimeSeriesSplit)
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Split(Step):
+class Split(SimpleStep):
     """Splits data into training, testing, and/or validation sets or applies
     k-folds cross-validation.
     """
@@ -40,7 +40,7 @@ class Split(Step):
 
     def finalize(self):
         """Adds parameters to algorithm."""
-        self._check_parameters()
+        self._finalize_parameters()
         self._select_parameters()
         if self.technique in ['train_test']:
             self.parameters.update({'n_splits' : 1})

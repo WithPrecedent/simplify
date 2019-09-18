@@ -4,11 +4,11 @@ from dataclasses import dataclass
 import numpy as np
 
 from ...retool import ReTool
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Clean(Step):
+class Clean(SimpleStep):
 
     technique : str = ''
     parameters : object = None

@@ -7,10 +7,10 @@ from sklearn.feature_selection import (chi2, f_classif, mutual_info_classif,
                                        SelectKBest, SelectFdr, SelectFpr,
                                        SelectFromModel)
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 @dataclass
-class Reduce(Step):
+class Reduce(SimpleStep):
     """Reduces features using different algorithms, including the model
     algorithm.
     """
@@ -53,7 +53,7 @@ class Reduce(Step):
         elif self.technique == 'custom':
             self.default_parameters = {'threshold' : 'mean'}
             self.runtime_parameters = {'estimator' : estimator}
-        self._check_parameters()
+        self._finalize_parameters()
         self._select_parameters()
         self.parameters.update({'estimator' : estimator})
         if 'k' in self.parameters:

@@ -17,10 +17,12 @@ from dataclasses import dataclass
 import datetime
 from itertools import product
 
+from simplify.artist.canvas import Canvas
 from simplify.chef.steps import (Cleave, Encode, Mix, Model, Reduce, Sample,
                                  Scale, Split)
 from simplify.core.decorators import check_arguments
-from simplify.core.base import SimpleManager
+from simplify.core.base import SimpleManager, SimplePlan
+from simplify.core.base import SimpleStep
 from simplify.critic.analysis import Analysis
 
 
@@ -33,7 +35,7 @@ class Cookbook(SimpleManager):
         ingredients: an instance of Ingredients (or a subclass). This argument
             does not need to be passed when the class is instanced. However,
             failing to do so will prevent the use of the Cleave step and the
-            _compute_hyperparameters method. 'ingredients' will need to be 
+           '_calculate_hyperparameters' method. 'ingredients' will need to be 
             passed to the 'produce' method if it isn't when the class is
             instanced. Consequently, it is recommended that 'ingredients' be
             passed when the class is instanced.
@@ -70,7 +72,7 @@ class Cookbook(SimpleManager):
 
     """ Private Methods """
 
-    def _compute_hyperparameters(self):
+    def _calculate_hyperparameters(self):
         """Computes hyperparameters that can be determined by the source data
         (without creating data leakage problems).
         
@@ -90,12 +92,16 @@ class Cookbook(SimpleManager):
         return self
 
     def _produce_recipes(self):
+        """Tests 'recipes' with all combinations of step techniques selected.
+        """
         for recipe_number, recipe in getattr(self, self.plan_iterable).items():
             if self.verbose:
                 print('Testing', recipe.name, str(recipe_number))
             recipe.produce(ingredients = self.ingredients)
-            self.save_recipe(recipe = recipe)
-            self.analysis.produce(recipes = recipe)  
+            if self.export_all_recipes:
+                self.save_recipe(recipe = recipe)
+            self.analysis.produce(recipes = recipe)
+            self.canvas.produce(recipes = recipe, analysis = self.analysis)  
         return self 
         
     def _set_experiment_folder(self):
@@ -167,18 +173,31 @@ class Cookbook(SimpleManager):
         self.manager_type = 'parallel'
         self.plan_class = Recipe
         self.plan_iterable = 'recipes'
+        # Injects step class with name of SimpleManager subclass.
+        SimpleStep.manager_name = self.name
         return self
 
     def edit_recipes(self, recipes):
         """Adds a single recipe or list of recipes to 'recipes' attribute.
 
         Args:
-            recipe: an instance of Recipe.
+            recipes(Recipe, list(Recipe), or dict(int, Recipe)): recipes to be 
+                added into 'recipes' attribute.
         """
-        if hasattr(self, 'recipes'):
-            self.recipes.extend(self.listify(recipes))
+        if self.recipes is None:
+            self.recipes = {}
+        if self.recipes:
+            if isinstance(recipes, dict):
+                recipes = list(recipes.values())
+                last_num = list(self.recipes.keys())[-1:]                 
+            for i, recipe in enumerate(self.listify(recipes)):
+                self.recipes.update({last_num + i + 1 : recipe})
+        elif isinstance(recipes, dict):
+            self.recipes = recipes
         else:
-            self.recipes = self.listify(recipes)
+            self.recipes = {}
+            for i, recipe in enumerate(self.listify(recipes)):
+                self.recipes.update({i + 1 : recipe})            
         return self
 
     def finalize(self):
@@ -188,10 +207,11 @@ class Cookbook(SimpleManager):
         """
         # Sets attributes for data analysis and export.
         self.analysis = Analysis()
+        self.canvas = Canvas()
         self._set_experiment_folder()
         # Creates all recipe combinations and store Recipe instances in 
         # 'recipes'.
-        self._finalize_parallel()
+        super().finalize()
         return self
 
     def load_recipe(self, file_path):
@@ -296,14 +316,15 @@ class Cookbook(SimpleManager):
 
 
 @dataclass
-class Recipe(SimpleManager):
+class Recipe(SimplePlan):
     """Defines rules for analyzing data in the siMpLify Cookbook subpackage.
 
     Attributes:
-        techniques(dict): techniques containing the classes to be used at
-            each stage of a Recipe.
+        steps(dict): dictionary containing keys of step names (strings) and 
+            values of Cookbook step instances.
         name: a string designating the name of the class which should be
-            identical to the section of the idea with relevant settings.
+            identical to the section of the Idea instance with relevant 
+            settings.
     """
     techniques : object = None
     name : str = 'recipe'
@@ -313,25 +334,11 @@ class Recipe(SimpleManager):
         super().__post_init__()
         return self
 
-    def __call__(self, *args, **kwargs):
-        """When called as a function, a Recipe class or subclass instance will
-        return the produce method.
-        """
-        return self.produce(*args, **kwargs)
-
-    def draft(self):
-        pass
-        return self
-        
-    def finalize(self):
-        pass
-        return self
-
     def produce(self, ingredients):
-        """Applies the Recipe methods to the passed ingredients."""
+        """Applies the Cookbook techniques to the passed ingredients."""
         techniques = self.techniques.copy()
         self.ingredients = ingredients
-        ingredients.split_xy(label = self.label)
+        self.ingredients.split_xy(label = self.label)
         # If using cross-validation or other data splitting technique, the 
         # pre-split methods apply to the 'x' data. After the split, techniques
         # must be incorporate the split into 'x_train' and 'x_test'.
@@ -342,7 +349,7 @@ class Recipe(SimpleManager):
             else:
                 self.ingredients = self.techniques[step].produce(
                     ingredients = self.ingredients,
-                    recipe = self)
+                    plan = self)
         split_algorithm = self.techniques['splitter'].algorithm
         for train_index, test_index in split_algorithm.split(
                 self.ingredients.x, self.ingredients.y):
@@ -355,5 +362,5 @@ class Recipe(SimpleManager):
            for step, technique in techniques.items():
                 self.ingredients = technique.produce(
                     ingredients = self.ingredients,
-                    recipe = self)
+                    plan = self)
         return self

@@ -3,11 +3,11 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Deliver(Step):
+class Deliver(SimpleStep):
 
     technique : str = ''
     parameters : object = None

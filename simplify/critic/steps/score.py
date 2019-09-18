@@ -4,12 +4,11 @@ from dataclasses import dataclass
 import pandas as pd
 from sklearn import metrics
 
-from simplify.core.step import Step
-from simplify.core.technique import Technique
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Score(Step):
+class Score(SimpleStep):
 
     def __post_init__(self):
 

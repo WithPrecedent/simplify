@@ -3,11 +3,11 @@ from dataclasses import dataclass
 import os
 
 from ...retool import ReTool
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Reap(Step):
+class Reap(SimpleStep):
 
     technique : str = ''
     parameters : object = None

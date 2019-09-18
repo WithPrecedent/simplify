@@ -8,8 +8,11 @@ Contents:
 """
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleManager
-from simplify.critic.steps import Summarize, Evaluate, Score, Report
+from simplify.core.base import SimpleManager, SimplePlan
+from simplify.critic.steps.summarize import Summarize
+from simplify.critic.steps.evaluate import Evaluate
+from simplify.critic.steps.score import Score
+from simplify.critic.steps.report import Report
 
 
 @dataclass
@@ -49,9 +52,9 @@ class Analysis(SimpleManager):
     def draft(self):
         """Sets default options for the Critic's analysis."""
         self.options = {'summarizer' : Summarize,
-                        'evaluator' : Evaluate
-                        'score' : Score,
-                        'report' : Report}
+                        'evaluator' : Evaluate,
+                        'scorer' : Score,
+                        'reporter' : Report}
         self.checks = ['steps']
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.step = 'critic'
@@ -61,14 +64,26 @@ class Analysis(SimpleManager):
         self.plan_class = Review
         self.plan_iterable = 'reviews'
         return self
-
+   
     def finalize(self):
         """Calls the appropriate finalize method based upon 'manager_type' of
         class.
         """
-        getattr(self, '_finalize_' + self.manager_type)()
+        super().finalize()
+        self.review = Review()
         return self
-
+ 
+    def print_best(self):
+        """Prints output to the console about the best recipe."""
+        if self.verbose:
+            print('The best test recipe, based upon the',
+                  self.listify(self.metrics)[0], 'metric with a score of',
+                  f'{self.best_recipe_score : 4.4f}', 'is:')
+            for technique in self.best_recipe.techniques:
+                print(technique.capitalize(), ':',
+                      getattr(self.best_recipe, technique).technique)
+        return
+       
     def produce(self, recipes = None):
         """Evaluates recipe with various tools and finalizes report."""
         for recipe in self.listify(recipes):
@@ -81,7 +96,7 @@ class Analysis(SimpleManager):
 
 
 @dataclass
-class Review(SimpleManager):
+class Review(SimplePlan):
     """Stores machine learning experiment results.
 
     Report creates and stores a results report and other general
@@ -130,62 +145,9 @@ class Review(SimpleManager):
                     self.listify(self.metrics)[0]]
         return self
 
-
-    def _format_step(self, attribute):
-        if getattr(self.recipe, attribute).technique in ['none', 'all']:
-            step_column = getattr(self.recipe, attribute).technique
-        else:
-            technique = getattr(self.recipe, attribute).technique
-            parameters = getattr(self.recipe, attribute).parameters
-            step_column = f'{technique}, parameters = {parameters}'
-        return step_column
-
-    def _print_classifier_results(self, recipe):
-        """Prints to console basic results separate from report."""
-        print('These are the results using the', recipe.model.technique,
-              'model')
-        if recipe.splicer.technique != 'none':
-            print('Testing', recipe.splicer.technique, 'predictors')
-        print('Confusion Matrix:')
-        print(self.confusion)
-        print('Classification Report:')
-        print(self.classification_report)
-        return self
-
-    def _set_columns(self):
-        """Sets columns and options for report."""
-        self.columns = {'recipe_number' : 'number',
-                        'options' : 'techniques',
-                        'seed' : 'seed',
-                        'validation_set' : 'val_set'}
-        for step in self.recipe.techniques:
-            self.columns.update({step : step})
-        self.columns_list = list(self.columns.keys())
-        self.columns_list.extend(self.listify(self.metrics))
-        self.report = pd.DataFrame(columns = self.columns_list)
-        return self
-
-    def draft(self):
-        self.options = {}
-        return self
-
-    def print_best(self):
-        """Prints output to the console about the best recipe."""
-        if self.verbose:
-            print('The best test recipe, based upon the',
-                  self.listify(self.metrics)[0], 'metric with a score of',
-                  f'{self.best_recipe_score : 4.4f}', 'is:')
-            for technique in self.best_recipe.techniques:
-                print(technique.capitalize(), ':',
-                      getattr(self.best_recipe, technique).technique)
-        return
-
-    def produce(self, recipe):
-        self.recipe = recipe
-        if not hasattr(self, 'columns'):
-            self._set_columns()
-        self._create_predictions()
-        self._edit_result()
-        self._confusion_matrix()
-        getattr(self, '_' + self.model_type + '_report')()
+    def produce(self, recipes):
+        for recipe in self.listify(recipes):
+            self._check_best()
+            for step, technique in self.techniques.items():
+                recipe = technique.produce(recipe = recipe)
         return self

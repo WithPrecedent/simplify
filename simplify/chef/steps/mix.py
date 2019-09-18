@@ -3,11 +3,11 @@ from dataclasses import dataclass
 
 from category_encoders import PolynomialEncoder
 
-from simplify.core.step import Step
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Mix(Step):
+class Mix(SimpleStep):
     """Computes new features using different algorithms selected."""
     technique : str = ''
     parameters : object = None

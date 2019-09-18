@@ -4,17 +4,19 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from simplify.core.step import Step
-from simplify.core.technique import Technique
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Evaluate(Step):
+class Evaluate(SimpleStep):
     """Core class for evaluating the results of data analysis produceed by
     the siMpLify Cookbook.
 
     """
-
+    techniques : object = None
+    name : str = 'evaluator'
+    auto_finalize : bool = True
+    
     def __post_init__(self):
         """Sets up the core attributes of an Evaluator instance."""
         super().__post_init__()
@@ -25,18 +27,11 @@ class Evaluate(Step):
                         'shap' : ShapEvaluator,
                         'skater' : SkaterEvaluator,
                         'sklearn' : SklearnEvaluator}
-
-    def finalize(self):
-        if self.evaluators == 'all':
-            self.techniques = list(self.options.keys())
-        else:
-            self.techniques = self.listify(self.evalutors)
-        return self
-
-
+        self.checks = ['idea']
+        return self         
 
 @dataclass
-class Eli5Evaluator(Technique):
+class Eli5Evaluator(SimpleStep):
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
@@ -78,7 +73,7 @@ class Eli5Evaluator(Technique):
         return self
 
 @dataclass
-class ShapEvaluator(Technique):
+class ShapEvaluator(SimpleStep):
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
@@ -133,7 +128,7 @@ class ShapEvaluator(Technique):
         return self
 
 @dataclass
-class SklearnEvaluator(Technique):
+class SklearnEvaluator(SimpleStep):
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
@@ -194,7 +189,7 @@ class SklearnEvaluator(Technique):
         """
         self.result = pd.Series(index = self.columns_list)
         for column, value in self.columns.items():
-            if isinstance(getattr(self.recipe, value), CookbookStep):
+            if isinstance(getattr(self.recipe, value), CookbookSimpleStep):
                 self.result[column] = self._format_step(value)
             else:
                 self.result[column] = getattr(self.recipe, value)
@@ -219,7 +214,7 @@ class SklearnEvaluator(Technique):
         return self
 
 @dataclass
-class SkaterEvaluator(Technique):
+class SkaterEvaluator(SimpleStep):
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""

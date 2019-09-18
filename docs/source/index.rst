@@ -113,7 +113,7 @@ Core Modules
 .. autoclass:: simplify.Settings
    :members:
 
-Recipe Steps
+Recipe SimpleSteps
 ======================
 
 .. autoclass:: simplify.Scaler

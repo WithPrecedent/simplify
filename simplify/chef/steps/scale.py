@@ -6,12 +6,12 @@ from sklearn.preprocessing import (KBinsDiscretizer, MaxAbsScaler,
                                    QuantileTransformer, RobustScaler,
                                    StandardScaler)
 
-from simplify.core.step import Step
-from ...core.technique import Technique
+from simplify.core.base import SimpleStep
+from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Scale(Step):
+class Scale(SimpleStep):
     """Scales numerical data according to selected algorithm."""
     technique : str = ''
     parameters : object = None
@@ -43,7 +43,7 @@ class Scale(Step):
     def finalize(self):
         """Adds parameters to algorithm and sets import/export folders."""
 #        self.conform()
-        self._check_parameters()
+        self._finalize_parameters()
         self._select_parameters()
         if self.technique == 'gauss':
             self.algorithm = self.options[self.technique](
@@ -57,7 +57,7 @@ class Scale(Step):
         if self.technique != 'none':
             if not columns:
                 columns = ingredients.scalers
-            self._store_feature_names(x = ingredients.x)
+            self._store_column_names(x = ingredients.x)
             if self.technique == 'gauss':
                 ingredients = self.algorithm.produce(ingredients = ingredients,
                                                    columns = columns)
@@ -67,11 +67,11 @@ class Scale(Step):
 #            else:
 #                ingredients.x = self.fit_transform(
 #                        ingredients.x, ingredients.y)
-            ingredients.x = self._get_feature_names(x = ingredients.x)
+            ingredients.x = self._get_column_names(x = ingredients.x)
         return ingredients
 #
 #@dataclass
-#class Gaussify(Technique):
+#class Gaussify(SimpleStep):
 #
 #    technique : str = ''
 #    parameters : object = None
