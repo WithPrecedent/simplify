@@ -1,15 +1,15 @@
 """
-critic.py is the primary control file for evaluating the modeling of data. 
+critic.py is the primary control file for evaluating the modeling of data.
 
 Contents:
     Analysis: primary class constructing and controlling model evaluation.
-    Review: class for accumulating metrics and evaluations of the data and 
+    Review: class for accumulating metrics and evaluations of the data and
         model.
 """
 from dataclasses import dataclass
 
 from simplify.core.base import SimpleManager
-from simplify.critic.steps import Summarize, Evaluate
+from simplify.critic.steps import Summarize, Evaluate, Score, Report
 
 
 @dataclass
@@ -45,11 +45,13 @@ class Analysis(SimpleManager):
         return self
 
     """ Public Methods """
-    
+
     def draft(self):
         """Sets default options for the Critic's analysis."""
         self.options = {'summarizer' : Summarize,
-                        'evaluator' : Evaluate}
+                        'evaluator' : Evaluate
+                        'score' : Score,
+                        'report' : Report}
         self.checks = ['steps']
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.step = 'critic'
@@ -69,9 +71,9 @@ class Analysis(SimpleManager):
 
     def produce(self, recipes = None):
         """Evaluates recipe with various tools and finalizes report."""
-        if self.verbose:
-            print('Evaluating recipes')
-        for recipe in self.listify(recipes):   
+        for recipe in self.listify(recipes):
+            if self.verbose:
+                print('Evaluating', recipe.name + 's')
             self._check_best(recipe = recipe)
             for step, technique in getattr(self, self.plan_iterable).items():
                 technique.produce(recipe = recipe)
@@ -100,12 +102,12 @@ class Review(SimpleManager):
     techniques : object = None
     name : str = 'review'
     auto_finalize: bool = True
-    
+
     def __post_init__(self):
         self.idea_sections = ['analysis']
-        super().__post_init__()  
+        super().__post_init__()
         return self
-    
+
     def _check_best(self, recipe):
         """Checks if the current recipe is better than the current best recipe
         based upon the primary scoring metric.
@@ -127,21 +129,7 @@ class Review(SimpleManager):
                     self.report.index[-1],
                     self.listify(self.metrics)[0]]
         return self
-    
-    def _classifier_report(self):
-        self.classifier_report_default = metrics.classification_report(
-                self.recipe.ingredients.y_test,
-                self.predictions)
-        self.classifier_report_dict = metrics.classification_report(
-                self.recipe.ingredients.y_test,
-                self.predictions,
-                output_dict = True)
-        self.classifier_report = pd.DataFrame(
-                self.classifier_report_dict).transpose()
-        return self
 
-    def _cluster_report(self):
-        return self
 
     def _format_step(self, attribute):
         if getattr(self.recipe, attribute).technique in ['none', 'all']:
@@ -151,10 +139,6 @@ class Review(SimpleManager):
             parameters = getattr(self.recipe, attribute).parameters
             step_column = f'{technique}, parameters = {parameters}'
         return step_column
-
-    def _regressor_report(self):
-        return self
-
 
     def _print_classifier_results(self, recipe):
         """Prints to console basic results separate from report."""
@@ -184,7 +168,7 @@ class Review(SimpleManager):
     def draft(self):
         self.options = {}
         return self
- 
+
     def print_best(self):
         """Prints output to the console about the best recipe."""
         if self.verbose:
@@ -194,8 +178,8 @@ class Review(SimpleManager):
             for technique in self.best_recipe.techniques:
                 print(technique.capitalize(), ':',
                       getattr(self.best_recipe, technique).technique)
-        return       
-    
+        return
+
     def produce(self, recipe):
         self.recipe = recipe
         if not hasattr(self, 'columns'):

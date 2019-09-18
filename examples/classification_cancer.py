@@ -15,7 +15,7 @@ cancer = load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
 # Initializes core simplify classes.
-idea = Idea(configuration = os.path.join(os.getcwd(),'examples',
+idea = Idea(configuration = os.path.join(os.getcwd(),
                                          'cancer_settings.ini'))
 depot = Depot(root_folder = os.path.join('..', '..'))
 ingredients = Ingredients(df = df)

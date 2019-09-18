@@ -19,7 +19,7 @@ class Step(SimpleManager):
         return self
 
     """ Private Methods """
-    
+
     def _check_parameters(self):
         """Checks if parameters exists. If not, defaults are used. If there
         are no defaults, an empty dict is created for parameters.
@@ -34,7 +34,7 @@ class Step(SimpleManager):
         if hasattr(self, 'runtime_parameters') and self.runtime_parameters:
             self.parameters.update(self.runtime_parameters)
         return self
-    
+
     def _check_technique(self, step):
         """Returns appropriate algorithm to the report attribute."""
         if step.technique in ['none', 'all']:
@@ -78,7 +78,7 @@ class Step(SimpleManager):
         return self
 
     """ Public Methods """
-    
+
     def draft(self):
         if not hasattr(self, 'options'):
             self.options = {}
@@ -122,7 +122,7 @@ class Step(SimpleManager):
             self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def produce(self, ingredients, recipe):
+    def produce(self, ingredients, plan = None):
         """Generic implement method for adding ingredients into recipe and
         applying the appropriate algorithm.
         """

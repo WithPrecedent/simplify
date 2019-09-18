@@ -7,11 +7,10 @@ from abc import ABC, abstractmethod
 import csv
 from configparser import ConfigParser
 from dataclasses import dataclass
-from datetime import timedelta
 from functools import wraps
 import glob
 from inspect import getfullargspec
-from itertools import chain, product
+from itertools import product
 import os
 import re
 import pickle
@@ -19,38 +18,36 @@ import warnings
 
 from more_itertools import unique_everseen
 import numpy as np
-from numpy import datetime64
 import pandas as pd
-from pandas.api.types import CategoricalDtype
-from tensorflow.test import is_gpu_available
+#from tensorflow.test import is_gpu_available
 
 from simplify.core.types import DataTypes, FileTypes
 
 
 @dataclass
 class SimpleClass(ABC):
-    """Absract base class for classes in siMpLify package to support a common 
+    """Absract base class for classes in siMpLify package to support a common
     class structure and allow sharing of universal methods.
 
     To use the class, a subclass must have the following methods:
-        draft: a method which sets the default values for the subclass, and 
+        draft: a method which sets the default values for the subclass, and
             usually includes the self.options dictionary. If the subclass calls
             super().__post_init__, the 'draft' method is automatically called.
         finalize: a method which, after the user has set all options in the
             preferred manner, constructs the objects which can parse, modify,
             process, analyze, and/or transform data.
-            
+
     The following methods are not strictly required but should be used if
     the subclass is transforming data or other variable (as opposed to merely
     containing data or variables):
         produce: method which applies the finalized objects to passed data or
             other variables.
-    
+
     For consistency, methods in subclasses which seek to alter the 'options'
     dict or set parameters should begin with the 'edit_' prefix.
 
-    If the subclass includes boolean attributes of auto_finalize or 
-    auto_produce, and those attributes are set to True, then the finalize 
+    If the subclass includes boolean attributes of auto_finalize or
+    auto_produce, and those attributes are set to True, then the finalize
     and/or produce methods are called when the class is instanced.
     """
 
@@ -58,7 +55,7 @@ class SimpleClass(ABC):
         """Calls selected initialization methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Creates 'idea' attribute if a string is passed to Idea when subclass 
+        # Creates 'idea' attribute if a string is passed to Idea when subclass
         # was instanced. Injects attributes from 'idea' to subclass.
         if self.__class__.__name__ != 'Idea':
             self._check_idea()
@@ -80,14 +77,14 @@ class SimpleClass(ABC):
 
     def __call__(self, idea, *args, **kwargs):
         """When called as a function, a subclass will return the produce method
-        after running __post_init__. Any args and kwargs will be passed to the 
+        after running __post_init__. Any args and kwargs will be passed to the
         'produce' method.
 
         Args:
-            idea (Idea or str): an instance of Idea or path where an Idea 
-                configuration file is located must be passed when a subclass is 
+            idea (Idea or str): an instance of Idea or path where an Idea
+                configuration file is located must be passed when a subclass is
                 called as a function.
-                
+
         Returns:
             return value of 'produce' method.
         """
@@ -99,23 +96,23 @@ class SimpleClass(ABC):
 
     def __contains__(self, item):
         """Checks if item is in 'options'.
-        
+
         Args:
             item (str): item to be searched for in 'options' keys.
-            
+
         Returns:
             True, if 'item' in 'options' - otherwise False.
         """
         return item in self.options
 
     def __delitem__(self, item):
-        """Deletes item if in 'options' or, if ait is an instance attribute, it 
+        """Deletes item if in 'options' or, if ait is an instance attribute, it
         is assigned a value of None.
-        
+
         Args:
             item (str): item to be deleted from 'options' or attribute to be
                 assigned None.
-              
+
         Raises:
             KeyError: if item is neither in 'options' or an attribute.
         """
@@ -134,10 +131,10 @@ class SimpleClass(ABC):
 
         Args:
             attr (str): attribute sought.
-        
+
         Returns:
             attribute or None, if attribute does not exist.
-            
+
         Raises:
             AttributeError: if a dunder attribute is sought.
         """
@@ -155,10 +152,10 @@ class SimpleClass(ABC):
 
     def __getitem__(self, item):
         """Returns item if item is in self.options or is an atttribute.
-        
+
         Args:
             item (str): item matching dict key or attribute name.
-        
+
         Returns:
             value for item in 'options', 'item' attribute value, or None if
                 neither of those exist.
@@ -176,10 +173,10 @@ class SimpleClass(ABC):
 
     def __setitem__(self, item, value):
         """Adds item and value to options dictionary.
-        
+
         Args:
             item (str): 'options' key to be set.
-            value (any): corresponding value to be set for 'item' key in 
+            value (any): corresponding value to be set for 'item' key in
                 'options'.
         """
         self.options[item] = value
@@ -188,39 +185,39 @@ class SimpleClass(ABC):
     """ Private Methods """
 
     def _check_depot(self):
-        """Adds an Depot instance with default Depot instance as 'depot' 
+        """Adds an Depot instance with default Depot instance as 'depot'
         attribute if one is not passed when subclass is instanced.
         """
         if not hasattr(self, 'depot') or self.depot is None:
             self.depot = Depot(idea = self.idea)
         return self
-    
+
     def _check_gpu(self):
         """If gpu status is not set, checks if the local machine has a GPU
-        capable of supporting included machine learning algorithms. 
-        
-        Because the tensorflow 'is_gpu_available' method is very lenient in 
-        counting what qualifies, it is recommended to set the 'gpu' attribute 
+        capable of supporting included machine learning algorithms.
+
+        Because the tensorflow 'is_gpu_available' method is very lenient in
+        counting what qualifies, it is recommended to set the 'gpu' attribute
         directly or through an Idea instance.
         """
-        if hasattr(self, 'gpu'):
-            if self.gpu and self.verbose:
-                print('Using GPU')
-            elif self.verbose:
-                print('Using CPU')
-        elif is_gpu_available:
-            self.gpu = True
-            if self.verbose:
-                print('Using GPU')
-        else:
-            self.gpu = False
-            if self.verbose:
-                print('Using CPU')
+#        if hasattr(self, 'gpu'):
+#            if self.gpu and self.verbose:
+#                print('Using GPU')
+#            elif self.verbose:
+#                print('Using CPU')
+#        elif is_gpu_available:
+#            self.gpu = True
+#            if self.verbose:
+#                print('Using GPU')
+#        else:
+#            self.gpu = False
+#            if self.verbose:
+#                print('Using CPU')
         return self
-    
+
     def _check_idea(self):
         """Loads Idea settings from a file if a string is passed instead of an
-        Idea instance. Injects sections of 'idea' to a subclass instance using 
+        Idea instance. Injects sections of 'idea' to a subclass instance using
         user settings.
         """
         if hasattr(self, 'idea') and isinstance(self.idea, str):
@@ -241,13 +238,13 @@ class SimpleClass(ABC):
 
     def _check_ingredients(self, ingredients = None):
         """Checks if ingredients attribute exists and takes appropriate action.
-        
-        If an 'ingredients' attribute exists, it determines if it contains a 
-        file folder, file path, or Ingredients instance. Depending upon its 
-        type, different actions are taken to actually create an Ingredients 
-        instance. 
-        
-        If ingredients is None, then an Ingredients instance is 
+
+        If an 'ingredients' attribute exists, it determines if it contains a
+        file folder, file path, or Ingredients instance. Depending upon its
+        type, different actions are taken to actually create an Ingredients
+        instance.
+
+        If ingredients is None, then an Ingredients instance is
         created with no pandas DataFrames or Series within it.
 
         Args:
@@ -280,7 +277,7 @@ class SimpleClass(ABC):
         """
         if not hasattr(self, 'steps') or self.steps is None:
             if hasattr(self, self.name + '_steps'):
-                if getattr(self, self.name + '_steps') in ['all', 'default']:             
+                if getattr(self, self.name + '_steps') in ['all', 'default']:
                     self.steps = list(self.options.keys())
                 else:
                     self.steps = self.listify(getattr(
@@ -292,7 +289,7 @@ class SimpleClass(ABC):
         if not hasattr(self, 'step') or not self.step:
             self.step = self.steps[0]
         return self
-    
+
     @classmethod
     def _register_subclass(self):
         """Adds subclass to appropriate list based on attribute in subclass."""
@@ -304,27 +301,27 @@ class SimpleClass(ABC):
             if hasattr(self, attribute) and getattr(self, attribute):
                 getattr(self, subclass_list).append(self)
         return self
-            
+
     def _run_checks(self):
         """Checks attributes from 'checks' and runs corresponding methods based
-        upon strings stored in 'checks'. Those methods should have the prefix 
+        upon strings stored in 'checks'. Those methods should have the prefix
         '_check_' followed by the string in the attribute 'checks' and have
         no parameters other than 'self'.
         """
         if hasattr(self, 'checks') and self.checks:
             for check in self.checks:
                 getattr(self, '_check_' + check)()
-        return self        
+        return self
 
     """ Public Methods """
 
     def conform(self, step):
-        """Sets 'step' attribute to passed 'step' throughout package. 
-        
-        This method is used to maintain a universal state in the package for 
+        """Sets 'step' attribute to passed 'step' throughout package.
+
+        This method is used to maintain a universal state in the package for
         subclasses that are state dependent. It iterates through any subclasses
         listed in 'registered_state_subclasses' to call their 'conform' methods.
-        
+
         Args:
             step (str): corresponds to current state in siMpLify package.
         """
@@ -336,26 +333,22 @@ class SimpleClass(ABC):
     @staticmethod
     def deduplicate(iterable):
         """Deduplicates list, pandas DataFrame, or pandas Series.
-        
+
         Args:
             iterable (list, DataFrame, or Series): iterable to have duplicate
                 entries removed.
-        
+
         Returns:
             iterable (list, DataFrame, or Series, same as passed type): iterable
                 with duplicate entries removed.
-                
-        Todo:
-            Add pandas Series and DataFrame implementation.    
         """
         if isinstance(iterable, list):
             return list(unique_everseen(iterable))
-        # Needs implementation for pandas
         elif isinstance(iterable, pd.Series):
-            return iterable
+            return iterable.drop_duplicates(inplace = True)
         elif isinstance(iterable, pd.DataFrame):
-            return iterable
-    
+            return iterable.drop_duplicates(inplace = True)
+
     @abstractmethod
     def draft(self):
         """Required method that sets default values for a subclass.
@@ -368,19 +361,19 @@ class SimpleClass(ABC):
         """
         pass
         return self
-    
+
     def edit(self, techniques = None, algorithms = None, options = None):
         """Updates 'options' dictionary with passed arguments.
-        
+
         Args:
-            techniques (str or list): a string name or list of names for keys in        
+            techniques (str or list): a string name or list of names for keys in
             the 'options' dict.
-            algorithms (object or list(object)): siMpLify compatible objects 
-                which can be integrated in the package framework. If they are 
-                custom algorithms, they should be subclassed from Technique to 
+            algorithms (object or list(object)): siMpLify compatible objects
+                which can be integrated in the package framework. If they are
+                custom algorithms, they should be subclassed from Technique to
                 ensure compatibility.
-            options (dict): a dictionary with keys of techniques and values of 
-                algorithms. This should be passed if the user has already 
+            options (dict): a dictionary with keys of techniques and values of
+                algorithms. This should be passed if the user has already
                 combined some or all 'techniques' and 'algorithms' into a dict.
         """
         if options:
@@ -388,18 +381,18 @@ class SimpleClass(ABC):
         if techniques and algorithms:
             self.name_to_type.update(dict(zip(techniques, algorithms)))
         return self
-    
+
     @abstractmethod
     def finalize(self, **kwargs):
         """Required method which creates any objects to be applied to data or
-        variables. 
-        
-        In the case of iterative classes, such as Cookbook, this method should 
-        construct any plans to be later implemented by the 'produce' method. It 
+        variables.
+
+        In the case of iterative classes, such as Cookbook, this method should
+        construct any plans to be later implemented by the 'produce' method. It
         is roughly equivalent to the scikit-learn fit method.
-        
+
         Args:
-            **kwargs: keyword arguments are not ordinarily included in the 
+            **kwargs: keyword arguments are not ordinarily included in the
                 finalize method. But nothing precludes them from being added
                 to subclasses.
         """
@@ -411,11 +404,11 @@ class SimpleClass(ABC):
         """Checks to see if the variable is stored in a list. If not, the
         variable is converted to a list or a list of 'none' is created if the
         variable is empty.
-        
+
         Args:
-            variable(str or list): variable to be transformed into a list to          
+            variable(str or list): variable to be transformed into a list to
             allow iteration.
-        
+
         Returns:
             variable(list): either the original list, a string converted to a
                 list, or a list containing 'none' as its only item.
@@ -426,7 +419,7 @@ class SimpleClass(ABC):
             return variable
         else:
             return [variable]
-        
+
     def load(self, name = None, file_path = None, folder = None,
              file_name = None, file_format = None):
         """Loads object from file into subclass attribute.
@@ -470,16 +463,16 @@ class SimpleClass(ABC):
                         file_name = file_name,
                         file_format = file_format)
         return
- 
- 
+
+
 @dataclass
 class Idea(SimpleClass):
     """Loads and/or stores the user's data science idea.
 
-    If configuration settings are imported from a file, Idea creates a nested 
-    dictionary, converting dictionary values to appropriate datatypes, and 
-    stores portions of the configuration dictionary as attributes in other 
-    classes. Idea is based on for python's ConfigParser. It seeks to cure some 
+    If configuration settings are imported from a file, Idea creates a nested
+    dictionary, converting dictionary values to appropriate datatypes, and
+    stores portions of the configuration dictionary as attributes in other
+    classes. Idea is based on for python's ConfigParser. It seeks to cure some
     of the most significant shortcomings of the base ConfigParser package:
         1) All values in ConfigParser are strings by default.
         2) The nested structure for getting items creates verbose code.
@@ -490,7 +483,7 @@ class Idea(SimpleClass):
         1) Pass file path and the file will automatically be loaded,
         2) Pass a file name which is located in the current working directory,
             or;
-        3) Pass a prebuilt nested dictionary matching the specifications of 
+        3) Pass a prebuilt nested dictionary matching the specifications of
         'configuration' for storage in the Idea class.
 
     Whichever option is chosen, the nested idea dictionary is stored in the
@@ -513,22 +506,22 @@ class Idea(SimpleClass):
         test_data = True
         test_chunk = 500
         random_test_chunk = True
-        
+
         [cookbook]
         cookbook_steps = split, reduce, model
 
-    'verbose' and 'file_type' will automatically be added to every siMpLify 
+    'verbose' and 'file_type' will automatically be added to every siMpLify
     class because they are located in the 'general' section. If a subclass wants
-    attributes from the files section, then the following line should appear 
+    attributes from the files section, then the following line should appear
     in __post_init__ before calling super().__post_init__:
-    
+
         self.idea_sections = ['files']
-    
+
     If the subclass wants the cookbook settings as well, then the code should
     be:
         self.idea_sections = ['files', 'cookbook']
-    
-    If that latter code is included, an equivalent to this class will be 
+
+    If that latter code is included, an equivalent to this class will be
     created:
 
         class FakeClass(object):
@@ -545,19 +538,19 @@ class Idea(SimpleClass):
 
     Regardless of the idea_sections added, all idea settings can be similarly
     accessed using dict keys. For example:
-    
+
         self.idea['general']['seed'] # typical dict access technique
-                                and 
+                                and
         self.idea['seed'] # if no section or other key is named 'seed'
-                            both return 43. 
-        
-        
-    Because Idea uses ConfigParser, it only allows 2-level dictionaries. The 
+                            both return 43.
+
+
+    Because Idea uses ConfigParser, it only allows 2-level dictionaries. The
     desire for accessibility and simplicity dictated this limitation.
 
     Args:
-        configuration(str or dict): either a file path, file name, or two-level       
-        nested dictionary storing settings. If a file path is provided, A          
+        configuration(str or dict): either a file path, file name, or two-level
+        nested dictionary storing settings. If a file path is provided, A
         nested dict will automatically be created from the file and stored in
             'configuration'. If a file name is provided, Idea will look for it
             in the current working directory and store its contents in
@@ -565,7 +558,7 @@ class Idea(SimpleClass):
         infer_types(bool): variable determines whether values in
             'configuration' are converted to other types (True) or left as
             strings (False).
-        auto_finalize(bool): whether to automatically call the 'finalize' 
+        auto_finalize(bool): whether to automatically call the 'finalize'
             method when the class is instanced. Unless adding a new source for
             'configuration' settings, this should be set to True.
         auto_produce(bool): whether to automatically call the 'produce' method
@@ -582,7 +575,7 @@ class Idea(SimpleClass):
         return self
 
     """ Magic Methods """
-    
+
     def __delitem__(self, key):
         """Removes a dictionary section if name matches the name of a section.
         Otherwise, it will remove all entries with name inside the various
@@ -590,7 +583,7 @@ class Idea(SimpleClass):
 
         Args:
             key(str): the name of the dictionary key or section to be deleted.
-            
+
         Raises:
             KeyError: if 'key' not in 'configuration'.
         """
@@ -614,10 +607,10 @@ class Idea(SimpleClass):
         Args:
             key(str): the name of the dictionary key for which the value is
                 sought.
-                
+
         Returns:
             dict if 'key' matches a section in 'configuration'. If 'key' matches
-                a key within a section, the value, which can be any of the 
+                a key within a section, the value, which can be any of the
                 supported datatypes is returned. If no match is found an empty
                 dict is returned.
         """
@@ -645,7 +638,7 @@ class Idea(SimpleClass):
             section(str): a string naming the section of the configuration
                 dictionary.
             nested_dict(dict): the dictionary to be placed in that section.
-            
+
         Raises:
             TypeError if 'section' isn't a str or 'nested_dict' isn't a dict.
         """
@@ -661,11 +654,11 @@ class Idea(SimpleClass):
         return self
 
     """ Private Methods """
-    
+
     def _check_configuration(self):
         """Checks the datatype of 'configuration' and sets 'technique' to
         properly finalize 'configuration'.
-        
+
         Raises:
             AttributeError if 'configuration' attribute is neither a file path
                 dict, nor Idea instance.
@@ -692,22 +685,27 @@ class Idea(SimpleClass):
 
     def _create_from_ini(self):
         """Creates a configuration dictionary from an .ini file."""
-        configuration = ConfigParser(dict_type = dict)
-        configuration.optionxform = lambda option : option
-        configuration.read(self.configuration)
-        self.configuration = dict(configuration._sections)
+        if os.path.isfile(self.configuration):
+            configuration = ConfigParser(dict_type = dict)
+            configuration.optionxform = lambda option : option
+            configuration.read(self.configuration)
+            self.configuration = dict(configuration._sections)
+        else:
+            error = 'configuration file ' + self.configuration + ' not found'
+            raise FileNotFoundError(error)
         return self
 
     def _create_from_py(self):
         """Creates a configuration dictionary from an .py file.
-        
-        Todo: 
-            Add .py file implementation."""
+
+        Todo:
+            Add .py file implementation.
+        """
         pass
         return self
 
     def _infer_types(self):
-        """If 'infer_types' is True, all dictionary values in 'configuration' 
+        """If 'infer_types' is True, all dictionary values in 'configuration'
         are converted to the appropriate datatype.
         """
         if self.infer_types:
@@ -718,21 +716,21 @@ class Idea(SimpleClass):
 
     def _inject_base(self):
         """Injects parent class, SimpleClass with this Idea instance so that
-        the instance is available to other files in the siMpLify package. 
+        the instance is available to other files in the siMpLify package.
         """
         setattr(SimpleClass, 'idea', self)
         return self
 
     def _typify(self, variable):
         """Converts str to appropriate, supported datatype.
-        
+
         The method converts strings to list (if ', ' is present), int, float, or
-        bool datatypes based upon the content of the string. If no alternative 
+        bool datatypes based upon the content of the string. If no alternative
         datatype is found, the variable is returned in its original form.
-        
+
         Args:
             variable(str): string to be converted to appropriate datatype.
-            
+
         Returns:
             variable(str, list, int, float, or bool): converted variable.
         """
@@ -776,15 +774,15 @@ class Idea(SimpleClass):
         the passed class instance as attributes to that class instance.
 
         Args:
-            instance(object): either a class instance or class to which 
+            instance(object): either a class instance or class to which
                 attributes should be added.
-            sections(str or list): the sections of the configuration dictionary        
-            which should have key, value pairs added as attributes to 
+            sections(str or list): the sections of the configuration dictionary
+            which should have key, value pairs added as attributes to
                 instance.
-            override (bool): if True, even existing attributes in instance will 
+            override (bool): if True, even existing attributes in instance will
                 be replaced by configuration dictionary items. If False, current
                 values in those similarly-named attributes will be maintained.
-                
+
         Returns:
             instance with attributes added.
         """
@@ -796,17 +794,17 @@ class Idea(SimpleClass):
 
     def items(self):
         """Returns items of 'configuration' dict to mirror dict functionality.
-        
+
         This method is also accessed if the user attempts to iterate the class.
         """
         return self.configuration.items()
-    
+
     def keys(self):
         """Returns keys (section names) of 'configuration' dict to mirror dict
         functionality.
         """
         return self.configuration.keys()
-    
+
     def produce(self):
         """Creates configuration setttings and injects Idea into SimpleClass.
         """
@@ -820,13 +818,13 @@ class Idea(SimpleClass):
         """Adds new settings to the configuration dictionary.
 
         Args:
-           new_settings(dict, str, or Idea): can either be a dictionary or Idea        
-           object containing new attribute, value pairs or a string 
-               containing a file path from which new configuration options can 
+           new_settings(dict, str, or Idea): can either be a dictionary or Idea
+           object containing new attribute, value pairs or a string
+               containing a file path from which new configuration options can
                be found.
-               
+
         Raises:
-            TypeError: if 'new_settings' is neither a dict, str, or Idea 
+            TypeError: if 'new_settings' is neither a dict, str, or Idea
                 instance.
         """
         if isinstance(new_settings, dict):
@@ -841,29 +839,29 @@ class Idea(SimpleClass):
             error_message = 'new_options must be dict, Idea instance, or path'
             raise TypeError(error_message)
         return self
-      
+
     def values(self):
         """Returns values (sections) of 'configuration' dict to mirror dict
         functionality.
         """
         return self.configuration.values()
- 
+
 @dataclass
 class Depot(SimpleClass):
-    """Manages files and folders for the Creates and stores dynamic and static 
+    """Manages files and folders for the Creates and stores dynamic and static
     file paths, properly formats
-    files for import and export, and allows loading and saving of siMpLify, 
+    files for import and export, and allows loading and saving of siMpLify,
     pandas, and numpy objects in set folders.
 
     Args:
-        root_folder(str): the complete path from which the other paths and 
+        root_folder(str): the complete path from which the other paths and
         folders     used by Depot should be created.
-        data_folder(str): the data subfolder name or a complete path if the            
+        data_folder(str): the data subfolder name or a complete path if the
         'data_folder' is not off of 'root_folder'.
-        results_folder(str): the results subfolder name or a complete path if 
+        results_folder(str): the results subfolder name or a complete path if
             the 'results_folder' is not off of 'root_folder'.
-        datetime_naming(bool): whether the date and time should be used to 
-            create experiment subfolders (so that prior results are not 
+        datetime_naming(bool): whether the date and time should be used to
+            create experiment subfolders (so that prior results are not
             overwritten).
         auto_finalize(bool): whether to automatically call the 'finalize' method
             when the class is instanced. Unless making major changes to the
@@ -890,7 +888,7 @@ class Depot(SimpleClass):
         return self
 
     """ Private Methods """
-    
+
     def _add_branch(self, root_folder, subfolders):
         """Creates a branch of a folder tree and stores each folder name as
         a local variable containing the path to that folder.
@@ -912,11 +910,11 @@ class Depot(SimpleClass):
         based on user settings.
 
         Args:
-            variable(DataFrame or Series): pandas DataFrame or Series with some       
+            variable(DataFrame or Series): pandas DataFrame or Series with some
             boolean values.
-            
+
         Returns:
-            variable(DataFrame or Series): either the original pandas data or 
+            variable(DataFrame or Series): either the original pandas data or
                 the dataset with True/False converted to 1/0.
         """
         # Checks whether True/False should be exported in data files. If
@@ -931,10 +929,10 @@ class Depot(SimpleClass):
 
         Args:
             file_name(str): file name (without extension).
-            io_status(str): either 'import' or 'export' based upon whether the 
+            io_status(str): either 'import' or 'export' based upon whether the
                 user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
-        
+
         Returns:
             str containing file name.
         """
@@ -953,10 +951,10 @@ class Depot(SimpleClass):
 
         Args:
             file_format(str): one of the supported file types in 'extensions'.
-            io_status(str): either 'import' or 'export' based upon whether the         
+            io_status(str): either 'import' or 'export' based upon whether the
             user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
-            
+
         Returns:
             str containing file format.
         """
@@ -976,10 +974,10 @@ class Depot(SimpleClass):
         Args:
             folder: a string either containing a folder path or the name of an
                 attribute containing a folder path.
-            io_status(str): either 'import' or 'export' based upon whether the         
+            io_status(str): either 'import' or 'export' based upon whether the
             user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
-            
+
         Returns:
             str containing file folder path.
         """
@@ -995,11 +993,11 @@ class Depot(SimpleClass):
     def _check_kwargs(self, variables_to_check, passed_kwargs):
         """Checks kwargs to see which ones are required for the particular
         method and/or substitutes default values if needed.
-        
+
         Args:
             variables_to_check(list): variables to check for values.
             passed_kwargs(dict): kwargs passed to method.
-        
+
         Returns:
             new_kwargs(dict): kwargs with only relevant parameters.
         """
@@ -1026,12 +1024,12 @@ class Depot(SimpleClass):
 
     def _get_file_format(self, io_status):
         """Returns appropriate file format based on 'step' and 'io_status'.
-        
+
         Args:
-            io_status(str): either 'import' or 'export' based upon whether the         
+            io_status(str): either 'import' or 'export' based upon whether the
             user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
-            
+
         Returns:
             str containing file format.
         """
@@ -1046,7 +1044,7 @@ class Depot(SimpleClass):
             return self.final_format
 
     def _inject_base(self):
-        """Injects parent class with this Depot instance so that the instance is 
+        """Injects parent class with this Depot instance so that the instance is
         available to other files in the siMpLify package.
         """
         SimpleClass.depot = self
@@ -1054,10 +1052,10 @@ class Depot(SimpleClass):
 
     def _load_csv(self, file_path, **kwargs):
         """Loads csv file into a pandas DataFrame.
-        
+
         Args:
             file_path(str): complete file path of file.
-            
+
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -1072,10 +1070,10 @@ class Depot(SimpleClass):
 
     def _load_excel(self, file_path, **kwargs):
         """Loads Excel file into a pandas DataFrame.
-        
+
         Args:
             file_path(str): complete file path of file.
-            
+
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -1089,10 +1087,10 @@ class Depot(SimpleClass):
 
     def _load_feather(self, file_path, **kwargs):
         """Loads feather file into pandas DataFrame.
-        
+
         Args:
             file_path(str): complete file path of file.
-            
+
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -1100,10 +1098,10 @@ class Depot(SimpleClass):
 
     def _load_h5(self, file_path, **kwargs):
         """Loads hdf5 with '.h5' extension into pandas DataFrame.
-        
+
         Args:
             file_path(str): complete file path of file.
-            
+
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -1111,10 +1109,10 @@ class Depot(SimpleClass):
 
     def _load_hdf(self, file_path, **kwargs):
         """Loads hdf5 file into pandas DataFrame.
-        
+
         Args:
             file_path(str): complete file path of file.
-            
+
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -1130,10 +1128,10 @@ class Depot(SimpleClass):
 
     def _load_json(self, file_path, **kwargs):
         """Loads json file into pandas DataFrame.
-        
+
         Args:
             file_path(str): complete file path of file.
-            
+
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -1149,10 +1147,10 @@ class Depot(SimpleClass):
 
     def _load_pickle(self, file_path, **kwargs):
         """Returns an unpickled python object.
-        
+
         Args:
             file_path: complete file path of file.
-            
+
         Returns:
             variable(object): pickled object loaded from disc.
         """
@@ -1160,7 +1158,7 @@ class Depot(SimpleClass):
 
     def _load_png(self, file_path, **kwargs):
         """Although png files are saved by siMpLify, they cannot be loaded.
-        
+
         Raises:
             NotImplementedError: if called.
         """
@@ -1169,10 +1167,10 @@ class Depot(SimpleClass):
 
     def _load_text(self, file_path, **kwargs):
         """Loads text file with python reader.
-        
+
         Args:
             file_path(str): complete file path of file.
-            
+
         Returns:
             variable(str): string loaded from disc.
         """
@@ -1180,12 +1178,12 @@ class Depot(SimpleClass):
 
     def _load_txt(self, file_path, **kwargs):
         """Loads text file with python reader.
-        
+
         Args:
             file_path(str): complete file path of file.
-            
+
         Returns:
-            variable(str): string loaded from disc.         
+            variable(str): string loaded from disc.
         """
         with open(file_path, mode = 'r', errors = 'ignore',
                   encoding = self.file_encoding) as a_file:
@@ -1203,7 +1201,7 @@ class Depot(SimpleClass):
 
     def _save_csv(self, variable, file_path, **kwargs):
         """Saves csv file to disc.
-        
+
         Args:
             variable(Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -1219,7 +1217,7 @@ class Depot(SimpleClass):
 
     def _save_excel(self, variable, file_path, **kwargs):
         """Saves Excel file to disc.
-        
+
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -1235,7 +1233,7 @@ class Depot(SimpleClass):
 
     def _save_feather(self, variable, file_path, **kwargs):
         """Saves feather file to disc.
-        
+
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -1246,7 +1244,7 @@ class Depot(SimpleClass):
 
     def _save_h5(self, variable, file_path, **kwargs):
         """Saves hdf file with .h5 extension to disc.
-        
+
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -1256,7 +1254,7 @@ class Depot(SimpleClass):
 
     def _save_hdf(self, variable, file_path, **kwargs):
         """Saves hdf file to disc.
-        
+
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -1266,7 +1264,7 @@ class Depot(SimpleClass):
 
     def _save_json(self, variable, file_path, **kwargs):
         """Saves json file to disc.
-        
+
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -1276,7 +1274,7 @@ class Depot(SimpleClass):
 
     def _save_pickle(self, variable, file_path, **kwargs):
         """Pickles file and saves it to disc.
-        
+
         Args:
             variable(object): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -1286,7 +1284,7 @@ class Depot(SimpleClass):
 
     def _save_png(self, variable, file_path, **kwargs):
         """Saves png file to disc.
-        
+
         Args:
             variable(matplotlib object): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -1300,7 +1298,7 @@ class Depot(SimpleClass):
         Depot instance.
 
         Args:
-            folder_tree(dict): a folder tree to be created with corresponding          
+            folder_tree(dict): a folder tree to be created with corresponding
             attributes to the Depot instance.
         """
         for folder, subfolders in folder_tree.items():
@@ -1309,16 +1307,16 @@ class Depot(SimpleClass):
 
     def create_batch(self, folder = None, file_format = None,
                     include_subfolders = True):
-        """Creates a list of paths in 'folder_in' based upon 'file_format'. 
-        
+        """Creates a list of paths in 'folder_in' based upon 'file_format'.
+
         If 'include_subfolders' is True, subfolders are searched as well for
         matching 'file_format' files.
-        
+
         Args:
-            folder(str): path of folder or string corresponding to class 
+            folder(str): path of folder or string corresponding to class
                 attribute with path.
             file_format(str): file format name.
-            include_subfolders(bool):  whether to include files in subfolders 
+            include_subfolders(bool):  whether to include files in subfolders
                 when creating a batch.
         """
         folder = self._check_folder(folder = folder)
@@ -1330,9 +1328,9 @@ class Depot(SimpleClass):
 
     def create_folder(self, folder, subfolder = None):
         """Creates folder path from component parts.
-        
+
         Args:
-            folder(str): path of folder or string corresponding to class 
+            folder(str): path of folder or string corresponding to class
                 attribute containing folder path.
             subfolder(str): subfolder name to be created off of folder.
         """
@@ -1347,9 +1345,9 @@ class Depot(SimpleClass):
     def create_path(self, folder = None, file_name = None, file_format = None,
                     io_status = None):
         """Creates file path from component parts.
-        
+
         Args:
-            folder(str): path of folder or string corresponding to class 
+            folder(str): path of folder or string corresponding to class
                 attribute containing folder path.
             file_name(str): file name without extension.
             file_format(str): file format name from 'extensions' dict.
@@ -1373,12 +1371,12 @@ class Depot(SimpleClass):
 
     def draft(self):
         """Creates default folder and file dicts."""
-        # Initializes dict with file format names and corresponding file 
+        # Initializes dict with file format names and corresponding file
         # extensions.
         self.extensions = FileTypes()
         # Creates list of default subfolders from 'data_folder' to create.
         self.data_subfolders = ['raw', 'interim', 'processed', 'external']
-        # Creates default parameters when they are not passed as kwargs to 
+        # Creates default parameters when they are not passed as kwargs to
         # methods in the class.
         self.default_kwargs = {'index' : False,
                                'header' : None,
@@ -1401,7 +1399,7 @@ class Depot(SimpleClass):
         # Sets index for import and export folders in 'options' dict.
         self.options_index = {'import' : 0,
                               'export' : 1}
-        # Sets default folders to use for imports and exports that are not 
+        # Sets default folders to use for imports and exports that are not
         # data containers. The keys are based upon 'name' attributes of classes.
         self.class_options = {'ingredients' : 'default',
                               'datatypes' : 'recipe',
@@ -1413,9 +1411,9 @@ class Depot(SimpleClass):
                               'visualizer' : 'recipe',
                               'evaluator' : 'recipe',
                               'summarizer' : 'recipe',
-                              'comparer' : 'experiment'}       
+                              'comparer' : 'experiment'}
         return self
-    
+
     def edit_file_formats(self, file_format, extension, load_method,
                           save_method):
         """Adds or replaces a file extension option.
@@ -1423,9 +1421,9 @@ class Depot(SimpleClass):
         Args:
             file_format(str): string name of the file_format.
             extension(str): file extension (without period) to be used.
-            load_method(method): a method to be used when loading files of the         
+            load_method(method): a method to be used when loading files of the
             passed file_format.
-            save_method(method): a method to be used when saving files of the          
+            save_method(method): a method to be used when saving files of the
             passed file_format.
         """
         self.extensions.update({file_format : extension})
@@ -1470,7 +1468,7 @@ class Depot(SimpleClass):
             file_path(str): a complete path to the file being written to.
             columns(list): column names to be added to the first row of the
                 file as column headers.
-            encoding(str): a python encoding type. 
+            encoding(str): a python encoding type.
             dialect(str): the specific type of csv file created.
         """
         if not columns:
@@ -1486,15 +1484,15 @@ class Depot(SimpleClass):
         """Stores the default paths in the passed instance.
 
         Args:
-            instance(object): either a class instance or class to which 
+            instance(object): either a class instance or class to which
                 attributes should be added.
             sections(list): attributes to be added to passed class. Data import
                 and export paths are automatically added.
             override(bool): if True, existing attributes in instance will be
                 replaced by items from this class.
-                
+
         Returns:
-            No value is returned, but passed instance is now injected with 
+            No value is returned, but passed instance is now injected with
             selected attributes.
         """
         instance.data_in = self.path_in
@@ -1516,9 +1514,9 @@ class Depot(SimpleClass):
         Args:
             plans(list): list of plan types (Recipe, Harvest, etc.)
             ingredients(Ingredients): an instance of Ingredients or subclass.
-            return_ingredients(bool): whether ingredients should be returned by 
+            return_ingredients(bool): whether ingredients should be returned by
             this method.
-            
+
         Returns:
             If 'return_ingredients' is True: an in instance of Ingredients.
             If 'return_ingredients' is False, no value is returned.
@@ -1554,13 +1552,13 @@ class Depot(SimpleClass):
                 'extensions'.
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
-                
+
         Returns:
-            Depending upon method used for appropriate file format, a new 
+            Depending upon method used for appropriate file format, a new
                 variable of a supported type is returned.
-        
+
         Raises:
-            TypeError: if file_path is not a string (likely a glob list)     
+            TypeError: if file_path is not a string (likely a glob list)
         """
         file_format = self._check_file_format(file_format = file_format,
                                               io_status = 'import')
@@ -1582,7 +1580,7 @@ class Depot(SimpleClass):
         """Injects Depot instance into base SimpleClass."""
         self._inject_base()
         return self
-    
+
     def save(self, variable, file_path = None, folder = None, file_name = None,
              file_format = None, **kwargs):
         """Exports file by calling appropriate method based on file_format. If
@@ -1614,7 +1612,7 @@ class Depot(SimpleClass):
         return
 
     """ Properties """
-    
+
     @property
     def file_in(self):
         """Returns the data input file name, or folder containing data in
@@ -1628,7 +1626,7 @@ class Depot(SimpleClass):
 
     @property
     def file_out(self):
-        """Returns the data output file name, or folder containing where 
+        """Returns the data output file name, or folder containing where
         multiple files should be saved.
         """
         if self.options[self.step][1] in ['raw']:
@@ -1669,15 +1667,15 @@ class Depot(SimpleClass):
 
 @dataclass
 class Ingredients(SimpleClass):
-    """Stores pandas DataFrames and Series with related information about those 
+    """Stores pandas DataFrames and Series with related information about those
     data containers and additional methods to apply to them.
 
     Ingredients uses pandas DataFrames or Series for all data storage, but it
     utilizes faster numpy methods where possible to increase performance.
 
-    DataFrames and Series stored in ingredients can be imported and exported 
+    DataFrames and Series stored in ingredients can be imported and exported
     using the 'load' and 'save' methods in a class instance.
-    
+
     Ingredients adds easy-to-use methods for common feature engineering
     techniques. In addition, any user function can be applied to a DataFrame
     or Series contained in Ingredients by using the 'apply' method (mirroring
@@ -1686,10 +1684,10 @@ class Ingredients(SimpleClass):
     Args:
         df(DataFrame, Series, or str): either a pandas data object or a string
             containing the complete path where a supported file type with data
-            is located. This argument should be passed if the user has a 
+            is located. This argument should be passed if the user has a
             pre-existing dataset and is not creating a new dataset with Farmer.
-        default_df(str): the current default DataFrame or Series attribute name        
-        that will be used when a specific DataFrame is not passed to a 
+        default_df(str): the current default DataFrame or Series attribute name
+        that will be used when a specific DataFrame is not passed to a
             method within the class. The default value is initially set to
             'df'. The decorator check_df will look to the default_df to pick
             the appropriate DataFrame in situations where no DataFrame is passed
@@ -1699,20 +1697,20 @@ class Ingredients(SimpleClass):
             instanced. They are merely listed for users who already have divided
             datasets and still wish to use the siMpLify package.
         datatypes(dict): contains column names as keys and datatypes for values
-            for columns in a DataFrames or Series. Ingredients assumes that all 
-            data containers within the instance are related and share a pool of 
+            for columns in a DataFrames or Series. Ingredients assumes that all
+            data containers within the instance are related and share a pool of
             column names and types.
-        prefixes(dict): contains column prefixes as keys and datatypes for 
+        prefixes(dict): contains column prefixes as keys and datatypes for
             values for columns in a DataFrames or Series. Ingredients assumes
             that all data containers within the instance are related and share a
             pool of column names and types.
-        auto_finalize(bool): whether 'finalize' method should be called when the       
+        auto_finalize(bool): whether 'finalize' method should be called when the
         class is instanced. This should generally be set to True.
         state_dependent(bool): whether this class is depending upon the current
             state in the siMpLify package. Unless the user is radically changing
             the way siMpLify works, this should be set to True.
     """
-    
+
     df : object = None
     default_df : str = 'df'
     x : object = None
@@ -1740,7 +1738,7 @@ class Ingredients(SimpleClass):
 
         Args:
             attr(str): attribute sought.
-            
+
         Returns:
             If 'attr' is the name of a DataFrame or Series beginning with 'x' or
                 'y'), a DataFrame or Series is returned based upon the current
@@ -1748,10 +1746,10 @@ class Ingredients(SimpleClass):
             If 'attr' is the name of a datatype, a list of columns that have
                 that datatype is returned. In addition 'numerics' combines float
                 and int columns into one list.
-            If 'attr' is related to one of the Cookbook methods ('scalers', 
+            If 'attr' is related to one of the Cookbook methods ('scalers',
                 'encoders', 'mixers'), a list of columns stored in that
                 attribute name or default for that method type.
-        
+
         Raises:
             AttributeError: if user attempts to access dunder method.
         """
@@ -1801,7 +1799,7 @@ class Ingredients(SimpleClass):
 
         Args:
             method(method): wrapped method.
-            
+
         Returns:
             df(DataFrame or Series): if the passed 'df' parameter was None,
                 the attribute named by 'default_df' will be passed. Otherwise,
@@ -1822,7 +1820,7 @@ class Ingredients(SimpleClass):
 
         Args:
             method(method): wrapped method.
-            
+
         Returns:
             new_kwargs(dict): 'columns' parameter has items from 'columns',
                 'prefixes', and 'mask' parameters combined into a single list
@@ -1859,7 +1857,7 @@ class Ingredients(SimpleClass):
 
         Args:
             columns(list): column names.
-        
+
         Returns:
             if columns is not None, returns columns, otherwise, the keys of
                 the 'datatypes' attribute is returned.
@@ -1869,9 +1867,9 @@ class Ingredients(SimpleClass):
     @check_df
     def _crosscheck_columns(self, df = None):
         """Removes any columns in datatypes dictionary, but not in df.
-        
+
         Args:
-            df(DataFrame or Series): pandas object with column names to 
+            df(DataFrame or Series): pandas object with column names to
                 crosscheck.
         """
         for column in self.datatypes.keys():
@@ -1884,7 +1882,7 @@ class Ingredients(SimpleClass):
 
         Args:
             datatype(str): string matching datatype in 'all_datatypes'.
-            
+
         Returns:
             list of columns matching the passed 'datatype'.
         """
@@ -1905,7 +1903,7 @@ class Ingredients(SimpleClass):
     def _initialize_datatypes(self, df = None):
         """Initializes datatypes for columns of pandas DataFrame or Series if
         not already provided.
-        
+
         Args:
             df(DataFrame): for datatypes to be determined.
         """
@@ -1991,7 +1989,7 @@ class Ingredients(SimpleClass):
         # which features are omitted from analysis.
         self.dropped_columns = []
         return self
-    
+
     @check_df
     def add_unique_index(self, df = None, column = 'index_universal',
                          make_index = False):
@@ -2002,9 +2000,9 @@ class Ingredients(SimpleClass):
             column(str): contains the column name for the index.
             make_index(bool): boolean value indicating whether the index column
                 should be made the actual index of the DataFrame.
-                
+
         Raises:
-            TypeError: if 'df' is not a DataFrame (usually because a Series is 
+            TypeError: if 'df' is not a DataFrame (usually because a Series is
                 passed).
         """
         if isinstance(df, pd.DataFrame):
@@ -2039,14 +2037,14 @@ class Ingredients(SimpleClass):
         converted to category type.
 
         Args:
-            df(DataFrame): pandas object for columns to be evaluated for 
+            df(DataFrame): pandas object for columns to be evaluated for
                 'categorical' type.
             columns(list): column names to be checked.
-            threshold(int): number of unique values necessary to form a 
-                category. If there are less unique values than the threshold, 
-                the column is converted to a category type. Otherwise, it will 
+            threshold(int): number of unique values necessary to form a
+                category. If there are less unique values than the threshold,
+                the column is converted to a category type. Otherwise, it will
                 remain its current datatype.
-        
+
         Raises:
             KeyError: if a column in 'columns' is not in 'df'.
         """
@@ -2065,9 +2063,9 @@ class Ingredients(SimpleClass):
     @check_df
     def change_datatype(self, df = None, columns = None, datatype = None):
         """Changes column datatypes of columns passed or columns with the
-        prefixes passed. 
-        
-        The datatype becomes the new datatype for the columns in both the 
+        prefixes passed.
+
+        The datatype becomes the new datatype for the columns in both the
         'datatypes' dict and in reality - a method is called to try to convert
         the column to the appropriate datatype.
 
@@ -2108,7 +2106,7 @@ class Ingredients(SimpleClass):
 
         Args:
             df(DataFrame): pandas object with data to be changed to a new type.
-            raise_errors(bool): whether errors should be raised when converting        
+            raise_errors(bool): whether errors should be raised when converting
             datatypes or ignored. Selecting False (the default) risks type
                 mismatches between the datatypes listed in the 'datatypes' dict
                 and 'df', but it prevents the program from being halted if
@@ -2131,8 +2129,8 @@ class Ingredients(SimpleClass):
     @check_df
     def convert_rare(self, df = None, columns = None, threshold = 0):
         """Converts categories rarely appearing within categorical columns
-        to empty string if they appear below the passed threshold. 
-        
+        to empty string if they appear below the passed threshold.
+
         The threshold is defined as the percentage of total rows.
 
         Args:
@@ -2141,7 +2139,7 @@ class Ingredients(SimpleClass):
                 not passed, all 'categorical' columns will be checked.
             threshold: a float indicating the percentage of values in rows
                 below which a default value is substituted.
-        
+
         Raises:
             KeyError: if column in 'columns' is not in 'df'.
         """
@@ -2163,7 +2161,7 @@ class Ingredients(SimpleClass):
     @check_df
     def create_column_list(self, df = None, columns = None, prefixes = None,
                            mask = None):
-        """Dynamically creates a new column list from a list of columns, lists 
+        """Dynamically creates a new column list from a list of columns, lists
         of prefixes, and/or boolean mask.
 
         Args:
@@ -2172,7 +2170,7 @@ class Ingredients(SimpleClass):
             prefixes(list): list of prefixes for columns to be included.
             mask(numpy array, list, or Series, of booleans): mask for columns to
                 be included.
-        
+
         Returns:
             column_names(list): column names created from 'columns', 'prefixes',
                 and 'mask'.
@@ -2206,9 +2204,9 @@ class Ingredients(SimpleClass):
 
         Args:
             columns(list): index names for pandas Series.
-            return_series (bool): whether the Series should be returned (True) 
+            return_series (bool): whether the Series should be returned (True)
                 or assigned to attribute named in 'default_df' (False).
-                
+
         Returns:
             Either nothing, if 'return_series' is False or a pandas Series with
                 index names matching 'datatypes' keys and datatypes matching
@@ -2232,7 +2230,7 @@ class Ingredients(SimpleClass):
     @check_df
     def decorrelate(self, df = None, columns = None, threshold = 0.95):
         """Drops all but one column from highly correlated groups of columns.
-        
+
         The threshold is based upon the .corr() method in pandas. columns can
         include any datatype accepted by .corr(). If columns is set to None,
         all columns in the DataFrame are tested.
@@ -2240,7 +2238,7 @@ class Ingredients(SimpleClass):
         Args:
             df(DataFrame): pandas object to be have highly correlated features
                 removed.
-            threshold(float): the level of correlation using pandas corr method        
+            threshold(float): the level of correlation using pandas corr method
             above which a column is dropped. The default threshold is 0.95,
                 consistent with a common p-value threshold used in research.
         """
@@ -2257,18 +2255,18 @@ class Ingredients(SimpleClass):
     @column_list
     @check_df
     def downcast(self, df = None, columns = None, allow_unsigned = True):
-        """Decreases memory usage by downcasting datatypes. 
-        
-        For numerical datatypes, the method attempts to cast the data to 
-        unsigned integers if possible when 'allow_unsigned' is True. If more 
-        data might be added later which, in the same column, has values less 
+        """Decreases memory usage by downcasting datatypes.
+
+        For numerical datatypes, the method attempts to cast the data to
+        unsigned integers if possible when 'allow_unsigned' is True. If more
+        data might be added later which, in the same column, has values less
         than zero, 'allow_unsigned' should be set to False.
 
         Args:
             df(DataFrame): pandas object for columns to be downcasted.
             columns(list): columns to downcast.
             allow_unsigned(bool): whether to allow downcasting to unsigned int.
-            
+
         Raises:
             KeyError: if column in 'columns' is not in 'df'.
         """
@@ -2304,10 +2302,10 @@ class Ingredients(SimpleClass):
     @column_list
     @check_df
     def drop_columns(self, df = None, columns = None):
-        """Drops list of columns and columns with prefixes listed. 
-    
+        """Drops list of columns and columns with prefixes listed.
+
         In addition to removing the columns, any dropped columns have their
-        column names stored in the cumulative 'dropped_columns' list. If you 
+        column names stored in the cumulative 'dropped_columns' list. If you
         wish to make use of the 'dropped_columns' attribute, you should use this
         'drop_columns' method instead of dropping the columns directly.
 
@@ -2326,7 +2324,7 @@ class Ingredients(SimpleClass):
     @check_df
     def drop_infrequent(self, df = None, columns = None, threshold = 0):
         """Drops boolean columns that rarely are True.
-         
+
         This differs from the sklearn VarianceThreshold class because it is only
         concerned with rare instances of True and not False. This enables
         users to set a different variance threshold for rarely appearing
@@ -2337,7 +2335,7 @@ class Ingredients(SimpleClass):
             df(DataFrame): pandas object for columns to checked for infrequent
                 boolean True values.
             columns(list): columns to check.
-            threshold(float): the percentage of True values in a boolean column        
+            threshold(float): the percentage of True values in a boolean column
             that must exist for the column to be kept.
         """
         if not columns:
@@ -2370,14 +2368,14 @@ class Ingredients(SimpleClass):
     @check_df
     def infer_datatypes(self, df = None):
         """Infers column datatypes and adds those datatypes to types.
-         
+
         This method is an alternative to default pandas methods which can use
         complex datatypes (e.g., int8, int16, int32, int64, etc.) instead of
-        simple types. 
-        
-        This methods also allows the user to choose which datatypes to look for 
-        by changing the 'default_values' dict stored in 'all_datatypes'. 
-        
+        simple types.
+
+        This methods also allows the user to choose which datatypes to look for
+        by changing the 'default_values' dict stored in 'all_datatypes'.
+
         Non-standard python datatypes cannot be inferred.
 
         Args:
@@ -2423,7 +2421,7 @@ class Ingredients(SimpleClass):
             df(DataFrame): pandas object for values to be filled
             columns(list): list of columns to fill missing values in. If no
                 columns are passed, all columns are filled.
-        
+
         Raises:
             KeyError: if column in 'columns' is not in 'df'.
         """
@@ -2458,7 +2456,7 @@ class Ingredients(SimpleClass):
     @property
     def full(self):
         """Returns the full dataset divided into x and y twice.
-        
+
         This is used when the user wants the training and testing datasets to
         be the full dataset. This creates obvious data leakage problems, but
         is sometimes used after the model is tested and validated to produce
@@ -2500,15 +2498,15 @@ class Ingredients(SimpleClass):
     def xy(self):
         """Returns the full dataset divided into x and y."""
         return self.options['x'], self.options['y']
-   
-    
+
+
 @dataclass
 class SimpleManager(SimpleClass, ABC):
     """Parent abstract base class for siMpLify planners, steps, and techniques.
-    
-    This class adds a required 'produce' method and other methods useful to 
+
+    This class adds a required 'produce' method and other methods useful to
     siMpLify classes which transform data or fit models.
-    
+
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
     """
@@ -2516,87 +2514,70 @@ class SimpleManager(SimpleClass, ABC):
         super().__post_init__()
         # Outputs class status to console if verbose option is selected.
         # if self.verbose:
-        #     print('Creating', self.name)       
+        #     print('Creating', self.name)
         return self
 
     """ Private Methods """
-    
-    def _create_combinations(self):
-        """Creates all combinations of plans from user options and stores those 
-        in 'plans' attribute.
-        """
-        self.all_plans = {}
-        step_combinations = []
+
+    def _create_option_lists(self):
+        """Creates list of option lists of techniques."""
+        self.all_steps = []
         for step in self.options.keys():
             # Stores each step attribute in a list
-            setattr(self, step, self.listify(getattr(self, step)))
+            if hasattr(self, step):
+                setattr(self, step, self.listify(getattr(self, step)))
+            else:
+                setattr(self, step, ['none'])
             # Adds step to a list of all step lists
-            step_combinations.append(getattr(self, step))
-        # Creates a list of all possible permutations of step techniques
-        # selected. Each item in the the list is an instance of the plan class.
-        self.all_plans = list(map(list, product(*step_combinations)))      
+            self.all_steps.append(getattr(self, step))
         return self
-    
-    def _finalize_combinations(self):
+
+    def _create_plan_instance(self, plan):
+        plan_techniques = {}
+        for j, (step, technique) in enumerate(self.options.items()):
+            # Stores each step attribute in a dict.
+            technique_instance = technique(technique = plan[j])
+            plan_techniques.update({step : technique_instance})
+        return self.plan_class(techniques = plan_techniques)
+
+    def _create_plan_iterables(self):
+        # Uses default name of 'plans' if class doesn't have 'plan_iterable'
+        # attribute.
+        if not hasattr(self, 'plan_iterable'):
+            self.plan_iterable = 'plans'
+            self.plans = {}
+        # Creates empty dict for 'plan_iterable' attribute if attribute doesn't
+        # exist.
+        elif (not hasattr(self, self.plan_iterable)
+                or getattr(self, self.plan_iterable) is None):
+            setattr(self, self.plan_iterable, {})
+        return self
+
+    def _finalize_parallel(self):
         """Creates dict with steps as keys and techniques as values for each
         plan in the 'plans' attribute."""
-        # Uses default name of 'plans' if class doesn't have 'plan_iterable' 
-        # attribute.
-        if not hasattr(self, 'plan_iterable'):
-            self.plan_iterable = 'plans'
-            self.plans = {}
-        # Creates empty dict for 'plan_iterable' attribute if attribute doesn't 
-        # exist.
-        elif (not hasattr(self, self.plan_iterable)
-                or getattr(self, self.plan_iterable) is None):
-            setattr(self, self.plan_iterable, {})
-        # Iterates through possible steps and either assigns corresponding 
+        # Creates a list of all possible permutations of step techniques
+        # selected. Each item in the the list is an instance of the plan class.
+        self.all_plans = list(map(list, product(*self.all_steps)))
+        # Iterates through possible steps and either assigns corresponding
         # technique from 'all_plans'.
         for i, plan in enumerate(self.all_plans):
-            plan_techniques = {}
-            for j, (step, technique) in enumerate(self.options.items()):
-                # Stores each step attribute in a dict.
-                technique_instance = technique(technique = plan[j])
-                plan_techniques.update({step : technique_instance})
-            plan_instance = self.plan_class(techniques = plan_techniques)
+            plan_instance = self._create_plan_instance(plan = plan)
             plan_instance.number = i
             getattr(self, self.plan_iterable).update({i : plan_instance})
-        return self    
-    
-    def _finalize_parallel(self):
-        self._create_combinations()
-        self._finalize_combinations()
         return self
-    
+
     def _finalize_serial(self):
         """Creates dict with steps as keys and techniques as values."""
-        # Uses default name of 'plans' if class doesn't have 'plan_iterable' 
-        # attribute.
-        if not hasattr(self, 'plan_iterable'):
-            self.plan_iterable = 'plans'
-            self.plans = {}
-        # Creates empty dict for 'plan_iterable' attribute if attribute doesn't 
-        # exist.
-        elif (not hasattr(self, self.plan_iterable)
-                or getattr(self, self.plan_iterable) is None):
-            setattr(self, self.plan_iterable, {})
-        # Iterates through possible steps and either assigns local attribute
-        # with the same name as value in dict or 'none' if no local attribute.
-        for step in self.options.keys():
-            # Stores each step attribute in a dict.
-            if hasattr(self, step):
-                value = self.listify(getattr(self, step))
-            else:
-                value = 'none'
-            getattr(self, self.plan_iterable).update({step : value})
+        self.all_plans = dict(zip(self.options.keys(), self.all_steps))
         # Changes 'plan_iterable' attribute to be instance of 'plan_class' with
-        # the 'techniques' parameter being the prepared dict.     
+        # the 'techniques' parameter being the prepared dict.
         setattr(self, self.plan_iterable, self.plan_class(
-            techniques = getattr(self, self.plan_iterable)))
+            techniques = self.all_plans))
         return self
-        
+
     """ Public Methods """
-    
+
     def draft(self):
         """ Declares defaults for class."""
         self.options = {}
@@ -2605,10 +2586,12 @@ class SimpleManager(SimpleClass, ABC):
         return self
 
     def finalize(self):
-        """See SimpleClass for documentation."""
-        pass
+        """Finalizes"""
+        self._create_option_lists()
+        self._create_plan_iterables()
+        getattr(self, '_finalize_' + self.manager_type)()
         return self
-            
+
     @abstractmethod
     def produce(self, variable = None, **kwargs):
         """Required method that implements all of the finalized objects on the
@@ -2627,7 +2610,7 @@ class SimpleManager(SimpleClass, ABC):
         return variable
 
     # Methods saved for possible later use.
-    
+
     # def edit_parameters(self, step, parameters):
     #     """Adds parameter sets to the parameters dictionary of a prescribed
     #     step. """
@@ -2647,5 +2630,4 @@ class SimpleManager(SimpleClass, ABC):
     # def edit_technique(self, step, technique, parameters = None):
     #     tool_instance = self.options[step](technique = technique,
     #                                        parameters = parameters)
-    #     return tool_instance    
- 
+    #     return tool_instance
