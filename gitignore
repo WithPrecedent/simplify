@@ -25,10 +25,10 @@ var/
 *.pyc
 */.vscode
 .vscode
-.vscode/*
-.vscode/*/*
-.spyproject/*/*
-.spyproject/workspace.ini
+*/.vscode/*
+*/.vscode/*/*
+*/.spyproject/*/*
+*/.spyproject/workspace.ini
 scratch.py
 data/raw/*/*
 data/interim/*/*
