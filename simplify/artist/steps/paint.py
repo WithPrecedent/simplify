@@ -15,17 +15,17 @@ from simplify.core.base import SimpleStep
 
 @dataclass
 class Paint(SimpleStep):
-    
+
     technique : str = ''
     parameters : object = None
     auto_finalize : bool = True
     auto_produce : bool = False
     name : str = 'painter'
-    
+
     def __post_init__(self):
         super().__post_init__()
         return self
- 
+
     def _check_length(self, df, max_display):
         """Checks if max_display length is larger than number of columns.
         If so, number of columns in df is used instead.
@@ -33,12 +33,12 @@ class Paint(SimpleStep):
         if max_display > len(df.columns):
             max_display = len(df.columns)
         return max_display
- 
+
     def _set_grid(self, recipes):
         size = ceil(sqrt(self.len(recipes)))
         self.grid = gridspec.GridSpec(size, size)
         return self
-         
+
     def calibration(self, file_name = 'calibration.png'):
         skplt.metrics.plot_calibration_curve(self.y, self.review.probs_list,
                                              self.review.model_list)
@@ -65,7 +65,7 @@ class Paint(SimpleStep):
                               legend = 2)
         self.save(file_name)
         return self
-    
+
     def draft(self):
         """Sets available plots dictionary."""
         self.options = {'calibration' : self.calibration,
@@ -92,7 +92,12 @@ class Paint(SimpleStep):
                         'shap_summary' : self.shap_summary,
                         'silhouette' : self.silhouette}
         return self
-        
+
+#    def _edit_dependency_plots(self):
+#        if self.dependency_plots in ['cleaves']:
+#
+#        return self
+
     def elbow_curve(self, file_name = 'elbow_curve.png'):
         skplt.metrics.plot_elbow_curve(self.estimator, self.x)
         self.save(file_name)

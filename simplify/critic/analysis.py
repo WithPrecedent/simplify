@@ -64,15 +64,15 @@ class Analysis(SimpleManager):
         self.plan_class = Review
         self.plan_iterable = 'reviews'
         return self
-   
+
     def finalize(self):
         """Calls the appropriate finalize method based upon 'manager_type' of
         class.
         """
         super().finalize()
-        self.review = Review()
+        self.reviews = Review()
         return self
- 
+
     def print_best(self):
         """Prints output to the console about the best recipe."""
         if self.verbose:
@@ -83,7 +83,7 @@ class Analysis(SimpleManager):
                 print(technique.capitalize(), ':',
                       getattr(self.best_recipe, technique).technique)
         return
-       
+
     def produce(self, recipes = None):
         """Evaluates recipe with various tools and finalizes report."""
         for recipe in self.listify(recipes):

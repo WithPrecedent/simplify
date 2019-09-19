@@ -5,7 +5,11 @@
 
 from .evaluate import Evaluate
 from .summarize import Summarize
+from .score import Score
+from .report import Report
 
 
 __all__ = ['Evaluate',
-           'Summarize']
+           'Summarize',
+           'Score',
+           'Report']

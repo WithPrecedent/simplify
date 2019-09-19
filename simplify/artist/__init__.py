@@ -4,10 +4,11 @@
 """
 
 
-from .canvas import Canvas
+from .canvas import Canvas, Illustration
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = ['Canvas']
+__all__ = ['Canvas',
+           'Illustration']

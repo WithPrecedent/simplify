@@ -6,17 +6,17 @@ Contents:
 
     Canvas: class which handles construction and utilization of visuals
         to create charts, graphs, and other visuals in the siMpLify package.
-    Illustration: class which stores a particular set of techniques and 
+    Illustration: class which stores a particular set of techniques and
         algorithms used to create data visualizations.
-        
+
     Both classes are subclasses to SimpleClass and follow its structural rules.
-    
+
 """
 from dataclasses import dataclass
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-
+from simplify.artist.steps.style import Style
+from simplify.artist.steps.paint import Paint
+from simplify.artist.steps.animate import Animate
 from simplify.core.base import SimpleClass
 
 
@@ -24,7 +24,7 @@ from simplify.core.base import SimpleClass
 class Canvas(SimpleClass):
     """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
-    """   
+    """
     ingredients : object = None
     steps : object = None
     recipes : object = None
@@ -37,23 +37,25 @@ class Canvas(SimpleClass):
         super().__post_init__()
         return self
 
+    """ Private Methods """
+
     def _check_model_type(self):
         """Sets default paintings, animations, and any other added options if
         user selects 'default' as the option for the respective option.
         """
         for key in self.options.keys():
-            if not hasattr(key) and getattr(self, key) == 'default':
+            if not hasattr(self, key) and getattr(self, key) == 'default':
                 setattr(self, key, getattr(
-                    self, '_default_' + self.model_type + 'key')())       
+                    self, '_default_' + self.model_type + 'key')())
         return self
-    
+
     def _default_classifier_animations(self):
         """Returns list of default animations for classifier algorithms."""
         return []
-    
+
     def _default_classifier_paintings(self):
         """Returns list of default plots for classifier algorithms."""
-        return ['confusion', 'heat_map', 'ks_statistic', 'pr_curve', 
+        return ['confusion', 'heat_map', 'ks_statistic', 'pr_curve',
                 'roc_curve']
 
     def _default_cluster_animations(self):
@@ -82,50 +84,30 @@ class Canvas(SimpleClass):
         else:
             error = 'produce method requires Ingredients or Recipe instance'
             raise TypeError(error)
-    
-    def _set_style(self):
-        """Sets fonts, colors, and styles for plots that do not have set
-        styles.
-        """
-        # List of colorblind colors obtained from here:
-        # https://www.dataquest.io/blog/making-538-plots/.
-        # Thanks to Alex Olteanu.
-        colorblind_colors = [[0,0,0], [230/255,159/255,0],
-                             [86/255,180/255,233/255], [0,158/255,115/255],
-                             [213/255,94/255,0], [0,114/255,178/255]]
-        plt.style.use(style = self.plot_style)
-        plt.rcParams['font.family'] = self.plot_font
-        sns.set_style(style = self.seaborn_style)
-        sns.set_context(context = self.seaborn_context)
-        if self.seaborn_palette == 'colorblind':
-            sns.set_palette(color_codes = colorblind_colors)
-        else:
-            sns.set_palette(palette = self.seaborn_palette)
-        return self
+
+
+    """ Core Public siMpLify Methods """
 
     def draft(self):
         """Sets default styles, options, and plots."""
-        self.checks = ['steps', 'model_type']
-        self._set_style()
-        self.options = {'painter' : Paint,
+        self.options = {'styler' : Style,
+                        'painter' : Paint,
                         'animator' : Animate}
+        self.checks = ['steps', 'model_type']
+        # Locks 'step' attribute at 'artist' for conform methods in package.
+        self.step = 'artist'
+        # Sets 'manager_type' so that proper parent methods are used.
+        self.manager_type = 'serial'
+        # Sets 'plan_class' to allow use of parent methods.
+        self.plan_class = Illustration
+        self.plan_iterable = 'illustrations'
         return self
-
-#    def _edit_dependency_plots(self):
-#        if self.dependency_plots in ['cleaves']:
-#
-#        return self
 
     def finalize(self):
-        self.visuals = []
-        step_combinations = []
-        for step in self.options.keys():
-            # Stores each step attribute in a list
-            setattr(self, step, self.listify(getattr(self, step)))
-            # Adds step to a list of all step lists
-            step_combinations.append(getattr(self, step))    
+        super().finalize()
+        self.illustrations = Illustration()
         return self
-    
+
     def produce(self, recipes = None, reviews = None):
         if self.verbose:
             print('Creating and exporting visuals')
@@ -145,11 +127,18 @@ class Canvas(SimpleClass):
             for plot in self.plots:
                 self.options[plot]()
         return self
-    
-    
+
+
 @dataclass
 class Illustration(SimpleClass):
-    
+
     def __post_init__(self):
         super().__post_init__()
+        return self
+
+    def produce(self, recipes, reviews):
+        for i, recipe in enumerate(self.listify(recipes)):
+            review = self.listify(reviews)[i]
+            for step, technique in self.techniques.items():
+                recipe = technique.produce(recipe = recipe, review = review)
         return self
