@@ -8,6 +8,8 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from functools import wraps
+from inspect import getfullargspec
 from itertools import product
 import os
 import warnings
@@ -512,7 +514,7 @@ class SimpleClass(ABC):
 @dataclass
 class SimpleManager(SimpleClass, ABC):
     """Parent abstract base class for siMpLify planners like Cookbook, Almanac,
-    and Analysis.
+    Analysis, and Canvas.
 
     This class adds a required 'produce' method and other methods useful to
     siMpLify classes which transform data or fit models.
@@ -619,7 +621,8 @@ class SimpleManager(SimpleClass, ABC):
 
 @dataclass
 class SimplePlan(SimpleClass):
-    """Class for containing plan classes like Recipe, Harvest, and Review.
+    """Class for containing plan classes like Recipe, Harvest, Review, and
+    Illustration.
 
     Args:
         steps(dict): dictionary containing keys of step names (strings) and
@@ -690,6 +693,7 @@ class SimpleStep(SimpleClass):
     techniques : object = None
     parameters : object = None
     auto_finalize : bool = True
+    store_names : bool = False
 
     def __post_init__(self):
         # Adds name of SimpleManager subclass to sections to inject from Idea
@@ -697,10 +701,48 @@ class SimpleStep(SimpleClass):
         # attributes.
         if hasattr(self, 'manager_name'):
             self.idea_sections = [self.manager_name]
-        super().__post_init__()
         self.check_nests = ['default_parameters', 'runtime_parameters',
                             'parameters']
+        super().__post_init__()
+        self._bind_name_decorator()
         return self
+
+    """ Decorators """
+
+    def store_column_names(method):
+        """Decorator which creates a complete column list from kwargs passed
+        to wrapped method.
+
+        Args:
+            method(method): wrapped method.
+
+        Returns:
+            new_kwargs(dict): 'columns' parameter has items from 'columns',
+                'prefixes', and 'mask' parameters combined into a single list
+                of column names using the 'create_column_list' method.
+        """
+        # kwargs names to use to create finalized 'columns' argument
+        new_kwargs = {}
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            argspec = getfullargspec(method)
+            unpassed_args = argspec.args[len(args):]
+            if ('columns' in unpassed_args
+                    and 'prefixes' in unpassed_args
+                    and 'mask' in unpassed_args):
+                columns = list(self.datatypes.keys())
+            else:
+                for argument in arguments_to_check:
+                    if argument in kwargs:
+                        new_kwargs[argument] = kwargs[argument]
+                    else:
+                        new_kwargs[argument] = None
+                    if argument in ['prefixes', 'mask'] and argument in kwargs:
+                        del kwargs[argument]
+                columns = self.create_column_list(**new_kwargs)
+                kwargs.update({'columns' : columns})
+            return method(self, **kwargs)
+        return wrapper
 
     """ Private Methods """
 
@@ -742,6 +784,7 @@ class SimpleStep(SimpleClass):
             self.parameters = {}
             for technique in self.listify(self.techniques):
                 new_params = self._get_parameters(technique)
+                new_params = self._select_parameters(technique, new_params)
                 new_params.update(self._get_runtime_parameters(technique))
                 nested_parameters.update({technique : new_params})
         self.parameters = nested_parameters
@@ -770,9 +813,10 @@ class SimpleStep(SimpleClass):
 
     def _nestify_parameters(self):
         for parameters in self.check_nests:
-            setattr(self, parameters, self.nestify(
-                    keys = self.listify(self.techniques),
-                    dictionaries = getattr(self, parameters)))
+            if hasattr(self, parameters):
+                setattr(self, parameters, self.nestify(
+                        keys = self.listify(self.techniques),
+                        dictionaries = getattr(self, parameters)))
         return self
 
     def _select_parameters(self, technique, parameters,
@@ -785,16 +829,18 @@ class SimpleStep(SimpleClass):
                 parameters to include in final parameters dict.
         """
         if hasattr(self, 'selected_parameters') and self.selected_parameters:
-            if not parameters_to_use and hasattr(self, 'default_parameters'):
-                parameters_to_use = list(
-                        self.default_parameters[technique].keys())
+            if not parameters_to_use:
+                if isinstance(self.selected_parameters, list):
+                    parameters_to_use = self.selected_parameters
+                elif (hasattr(self, 'default_parameters')
+                        and isinstance(self.default_parameters, dict)):
+                    parameters_to_use = list(
+                            self.default_parameters[technique].keys())
             new_parameters = {}
-            if self.parameters:
-                for key, value in self.parameters.items():
-                    if key in self.listify(parameters_to_use):
-                        new_parameters.update({key : value})
-                self.parameters = new_parameters
-        return self
+            for key, value in parameters.items():
+                if key in self.listify(parameters_to_use):
+                    new_parameters.update({key : value})
+        return new_parameters
 
     """ Core siMpLify Public Methods """
 
@@ -833,6 +879,7 @@ class SimpleStep(SimpleClass):
 
     def finalize(self):
         """Finalizes parameters and adds 'parameters' to 'algorithm'."""
+        self.techniques = self._check_wildcards(techniques = self.techniques)
         self._nestify_parameters()
         self._finalize_parameters()
         if self.technique != 'none':
@@ -895,10 +942,10 @@ class SimpleStep(SimpleClass):
         from simplify import Ingredients
         if hasattr(self.algorithm, 'transform'):
             if isinstance(x, pd.DataFrame):
-                if y:
-                    x = self.algorithm.transform(x, y)
-                else:
+                if y is None:
                     x = self.algorithm.transform(x)
+                else:
+                    x = self.algorithm.transform(x, y)
             elif isinstance(x, Ingredients):
                 if y is None:
                     x.x_train = self.algorithm.transform(x.x_train)

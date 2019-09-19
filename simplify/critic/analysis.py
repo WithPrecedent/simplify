@@ -89,7 +89,6 @@ class Analysis(SimpleManager):
         for recipe in self.listify(recipes):
             if self.verbose:
                 print('Evaluating', recipe.name + 's')
-            self._check_best(recipe = recipe)
             for step, technique in getattr(self, self.plan_iterable).items():
                 technique.produce(recipe = recipe)
         return self

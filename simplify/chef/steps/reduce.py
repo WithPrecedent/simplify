@@ -68,7 +68,7 @@ class Reduce(SimpleStep):
         pass
         return self
 
-    def produce(self, ingredients, recipe, estimator = None):
+    def produce(self, ingredients, plan = None, estimator = None):
         if self.technique != 'none':
             if not estimator:
                 estimator = recipe.model.algorithm

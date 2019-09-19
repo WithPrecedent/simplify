@@ -50,7 +50,7 @@ class Cleave(SimpleStep):
         self.options.update({cleave_group : columns})
         return self
 
-    def produce(self, ingredients, recipe):
+    def produce(self, ingredients, plan = None):
         if self.technique != 'none':
             self._finalize_cleaves()
             ingredients = self.algorithm(ingredients)

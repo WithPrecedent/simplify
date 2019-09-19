@@ -39,9 +39,8 @@ class Split(SimpleStep):
         return self
 
     def finalize(self):
-        """Adds parameters to algorithm."""
+        self._nestify_parameters()
         self._finalize_parameters()
-        self._select_parameters()
         if self.technique in ['train_test']:
             self.parameters.update({'n_splits' : 1})
         if self.technique != 'none':

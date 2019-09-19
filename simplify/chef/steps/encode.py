@@ -35,7 +35,7 @@ class Encode(SimpleStep):
         self.default_parameters = {}
         return self
 
-    def produce(self, ingredients, recipe, columns = None):
+    def produce(self, ingredients, plan = None, columns = None):
         if self.technique != 'none':
             if not columns:
                 columns = ingredients.encoders

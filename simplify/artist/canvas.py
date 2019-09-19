@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from simplify.artist.steps.style import Style
 from simplify.artist.steps.paint import Paint
 from simplify.artist.steps.animate import Animate
-from simplify.core.base import SimpleClass
+from simplify.core.base import SimpleClass, SimplePlan
 
 
 @dataclass
@@ -34,6 +34,7 @@ class Canvas(SimpleClass):
     auto_produce : bool = True
 
     def __post_init__(self):
+        self.styler = []
         super().__post_init__()
         return self
 
@@ -85,6 +86,10 @@ class Canvas(SimpleClass):
             error = 'produce method requires Ingredients or Recipe instance'
             raise TypeError(error)
 
+    def _set_styler(self):
+        if 'styler' not in self.steps:
+            self.steps = ['styler'] + self.steps
+        return self
 
     """ Core Public siMpLify Methods """
 
@@ -101,36 +106,26 @@ class Canvas(SimpleClass):
         # Sets 'plan_class' to allow use of parent methods.
         self.plan_class = Illustration
         self.plan_iterable = 'illustrations'
+
         return self
 
     def finalize(self):
+        self._set_styler()
         super().finalize()
         self.illustrations = Illustration()
         return self
 
     def produce(self, recipes = None, reviews = None):
-        if self.verbose:
-            print('Creating and exporting visuals')
-        for i, recipe in enumerate(recipes):
-            ingredients = self._get_ingredients(recipe = recipe)
-            estimator = recipe.model.algorithm
-            ingredients._remap_dataframes(data_to_use = self.data_to_plot)
-            x = ingredients.x_test
-            y = ingredients.y_test
-            if ('shap' in self.explainers
-                and self.presentation_options == 'default'):
-                self.plots.extend(['shap_heat_map', 'shap_summary'])
-                if self.review.shap_method_type == 'tree':
-                    self.plots.append('shap_interactions')
-    #        if self.dependency_plots != 'none':
-    #            self._edit_dependency_plots()
-            for plot in self.plots:
-                self.options[plot]()
+        for recipe in self.listify(recipes):
+            if self.verbose:
+                print('Evaluating', recipe.name + 's')
+            for step, technique in getattr(self, self.plan_iterable).items():
+                technique.produce(recipe = recipe, review = review)
         return self
 
 
 @dataclass
-class Illustration(SimpleClass):
+class Illustration(SimplePlan):
 
     def __post_init__(self):
         super().__post_init__()

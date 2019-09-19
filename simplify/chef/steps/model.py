@@ -44,7 +44,7 @@ class Model(SimpleStep):
         error = 'fit_transform is not implemented for machine learning models'
         raise NotImplementedError(error)
 
-    def produce(self, ingredients, recipe):
+    def produce(self, ingredients, plan = None):
         """Applies model from recipe to ingredients data."""
         if self.technique != 'none':
             if self.verbose:
@@ -55,4 +55,4 @@ class Model(SimpleStep):
     def transform(self, x, y):
         error = 'transform is not implemented for machine learning models'
         raise NotImplementedError(error)
-    
+

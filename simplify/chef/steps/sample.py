@@ -55,10 +55,10 @@ class Sample(SimpleStep):
         x = self.transform(x, y)
         return x
 
-    def produce(self, ingredients, recipe, columns = None):
+    def produce(self, ingredients, plan = None, columns = None):
         if self.technique != 'none':
             self._edit_parameters(ingredients.x, columns)
-            if recipe.data_to_use in ['full']:
+            if plan.data_to_use in ['full']:
                 self._store_column_names(ingredients.x, ingredients.y)
                 resampled_x, resampled_y = self.algorithm.fit_resample(
                         ingredients.x, ingredients.y)

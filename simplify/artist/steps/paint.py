@@ -241,3 +241,14 @@ class Paint(SimpleStep):
         self.save(file_name)
         return self
 
+    def produce(self, recipes, reviews):
+        if ('shap' in self.explainers
+            and self.presentation_options == 'default'):
+            self.plots.extend(['shap_heat_map', 'shap_summary'])
+            if self.review.shap_method_type == 'tree':
+                self.plots.append('shap_interactions')
+#        if self.dependency_plots != 'none':
+#            self._edit_dependency_plots()
+        for plot in self.plots:
+            self.options[plot]()
+        return self
