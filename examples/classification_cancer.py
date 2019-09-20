@@ -1,7 +1,7 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.join('..'))
+sys.path.insert(0, os.path.join('..', 'simplify'))
 
 import pandas as pd
 import numpy as np
@@ -15,7 +15,7 @@ cancer = load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
 # Initializes core simplify classes.
-idea = Idea(configuration = os.path.join(os.getcwd(),
+idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
                                          'cancer_settings.ini'))
 depot = Depot(root_folder = os.path.join('..', '..'))
 ingredients = Ingredients(df = df)

@@ -11,7 +11,21 @@ from simplify.core.base import SimpleStep
 
 @dataclass
 class Scale(SimpleStep):
-    """Scales numerical data according to selected algorithm."""
+    """Scales numerical data according to selected algorithm.
+    
+    Args:
+        technique(str): name of technique - it should always be 'gauss'
+        parameters(dict): dictionary of parameters to pass to selected technique
+            algorithm.
+        auto_finalize(bool): whether 'finalize' method should be called when the
+            class is instanced. This should generally be set to True.
+        store_names(bool): whether this class requires the feature names to be
+            stored before the 'finalize' and 'produce' methods or called and
+            then restored after both are utilized. This should be set to True
+            when the class is using numpy methods.
+        name(str): name of class for matching settings in the Idea instance and
+            for labeling the columns in files exported by Critic.
+    """
     technique : str = ''
     parameters : object = None
     auto_finalize : bool = True
@@ -37,19 +51,20 @@ class Scale(SimpleStep):
             self.default_parameters = {'encode' : 'ordinal',
                                        'strategy' : 'uniform',
                                        'n_bins' : 5}
+        elif self.technique in ['gauss']:
+            self.default_parameters = {'standardize' : False,
+                                       'copy' : self.parameters['copy']}
         else:
             self.default_parameters = {'copy' : False}
         self.selected_parameters = True
         return self
 
     def finalize(self):
-        """Adds parameters to algorithm and sets import/export folders."""
         self._nestify_parameters()
         self._finalize_parameters()
-        if self.technique == 'gauss':
+        if self.technique in ['gauss']:
             self.algorithm = self.options[self.technique](
-                    technique = self.technique,
-                    parameters = self.parameters)
+                parameters = self.parameters)
         elif self.technique != 'none':
             self.algorithm = self.options[self.technique](**self.parameters)
         return self
@@ -70,10 +85,28 @@ class Scale(SimpleStep):
 
 @dataclass
 class Gaussify(SimpleStep):
-
-    technique : str = ''
+    """Transforms data columns to more gaussian distribution.
+    
+    The particular method is chosen between 'box-cox' and 'yeo-johnson' based
+    on whether the particular data column has values below zero.
+    
+    Args:
+        technique(str): name of technique - it should always be 'gauss'
+        parameters(dict): dictionary of parameters to pass to selected technique
+            algorithm.
+        custom_algorithm(bool): flag indicating whether this is a class specific
+            to the siMpLify package. This flag can be used by various classes
+            to properly utilize the class instance methods.
+        auto_finalize(bool): whether 'finalize' method should be called when the
+            class is instanced. This should generally be set to True.
+        name(str): name of class for matching settings in the Idea instance and
+            for labeling the columns in files exported by Critic.
+    """
+    technique : str = 'gauss'
     parameters : object = None
+    custom_algorithm : bool = True
     auto_finalize : bool = True
+    name : str = 'gaussifier'
 
     def __post_init__(self):
         super().__post_init__()
@@ -82,19 +115,21 @@ class Gaussify(SimpleStep):
     def draft(self):
         self.options = {'box-cox' : PowerTransformer,
                         'yeo-johnson' : PowerTransformer}
-        self.default_parameters = {'standardize' : False,
-                                   'copy' : self.parameters['copy']}
         return self
 
     def finalize(self):
+        self._nestify_parameters()
+        self._finalize_parameters()
         self.positive_tool = PowerTransformer(method = 'box_cox',
-                                              **self.default_parameters)
+                                              **self.parameters)
         self.negative_tool = PowerTransformer(method = 'yeo_johnson',
-                                              **self.default_parameters)
+                                              **self.parameters)
         self.rescaler = MinMaxScaler(copy = self.parameters['copy'])
         return self
 
-    def produce(self, ingredients, columns):
+    def produce(self, ingredients, columns = None):
+        if not columns:
+            columns = ingredients.numerics
         for column in columns:
             if ingredients.x[column].min() >= 0:
                 ingredients.x[column] = self.positive_tool.fit_transform(

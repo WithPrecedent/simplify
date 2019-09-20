@@ -11,10 +11,25 @@ from simplify.core.base import SimpleStep
 
 @dataclass
 class Sample(SimpleStep):
-    """Synthetically resamples data according to selected algorithm."""
+    """Synthetically resamples data according to selected algorithm.
+    
+    Args:
+        technique(str): name of technique - it should always be 'gauss'
+        parameters(dict): dictionary of parameters to pass to selected technique
+            algorithm.
+        auto_finalize(bool): whether 'finalize' method should be called when the
+            class is instanced. This should generally be set to True.
+        store_names(bool): whether this class requires the feature names to be
+            stored before the 'finalize' and 'produce' methods or called and
+            then restored after both are utilized. This should be set to True
+            when the class is using numpy methods.
+        name(str): name of class for matching settings in the Idea instance and
+            for labeling the columns in files exported by Critic.
+    """
     technique : str = ''
     parameters : object = None
     auto_finalize : bool = True
+    store_names : bool = True
     name : str = 'sampler'
 
     def __post_init__(self):
@@ -36,7 +51,7 @@ class Sample(SimpleStep):
         self.runtime_parameters = {'random_state' : self.seed}
         return self
 
-    def _edit_parameters(self, ingredients, columns = None):
+    def _recheck_parameters(self, ingredients, columns = None):
         if self.technique in ['smotenc']:
             if columns:
                 cat_features = self._get_indices(ingredients.x, columns)
@@ -47,17 +62,16 @@ class Sample(SimpleStep):
         return self
 
     def fit(self, x, y, columns = None):
-        self._edit_parameters(x, columns)
+        self._recheck_parameters(x, columns)
         return self
 
     def fit_transform(self, x, y):
-        self.fit(x, y)
         x = self.transform(x, y)
         return x
 
     def produce(self, ingredients, plan = None, columns = None):
         if self.technique != 'none':
-            self._edit_parameters(ingredients.x, columns)
+            self._recheck_parameters(ingredients.x, columns)
             if plan.data_to_use in ['full']:
                 self._store_column_names(ingredients.x, ingredients.y)
                 resampled_x, resampled_y = self.algorithm.fit_resample(
