@@ -7,14 +7,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-from simplify.chef.steps.models.algorithm import Algorithm
+from simplify.core.base import SimpleStep
 
 
 @dataclass
 class Classifier(SimpleStep):
     """Applies machine learning classifier algorithms based upon user
     selections.
-    
+
     Args:
         technique(str): name of technique - it should always be 'gauss'
         parameters(dict): dictionary of parameters to pass to selected technique
@@ -34,7 +34,7 @@ class Classifier(SimpleStep):
     store_names : bool = True
     name : str = 'classifier'
 
-    def __post_init__(self):     
+    def __post_init__(self):
         super().__post_init__()
         return self
 
@@ -58,4 +58,8 @@ class Classifier(SimpleStep):
                                               'probability' : True},
                                  'svm_sigmoid' : {'kernel' : 'sigmoid',
                                                   'probability' : True}}
+        return self
+
+    def produce(self, ingredients):
+        self.algorithm.fit(ingredients.x_train, ingredients.y_train)
         return self

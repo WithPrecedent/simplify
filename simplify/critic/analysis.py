@@ -62,7 +62,7 @@ class Analysis(SimpleManager):
         self.manager_type = 'serial'
         # Sets 'plan_class' to allow use of parent methods.
         self.plan_class = Review
-        self.plan_iterable = 'reviews'
+        self.plan_iterable = 'review'
         return self
 
     def finalize(self):
@@ -70,7 +70,6 @@ class Analysis(SimpleManager):
         class.
         """
         super().finalize()
-        self.reviews = Review()
         return self
 
     def print_best(self):
@@ -79,9 +78,11 @@ class Analysis(SimpleManager):
             print('The best test recipe, based upon the',
                   self.listify(self.metrics)[0], 'metric with a score of',
                   f'{self.best_recipe_score : 4.4f}', 'is:')
-            for technique in self.best_recipe.techniques:
+            for technique in getattr(self,
+                    self.plan_iterable).best_recipe.techniques:
                 print(technique.capitalize(), ':',
-                      getattr(self.best_recipe, technique).technique)
+                      getattr(getattr(self, self.plan_iterable).best_recipe,
+                              technique).technique)
         return
 
     def produce(self, recipes = None):

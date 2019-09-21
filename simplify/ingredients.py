@@ -7,14 +7,13 @@
 """
 
 from dataclasses import dataclass
-from functools import wraps
-from inspect import getfullargspec
 import os
 
 import numpy as np
 import pandas as pd
 
 from simplify.core.base import SimpleClass
+from simplify.core.decorators import check_df, column_list
 from simplify.core.types import DataTypes
 
 
@@ -145,65 +144,6 @@ class Ingredients(SimpleClass):
             self.__dict__[attr] = value
             return self
 
-    """ Decorators """
-
-    def check_df(method):
-        """Decorator which automatically uses the default DataFrame if one
-        is not passed to the decorated method.
-
-        Args:
-            method(method): wrapped method.
-
-        Returns:
-            df(DataFrame or Series): if the passed 'df' parameter was None,
-                the attribute named by 'default_df' will be passed. Otherwise,
-                df will be passed to the wrapped method intact.
-        """
-        @wraps(method)
-        def wrapper(self, *args, **kwargs):
-            argspec = getfullargspec(method)
-            unpassed_args = argspec.args[len(args):]
-            if 'df' in argspec.args and 'df' in unpassed_args:
-                kwargs.update({'df' : getattr(self, self.default_df)})
-            return method(self, *args, **kwargs)
-        return wrapper
-
-    def column_list(method):
-        """Decorator which creates a complete column list from kwargs passed
-        to wrapped method.
-
-        Args:
-            method(method): wrapped method.
-
-        Returns:
-            new_kwargs(dict): 'columns' parameter has items from 'columns',
-                'prefixes', and 'mask' parameters combined into a single list
-                of column names using the 'create_column_list' method.
-        """
-        # kwargs names to use to create finalized 'columns' argument
-        arguments_to_check = ['columns', 'prefixes', 'mask']
-        new_kwargs = {}
-        @wraps(method)
-        def wrapper(self, *args, **kwargs):
-            argspec = getfullargspec(method)
-            unpassed_args = argspec.args[len(args):]
-            if ('columns' in unpassed_args
-                    and 'prefixes' in unpassed_args
-                    and 'mask' in unpassed_args):
-                columns = list(self.datatypes.keys())
-            else:
-                for argument in arguments_to_check:
-                    if argument in kwargs:
-                        new_kwargs[argument] = kwargs[argument]
-                    else:
-                        new_kwargs[argument] = None
-                    if argument in ['prefixes', 'mask'] and argument in kwargs:
-                        del kwargs[argument]
-                columns = self.create_column_list(**new_kwargs)
-                kwargs.update({'columns' : columns})
-            return method(self, **kwargs)
-        return wrapper
-
     """ Private Methods """
 
     def _check_columns(self, columns = None):
@@ -241,15 +181,6 @@ class Ingredients(SimpleClass):
             list of columns matching the passed 'datatype'.
         """
         return [k for k, v in self.datatypes.items() if v == datatype]
-
-    def _get_column_names(self, x, y = None):
-        """Gets feature names if previously stored by _store_column_names."""
-        x = pd.DataFrame(x, columns = self.x_cols)
-        if isinstance(y, np.ndarray):
-            y = pd.Series(y, name = self.y_col)
-            return x, y
-        else:
-            return x
 
     def _get_default_encoders(self):
         """Returns list of categorical columns."""
@@ -323,13 +254,6 @@ class Ingredients(SimpleClass):
             self.options['x'] = 'x_val'
             self.options['y'] = 'y_val'
             self.using_validation_set = True
-        return self
-
-    def _store_column_names(self, x, y = None):
-        """Stores feature names."""
-        self.x_cols = list(x.columns.values)
-        if isinstance(y, pd.Series):
-            self.y_col = self.label
         return self
 
     """ Public Tool Methods """

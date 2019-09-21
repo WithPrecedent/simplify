@@ -56,7 +56,7 @@ class Summarize(SimpleStep):
         """Prepares columns list for Summary report and initializes report."""
         self.columns = ['variable']
         self.columns.extend(list(self.options.keys()))
-        self.report = pd.DataFrame(columns = self.columns)
+        self.statistics = pd.DataFrame(columns = self.columns)
         return self
 
     def _produce_report(self, df = None, transpose = True):
@@ -85,9 +85,9 @@ class Summarize(SimpleStep):
                         else:
                             row[key] = getattr(df[column],
                                value[0])(value[1])
-            self.report.loc[len(self.report)] = row
+            self.statistics.loc[len(self.statistics)] = row
         if not transpose:
-            self.report = self.report.transpose()
+            self.statistics = self.statistics.transpose()
             self.df_header = False
             self.df_index = True
         else:
@@ -96,7 +96,7 @@ class Summarize(SimpleStep):
         return self
 
     def produce(self, df = None, transpose = True, file_name = 'data_summary',
-              file_format = 'csv'):
+                file_format = 'csv'):
         """Creates and exports a DataFrame of common summary data using the
         Summary class.
 
@@ -107,13 +107,13 @@ class Summarize(SimpleStep):
             file_name: string containing name of file to be exported.
             file_format: string of file extension from Depot.extensions.
         """
-        self._produce_report(df = df, transpose = transpose)
+        self._produce_report(df = self.statistics, transpose = transpose)
         if self.verbose:
             print('Saving summary data')
-        self.depot.save(variable = self._produce_report.report,
-                            folder = self.depot.experiment,
-                            file_name = file_name,
-                            file_format = file_format,
-                            header = self._produce_report.df_header,
-                            index = self._produce_report.df_index)
+        self.depot.save(variable = self.statistics,
+                        folder = self.depot.experiment,
+                        file_name = file_name,
+                        file_format = file_format,
+                        header = self.df_header,
+                        index = self.df_index)
         return self

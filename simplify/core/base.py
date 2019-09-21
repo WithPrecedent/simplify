@@ -8,8 +8,6 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from functools import wraps
-from inspect import getfullargspec
 from itertools import product
 import os
 import warnings
@@ -443,6 +441,8 @@ class SimpleClass(ABC):
                 algorithms. This should be passed if the user has already
                 combined some or all 'techniques' and 'algorithms' into a dict.
         """
+        if not hasattr(self, 'options') or self.options is None:
+            self.options = {}
         if options:
             self.name_to_type.update(options)
         if techniques and algorithms:
@@ -693,7 +693,6 @@ class SimpleStep(SimpleClass):
     techniques : object = None
     parameters : object = None
     auto_finalize : bool = True
-    store_names : bool = False
 
     def __post_init__(self):
         # Adds name of SimpleManager subclass to sections to inject from Idea
@@ -704,45 +703,7 @@ class SimpleStep(SimpleClass):
         self.check_nests = ['default_parameters', 'runtime_parameters',
                             'parameters']
         super().__post_init__()
-        self._bind_name_decorator()
         return self
-
-    """ Decorators """
-
-    def store_column_names(method):
-        """Decorator which creates a complete column list from kwargs passed
-        to wrapped method.
-
-        Args:
-            method(method): wrapped method.
-
-        Returns:
-            new_kwargs(dict): 'columns' parameter has items from 'columns',
-                'prefixes', and 'mask' parameters combined into a single list
-                of column names using the 'create_column_list' method.
-        """
-        # kwargs names to use to create finalized 'columns' argument
-        new_kwargs = {}
-        @wraps(method)
-        def wrapper(self, *args, **kwargs):
-            argspec = getfullargspec(method)
-            unpassed_args = argspec.args[len(args):]
-            if ('columns' in unpassed_args
-                    and 'prefixes' in unpassed_args
-                    and 'mask' in unpassed_args):
-                columns = list(self.datatypes.keys())
-            else:
-                for argument in arguments_to_check:
-                    if argument in kwargs:
-                        new_kwargs[argument] = kwargs[argument]
-                    else:
-                        new_kwargs[argument] = None
-                    if argument in ['prefixes', 'mask'] and argument in kwargs:
-                        del kwargs[argument]
-                columns = self.create_column_list(**new_kwargs)
-                kwargs.update({'columns' : columns})
-            return method(self, **kwargs)
-        return wrapper
 
     """ Private Methods """
 

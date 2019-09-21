@@ -7,12 +7,13 @@ from category_encoders import (BackwardDifferenceEncoder, BaseNEncoder,
                                OrdinalEncoder, SumEncoder, TargetEncoder)
 
 from simplify.core.base import SimpleStep
+from simplify.core.decorators import oven_mits
 
 
 @dataclass
 class Encode(SimpleStep):
     """Encodes categorical variables according to selected algorithms.
-    
+
     Args:
         technique(str): name of technique - it should always be 'gauss'
         parameters(dict): dictionary of parameters to pass to selected technique
@@ -49,21 +50,21 @@ class Encode(SimpleStep):
                         'target' : TargetEncoder}
         self.default_parameters = {}
         return self
-    
+
     def finalize(self):
         pass
         return self
-    
+
+    @oven_mits
     def produce(self, ingredients, plan = None, columns = None):
-        if self.technique != 'none':
-            if not columns:
-                columns = ingredients.encoders
-            if columns:
-                self.runtime_parameters.update({'cols' : columns})
-                super(SimpleStep).finalize()
-            self.algorithm.fit(ingredients.x, ingredients.y)
-            self.algorithm.transform(
-                    ingredients.x_train).reset_index(drop = True)
-            self.algorithm.transform(
-                    ingredients.x_test).reset_index(drop = True)
+        if columns is None:
+            columns = ingredients.encoders
+        if columns:
+            self.runtime_parameters.update({'cols' : columns})
+        super().finalize()
+        self.algorithm.fit(ingredients.x, ingredients.y)
+        self.algorithm.transform(
+                ingredients.x_train).reset_index(drop = True)
+        self.algorithm.transform(
+                ingredients.x_test).reset_index(drop = True)
         return ingredients

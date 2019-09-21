@@ -1,19 +1,19 @@
 
 from dataclasses import dataclass
 
-import pandas as pd
 from sklearn.feature_selection import (chi2, f_classif, mutual_info_classif,
                                        mutual_info_regression, RFE, RFECV,
                                        SelectKBest, SelectFdr, SelectFpr,
                                        SelectFromModel)
 
 from simplify.core.base import SimpleStep
+from simplify.core.decorators import oven_mits
 
 @dataclass
 class Reduce(SimpleStep):
     """Reduces features using different algorithms, including the model
     algorithm.
-    
+
     Args:
         technique(str): name of technique - it should always be 'gauss'
         parameters(dict): dictionary of parameters to pass to selected technique
@@ -82,15 +82,15 @@ class Reduce(SimpleStep):
         pass
         return self
 
+    @oven_mits
     def produce(self, ingredients, plan = None, estimator = None):
-        if self.technique != 'none':
-            if not estimator:
-                estimator = plan.model.algorithm
-            self._set_parameters(estimator)
-            self.algorithm = self.options[self.technique](**self.parameters)
-            if len(ingredients.x_train.columns) > self.num_features:
-                self.algorithm.fit(ingredients.x_train, ingredients.y_train)
-                mask = ~self.algorithm.get_support()
-                ingredients.drop_columns(df = ingredients.x_train, mask = mask)
-                ingredients.drop_columns(df = ingredients.x_test, mask = mask)
+        if not estimator:
+            estimator = plan.model.algorithm
+        self._set_parameters(estimator)
+        self.algorithm = self.options[self.technique](**self.parameters)
+        if len(ingredients.x_train.columns) > self.num_features:
+            self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+            mask = ~self.algorithm.get_support()
+            ingredients.drop_columns(df = ingredients.x_train, mask = mask)
+            ingredients.drop_columns(df = ingredients.x_test, mask = mask)
         return ingredients

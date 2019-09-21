@@ -7,12 +7,12 @@ from sklearn.preprocessing import (KBinsDiscretizer, MaxAbsScaler,
                                    StandardScaler)
 
 from simplify.core.base import SimpleStep
-
+from simplify.core.decorators import oven_mits
 
 @dataclass
 class Scale(SimpleStep):
     """Scales numerical data according to selected algorithm.
-    
+
     Args:
         technique(str): name of technique - it should always be 'gauss'
         parameters(dict): dictionary of parameters to pass to selected technique
@@ -69,27 +69,25 @@ class Scale(SimpleStep):
             self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
+    @oven_mits
     def produce(self, ingredients, plan = None, columns = None):
-        if self.technique != 'none':
-            if not columns:
-                columns = ingredients.scalers
-            ingredients._store_column_names(x = ingredients.x)
-            if self.technique == 'gauss':
-                ingredients = self.algorithm.produce(ingredients = ingredients,
-                                                   columns = columns)
-            else:
-                ingredients.x[columns] = self.fit_transform(
-                        ingredients.x[columns], ingredients.y)
-            ingredients.x = ingredients._get_column_names(x = ingredients.x)
+        if columns is None:
+            columns = ingredients.scalers
+        if self.technique == 'gauss':
+            ingredients = self.algorithm.produce(ingredients = ingredients,
+                                                 columns = columns)
+        else:
+            ingredients.x[columns] = self.algorithm.fit_transform(
+                    ingredients.x[columns], ingredients.y)
         return ingredients
 
 @dataclass
 class Gaussify(SimpleStep):
     """Transforms data columns to more gaussian distribution.
-    
+
     The particular method is chosen between 'box-cox' and 'yeo-johnson' based
     on whether the particular data column has values below zero.
-    
+
     Args:
         technique(str): name of technique - it should always be 'gauss'
         parameters(dict): dictionary of parameters to pass to selected technique

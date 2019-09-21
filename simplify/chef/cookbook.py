@@ -362,7 +362,8 @@ class Recipe(SimplePlan):
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
            for step, technique in techniques.items():
-                self.ingredients = technique.produce(
-                    ingredients = self.ingredients,
-                    plan = self)
+               print(step)
+               self.ingredients = technique.produce(
+                       ingredients = self.ingredients,
+                       plan = self)
         return self

@@ -7,12 +7,13 @@ from imblearn.under_sampling import (AllKNN, ClusterCentroids, NearMiss,
                                      RandomUnderSampler)
 
 from simplify.core.base import SimpleStep
+from simplify.core.decorators import oven_mits
 
 
 @dataclass
 class Sample(SimpleStep):
     """Synthetically resamples data according to selected algorithm.
-    
+
     Args:
         technique(str): name of technique - it should always be 'gauss'
         parameters(dict): dictionary of parameters to pass to selected technique
@@ -69,22 +70,17 @@ class Sample(SimpleStep):
         x = self.transform(x, y)
         return x
 
+    @oven_mits
     def produce(self, ingredients, plan = None, columns = None):
-        if self.technique != 'none':
-            self._recheck_parameters(ingredients.x, columns)
-            if plan.data_to_use in ['full']:
-                self._store_column_names(ingredients.x, ingredients.y)
-                resampled_x, resampled_y = self.algorithm.fit_resample(
-                        ingredients.x, ingredients.y)
-                ingredients.x, ingredients.y = self._get_column_names(
-                        resampled_x, resampled_y)
-            else:
-                self._store_column_names(ingredients.x_train,
-                                          ingredients.y_train)
-                resampled_x, resampled_y = self.algorithm.fit_resample(
-                        ingredients.x_train, ingredients.y_train)
-                ingredients.x_train, ingredients.y_train = (
-                        self._get_column_names(resampled_x, resampled_y))
+        self._recheck_parameters(ingredients.x, columns)
+        if plan.data_to_use in ['full']:
+            resampled_x, resampled_y = self.algorithm.fit_resample(
+                    ingredients.x, ingredients.y)
+            ingredients.x, ingredients.y = self._get_column_names(
+                    resampled_x, resampled_y)
+        else:
+            resampled_x, resampled_y = self.algorithm.fit_resample(
+                    ingredients.x_train, ingredients.y_train)
         return ingredients
 
     def transform(self, x, y):
