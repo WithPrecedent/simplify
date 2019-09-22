@@ -37,3 +37,7 @@ class Clusterer(SimpleStep):
                         'svm_rbf' : OneClassSVM,
                         'svm_sigmoid' : OneClassSVM}
         return self
+
+    def produce(self, ingredients):
+        self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+        return self.algorithm

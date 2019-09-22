@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from simplify.core.base import SimpleClass
-from simplify.core.decorators import check_df, column_list
+from simplify.core.decorators import choose_df, combine_lists
 from simplify.core.types import DataTypes
 
 
@@ -42,7 +42,7 @@ class Ingredients(SimpleClass):
         default_df(str): the current default DataFrame or Series attribute name
         that will be used when a specific DataFrame is not passed to a
             method within the class. The default value is initially set to
-            'df'. The decorator check_df will look to the default_df to pick
+            'df'. The decorator choose_df will look to the default_df to pick
             the appropriate DataFrame in situations where no DataFrame is passed
             to a method.
         x, y, x_train, y_train, x_test, y_test, x_val, y_val(DataFrames,
@@ -134,7 +134,13 @@ class Ingredients(SimpleClass):
             attr(str): string of attribute name to be set.
             value(any): value of the set attribute.
         """
-        if attr in ['booleans', 'floats', 'integers', 'strings',
+        if attr in ['x', 'y', 'x_train', 'y_train', 'x_test', 'y_test']:
+            if hasattr(self, 'options') and self.options is not None:
+                self.__dict__[self.options[attr]] = value
+            else:
+                self.__dict__[attr] = value
+            return self
+        elif attr in ['booleans', 'floats', 'integers', 'strings',
                     'categoricals', 'lists', 'datetimes', 'timedeltas']:
             self.__dict__['datatypes'].update(
                     dict.fromkeys(self.listify(
@@ -158,7 +164,7 @@ class Ingredients(SimpleClass):
         """
         return columns or list(self.datatypes.keys())
 
-    @check_df
+    @choose_df
     def _crosscheck_columns(self, df = None):
         """Removes any columns in datatypes dictionary, but not in df.
 
@@ -258,7 +264,7 @@ class Ingredients(SimpleClass):
 
     """ Public Tool Methods """
 
-    @check_df
+    @choose_df
     def add_unique_index(self, df = None, column = 'index_universal',
                          make_index = False):
         """Creates a unique integer index for each row.
@@ -283,7 +289,7 @@ class Ingredients(SimpleClass):
             TypeError(error)
         return self
 
-    @check_df
+    @choose_df
     def apply(self, df = None, func = None, **kwargs):
         """Allows users to pass a function to Ingredients instance which will
         be applied to the passed DataFrame (or uses default_df if none is
@@ -297,8 +303,8 @@ class Ingredients(SimpleClass):
         df = func(df, **kwargs)
         return self
 
-    @column_list
-    @check_df
+    @combine_lists
+    @choose_df
     def auto_categorize(self, df = None, columns = None, threshold = 10):
         """Automatically assesses each column to determine if it has less than
         threshold unique values and is not boolean. If so, that column is
@@ -327,8 +333,8 @@ class Ingredients(SimpleClass):
                 raise KeyError(error)
         return self
 
-    @column_list
-    @check_df
+    @combine_lists
+    @choose_df
     def change_datatype(self, df = None, columns = None, datatype = None):
         """Changes column datatypes of columns passed or columns with the
         prefixes passed.
@@ -347,7 +353,7 @@ class Ingredients(SimpleClass):
         self.convert_column_datatypes(df = df)
         return self
 
-    @check_df
+    @choose_df
     def convert_column_datatypes(self, df = None, raise_errors = False):
         """Attempts to convert all column data to the match the datatypes in
         'datatypes' dictionary.
@@ -373,8 +379,8 @@ class Ingredients(SimpleClass):
         self.downcast(df = df)
         return self
 
-    @column_list
-    @check_df
+    @combine_lists
+    @choose_df
     def convert_rare(self, df = None, columns = None, threshold = 0):
         """Converts categories rarely appearing within categorical columns
         to empty string if they appear below the passed threshold.
@@ -406,7 +412,7 @@ class Ingredients(SimpleClass):
             df.drop('value_freq', axis = 'columns', inplace = True)
         return self
 
-    @check_df
+    @choose_df
     def create_column_list(self, df = None, columns = None, prefixes = None,
                            mask = None):
         """Dynamically creates a new column list from a list of columns, lists
@@ -446,7 +452,7 @@ class Ingredients(SimpleClass):
                 column_names = prefixes_list
         return column_names
 
-    @column_list
+    @combine_lists
     def create_series(self, columns = None, return_series = True):
         """Creates a Series (row) with the 'datatypes' dict.
 
@@ -474,8 +480,8 @@ class Ingredients(SimpleClass):
             setattr(self, self.default_df, row)
             return self
 
-    @column_list
-    @check_df
+    @combine_lists
+    @choose_df
     def decorrelate(self, df = None, columns = None, threshold = 0.95):
         """Drops all but one column from highly correlated groups of columns.
 
@@ -500,8 +506,8 @@ class Ingredients(SimpleClass):
         self.drop_columns(columns = corrs)
         return self
 
-    @column_list
-    @check_df
+    @combine_lists
+    @choose_df
     def downcast(self, df = None, columns = None, allow_unsigned = True):
         """Decreases memory usage by downcasting datatypes.
 
@@ -547,8 +553,8 @@ class Ingredients(SimpleClass):
                 raise KeyError(error)
         return self
 
-    @column_list
-    @check_df
+    @combine_lists
+    @choose_df
     def drop_columns(self, df = None, columns = None):
         """Drops list of columns and columns with prefixes listed.
 
@@ -568,8 +574,8 @@ class Ingredients(SimpleClass):
         self.dropped_columns.extend(columns)
         return self
 
-    @column_list
-    @check_df
+    @combine_lists
+    @choose_df
     def drop_infrequent(self, df = None, columns = None, threshold = 0):
         """Drops boolean columns that rarely are True.
 
@@ -596,7 +602,7 @@ class Ingredients(SimpleClass):
         self.drop_columns(columns = infrequents)
         return self
 
-    @check_df
+    @choose_df
     def infer_datatypes(self, df = None):
         """Infers column datatypes and adds those datatypes to types.
 
@@ -642,8 +648,8 @@ class Ingredients(SimpleClass):
             print('No features were dropped during preprocessing.')
         return
 
-    @column_list
-    @check_df
+    @combine_lists
+    @choose_df
     def smart_fill(self, df = None, columns = None):
         """Fills na values in a DataFrame with defaults based upon the datatype
         listed in the 'datatypes' dictionary.
@@ -666,7 +672,7 @@ class Ingredients(SimpleClass):
                 raise KeyError(error)
         return self
 
-    @check_df
+    @choose_df
     def split_xy(self, df = None, label = 'label'):
         """Splits df into x and y based upon the label ('y' column) passed.
 
@@ -685,7 +691,7 @@ class Ingredients(SimpleClass):
 
     """ Core Public siMpLify Methods """
 
-    @check_df
+    @choose_df
     def conform(self, df = None, step = None):
         """Adjusts some of the siMpLify-specific datatypes to the appropriate
         datatype based upon the current step.

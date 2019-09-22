@@ -7,7 +7,7 @@ from category_encoders import (BackwardDifferenceEncoder, BaseNEncoder,
                                OrdinalEncoder, SumEncoder, TargetEncoder)
 
 from simplify.core.base import SimpleStep
-from simplify.core.decorators import oven_mits
+from simplify.core.decorators import numpy_shield
 
 
 @dataclass
@@ -55,7 +55,7 @@ class Encode(SimpleStep):
         pass
         return self
 
-    @oven_mits
+    @numpy_shield
     def produce(self, ingredients, plan = None, columns = None):
         if columns is None:
             columns = ingredients.encoders

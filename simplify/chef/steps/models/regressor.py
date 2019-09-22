@@ -39,9 +39,9 @@ class Regressor(SimpleStep):
                         'svm_rbf' : SVR,
                         'svm_sigmoid' : SVR,
                         'xgboost' : XGBRegressor}
-        self.model_parameters = {'baseline' : {'strategy' : 'mean'},
+        self.extra_parameters = {'baseline' : {'strategy' : 'mean'},
                                  'svm_linear' : {'kernel' : 'linear',
-                                                  'probability' : True},
+                                                 'probability' : True},
                                   'svm_poly' : {'kernel' : 'poly',
                                                 'probability' : True},
                                   'svm_rbf' : {'kernel' : 'rbf',
@@ -49,3 +49,7 @@ class Regressor(SimpleStep):
                                   'svm_sigmoid' : {'kernel' : 'sigmoid',
                                                    'probability' : True}}
         return self
+
+    def produce(self, ingredients):
+        self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+        return self.algorithm

@@ -6,7 +6,7 @@ Contents:
         takes. Output is in hours, minutes, seconds, with the possibility
         of passing a string to the decorator so that printed output is linked
         to the operation or process.
-    check_arguments: wrapper which checks for identically named local attributes
+    local_backups: wrapper which checks for identically named local attributes
         if method arguments are unpassed or passed as None. A list of arguments
         not to substitute ('exclude') can be passed for wrapped methods so that
         certain designated arguments will not be replaced.
@@ -53,7 +53,7 @@ def timer(process = None):
         return decorated
     return shell_timer
 
-def check_arguments(method, excludes = None):
+def local_backups(method, excludes = None, includes = None):
     """Decorator which uses class instance attribute of the same name as a
     passed parameter if no argument is passed for that parameter and the
     parameter is not listed in excludes.
@@ -63,23 +63,28 @@ def check_arguments(method, excludes = None):
         excludes: list or string of parameters for which a local attribute
             should not be used.
     """
-    if not excludes:
-        excludes = []
-    elif isinstance(excludes, str):
-        excludes = [excludes]
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         argspec = getfullargspec(method)
         unpassed_args = argspec.args[len(args):]
-        for unpassed in unpassed_args:
-            if unpassed not in excludes and hasattr(self, unpassed):
-                kwargs.update({unpassed : getattr(self, unpassed)})
+        if includes:
+            for unpassed in unpassed_args:
+                if unpassed in includes and hasattr(self, unpassed):
+                    kwargs.update({unpassed : getattr(self, unpassed)})
+        elif excludes:
+            for unpassed in unpassed_args:
+                if unpassed not in excludes and hasattr(self, unpassed):
+                    kwargs.update({unpassed : getattr(self, unpassed)})
+        else:
+            for unpassed in unpassed_args:
+                if hasattr(self, unpassed):
+                    kwargs.update({unpassed : getattr(self, unpassed)})
         return method(self, *args, **kwargs)
     return wrapper
 
-def check_df(method):
-    """Decorator which automatically uses the default DataFrame if one
-    is not passed to the decorated method.
+def choose_df(method):
+    """Substitutes the default DataFrame or Seriesif one is not passed to the
+    decorated method.
 
     Args:
         method(method): wrapped method.
@@ -98,7 +103,7 @@ def check_df(method):
         return method(self, *args, **kwargs)
     return wrapper
 
-def column_list(method):
+def combine_lists(method, arguments_to_check = None):
     """Decorator which creates a complete column list from kwargs passed
     to wrapped method.
 
@@ -111,7 +116,8 @@ def column_list(method):
             of column names using the 'create_column_list' method.
     """
     # kwargs names to use to create finalized 'columns' argument
-    arguments_to_check = ['columns', 'prefixes', 'mask']
+    if not arguments_to_check:
+        arguments_to_check = ['columns', 'prefixes', 'mask']
     new_kwargs = {}
     @wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -134,25 +140,7 @@ def column_list(method):
         return method(self, **kwargs)
     return wrapper
 
-
-    def _get_column_names(self, x, y = None):
-        """Gets feature names if previously stored by _store_column_names."""
-        x = pd.DataFrame(x, columns = self.x_cols)
-        if isinstance(y, np.ndarray):
-            y = pd.Series(y, name = self.y_col)
-            return x, y
-        else:
-            return x
-
-
-    def _store_column_names(self, x, y = None):
-        """Stores feature names."""
-        self.x_cols = list(x.columns.values)
-        if isinstance(y, pd.Series):
-            self.y_col = self.label
-        return self
-
-def oven_mits(method):
+def numpy_shield(method):
     """Checks conditions of Cookbook step and adjusts arguments and return
     value accordingly.
 

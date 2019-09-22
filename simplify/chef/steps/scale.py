@@ -7,7 +7,7 @@ from sklearn.preprocessing import (KBinsDiscretizer, MaxAbsScaler,
                                    StandardScaler)
 
 from simplify.core.base import SimpleStep
-from simplify.core.decorators import oven_mits
+from simplify.core.decorators import numpy_shield
 
 @dataclass
 class Scale(SimpleStep):
@@ -69,7 +69,7 @@ class Scale(SimpleStep):
             self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    @oven_mits
+    @numpy_shield
     def produce(self, ingredients, plan = None, columns = None):
         if columns is None:
             columns = ingredients.scalers

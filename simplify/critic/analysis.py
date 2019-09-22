@@ -90,7 +90,9 @@ class Analysis(SimpleManager):
         for recipe in self.listify(recipes):
             if self.verbose:
                 print('Evaluating', recipe.name + 's')
-            for step, technique in getattr(self, self.plan_iterable).items():
+            for step, technique in getattr(
+                    self, self.plan_iterable).techniques.items():
+                print(step, technique)
                 technique.produce(recipe = recipe)
         return self
 

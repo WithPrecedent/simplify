@@ -19,7 +19,7 @@ import datetime
 from simplify.artist.canvas import Canvas
 from simplify.chef.steps import (Cleave, Encode, Mix, Model, Reduce, Sample,
                                  Scale, Split)
-from simplify.core.decorators import check_arguments
+from simplify.core.decorators import local_backups
 from simplify.core.base import SimpleManager, SimplePlan, SimpleStep
 from simplify.critic.analysis import Analysis
 
@@ -47,13 +47,14 @@ class Cookbook(SimpleManager):
             the argument is included if the user wishes to reexamine past
             recipes or manually create new recipes.
         name: a string designating the name of the class which should be
-            identical to the section of the Idea section with relevant settings.
+            identical to the section of the Idea section with relevant
+            settings.
         auto_finalize: sets whether to automatically call the 'finalize' method
             when the class is instanced. If you do not plan to make any
             adjustments to the steps, techniques, or algorithms beyond the
             Idea configuration, this option should be set to True. If you plan
-            to make such changes, 'finalize' should be called when those changes
-            are complete.
+            to make such changes, 'finalize' should be called when those
+            changes are complete.
         auto_produce: sets whether to automatically call the 'produce' method
             when the class is instanced.
     """
@@ -296,7 +297,7 @@ class Cookbook(SimpleManager):
         super().finalize()
         return self
 
-    @check_arguments
+    @local_backups
     def produce(self, ingredients = None):
         """Completes an iteration of a Cookbook.
 

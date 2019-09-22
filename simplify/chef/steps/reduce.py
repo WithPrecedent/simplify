@@ -7,7 +7,7 @@ from sklearn.feature_selection import (chi2, f_classif, mutual_info_classif,
                                        SelectFromModel)
 
 from simplify.core.base import SimpleStep
-from simplify.core.decorators import oven_mits
+from simplify.core.decorators import numpy_shield
 
 @dataclass
 class Reduce(SimpleStep):
@@ -82,7 +82,7 @@ class Reduce(SimpleStep):
         pass
         return self
 
-    @oven_mits
+    @numpy_shield
     def produce(self, ingredients, plan = None, estimator = None):
         if not estimator:
             estimator = plan.model.algorithm

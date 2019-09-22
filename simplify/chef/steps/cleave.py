@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 
 from simplify.core.base import SimpleStep
-from simplify.core.decorators import oven_mits
+from simplify.core.decorators import numpy_shield
 
 @dataclass
 class Cleave(SimpleStep):
@@ -50,7 +50,7 @@ class Cleave(SimpleStep):
         self.options.update({cleave_group : columns})
         return self
 
-    @oven_mits
+    @numpy_shield
     def produce(self, ingredients, plan = None):
         self._finalize_cleaves()
         ingredients = self.algorithm(ingredients)

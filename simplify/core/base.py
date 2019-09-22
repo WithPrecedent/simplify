@@ -24,7 +24,7 @@ class SimpleClass(ABC):
 
     To use the class, a subclass must have the following methods:
         draft: a method which sets the default values for the subclass, and
-            usually includes the self.options dictionary. If the subclass calls
+            usually includes the 'options' dictionary. If the subclass calls
             super().__post_init__, the 'draft' method is automatically called.
         finalize: a method which, after the user has set all options in the
             preferred manner, constructs the objects which can parse, modify,
@@ -74,7 +74,7 @@ class SimpleClass(ABC):
         'produce' method.
 
         Args:
-            idea (Idea or str): an instance of Idea or path where an Idea
+            idea(Idea or str): an instance of Idea or path where an Idea
                 configuration file is located must be passed when a subclass is
                 called as a function.
 
@@ -99,7 +99,7 @@ class SimpleClass(ABC):
         return item in self.options
 
     def __delitem__(self, item):
-        """Deletes item if in 'options' or, if ait is an instance attribute, it
+        """Deletes item if in 'options' or, if it is an instance attribute, it
         is assigned a value of None.
 
         Args:
@@ -178,8 +178,8 @@ class SimpleClass(ABC):
     """ Private Methods """
 
     def _check_depot(self):
-        """Adds an Depot instance with default Depot instance as 'depot'
-        attribute if one is not passed when subclass is instanced.
+        """Adds a Depot instance with default settings as 'depot' attribute if
+        one was not passed when the subclass was instanced.
         """
         # Local import to avoid circular dependency.
         from simplify import Depot
@@ -212,7 +212,9 @@ class SimpleClass(ABC):
 
     def _check_idea(self):
         """Loads Idea settings from a file if a string is passed instead of an
-        Idea instance. Injects sections of 'idea' to a subclass instance using
+        Idea instance.
+
+        Injects sections of 'idea' to a subclass instance using
         user settings.
         """
         # Local import to avoid circular dependency.
@@ -270,24 +272,54 @@ class SimpleClass(ABC):
         return self
 
     def _check_steps(self):
-        """Checks for 'steps' attribute or finds an attribute with the class
-        'name' prefix followed by 'steps' if 'steps' does not already exist or
-        is None.
+        """Creates 'steps' attribute from one of several sources.
+
+        Initially, the method checks for 'steps' attribute. If that doesn't
+        exist, it searches for an attribute with the class 'name' prefix
+        followed by 'steps' (e.g. 'cookbook_steps'). This latter attribute is
+        often created from the Idea instance.
+
+        If the value stored in the 'steps' attribute is 'all', 'none', or
+        'default', the steps value is changed using the '_convert_wildcards'
+        method.
+
+        Also, a 'step' attribute is created from the first item in the 'steps'
+        attribute.
         """
         if not hasattr(self, 'steps') or self.steps is None:
             if hasattr(self, self.name + '_steps'):
-                if getattr(self, self.name + '_steps') in ['all', 'default']:
-                    self.steps = list(self.options.keys())
-                else:
-                    self.steps = self.listify(getattr(
+                self.steps = self._convert_wildcards(getattr(
                         self, self.name + '_steps'))
-            else:
-                self.steps = []
         else:
             self.steps = self.listify(self.steps)
         if not hasattr(self, 'step') or not self.step:
             self.step = self.steps[0]
         return self
+
+    def _convert_wildcards(self, value):
+        """Converts 'all', 'default', or 'none' to list of items.
+
+        Args:
+            value(list or str): name(s) of techniques, steps, or managers.
+
+        Returns:
+            If 'all', all keys listed in 'options' dictionary are returned.
+            If 'default', 'default_techniques' are returned or, if they don't
+                exist, all keys listed in 'options' dictionary are returned.
+            Otherwise, 'techniques' is returned intact.
+        """
+        if value in ['all', ['all']]:
+            return self.options.keys()
+        elif value in ['default', ['default']]:
+            if (hasattr(self, 'default_techniques')
+                    and self.default_techniques):
+                return self.default_techniques
+            else:
+                return self.options.keys()
+        elif value in ['none', ['none'], None]:
+            return ['none']
+        else:
+            return self.listify(value)
 
     @classmethod
     def _register_subclass(self):
@@ -303,9 +335,12 @@ class SimpleClass(ABC):
 
     def _run_checks(self):
         """Checks attributes from 'checks' and runs corresponding methods based
-        upon strings stored in 'checks'. Those methods should have the prefix
-        '_check_' followed by the string in the attribute 'checks' and have
-        no parameters other than 'self'.
+        upon strings stored in 'checks'.
+
+        Those methods should have the prefix '_check_' followed by the string
+        in the attribute 'checks' and have no parameters other than 'self'. Any
+        subclass seeking to add new checks can add a new method using those
+        naming conventions.
         """
         if hasattr(self, 'checks') and self.checks:
             for check in self.checks:
@@ -397,6 +432,52 @@ class SimpleClass(ABC):
         else:
             return {}
 
+    """ Public Input/Output Methods """
+
+    def load(self, name = None, file_path = None, folder = None,
+             file_name = None, file_format = None):
+        """Loads object from file into subclass attribute.
+
+        Args:
+            name: name of attribute for the file contents to be stored.
+            file_path: a complete file path for the file to be loaded.
+            folder: a path to the folder where the file should be loaded from
+                (not used if file_path is passed).
+            file_name: a string containing the name of the file to be loaded
+                without the file extension (not used if file_path is passed).
+            file_format: a string matching one the file formats in
+                Depot.extensions.
+        """
+        setattr(self, name, self.depot.load(file_path = file_path,
+                                            folder = folder,
+                                            file_name = file_name,
+                                            file_format = file_format))
+        return self
+
+    def save(self, variable = None, file_path = None, folder = None,
+             file_name = None, file_format = None):
+        """Exports a variable or attribute to disc.
+
+        Args:
+            variable: a python object or a string corresponding to a subclass
+                attribute which should be saved to disc.
+            file_path: a complete file path for the file to be saved.
+            folder: a path to the folder where the file should be saved (not
+                used if file_path is passed).
+            file_name: a string containing the name of the file to be saved
+                without the file extension (not used if file_path is passed).
+            file_format: a string matching one the file formats in
+                Depot.extensions.
+        """
+        if isinstance(variable, str):
+            variable = getattr(self, variable)
+        self.depot.save(variable = variable,
+                        file_path = file_path,
+                        folder = folder,
+                        file_name = file_name,
+                        file_format = file_format)
+        return
+
     """ Core Public siMpLify Methods """
 
     def conform(self, step):
@@ -455,8 +536,7 @@ class SimpleClass(ABC):
         variables.
 
         In the case of iterative classes, such as Cookbook, this method should
-        construct any plans to be later implemented by the 'produce' method. It
-        is roughly equivalent to the scikit-learn fit method.
+        construct any plans to be later implemented by the 'produce' method.
 
         Args:
             **kwargs: keyword arguments are not ordinarily included in the
@@ -466,58 +546,14 @@ class SimpleClass(ABC):
         pass
         return self
 
-    def load(self, name = None, file_path = None, folder = None,
-             file_name = None, file_format = None):
-        """Loads object from file into subclass attribute.
-
-        Args:
-            name: name of attribute for the file contents to be stored.
-            file_path: a complete file path for the file to be loaded.
-            folder: a path to the folder where the file should be loaded from
-                (not used if file_path is passed).
-            file_name: a string containing the name of the file to be loaded
-                without the file extension (not used if file_path is passed).
-            file_format: a string matching one the file formats in
-                Depot.extensions.
-        """
-        setattr(self, name, self.depot.load(file_path = file_path,
-                                            folder = folder,
-                                            file_name = file_name,
-                                            file_format = file_format))
-        return self
-
-    def save(self, variable = None, file_path = None, folder = None,
-             file_name = None, file_format = None):
-        """Exports a variable or attribute to disc.
-
-        Args:
-            variable: a python object or a string corresponding to a subclass
-                attribute which should be saved to disc.
-            file_path: a complete file path for the file to be saved.
-            folder: a path to the folder where the file should be saved (not
-                used if file_path is passed).
-            file_name: a string containing the name of the file to be saved
-                without the file extension (not used if file_path is passed).
-            file_format: a string matching one the file formats in
-                Depot.extensions.
-        """
-        if isinstance(variable, str):
-            variable = getattr(self, variable)
-        self.depot.save(variable = variable,
-                        file_path = file_path,
-                        folder = folder,
-                        file_name = file_name,
-                        file_format = file_format)
-        return
-
 
 @dataclass
-class SimpleManager(SimpleClass, ABC):
-    """Parent abstract base class for siMpLify planners like Cookbook, Almanac,
-    Analysis, and Canvas.
+class SimpleManager(SimpleClass):
+    """Parent  class for siMpLify planners like Cookbook, Almanac, Analysis,
+    and Canvas.
 
-    This class adds a required 'produce' method and other methods useful to
-    siMpLify classes which transform data or fit models.
+    This class adds methods useful to create iterators, iterate over user
+    options, and transform data or fit models.
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
@@ -541,7 +577,7 @@ class SimpleManager(SimpleClass, ABC):
             self.all_steps.append(getattr(self, step))
         return self
 
-    def _create_plan_instance(self, plan):
+    def _create_parallel_plan_instance(self, plan):
         plan_techniques = {}
         for j, (step, technique) in enumerate(self.options.items()):
             # Stores each step attribute in a dict.
@@ -562,6 +598,16 @@ class SimpleManager(SimpleClass, ABC):
             setattr(self, self.plan_iterable, {})
         return self
 
+    def _create_serial_plan_instance(self, plans):
+        plan_techniques = {}
+        print(plans)
+        for step, techniques in plans.items():
+            # Stores each step attribute in a dict.
+            technique_instance = self.options[step](
+                    techniques = techniques)
+            plan_techniques.update({step : technique_instance})
+        return plan_techniques
+
     def _finalize_parallel(self):
         """Creates dict with steps as keys and techniques as values for each
         plan in the 'plans' attribute."""
@@ -571,7 +617,7 @@ class SimpleManager(SimpleClass, ABC):
         # Iterates through possible steps and either assigns corresponding
         # technique from 'all_plans'.
         for i, plan in enumerate(self.all_plans):
-            plan_instance = self._create_plan_instance(plan = plan)
+            plan_instance = self._create_parallel_plan_instance(plan = plan)
             plan_instance.number = i + 1
             getattr(self, self.plan_iterable).update({i + 1 : plan_instance})
         return self
@@ -579,10 +625,11 @@ class SimpleManager(SimpleClass, ABC):
     def _finalize_serial(self):
         """Creates dict with steps as keys and techniques as values."""
         self.all_plans = dict(zip(self.options.keys(), self.all_steps))
-        # Changes 'plan_iterable' attribute to be instance of 'plan_class' with
-        # the 'techniques' parameter being the prepared dict.
+        # Creates plan instance with all of the techniques converted to
+        # appropriate SimpleStep subclasses.
         setattr(self, self.plan_iterable, self.plan_class(
-            techniques = self.all_plans))
+            techniques = self._create_serial_plan_instance(
+                    plans = self.all_plans)))
         return self
 
     """ Public Methods """
@@ -601,12 +648,10 @@ class SimpleManager(SimpleClass, ABC):
         getattr(self, '_finalize_' + self.manager_type)()
         return self
 
-    @abstractmethod
     def produce(self, variable = None, **kwargs):
-        """Required method that implements all of the finalized objects on the
+        """Method that implements all of the finalized objects on the
         passed variable. The variable is returned after being transformed by
-        called methods. It is roughly equivalent to the scikit-learn transform
-        method.
+        called methods.
 
         Args:
             variable: any variable. In most cases in the siMpLify package,
@@ -707,38 +752,40 @@ class SimpleStep(SimpleClass):
 
     """ Private Methods """
 
-    def _check_wildcards(self, techniques):
-        """Converts 'all' or 'default' techniques to list of techniques.
+    def _add_extra_parameters(self, technique, parameters):
+        """Adds parameters from 'extra_parameters' if attribute exists.
+
+        Some parameters are stored in 'extra_parameters' because of the way
+        the particular algorithms are constructed by dependency packages. For
+        example, scikit-learn consolidates all its support vector machine
+        classifiers into a single class (SVC). To pick different kernels for
+        that class, a parameter ('kernel') is used. Since siMpLify wants to
+        allow users to compare different SVC kernel models (linear, sigmoid,
+        etc.), the 'extra_parameters attribute is used to add the 'kernel'
+        and 'probability' paramters in the Classifier subclass.
 
         Args:
-            techniques(list or str): techniques names.
+            technique(str): name of technique selected.
+            parameters(dict): a set of parameters for an algorithm.
 
         Returns:
-            If 'all', all keys listed in 'options' dict are returned.
-            If 'default', 'default_techniques' are returned or, if they don't
-                exist, all keys listed in 'options' dict are returned.
-            Otherwise, 'techniques' is returned intact.
+            parameters(dict) with 'extra_parameters' added if that attribute
+                exists in the subclass and the technique is listed as a key
+                in the nested 'extra_parameters' dictionary.
         """
-        if techniques in ['all', ['all']]:
-            return self.options.keys()
-        elif techniques in ['default', ['default']]:
-            if hasattr(self, 'default_techniques') and self.default_techniques:
-                return self.default_techniques
-            else:
-                return self.options.keys()
-        else:
-            return techniques
+        if (hasattr(self, 'extra_parameters')
+                and technique in self.extra_parameters):
+            parameters[technique].update(self.extra_parameters[technique])
+        return parameters
 
     def _finalize_parameters(self):
-        """Applies Idea settings or default parameters if none exist.
+        """Compiles appropriate parameters for all techniques within
+        'techniques' attribute.
 
-        If 'parameters' is None, the accessible Idea instance is checked for a
-        section matching the 'name' attribute of the class instance. If no
-        Idea parameters exist, 'default_parameters are used. If there are no
-        'default_parameters', an empty dict is created for parameters.
-
-        If 'runtime_parameters' exist in the subclass those are added to
-        'parameters' as well.
+        After testing several sources for parameters using '_get_parameters',
+        parameters are subselected, if necessary, using '_select_parameters'.
+        If 'runtime_parameters' and/or 'extra_parameters' exist in the
+        subclass, those are added to 'parameters' as well.
         """
         nested_parameters = {}
         if not hasattr(self, 'parameters') or self.parameters is None:
@@ -748,11 +795,27 @@ class SimpleStep(SimpleClass):
                 new_params = self._select_parameters(technique, new_params)
                 new_params.update(self._get_runtime_parameters(technique))
                 nested_parameters.update({technique : new_params})
+                nested_parameters = self._add_extra_parameters(
+                        technique = technique,
+                        parameters = nested_parameters)
         self.parameters = nested_parameters
         return self
 
     def _get_parameters(self, technique):
-        if hasattr(self, 'parameters') and self.parameters:
+        """Returns parameters from different possible sources based upon passed
+        'technique'.
+
+        If 'parameters' attribute is None, the accessible Idea instance is
+        checked for a section matching the 'name' attribute of the class
+        instance. If no Idea parameters exist, 'default_parameters' are used.
+        If there are no 'default_parameters', an empty dictionary is created
+        for parameters.
+
+        Args:
+            technique(str): name of technique for which parameters are sought.
+
+        """
+        if hasattr(self, 'parameters') and self.parameters is not None:
             return self.parameters[technique]
         elif technique in self.idea.configuration:
             return {technique : self.idea.configuration[technique]}
@@ -764,6 +827,17 @@ class SimpleStep(SimpleClass):
             return {}
 
     def _get_runtime_parameters(self, technique):
+        """Returns runtime parameters from different possible sources based
+        upon passed 'technique'.
+
+        If 'runtime_parameters' attribute is None, 'default_rumtime_parameters'
+        are used.  If there are no 'default_runtime_parameters', an empty
+        dictionary is created for the returned runtime parameters.
+
+        Args:
+            technique(str): name of technique for which runtime parameters are
+                sought.
+        """
         if hasattr(self, 'runtime_parameters') and self.runtime_parameters:
             return self.runtime_parameters[technique]
         elif (hasattr(self, 'default_runtime_parameters')
@@ -773,11 +847,24 @@ class SimpleStep(SimpleClass):
             return {}
 
     def _nestify_parameters(self):
+        """Converts existing parameter attributes to nested parameter
+        dictionaries.
+
+        The method uses the 'check_nest' attribute list to indicate which
+        local attributes should be transformed. The new nested dictionaries
+        use keys of the items in the 'tehchniques' attribute.
+        """
         for parameters in self.check_nests:
             if hasattr(self, parameters):
-                setattr(self, parameters, self.nestify(
-                        keys = self.listify(self.techniques),
-                        dictionaries = getattr(self, parameters)))
+                if (isinstance(self.techniques, list)
+                        or isinstance(self.techniques, str)):
+                    setattr(self, parameters, self.nestify(
+                            keys = self.listify(self.techniques),
+                            dictionaries = getattr(self, parameters)))
+                elif isinstance(self.techniques, dict):
+                    setattr(self, parameters, self.nestify(
+                            keys = self.listify(self.techniques.keys()),
+                            dictionaries = getattr(self, parameters)))
         return self
 
     def _select_parameters(self, technique, parameters,
@@ -818,7 +905,7 @@ class SimpleStep(SimpleClass):
         self.checks = ['idea']
         return self
 
-    def edit_parameters(self, parameters):
+    def edit_parameters(self, technique, parameters):
         """Adds a parameter set to parameters dictionary.
 
         Args:
@@ -830,9 +917,9 @@ class SimpleStep(SimpleClass):
         """
         if isinstance(parameters, dict):
             if not hasattr(self, 'parameters') or self.parameters is None:
-                self.parameters = parameters
+                self.parameters = {technique : parameters}
             else:
-                self.parameters.update(parameters)
+                self.parameters[technique].update(parameters)
             return self
         else:
             error = 'parameters must be a dict type'
@@ -840,10 +927,10 @@ class SimpleStep(SimpleClass):
 
     def finalize(self):
         """Finalizes parameters and adds 'parameters' to 'algorithm'."""
-        self.techniques = self._check_wildcards(techniques = self.techniques)
+        self.techniques = self._convert_wildcards(value = self.techniques)
         self._nestify_parameters()
         self._finalize_parameters()
-        if self.technique != 'none':
+        if self.techniques != ['none']:
             self.algorithm = self.options[self.technique](**self.parameters)
         else:
             self.algorithm = None

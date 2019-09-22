@@ -7,7 +7,7 @@ from imblearn.under_sampling import (AllKNN, ClusterCentroids, NearMiss,
                                      RandomUnderSampler)
 
 from simplify.core.base import SimpleStep
-from simplify.core.decorators import oven_mits
+from simplify.core.decorators import numpy_shield
 
 
 @dataclass
@@ -70,7 +70,7 @@ class Sample(SimpleStep):
         x = self.transform(x, y)
         return x
 
-    @oven_mits
+    @numpy_shield
     def produce(self, ingredients, plan = None, columns = None):
         self._recheck_parameters(ingredients.x, columns)
         if plan.data_to_use in ['full']:

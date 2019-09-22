@@ -1,6 +1,6 @@
 """
 .. module:: idea
-  :synopsis: contains configuration settings for siMpLify package.
+  :synopsis: contains class storing the settings for siMpLify package.
   :author: Corey Rayburn Yung
   :copyright: 2019
   :license: CC-BY-NC-4.0
@@ -37,8 +37,8 @@ class Idea(SimpleClass):
 
     Whichever option is chosen, the nested idea dictionary is stored in the
     attribute 'configuration'. Users can store any key/value pairs in a section
-    of the 'configuration' dictionary as attributes in a class instance by using
-    the 'inject' method.
+    of the 'configuration' dictionary as attributes in a class instance by
+    using the 'inject' method.
 
     If 'infer_types' is set to True (the default option), the dictionary values
     are automatically converted to appropriate datatypes (str, list, float,
@@ -60,9 +60,9 @@ class Idea(SimpleClass):
         cookbook_steps = split, reduce, model
 
     'verbose' and 'file_type' will automatically be added to every siMpLify
-    class because they are located in the 'general' section. If a subclass wants
-    attributes from the files section, then the following line should appear
-    in __post_init__ before calling super().__post_init__:
+    class because they are located in the 'general' section. If a subclass
+    wants attributes from the files section, then the following line should
+    appear in __post_init__ before calling super().__post_init__:
 
         self.idea_sections = ['files']
 
@@ -150,6 +150,32 @@ class Idea(SimpleClass):
             raise KeyError(error_message)
         return self
 
+    def __getattr__(self, attr):
+        """Returns dict methods applied to configuration attribute if those
+        methods are sought from the class instance.
+
+        Args:
+            attr (str): attribute sought.
+
+        Returns:
+            attribute or None, if attribute does not exist.
+
+        Raises:
+            AttributeError: if a dunder attribute is sought.
+        """
+        # Intecepts common dict methods and applies them to 'configuration'
+        # dict.
+        if attr in ['clear', 'items', 'pop', 'keys', 'values']:
+            return getattr(self.configuration, attr)
+        elif attr in self.__dict__:
+            return self.__dict__[attr]
+        elif attr.startswith('__') and attr.endswith('__'):
+            error = 'Access to magic methods not permitted through __getattr__'
+            raise AttributeError(error)
+        else:
+            error = attr + ' not found in ' + self.__class__.__name__
+            raise AttributeError(error)
+
     def __getitem__(self, key):
         """Returns a section of the configuration or key within a section.
 
@@ -158,10 +184,10 @@ class Idea(SimpleClass):
                 sought.
 
         Returns:
-            dict if 'key' matches a section in 'configuration'. If 'key' matches
-                a key within a section, the value, which can be any of the
-                supported datatypes is returned. If no match is found an empty
-                dict is returned.
+            dict if 'key' matches a section in 'configuration'. If 'key'
+                matches a key within a section, the value, which can be any of
+                the supported datatypes is returned. If no match is found an
+                empty dict is returned.
         """
         found_value = False
         if key in self.configuration:
@@ -177,7 +203,7 @@ class Idea(SimpleClass):
 
     def __iter__(self):
         """Returns iterable configuration dict items()."""
-        return self.items()
+        return self.configuration.items()
 
     def __setitem__(self, section, nested_dict):
         """Creates a new subsection in a specified section of the configuration
@@ -273,9 +299,10 @@ class Idea(SimpleClass):
     def _typify(self, variable):
         """Converts str to appropriate, supported datatype.
 
-        The method converts strings to list (if ', ' is present), int, float, or
-        bool datatypes based upon the content of the string. If no alternative
-        datatype is found, the variable is returned in its original form.
+        The method converts strings to list (if ', ' is present), int, float,
+        or bool datatypes based upon the content of the string. If no
+        alternative datatype is found, the variable is returned in its original
+        form.
 
         Args:
             variable(str): string to be converted to appropriate datatype.
@@ -313,7 +340,8 @@ class Idea(SimpleClass):
         return self
 
     def finalize(self):
-        """Prepares instance of Idea by checking passed configuration parameter.
+        """Prepares instance of Idea by checking passed configuration
+        parameter.
         """
         self._check_configuration()
         return self
@@ -329,8 +357,9 @@ class Idea(SimpleClass):
             which should have key, value pairs added as attributes to
                 instance.
             override (bool): if True, even existing attributes in instance will
-                be replaced by configuration dictionary items. If False, current
-                values in those similarly-named attributes will be maintained.
+                be replaced by configuration dictionary items. If False,
+                current values in those similarly-named attributes will be
+                maintained.
 
         Returns:
             instance with attributes added.
@@ -351,19 +380,6 @@ class Idea(SimpleClass):
         return self
 
     """ Python Dictionary Compatibility Methods """
-
-    def items(self):
-        """Returns items of 'configuration' dict to mirror dict functionality.
-
-        This method is also accessed if the user attempts to iterate the class.
-        """
-        return self.configuration.items()
-
-    def keys(self):
-        """Returns keys (section names) of 'configuration' dict to mirror dict
-        functionality.
-        """
-        return self.configuration.keys()
 
     def update(self, new_settings):
         """Adds new settings to the configuration dictionary.
@@ -390,9 +406,3 @@ class Idea(SimpleClass):
             error_message = 'new_options must be dict, Idea instance, or path'
             raise TypeError(error_message)
         return self
-
-    def values(self):
-        """Returns values (sections) of 'configuration' dict to mirror dict
-        functionality.
-        """
-        return self.configuration.values()

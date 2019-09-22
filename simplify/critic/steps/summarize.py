@@ -25,7 +25,7 @@ class Summarize(SimpleStep):
     """
     name : str = 'summarizer'
     auto_finalize : bool = True
-    auto_produce : bool = True
+    auto_produce : bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -59,7 +59,18 @@ class Summarize(SimpleStep):
         self.statistics = pd.DataFrame(columns = self.columns)
         return self
 
-    def _produce_report(self, df = None, transpose = True):
+    def produce(self, df = None, transpose = True, file_name = 'data_summary',
+                file_format = 'csv'):
+        """Creates and exports a DataFrame of common summary data using the
+        Summary class.
+
+        Args:
+            df: a pandas DataFrame.
+            transpose: boolean value indicating whether the df columns should
+                be listed horizontally (True) or vertically (False) in report.
+            file_name: string containing name of file to be exported.
+            file_format: string of file extension from Depot.extensions.
+        """
         """Completes report with data from df.
 
         Args:
@@ -67,6 +78,7 @@ class Summarize(SimpleStep):
             transpose: boolean value indicating whether the df columns should be
                 listed horizontally (True) or vertically (False) in report.
         """
+        self.file_name = file_name
         for column in df.columns:
             row = pd.Series(index = self.columns)
             row['variable'] = column
@@ -93,27 +105,4 @@ class Summarize(SimpleStep):
         else:
             self.df_header = True
             self.df_index = False
-        return self
-
-    def produce(self, df = None, transpose = True, file_name = 'data_summary',
-                file_format = 'csv'):
-        """Creates and exports a DataFrame of common summary data using the
-        Summary class.
-
-        Args:
-            df: a pandas DataFrame.
-            transpose: boolean value indicating whether the df columns should
-                be listed horizontally (True) or vertically (False) in report.
-            file_name: string containing name of file to be exported.
-            file_format: string of file extension from Depot.extensions.
-        """
-        self._produce_report(df = self.statistics, transpose = transpose)
-        if self.verbose:
-            print('Saving summary data')
-        self.depot.save(variable = self.statistics,
-                        folder = self.depot.experiment,
-                        file_name = file_name,
-                        file_format = file_format,
-                        header = self.df_header,
-                        index = self.df_index)
         return self

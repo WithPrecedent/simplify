@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from category_encoders import PolynomialEncoder
 
 from simplify.core.base import SimpleStep
-from simplify.core.decorators import oven_mits
+from simplify.core.decorators import numpy_shield
 
 @dataclass
 class Mix(SimpleStep):
@@ -57,7 +57,7 @@ class Mix(SimpleStep):
         pass
         return self
 
-    @oven_mits
+    @numpy_shield
     def produce(self, ingredients, plan = None, columns = None):
         if not columns:
             columns = ingredients.encoders
