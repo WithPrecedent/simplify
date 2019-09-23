@@ -1,11 +1,20 @@
 """
-critic.py is the primary control file for evaluating the modeling of data.
+.. module:: analysis
+  :synopsis: contains core classes for Critic subpackage.
+  :author: Corey Rayburn Yung
+  :copyright: 2019
+  :license: CC-BY-NC-4.0
+
+This is the primary control file for evaluating machine learning and other
+statistical models.
 
 Contents:
-    Analysis: primary class constructing and controlling model evaluation.
-    Review: class for accumulating metrics and evaluations of the data and
-        model.
+    Analysis: primary class for model evaluation and preparing reports about
+        that evaluation and data.
+    Review: class for storing metrics, evaluations, and reports related to data 
+        and models.
 """
+
 from dataclasses import dataclass
 
 from simplify.core.base import SimpleManager, SimplePlan
@@ -55,23 +64,19 @@ class Analysis(SimpleManager):
                         'evaluator' : Evaluate,
                         'scorer' : Score,
                         'reporter' : Report}
+        # Sets check methods to run.
         self.checks = ['steps']
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.step = 'critic'
         # Sets 'manager_type' so that proper parent methods are used.
         self.manager_type = 'serial'
-        # Sets 'plan_class' to allow use of parent methods.
+        # Sets plan-related attributes to allow use of parent methods.
         self.plan_class = Review
         self.plan_iterable = 'review'
         return self
 
-    def finalize(self):
-        """Calls the appropriate finalize method based upon 'manager_type' of
-        class.
-        """
-        super().finalize()
-        return self
-
+    """ Public Tool Methods """
+    
     def print_best(self):
         """Prints output to the console about the best recipe."""
         if self.verbose:
@@ -85,15 +90,13 @@ class Analysis(SimpleManager):
                               technique).technique)
         return
 
+    """ Core siMpLify methods """
+    
     def produce(self, recipes = None):
         """Evaluates recipe with various tools and finalizes report."""
-        for recipe in self.listify(recipes):
-            if self.verbose:
-                print('Evaluating', recipe.name + 's')
-            for step, technique in getattr(
-                    self, self.plan_iterable).techniques.items():
-                print(step, technique)
-                technique.produce(recipe = recipe)
+        if recipes:
+            self.recipes = recipes
+        super().produce(recipes)
         return self
 
 
@@ -116,7 +119,7 @@ class Review(SimplePlan):
             should be called when those changes are complete.
     """
 
-    techniques : object = None
+    steps : object = None
     name : str = 'review'
     auto_finalize: bool = True
 
@@ -146,10 +149,15 @@ class Review(SimplePlan):
                     self.report.index[-1],
                     self.listify(self.metrics)[0]]
         return self
-
+    
+    def draft(self):
+        self.data_variable = 'recipes'
+        return self
+    
     def produce(self, recipes):
-        for recipe in self.listify(recipes):
-            self._check_best()
+        setattr(self, self.data_variable, self.listify(recipes))
+        for recipe in getattr(self, self.data_variable):
+            self._check_best(recipe = recipe)
             for step, technique in self.techniques.items():
-                recipe = technique.produce(recipe = recipe)
+                technique.produce(recipe = recipe)
         return self

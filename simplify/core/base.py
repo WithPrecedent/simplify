@@ -4,6 +4,27 @@
   :author: Corey Rayburn Yung
   :copyright: 2019
   :license: CC-BY-NC-4.0
+  
+This contains the key parent classes used by the siMpLify package and should be
+subclassed in any additional extensions to or applications of the package.
+
+siMpLify offers tools to make data science more accessible, with a particular
+emphasis on its use in academic research. To that end, the package avoids 
+programming jargon (when possible) and implements a unified code architecture
+for all stages of the data science project. So, classes and methods for data
+scraping, parsing, munging, merging, preprocessing, modelling, analyzing, and
+visualizing use the same vocabulary so that siMpLify can be easily used and 
+extended.
+
+The siMpLify package uses an extended metaphor, which 
+
+Contents:
+    SimpleClass: parent abstract base class for all siMpLify classes.
+    SimpleManager: parent class for the iterable creation classes.
+    SimplePlan: parent container class for storing iterables created by 
+        SimpleManager subclasses.
+    SimpleStep: parent iterable steps in both SimpleManager and SimplePlan
+        subclasses.
 """
 
 from abc import ABC, abstractmethod
@@ -20,9 +41,18 @@ import pandas as pd
 @dataclass
 class SimpleClass(ABC):
     """Absract base class for classes in siMpLify package to support a common
-    class structure and allow sharing of universal methods.
+    architecture and allow for sharing of universal methods.
 
-    To use the class, a subclass must have the following methods:
+    SimpleClass creates a code structure patterned after the writing process.
+    It divides processes into four stages which are the names or prefixes to
+    the core methods used throughout the siMpLify package:
+        1) draft: sets default attributes.
+        2) edit: makes any desired changes to the default attributes.
+        3) finalize: creates objects based upon those attributes.
+        4) produce: applies those finalized objects to passed variables 
+            (usually data).
+            
+    A subclass of this class must have the following methods:
         draft: a method which sets the default values for the subclass, and
             usually includes the 'options' dictionary. If the subclass calls
             super().__post_init__, the 'draft' method is automatically called.
@@ -549,7 +579,7 @@ class SimpleClass(ABC):
 
 @dataclass
 class SimpleManager(SimpleClass):
-    """Parent  class for siMpLify planners like Cookbook, Almanac, Analysis,
+    """Parent class for siMpLify planners like Cookbook, Almanac, Analysis,
     and Canvas.
 
     This class adds methods useful to create iterators, iterate over user
@@ -632,7 +662,34 @@ class SimpleManager(SimpleClass):
                     plans = self.all_plans)))
         return self
 
-    """ Public Methods """
+    def _produce_parallel(self, variable = None, **kwargs):
+        """Iterates through SimplePlan techniques 'produce' methods.
+        
+        Args:
+            variable(any): variable to be changed by serial SimpleManager 
+                subclass.
+            **kwargs: other parameters can be added to method as needed or
+                **kwargs can be used.
+        """
+        for number, plan in getattr(self, self.plan_iterable).items():
+            if self.verbose:
+                print('Testing', plan.name, str(number))
+            plan.produce(variable, **kwargs)             
+        return variable
+    
+    def _produce_serial(self, variable = None, **kwargs):
+        """Iterates through SimplePlan instance's techniques 'produce' methods.
+        
+        Args:
+            variable(any): variable to be changed by serial SimpleManager 
+                subclass.
+            **kwargs: other parameters can be added to method as needed or
+                **kwargs can be used.
+        """
+        variable = self.plan_iterable.produce(variable, **kwargs)     
+        return variable
+    
+    """ Core siMpLify methods """
 
     def draft(self):
         """ Declares defaults for class."""
@@ -654,13 +711,14 @@ class SimpleManager(SimpleClass):
         called methods.
 
         Args:
-            variable: any variable. In most cases in the siMpLify package,
+            variable(any): any variable. In most cases in the siMpLify package,
                 variable is an instance of Ingredients. However, any variable
                 or datatype can be used here.
             **kwargs: other parameters can be added to method as needed or
                 **kwargs can be used.
         """
-        pass
+        variable = getattr(self, '_produce_' + self.manager_type)(
+            variable, **kwargs)
         return variable
 
 
@@ -692,10 +750,10 @@ class SimplePlan(SimpleClass):
         will return the 'produce' method.
         """
         return self.produce(*args, **kwargs)
-
+    
     def draft(self):
-        """SimplePlan's generic 'draft' method requires no extra defaults."""
-        pass
+        """SimplePlan's generic 'draft' method."""
+        self.data_variable = ''
         return self
 
     def finalize(self):
@@ -704,12 +762,22 @@ class SimplePlan(SimpleClass):
         pass
         return self
 
-    def produce(self, variable):
-        setattr(self, variable.name, variable)
+    def produce(self, variable, **kwargs):
+        """Iterates through SimpleStep techniques 'produce' methods.
+        
+        Args:
+            variable(any): variable to be changed by serial SimpleManager 
+                subclass.
+            **kwargs: other parameters can be added to method as needed or
+                **kwargs can be used.
+        """
+        # If 'data_variable' is not set, attempts to infer its name from passed
+        # variable.
+        if not self.data_variable and hasattr(variable, 'name'):
+            self.data_variable = variable.name
         for step, technique in self.steps.items():
-            if self.verbose:
-                print('Applying', step)
-            setattr(self, variable.name, technique.produce(variable))
+            setattr(self, self.data_variable, technique.produce(
+                    getattr(self, self.data_variable), **kwargs))
         return self
 
 
