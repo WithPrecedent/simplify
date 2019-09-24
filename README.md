@@ -29,7 +29,7 @@ subpackages:
 ## Why siMpLify?
 
 Although scikit-learn has gone a long way toward unifying interfaces with many common machine learning methods, it is still quite clunky in many situations. Present shortcomings include:
-1) It doesn't incorporate tools for data that isn't [tidy](https://vita.had.co.nz/papers/tidy-data.pdf)
+1) It doesn't incorporate many tools for data that isn't already [tidy](https://vita.had.co.nz/papers/tidy-data.pdf).
 2) There is [a needlessly convoluted process](https://github.com/scikit-learn-contrib/sklearn-pandas#transformation-mapping) for implementing transformers on a subset of columns. Whereas many packages include a "cols" argument, [scikit-learn does not](https://medium.com/vickdata/easier-machine-learning-with-the-new-column-transformer-from-scikit-learn-c2268ea9564c).
 3) fit methods do not work with certain preprocessing algorithms (e.g., [target encoding in category-encoders](https://github.com/scikit-learn-contrib/categorical-encoding/issues/104)) because scikit-learn does not allow the label data to be passed to a fit method.
 4) Pipeline and FeatureUnion [lack a mix-and-match grid-search type system](https://buildmedia.readthedocs.org/media/pdf/scikit-learn-enhancement-proposals/latest/scikit-learn-enhancement-proposals.pdf) for preprocessing, only for hyperparameter searches.
