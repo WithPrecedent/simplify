@@ -4,27 +4,18 @@
   :author: Corey Rayburn Yung
   :copyright: 2019
   :license: CC-BY-NC-4.0
-  
-This contains the key parent classes used by the siMpLify package and should be
-subclassed in any additional extensions to or applications of the package.
-
-siMpLify offers tools to make data science more accessible, with a particular
-emphasis on its use in academic research. To that end, the package avoids 
-programming jargon (when possible) and implements a unified code architecture
-for all stages of the data science project. So, classes and methods for data
-scraping, parsing, munging, merging, preprocessing, modelling, analyzing, and
-visualizing use the same vocabulary so that siMpLify can be easily used and 
-extended.
-
-The siMpLify package uses an extended metaphor, which 
 
 Contents:
     SimpleClass: parent abstract base class for all siMpLify classes.
     SimpleManager: parent class for the iterable creation classes.
     SimplePlan: parent container class for storing iterables created by 
         SimpleManager subclasses.
-    SimpleStep: parent iterable steps in both SimpleManager and SimplePlan
-        subclasses.
+    SimpleStep: parent class of the iterable steps of the SimplePlan subclasses.
+    SimpleTechnique: parent class of algorithms used by SimpleStep subclasses.
+        
+  
+This module contains the key parent classes used by the siMpLify package and 
+should be subclassed in any additional extensions to the siMpLify package.
 """
 
 from abc import ABC, abstractmethod
@@ -34,6 +25,7 @@ import os
 import warnings
 
 from more_itertools import unique_everseen
+import numpy as np
 import pandas as pd
 #from tensorflow.test import is_gpu_available
 
@@ -785,10 +777,13 @@ class SimplePlan(SimpleClass):
 class SimpleStep(SimpleClass):
     """Parent class for various steps in the siMpLify package.
 
-    SimpleStep, unlike other subclasses of SimpleClass, should have a
+    SimpleStep, unlike the above subclasses of SimpleClass, should have a
     'parameters' parameter as an attribute to the class instance for the
     included methods to work properly. Otherwise, 'parameters' will be set to
     an empty dict.
+    
+    'fit', 'fit_transform', and 'transform' adapter methods are included in
+    SimpleClass to support partial scikit-learn compatibility.
 
     Args:
         technique(str): name of technique that matches a string in the 'options'
@@ -799,7 +794,7 @@ class SimpleStep(SimpleClass):
             Idea instance or if the user wishes to use default parameters.
         auto_finalize(bool): whether 'finalize' method should be called when the
             class is instanced. This should generally be set to True.
-
+            
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
     """
@@ -1024,49 +1019,168 @@ class SimpleStep(SimpleClass):
             ingredients.x = self.algorithm.transform(ingredients.x)
         return ingredients
 
+    
     """ Scikit-Learn Compatibility Methods """
 
-    def fit(self, x, y = None):
-        """Generic fit method for partial compatibility to sklearn."""
-        # Local import to avoid circular dependency.
-        from simplify import Ingredients
+    def fit(self, x = None, y = None, ingredients = None):
+        """Generic fit method for partial compatibility to sklearn.
+        
+        Args:
+            x(DataFrame or ndarray): independent variables/features.
+            y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
+            ingredients(Ingredients): instance of Ingredients containing x_train
+                and y_train attributes (based upon possible remapping)
+        
+        Raises:
+            AttributeError if no 'fit' method exists for local 'algorithm'.   
+        """
         if hasattr(self.algorithm, 'fit'):
-            if isinstance(x, pd.DataFrame):
+            if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
                 if y is None:
                     self.algorithm.fit(x)
                 else:
                     self.algorithm.fit(x, y)
-            elif isinstance(x, Ingredients):
-                if y is None:
-                    self.algorithm.fit(x.x_train)
-                else:
-                    self.algorithm.fit(x.x_train, y.y_train)
+            elif ingredients is not None:
+                ingredients = self.algorithm.fit(ingredients.x_train, 
+                                                 ingredients.y_train)
         else:
-            pass
+            error = 'fit method does not exist for this algorithm'
+            raise AttributeError(error)
         return self
 
-    def fit_transform(self, x, y = None):
-        """Generic fit_transform method for partial compatibility to sklearn.
+    def fit_transform(self, x = None, y = None, ingredients = None):
+        """Generic fit_transform method for partial compatibility to sklearn
+        
+        Args:
+            x(DataFrame or ndarray): independent variables/features.
+            y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
+            ingredients(Ingredients): instance of Ingredients containing x_train
+                and y_train attributes (based upon possible remapping)
+        
+        Returns:
+            transformed x or ingredients, depending upon what is passed to the
+                method.
+                
+        Raises:
+            TypeError if DataFrame, ndarray, or ingredients is not passed to
+                the method.
         """
-        self.fit(x = x, y = y)
-        self.transform(x = x, y = y)
-        return x
+        self.fit(x = x, y = y, ingredients = ingredients)
+        if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
+            return self.transform(x = x, y = y)          
+        elif ingredients is not None:
+            return self.transform(ingredients = ingredients)
+        else:
+            error = 'fit_transform requires DataFrame, ndarray, or Ingredients'
+            raise TypeError(error)
 
-    def transform(self, x, y = None):
-        """Generic transform method for partial compatibility to sklearn."""
+    def transform(self, x = None, y = None, ingredients = None):
+        """Generic transform method for partial compatibility to sklearn.
+        Args:
+            x(DataFrame or ndarray): independent variables/features.
+            y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
+            ingredients(Ingredients): instance of Ingredients containing x_train
+                and y_train attributes (based upon possible remapping)
+
+        Returns:
+            transformed x or ingredients, depending upon what is passed to the
+                method.        
+        
+        Raises:
+            AttributeError if no 'transform' method exists for local 
+                'algorithm'.   
+        """
         # Local import to avoid circular dependency.
         from simplify import Ingredients
         if hasattr(self.algorithm, 'transform'):
-            if isinstance(x, pd.DataFrame):
+            if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
                 if y is None:
                     x = self.algorithm.transform(x)
                 else:
                     x = self.algorithm.transform(x, y)
-            elif isinstance(x, Ingredients):
-                if y is None:
-                    x.x_train = self.algorithm.transform(x.x_train)
-                else:
-                    x.x_train = self.algorithm.transform(x.x_train, y.y_train)
+                return x
+            elif ingredients is not None:
+                ingredients = self.algorithm.transform(ingredients.x_train, 
+                                                       ingredients.y_train)
+                return ingredients
         else:
-            pass
-        return x
+            error = 'transform method does not exist for this algorithm'
+            raise AttributeError(error) 
+        
+    
+@dataclass
+class SimpleTechnique(SimpleStep):
+    """Parent class for various techniques in the siMpLify package.
+
+    SimpleTechnique is the lowest-level parent class in the siMpLify package.
+    It follows the general structure of SimpleClass, but is focused on storing
+    and applying single techniques to data or other variables. It is included,
+    in part, to achieve the highest level of compatibility with scikit-learn as
+    currently possible. 
+    
+    Not every low-level technique needs to a subclass of SimpleTechnique. For
+    example, many of the algorithms used in the Cookbook steps (RandomForest,
+    XGBClassifier, etc.) are dependencies that are fully integrated into the
+    siMpLify architecture without wrapping them into a SimpleTechnique subclass.
+    SimpleTechnique is used for custom techniques and for dependencies that
+    require a substantial adapter to integrate into siMpLify.
+
+    SimpleTechnique, similar to SimpleStep, should have a 'parameters' parameter
+    as an attribute to the class instance for the included methods to work 
+    properly. Otherwise, 'parameters' will be set to an empty dict.
+    
+    Unlike SimpleManager, SimplePlan, and SimpleStep, SimpleTechnique only
+    supports a single 'technique'. This is to maximize compatibility to scikit-
+    learn and other pipeline scripts.
+    
+    Args:
+        technique(str): name of technique that matches a string in the 'options'
+            keys or a wildcard value such as 'default', 'all', or 'none'.
+        parameters(dict): parameters to be attached to algorithm in 'options'
+            corresponding to 'technique'. This parameter need not be passed to
+            the SimpleStep subclass if the parameters are in the accessible
+            Idea instance or if the user wishes to use default parameters.
+        auto_finalize(bool): whether 'finalize' method should be called when the
+            class is instanced. This should generally be set to True.
+
+    It is also a child class of SimpleStep. So, its documentation applies as
+    well.
+    """
+    technique : object = None
+    parameters : object = None
+    auto_finalize : bool = True
+
+    def __post_init__(self):
+        # Adds name of SimpleStep subclass to sections to inject from Idea
+        # so that all of those section entries are available as local
+        # attributes.
+        if hasattr(self, 'step_name'):
+            self.idea_sections = [self.step_name]
+        super().__post_init__()
+        return self
+
+    """ Core siMpLify Public Methods """
+    
+    def finalize(self):
+        """Finalizes parameters and adds 'parameters' to 'algorithm'."""
+        if self.techniques != ['none']:
+            self.algorithm = self.options[self.technique](**self.parameters)
+        else:
+            self.algorithm = None
+        return self
+    
+    def produce(self, ingredients, plan = None):
+        """Generic implementation method for SimpleTechnique subclass.
+
+        Args:
+            ingredients(Ingredients): an instance of Ingredients or subclass.
+            plan(SimplePlan subclass or instance): is not used by the generic
+                method but is made available as an optional keyword for
+                compatibility with other 'produce'  methods. This parameter is
+                used when the current SimpleTechnique subclass needs to look 
+                back at previous SimpleSteps.
+        """
+        if self.algorithm:
+            self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+            ingredients.x_train = self.algorithm.transform(ingredients.x_train)
+        return ingredients
