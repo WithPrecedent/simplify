@@ -57,7 +57,7 @@ siMpLify provides a cleaner, universal set of tools to access the many useful me
 
 ## The siMpLify Process
 
-To understand a typical use-case for siMplify, let's examine a project that omits the Farmer stage and proceeds directly to preprocessing and modelling. At the end of this discussion of the general process, an example using the Wisconsin breast cancer data is included.
+To understand a typical use-case for siMplify, let's examine a project that omits the Farmer stage and proceeds directly to preprocessing and modeling. At the end of this discussion of the general process, an example using the Wisconsin breast cancer data is included.
 
 ### siMpLify Chef
 
