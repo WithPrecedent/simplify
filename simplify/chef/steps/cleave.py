@@ -9,7 +9,7 @@ class Cleave(SimpleStep):
     """Contains different groups of features (to allow comparison among them)
     used in the siMpLify package.
     """
-    technique : str = ''
+    techniques : str = ''
     parameters : object = None
     auto_finalize : bool = True
     name : str = 'cleaver'

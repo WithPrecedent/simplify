@@ -27,7 +27,7 @@ class Encode(SimpleStep):
         name(str): name of class for matching settings in the Idea instance and
             for labeling the columns in files exported by Critic.
     """
-    technique : str = ''
+    techniques : str = ''
     parameters : object = None
     auto_finalize : bool = True
     store_names : bool = False

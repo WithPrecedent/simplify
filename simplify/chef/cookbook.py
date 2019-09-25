@@ -24,7 +24,8 @@ from simplify.artist.canvas import Canvas
 from simplify.chef.steps import (Cleave, Encode, Mix, Model, Reduce, Sample,
                                  Scale, Split)
 from simplify.core.decorators import local_backups
-from simplify.core.base import SimpleManager, SimplePlan, SimpleStep
+from simplify.core.base import (SimpleManager, SimplePlan, SimpleStep,
+                                SimpleTechnique)
 from simplify.critic.analysis import Analysis
 
 
@@ -241,8 +242,8 @@ class Cookbook(SimpleManager):
     """ Core Public siMpLify Methods """
 
     def draft(self):
-        """ Declares default step names and plan_class in a Cookbook recipe."""
-        # Sets options for default steps of a Recipe.
+        """Sets default options for the Chef's cookbook."""
+        super().draft()
         self.options = {'scaler' : Scale,
                         'splitter' : Split,
                         'encoder' : Encode,
@@ -252,7 +253,7 @@ class Cookbook(SimpleManager):
                         'reducer' : Reduce,
                         'model' : Model}
         # Adds GPU check to other checks to be produceed.
-        self.checks = ['gpu', 'idea', 'steps', 'ingredients']
+        self.checks.extend(['gpu', 'ingredients'])
         # Locks 'step' attribute at 'cook' for conform methods in package.
         self.step = 'cook'
         # Sets attributes to allow proper parent methods to be used.
@@ -260,6 +261,7 @@ class Cookbook(SimpleManager):
         self.plan_class = Recipe
         self.plan_iterable = 'recipes'
         # Injects step class with name of SimpleManager subclass.
+        SimpleTechnique.manager_name = self.name
         SimpleStep.manager_name = self.name
         SimplePlan.manager_name = self.name
         return self
@@ -331,7 +333,7 @@ class Recipe(SimplePlan):
             values of Cookbook step instances.
         number (int): number of recipe in a sequence - used for recordkeeping
             purposes.
-        name (str): designates the name of the class which should be identical 
+        name (str): designates the name of the class which should be identical
             to the section of the Idea instance with relevant settings.
     """
     steps : object = None

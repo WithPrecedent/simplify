@@ -4,11 +4,40 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleStep
-    
+from simplify.core.base import SimpleStep, SimpleTechnique
+
 
 @dataclass
-class Eli5Evaluator(SimpleStep):
+class Explain(SimpleStep):
+    """Core class for evaluating the results of data analysis produceed by
+    the siMpLify Cookbook.
+
+    """
+    techniques : object = None
+    name : str = 'explainer'
+    auto_finalize : bool = True
+    auto_produce : bool = False
+
+    def __post_init__(self):
+        """Sets up the core attributes of an Evaluator instance."""
+        super().__post_init__()
+        return self
+
+    def draft(self):
+        self.options = {'eli5' : Eli5Explain,
+                        'shap' : ShapExplain,
+                        'skater' : SkaterExplain,
+                        'sklearn' : SklearnExplain}
+        return self
+
+
+@dataclass
+class Eli5Explain(SimpleTechnique):
+
+    techniques : str = ''
+    parameters : object = None
+    auto_finalize : bool = True
+    name : str = 'eli5'
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
@@ -50,7 +79,12 @@ class Eli5Evaluator(SimpleStep):
         return self
 
 @dataclass
-class ShapEvaluator(SimpleStep):
+class ShapExplain(SimpleTechnique):
+
+    techniques : str = ''
+    parameters : object = None
+    auto_finalize : bool = True
+    name : str = 'shap'
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""
@@ -105,13 +139,18 @@ class ShapEvaluator(SimpleStep):
         return self
 
 @dataclass
-class SklearnEvaluator(SimpleStep):
+class SklearnExplain(SimpleTechnique):
+
+    techniques : str = ''
+    parameters : object = None
+    auto_finalize : bool = True
+    name : str = 'sklearn'
 
     def __post_init__(self):
         """Sets up the core attributes of a SklearnEvaluator instance."""
         super().__post_init__()
         return self
-    
+
     def produce(self, recipe):
         self.features = list(self.recipe.ingredients.x_test.columns)
         if hasattr(self.recipe.model.algorithm, 'feature_importances_'):
@@ -123,13 +162,18 @@ class SklearnEvaluator(SimpleStep):
         else:
             self.feature_importances = None
         return self
-            
+
 
 
 
 
 @dataclass
-class SkaterEvaluator(SimpleStep):
+class SkaterExplain(SimpleTechnique):
+
+    techniques : str = ''
+    parameters : object = None
+    auto_finalize : bool = True
+    name : str = 'skater'
 
     def __post_init__(self):
         """Sets up the core attributes of a ShapEvaluator instance."""

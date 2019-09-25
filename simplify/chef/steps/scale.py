@@ -6,7 +6,7 @@ from sklearn.preprocessing import (KBinsDiscretizer, MaxAbsScaler,
                                    QuantileTransformer, RobustScaler,
                                    StandardScaler)
 
-from simplify.core.base import SimpleStep
+from simplify.core.base import SimpleStep, SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 @dataclass
@@ -19,14 +19,10 @@ class Scale(SimpleStep):
             algorithm.
         auto_finalize(bool): whether 'finalize' method should be called when the
             class is instanced. This should generally be set to True.
-        store_names(bool): whether this class requires the feature names to be
-            stored before the 'finalize' and 'produce' methods or called and
-            then restored after both are utilized. This should be set to True
-            when the class is using numpy methods.
         name(str): name of class for matching settings in the Idea instance and
             for labeling the columns in files exported by Critic.
     """
-    technique : str = ''
+    techniques : str = ''
     parameters : object = None
     auto_finalize : bool = True
     store_names : bool = True
@@ -47,26 +43,29 @@ class Scale(SimpleStep):
                         'quantile' : QuantileTransformer,
                         'robust' : RobustScaler,
                         'standard' : StandardScaler}
-        if self.technique in ['bins']:
-            self.default_parameters = {'encode' : 'ordinal',
-                                       'strategy' : 'uniform',
-                                       'n_bins' : 5}
-        elif self.technique in ['gauss']:
-            self.default_parameters = {'standardize' : False,
-                                       'copy' : self.parameters['copy']}
-        else:
-            self.default_parameters = {'copy' : False}
+        self.default_parameters = {'bins' : {'encode' : 'ordinal',
+                                             'strategy' : 'uniform',
+                                             'n_bins' : 5},
+                                   'gauss' : {'standardize' : False,
+                                              'copy' : False},
+                                   'maxabs' : {'copy' : False},
+                                   'minmax' : {'copy' : False},
+                                   'normalizer' : {'copy' : False},
+                                   'quantile' : {'copy' : False},
+                                   'robust' : {'copy' : False},
+                                   'standard' : {'copy' : False}}
         self.selected_parameters = True
         return self
 
     def finalize(self):
         self._nestify_parameters()
         self._finalize_parameters()
-        if self.technique in ['gauss']:
-            self.algorithm = self.options[self.technique](
+        if self.techniques in ['gauss']:
+            self.algorithm = self.options[self.techniques](
                 parameters = self.parameters)
-        elif self.technique != 'none':
-            self.algorithm = self.options[self.technique](**self.parameters)
+        elif self.techniques != ['none']:
+            print('test', self.parameters)
+            self.algorithm = self.options[self.techniques](**self.parameters)
         return self
 
     @numpy_shield
@@ -82,7 +81,7 @@ class Scale(SimpleStep):
         return ingredients
 
 @dataclass
-class Gaussify(SimpleStep):
+class Gaussify(SimpleTechnique):
     """Transforms data columns to more gaussian distribution.
 
     The particular method is chosen between 'box-cox' and 'yeo-johnson' based
