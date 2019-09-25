@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from skopt import BayesSearchCV
 
-from simplify.core.base import SimpleStep
+from simplify.core.base import SimpleTechnique
 
 
 @dataclass
-class Search(SimpleStep):
-    
+class Search(SimpleTechnique):
+
     technique : str = ''
     parameters : object = None
     auto_finalize : bool = True

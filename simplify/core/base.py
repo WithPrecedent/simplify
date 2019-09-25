@@ -1,6 +1,6 @@
 """
 .. module:: base
-  :synopsis: contains core classes of siMpLify package.
+  :synopsis: core parent classes of siMpLify package.
   :author: Corey Rayburn Yung
   :copyright: 2019
   :license: CC-BY-NC-4.0
@@ -8,13 +8,13 @@
 Contents:
     SimpleClass: parent abstract base class for all siMpLify classes.
     SimpleManager: parent class for the iterable creation classes.
-    SimplePlan: parent container class for storing iterables created by 
+    SimplePlan: parent container class for storing iterables created by
         SimpleManager subclasses.
-    SimpleStep: parent class of the iterable steps of the SimplePlan subclasses.
+    SimpleStep: parent class of the iterable steps of the SimplePlan
+        subclasses.
     SimpleTechnique: parent class of algorithms used by SimpleStep subclasses.
-        
-  
-This module contains the key parent classes used by the siMpLify package and 
+
+This module contains the parent classes used by the siMpLify package and
 should be subclassed in any additional extensions to the siMpLify package.
 """
 
@@ -38,32 +38,17 @@ class SimpleClass(ABC):
     SimpleClass creates a code structure patterned after the writing process.
     It divides processes into four stages which are the names or prefixes to
     the core methods used throughout the siMpLify package:
-        1) draft: sets default attributes.
-        2) edit: makes any desired changes to the default attributes.
+
+        1) draft: sets default attributes (required).
+        2) edit: makes any desired changes to the default attributes
+            (required).
         3) finalize: creates objects based upon those attributes.
-        4) produce: applies those finalized objects to passed variables 
+        4) produce: applies those finalized objects to passed variables
             (usually data).
-            
-    A subclass of this class must have the following methods:
-        draft: a method which sets the default values for the subclass, and
-            usually includes the 'options' dictionary. If the subclass calls
-            super().__post_init__, the 'draft' method is automatically called.
-        finalize: a method which, after the user has set all options in the
-            preferred manner, constructs the objects which can parse, modify,
-            process, analyze, and/or transform data.
 
-    The following methods are not strictly required but should be used if
-    the subclass is transforming data or other variable (as opposed to merely
-    containing data or variables):
-        produce: method which applies the finalized objects to passed data or
-            other variables.
-
-    For consistency, methods in subclasses which seek to alter the 'options'
-    dict or set parameters should begin with the 'edit_' prefix.
-
-    If the subclass includes boolean attributes of auto_finalize or
-    auto_produce, and those attributes are set to True, then the finalize
-    and/or produce methods are called when the class is instanced.
+    If the subclass includes boolean attributes of 'auto_finalize' or
+    'auto_produce', and those attributes are set to True, then the 'finalize'
+    and/or 'produce' methods are called when the class is instanced.
     """
 
     def __post_init__(self):
@@ -92,13 +77,12 @@ class SimpleClass(ABC):
 
     def __call__(self, idea, *args, **kwargs):
         """When called as a function, a subclass will return the produce method
-        after running __post_init__. Any args and kwargs will be passed to the
-        'produce' method.
-
+        after running __post_init__.
         Args:
-            idea(Idea or str): an instance of Idea or path where an Idea
+            idea (Idea or str): an instance of Idea or path where an Idea
                 configuration file is located must be passed when a subclass is
                 called as a function.
+            *args and **kwargs (any): passed to the 'produce' method.
 
         Returns:
             return value of 'produce' method.
@@ -133,7 +117,7 @@ class SimpleClass(ABC):
         """
         if item in self.options:
             del self.options[item]
-        elif hasattr(self, item):
+        elif self.exists(item):
             setattr(self, item, None)
         else:
             error = item + ' is not in ' + self.__class__.__name__
@@ -153,7 +137,7 @@ class SimpleClass(ABC):
         Raises:
             AttributeError: if a dunder attribute is sought.
         """
-        # Intecepts common dict methods and applies them to 'options' dict.
+        # Intercepts common dict methods and applies them to 'options' dict.
         if attr in ['clear', 'items', 'pop', 'keys', 'update', 'values']:
             return getattr(self.options, attr)
         elif attr in self.__dict__:
@@ -166,7 +150,7 @@ class SimpleClass(ABC):
             raise AttributeError(error)
 
     def __getitem__(self, item):
-        """Returns item if item is in self.options or is an atttribute.
+        """Returns item if 'item' is in 'options' or is an atttribute.
 
         Args:
             item (str): item matching dict key or attribute name.
@@ -183,7 +167,7 @@ class SimpleClass(ABC):
             return None
 
     def __iter__(self):
-        """Returns options.items() to mirror dict functionality."""
+        """Returns options.items() to mirror dictionary functionality."""
         return self.options.items()
 
     def __setitem__(self, item, value):
@@ -205,7 +189,7 @@ class SimpleClass(ABC):
         """
         # Local import to avoid circular dependency.
         from simplify import Depot
-        if not hasattr(self, 'depot') or self.depot is None:
+        if not self.exists('depot'):
             self.depot = Depot(idea = self.idea)
         return self
 
@@ -241,11 +225,11 @@ class SimpleClass(ABC):
         """
         # Local import to avoid circular dependency.
         from simplify import Idea
-        if hasattr(self, 'idea') and isinstance(self.idea, str):
-            self.idea = Idea(file_path = self.idea)
+        if self.exists('idea') and isinstance(self.idea, str):
+            self.idea = Idea(configuration = self.idea)
         # Adds attributes to class from appropriate sections of the idea.
         sections = ['general']
-        if hasattr(self, 'idea_sections') and self.idea_sections:
+        if self.exists('idea_sections'):
             if isinstance(self.idea_sections, str):
                 sections.append(self.idea_sections)
             elif isinstance(self.idea_sections, list):
@@ -269,10 +253,10 @@ class SimpleClass(ABC):
         created with no pandas DataFrames or Series within it.
 
         Args:
-            ingredients: an Ingredients instance, a file path containing a
-                DataFrame or Series to add to an Ingredients instance, or
-                a folder containing files to be used to compose Ingredients
-                DataFrames and/or Series.
+            ingredients (Ingredients, a file path containing a DataFrame or
+                Series to add to an Ingredients instance, or a folder
+                containing files to be used to compose Ingredients DataFrames
+                and/or Series).
         """
         # Local import to avoid circular dependency.
         from simplify import Ingredients
@@ -284,7 +268,7 @@ class SimpleClass(ABC):
         elif isinstance(self.ingredients, str):
             if os.path.isfile(self.ingredients):
                 df = self.depot.load(folder = self.depot.data,
-                                         file_name = self.ingredients)
+                                     file_name = self.ingredients)
                 self.ingredients = Ingredients(df = df)
             elif os.path.isdir(self.ingredients):
                 self.depot.create_glob(folder = self.ingredients)
@@ -308,36 +292,36 @@ class SimpleClass(ABC):
         Also, a 'step' attribute is created from the first item in the 'steps'
         attribute.
         """
-        if not hasattr(self, 'steps') or self.steps is None:
+        if not self.exists('steps'):
             if hasattr(self, self.name + '_steps'):
                 self.steps = self._convert_wildcards(getattr(
                         self, self.name + '_steps'))
         else:
             self.steps = self.listify(self.steps)
-        if not hasattr(self, 'step') or not self.step:
+        if not self.exists('step'):
             self.step = self.steps[0]
         return self
 
     def _convert_wildcards(self, value):
-        """Converts 'all', 'default', or 'none' to list of items.
+        """Converts 'all', 'default', or 'none' values to a list of items.
 
         Args:
-            value(list or str): name(s) of techniques, steps, or managers.
+            value (list or str): name(s) of techniques, steps, or managers.
 
         Returns:
             If 'all', all keys listed in 'options' dictionary are returned.
-            If 'default', 'default_techniques' are returned or, if they don't
+            If 'default', 'default_operations' are returned or, if they don't
                 exist, all keys listed in 'options' dictionary are returned.
             Otherwise, 'techniques' is returned intact.
         """
         if value in ['all', ['all']]:
-            return self.options.keys()
+            return list(self.options.keys())
         elif value in ['default', ['default']]:
-            if (hasattr(self, 'default_techniques')
-                    and self.default_techniques):
-                return self.default_techniques
+            if (hasattr(self, 'default_operations')
+                    and self.default_operations):
+                return self.default_operations
             else:
-                return self.options.keys()
+                return list(self.options.keys())
         elif value in ['none', ['none'], None]:
             return ['none']
         else:
@@ -364,12 +348,28 @@ class SimpleClass(ABC):
         subclass seeking to add new checks can add a new method using those
         naming conventions.
         """
-        if hasattr(self, 'checks') and self.checks:
+        if self.exists('checks'):
             for check in self.checks:
                 getattr(self, '_check_' + check)()
         return self
 
     """ Public Tool Methods """
+
+    def conform(self, step):
+        """Sets 'step' attribute to passed 'step' throughout package.
+
+        This method is used to maintain a universal state in the package for
+        subclasses that are state dependent. It iterates through any subclasses
+        listed in 'registered_state_subclasses' to call their 'conform'
+        methods.
+
+        Args:
+            step(str): corresponds to current state in siMpLify package.
+        """
+        self.step = step
+        for _subclass in self.registered_state_subclasses:
+            _subclass.conform(step = step)
+        return self
 
     @staticmethod
     def deduplicate(iterable):
@@ -395,10 +395,10 @@ class SimpleClass(ABC):
         """Creates dict from list of keys and same value or zips two lists.
 
         Args:
-            keys(list): keys for new dict.
-            values(any): valuse for all keys in the new dict or list of values
+            keys (list): keys for new dict.
+            values (any): valuse for all keys in the new dict or list of values
                 corresponding to list of keys.
-            ignore_values_list(bool): if value is a list, but the list should
+            ignore_values_list (bool): if value is a list, but the list should
                 be the value for all keys, set to True.
 
         Returns:
@@ -410,16 +410,42 @@ class SimpleClass(ABC):
         else:
             return dict(zip(keys, values))
 
+    def exists(self, attribute):
+        """Returns if attribute exists in subclass and is not None.
+
+        Args:
+            attribute (str): name of attribute to be evaluated.
+
+        Returns:
+            boolean value indicating whether the attribute exists and is not
+                None.
+        """
+        return (hasattr(self, attribute)
+                and getattr(self, attribute) is not None)
+
+    @staticmethod
+    def is_nested(dictionary):
+        """Returns if passed 'dictionary' is nested at least one-level.
+
+        Args:
+            dictionary (dict): dict to be tested.
+
+        Returns:
+            boolean value indicating whether any value in the 'dictionary' is
+                also a dict (meaning that 'dictionary' is nested).
+        """
+        return any(isinstance(d, dict) for d in dictionary.values())
+
     @staticmethod
     def listify(variable):
         """Stores passed variable as a list (if not already a list).
 
         Args:
-            variable(str or list): variable to be transformed into a list to
+            variable (str or list): variable to be transformed into a list to
             allow iteration.
 
         Returns:
-            variable(list): either the original list, a string converted to a
+            variable (list): either the original list, a string converted to a
                 list, or a list containing 'none' as its only item.
         """
         if not variable:
@@ -434,8 +460,8 @@ class SimpleClass(ABC):
         """Converts dict to nested dict if not already one.
 
         Args:
-            keys(list): list to be keys to nested dict.
-            dictionaries(dict, list(dicts)): dictionary (or list of same) to
+            keys (list): list to be keys to nested dict.
+            dictionaries (dict, list(dicts)): dictionary (or list of same) to
                 be values in nested dictionary.
 
         Returns:
@@ -502,21 +528,6 @@ class SimpleClass(ABC):
 
     """ Core Public siMpLify Methods """
 
-    def conform(self, step):
-        """Sets 'step' attribute to passed 'step' throughout package.
-
-        This method is used to maintain a universal state in the package for
-        subclasses that are state dependent. It iterates through any subclasses
-        listed in 'registered_state_subclasses' to call their 'conform' methods.
-
-        Args:
-            step(str): corresponds to current state in siMpLify package.
-        """
-        self.step = step
-        for _subclass in self.registered_state_subclasses:
-            _subclass.conform(step = step)
-        return self
-
     @abstractmethod
     def draft(self):
         """Required method that sets default values for a subclass.
@@ -534,8 +545,8 @@ class SimpleClass(ABC):
         """Updates 'options' dictionary with passed arguments.
 
         Args:
-            techniques (str or list): a string name or list of names for keys in
-            the 'options' dict.
+            techniques (str or list): a string name or list of names for keys
+                in the 'options' dict.
             algorithms (object or list(object)): siMpLify compatible objects
                 which can be integrated in the package framework. If they are
                 custom algorithms, they should be subclassed from SimpleStep to
@@ -544,7 +555,7 @@ class SimpleClass(ABC):
                 algorithms. This should be passed if the user has already
                 combined some or all 'techniques' and 'algorithms' into a dict.
         """
-        if not hasattr(self, 'options') or self.options is None:
+        if not self.exists('options'):
             self.options = {}
         if options:
             self.name_to_type.update(options)
@@ -580,24 +591,15 @@ class SimpleManager(SimpleClass):
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
     """
+
+    steps : object = None
+    name : str = 'manager'
+
     def __post_init__(self):
         super().__post_init__()
         return self
 
     """ Private Methods """
-
-    def _create_technique_lists(self):
-        """Creates list of option lists of techniques."""
-        self.all_steps = []
-        for step in self.options.keys():
-            # Stores each step attribute in a list
-            if hasattr(self, step):
-                setattr(self, step, self.listify(getattr(self, step)))
-            else:
-                setattr(self, step, ['none'])
-            # Adds step to a list of all step lists
-            self.all_steps.append(getattr(self, step))
-        return self
 
     def _create_parallel_plan_instance(self, plan):
         plan_techniques = {}
@@ -630,6 +632,19 @@ class SimpleManager(SimpleClass):
             plan_techniques.update({step : technique_instance})
         return plan_techniques
 
+    def _create_steps_lists(self):
+        """Creates list of option lists of techniques."""
+        self.all_steps = []
+        for step in self.options.keys():
+            # Stores each step attribute in a list
+            if hasattr(self, step):
+                setattr(self, step, self.listify(getattr(self, step)))
+            else:
+                setattr(self, step, ['none'])
+            # Adds step to a list of all step lists
+            self.all_steps.append(getattr(self, step))
+        return self
+
     def _finalize_parallel(self):
         """Creates dict with steps as keys and techniques as values for each
         plan in the 'plans' attribute."""
@@ -656,9 +671,9 @@ class SimpleManager(SimpleClass):
 
     def _produce_parallel(self, variable = None, **kwargs):
         """Iterates through SimplePlan techniques 'produce' methods.
-        
+
         Args:
-            variable(any): variable to be changed by serial SimpleManager 
+            variable(any): variable to be changed by serial SimpleManager
                 subclass.
             **kwargs: other parameters can be added to method as needed or
                 **kwargs can be used.
@@ -666,21 +681,21 @@ class SimpleManager(SimpleClass):
         for number, plan in getattr(self, self.plan_iterable).items():
             if self.verbose:
                 print('Testing', plan.name, str(number))
-            plan.produce(variable, **kwargs)             
+            plan.produce(variable, **kwargs)
         return variable
-    
+
     def _produce_serial(self, variable = None, **kwargs):
         """Iterates through SimplePlan instance's techniques 'produce' methods.
-        
+
         Args:
-            variable(any): variable to be changed by serial SimpleManager 
+            variable(any): variable to be changed by serial SimpleManager
                 subclass.
             **kwargs: other parameters can be added to method as needed or
                 **kwargs can be used.
         """
-        variable = self.plan_iterable.produce(variable, **kwargs)     
+        variable = self.plan_iterable.produce(variable, **kwargs)
         return variable
-    
+
     """ Core siMpLify methods """
 
     def draft(self):
@@ -692,7 +707,7 @@ class SimpleManager(SimpleClass):
 
     def finalize(self):
         """Finalizes"""
-        self._create_technique_lists()
+        self._create_steps_lists()
         self._create_plan_iterables()
         getattr(self, '_finalize_' + self.manager_type)()
         return self
@@ -742,23 +757,24 @@ class SimplePlan(SimpleClass):
         will return the 'produce' method.
         """
         return self.produce(*args, **kwargs)
-    
+
     def draft(self):
         """SimplePlan's generic 'draft' method."""
         self.data_variable = ''
         return self
 
     def finalize(self):
-        """SimplePlan's generic 'finalize' method requires no extra preparation.
+        """SimplePlan's generic 'finalize' method requires no extra
+        preparation.
         """
         pass
         return self
 
     def produce(self, variable, **kwargs):
         """Iterates through SimpleStep techniques 'produce' methods.
-        
+
         Args:
-            variable(any): variable to be changed by serial SimpleManager 
+            variable(any): variable to be changed by serial SimpleManager
                 subclass.
             **kwargs: other parameters can be added to method as needed or
                 **kwargs can be used.
@@ -781,20 +797,21 @@ class SimpleStep(SimpleClass):
     'parameters' parameter as an attribute to the class instance for the
     included methods to work properly. Otherwise, 'parameters' will be set to
     an empty dict.
-    
+
     'fit', 'fit_transform', and 'transform' adapter methods are included in
     SimpleClass to support partial scikit-learn compatibility.
 
     Args:
-        technique(str): name of technique that matches a string in the 'options'
-            keys or a wildcard value such as 'default', 'all', or 'none'.
+        technique(str): name of technique that matches a string in the
+            'options' keys or a wildcard value such as 'default', 'all', or
+            'none'.
         parameters(dict): parameters to be attached to algorithm in 'options'
             corresponding to 'technique'. This parameter need not be passed to
             the SimpleStep subclass if the parameters are in the accessible
             Idea instance or if the user wishes to use default parameters.
-        auto_finalize(bool): whether 'finalize' method should be called when the
-            class is instanced. This should generally be set to True.
-            
+        auto_finalize(bool): whether 'finalize' method should be called when
+            the class is instanced. This should generally be set to True.
+
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
     """
@@ -840,6 +857,10 @@ class SimpleStep(SimpleClass):
                 and technique in self.extra_parameters):
             parameters[technique].update(self.extra_parameters[technique])
         return parameters
+
+    def _check_nested(self):
+        self.nested_parameters = self.is_nested(dictionary = self.parameters)
+        return self
 
     def _finalize_parameters(self):
         """Compiles appropriate parameters for all techniques within
@@ -958,8 +979,8 @@ class SimpleStep(SimpleClass):
     def draft(self):
         """Default draft method which sets bare minimum requirements.
 
-        This default draft should only be used if users are planning to manually
-        add all options and parameters to the SimpleStep subclass.
+        This default draft should only be used if users are planning to
+        manually add all options and parameters to the SimpleStep subclass.
         """
         if not hasattr(self, 'options'):
             self.options = {}
@@ -1019,20 +1040,20 @@ class SimpleStep(SimpleClass):
             ingredients.x = self.algorithm.transform(ingredients.x)
         return ingredients
 
-    
+
     """ Scikit-Learn Compatibility Methods """
 
     def fit(self, x = None, y = None, ingredients = None):
         """Generic fit method for partial compatibility to sklearn.
-        
+
         Args:
             x(DataFrame or ndarray): independent variables/features.
             y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
-            ingredients(Ingredients): instance of Ingredients containing x_train
-                and y_train attributes (based upon possible remapping)
-        
+            ingredients(Ingredients): instance of Ingredients containing
+                x_train and y_train attributes (based upon possible remapping).
+
         Raises:
-            AttributeError if no 'fit' method exists for local 'algorithm'.   
+            AttributeError if no 'fit' method exists for local 'algorithm'.
         """
         if hasattr(self.algorithm, 'fit'):
             if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
@@ -1041,7 +1062,7 @@ class SimpleStep(SimpleClass):
                 else:
                     self.algorithm.fit(x, y)
             elif ingredients is not None:
-                ingredients = self.algorithm.fit(ingredients.x_train, 
+                ingredients = self.algorithm.fit(ingredients.x_train,
                                                  ingredients.y_train)
         else:
             error = 'fit method does not exist for this algorithm'
@@ -1050,24 +1071,24 @@ class SimpleStep(SimpleClass):
 
     def fit_transform(self, x = None, y = None, ingredients = None):
         """Generic fit_transform method for partial compatibility to sklearn
-        
+
         Args:
             x(DataFrame or ndarray): independent variables/features.
             y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
-            ingredients(Ingredients): instance of Ingredients containing x_train
-                and y_train attributes (based upon possible remapping)
-        
+            ingredients(Ingredients): instance of Ingredients containing
+                x_train and y_train attributes (based upon possible remapping).
+
         Returns:
             transformed x or ingredients, depending upon what is passed to the
                 method.
-                
+
         Raises:
             TypeError if DataFrame, ndarray, or ingredients is not passed to
                 the method.
         """
         self.fit(x = x, y = y, ingredients = ingredients)
         if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
-            return self.transform(x = x, y = y)          
+            return self.transform(x = x, y = y)
         elif ingredients is not None:
             return self.transform(ingredients = ingredients)
         else:
@@ -1079,16 +1100,16 @@ class SimpleStep(SimpleClass):
         Args:
             x(DataFrame or ndarray): independent variables/features.
             y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
-            ingredients(Ingredients): instance of Ingredients containing x_train
-                and y_train attributes (based upon possible remapping)
+            ingredients(Ingredients): instance of Ingredients containing
+                x_train and y_train attributes (based upon possible remapping).
 
         Returns:
             transformed x or ingredients, depending upon what is passed to the
-                method.        
-        
+                method.
+
         Raises:
-            AttributeError if no 'transform' method exists for local 
-                'algorithm'.   
+            AttributeError if no 'transform' method exists for local
+                'algorithm'.
         """
         # Local import to avoid circular dependency.
         from simplify import Ingredients
@@ -1100,14 +1121,14 @@ class SimpleStep(SimpleClass):
                     x = self.algorithm.transform(x, y)
                 return x
             elif ingredients is not None:
-                ingredients = self.algorithm.transform(ingredients.x_train, 
+                ingredients = self.algorithm.transform(ingredients.x_train,
                                                        ingredients.y_train)
                 return ingredients
         else:
             error = 'transform method does not exist for this algorithm'
-            raise AttributeError(error) 
-        
-    
+            raise AttributeError(error)
+
+
 @dataclass
 class SimpleTechnique(SimpleStep):
     """Parent class for various techniques in the siMpLify package.
@@ -1116,32 +1137,33 @@ class SimpleTechnique(SimpleStep):
     It follows the general structure of SimpleClass, but is focused on storing
     and applying single techniques to data or other variables. It is included,
     in part, to achieve the highest level of compatibility with scikit-learn as
-    currently possible. 
-    
+    currently possible.
+
     Not every low-level technique needs to a subclass of SimpleTechnique. For
     example, many of the algorithms used in the Cookbook steps (RandomForest,
     XGBClassifier, etc.) are dependencies that are fully integrated into the
-    siMpLify architecture without wrapping them into a SimpleTechnique subclass.
-    SimpleTechnique is used for custom techniques and for dependencies that
-    require a substantial adapter to integrate into siMpLify.
+    siMpLify architecture without wrapping them into a SimpleTechnique
+    subclass. SimpleTechnique is used for custom techniques and for
+    dependencies that require a substantial adapter to integrate into siMpLify.
 
-    SimpleTechnique, similar to SimpleStep, should have a 'parameters' parameter
-    as an attribute to the class instance for the included methods to work 
-    properly. Otherwise, 'parameters' will be set to an empty dict.
-    
+    SimpleTechnique, similar to SimpleStep, should have a 'parameters'
+    parameter as an attribute to the class instance for the included methods to
+    work properly. Otherwise, 'parameters' will be set to an empty dict.
+
     Unlike SimpleManager, SimplePlan, and SimpleStep, SimpleTechnique only
     supports a single 'technique'. This is to maximize compatibility to scikit-
     learn and other pipeline scripts.
-    
+
     Args:
-        technique(str): name of technique that matches a string in the 'options'
-            keys or a wildcard value such as 'default', 'all', or 'none'.
+        technique(str): name of technique that matches a string in the
+            'options' keys or a wildcard value such as 'default', 'all', or
+            'none'.
         parameters(dict): parameters to be attached to algorithm in 'options'
             corresponding to 'technique'. This parameter need not be passed to
             the SimpleStep subclass if the parameters are in the accessible
             Idea instance or if the user wishes to use default parameters.
-        auto_finalize(bool): whether 'finalize' method should be called when the
-            class is instanced. This should generally be set to True.
+        auto_finalize(bool): whether 'finalize' method should be called when
+            the  class is instanced. This should generally be set to True.
 
     It is also a child class of SimpleStep. So, its documentation applies as
     well.
@@ -1160,7 +1182,7 @@ class SimpleTechnique(SimpleStep):
         return self
 
     """ Core siMpLify Public Methods """
-    
+
     def finalize(self):
         """Finalizes parameters and adds 'parameters' to 'algorithm'."""
         if self.techniques != ['none']:
@@ -1168,7 +1190,7 @@ class SimpleTechnique(SimpleStep):
         else:
             self.algorithm = None
         return self
-    
+
     def produce(self, ingredients, plan = None):
         """Generic implementation method for SimpleTechnique subclass.
 
@@ -1177,7 +1199,7 @@ class SimpleTechnique(SimpleStep):
             plan(SimplePlan subclass or instance): is not used by the generic
                 method but is made available as an optional keyword for
                 compatibility with other 'produce'  methods. This parameter is
-                used when the current SimpleTechnique subclass needs to look 
+                used when the current SimpleTechnique subclass needs to look
                 back at previous SimpleSteps.
         """
         if self.algorithm:

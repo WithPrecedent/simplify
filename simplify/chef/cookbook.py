@@ -1,6 +1,12 @@
 """
+.. module:: cookbook
+  :synopsis: contains core classes of siMpLify package.
+  :author: Corey Rayburn Yung
+  :copyright: 2019
+  :license: CC-BY-NC-4.0
+
 cookbook.py is the primary control file for the siMpLify machine learning
-package.
+subpackage.
 
 Contents:
 
@@ -9,10 +15,8 @@ Contents:
         package.
     Recipe: class which stores a particular set of techniques and algorithms
         of limited preprocessing and machine learning operations.
-
-    Both classes are subclasses to SimpleClass and follow its structural rules.
-
 """
+
 from dataclasses import dataclass
 import datetime
 
@@ -129,7 +133,7 @@ class Cookbook(SimpleManager):
         if hasattr(self, 'naming_classes') and self.naming_classes is not None:
             subfolder = 'recipe_'
             for step in self.listify(self.naming_classes):
-                subfolder += recipe.techniques[step].technique + '_'
+                subfolder += recipe.steps[step].technique + '_'
             subfolder += str(recipe.number)
             self.depot.recipe = self.depot.create_folder(
                 folder = self.depot.experiment, subfolder = subfolder)
@@ -329,7 +333,7 @@ class Recipe(SimplePlan):
             identical to the section of the Idea instance with relevant
             settings.
     """
-    techniques : object = None
+    steps : object = None
     name : str = 'recipe'
 
     def __post_init__(self):
@@ -338,22 +342,22 @@ class Recipe(SimplePlan):
         return self
 
     def produce(self, ingredients):
-        """Applies the Cookbook techniques to the passed ingredients."""
-        techniques = self.techniques.copy()
+        """Applies the Cookbook steps to the passed ingredients."""
+        steps = self.steps.copy()
         self.ingredients = ingredients
         self.ingredients.split_xy(label = self.label)
         # If using cross-validation or other data splitting technique, the
-        # pre-split methods apply to the 'x' data. After the split, techniques
-        # must be incorporate the split into 'x_train' and 'x_test'.
-        for step in list(techniques.keys()):
-            techniques.pop(step)
+        # pre-split methods apply to the 'x' data. After the split, steps
+        # must incorporate the split into 'x_train' and 'x_test'.
+        for step in list(steps.keys()):
+            steps.pop(step)
             if step == 'splitter':
                 break
             else:
-                self.ingredients = self.techniques[step].produce(
+                self.ingredients = self.steps[step].produce(
                     ingredients = self.ingredients,
                     plan = self)
-        split_algorithm = self.techniques['splitter'].algorithm
+        split_algorithm = self.steps['splitter'].algorithm
         for train_index, test_index in split_algorithm.split(
                 self.ingredients.x, self.ingredients.y):
            self.ingredients.x_train, self.ingredients.x_test = (
@@ -362,7 +366,7 @@ class Recipe(SimplePlan):
            self.ingredients.y_train, self.ingredients.y_test = (
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
-           for step, technique in techniques.items():
+           for step, technique in steps.items():
                print(step)
                self.ingredients = technique.produce(
                        ingredients = self.ingredients,

@@ -1,11 +1,11 @@
 
 from dataclasses import dataclass
 
-from ..model import Algorithm
+from simplify.core.base import SimpleTechnique
 
 
 @dataclass
-class TorchModel(Algorithm):
+class TorchModel(SimpleTechnique):
     """Applies machine learning algorithms based upon user selections."""
     technique : str = ''
     parameters : object = None

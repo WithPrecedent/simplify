@@ -6,11 +6,11 @@ from sklearn.cluster import (AffinityPropagation, AgglomerativeClustering,
                              SpectralClustering)
 from sklearn.svm import OneClassSVM
 
-from simplify.core.base import SimpleStep
+from simplify.core.base import SimpleTechnique
 
 
 @dataclass
-class Clusterer(SimpleStep):
+class Clusterer(SimpleTechnique):
     """Applies machine learning algorithms based upon user selections."""
 
 

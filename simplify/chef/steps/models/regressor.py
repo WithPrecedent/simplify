@@ -8,11 +8,11 @@ from sklearn.linear_model import (BayesianRidge, Lasso, LassoLars,
 from sklearn.svm import SVR
 from xgboost import XGBRegressor
 
-from simplify.core.base import SimpleStep
+from simplify.core.base import SimpleTechnique
 
 
 @dataclass
-class Regressor(SimpleStep):
+class Regressor(SimpleTechnique):
     """Applies machine learning algorithms based upon user selections."""
 
 

@@ -1,13 +1,13 @@
 
 from dataclasses import dataclass
 
-from ..model import Algorithm
+from simplify.core.base import SimpleTechnique
 
 #    from pystan import StanModel
 
 
 @dataclass
-class StanModel(Algorithm):
+class StanModel(SimpleTechnique):
     """Applies machine learning algorithms based upon user selections."""
     technique : str = ''
     parameters : object = None

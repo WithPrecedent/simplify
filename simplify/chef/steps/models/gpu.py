@@ -9,11 +9,11 @@ from cuml import KMeans, DBScan
 
 from xgboost import XGBClassifier
 
-from simplify.chef.steps.models.algorithm import Algorithm
+from simplify.core.base import SimpleTechnique
 
 
 @dataclass
-class GPU(Algorithm):
+class GPU(SimpleTechnique):
     """Applies machine learning classifier algorithms based upon user
     selections using GPU.
     """

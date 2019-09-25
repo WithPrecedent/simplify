@@ -7,11 +7,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
 
-from simplify.core.base import SimpleStep
+from simplify.core.base import SimpleTechnique
 
 
 @dataclass
-class Classifier(SimpleStep):
+class Classifier(SimpleTechnique):
     """Applies machine learning classifier algorithms based upon user
     selections.
 

@@ -3,11 +3,11 @@ from dataclasses import dataclass
 
 import tensorflow as tf
 
-from ..model import Algorithm
+from simplify.core.base import SimpleTechnique
 
 
 @dataclass
-class TFModel(Algorithm):
+class TFModel(SimpleTechnique):
     """Applies machine learning algorithms based upon user selections."""
     technique : str = ''
     parameters : object = None
