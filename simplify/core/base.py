@@ -435,7 +435,7 @@ class SimpleClass(ABC):
                 also a dict (meaning that 'dictionary' is nested).
         """
         return any(isinstance(d, dict) for d in dictionary.values())
-
+    
     @staticmethod
     def listify(variable):
         """Stores passed variable as a list (if not already a list).
@@ -600,116 +600,96 @@ class SimpleManager(SimpleClass):
         return self
 
     """ Private Methods """
-
-    def _create_parallel_plan_instance(self, plan):
-        plan_techniques = {}
-        for j, (step, technique) in enumerate(self.options.items()):
-            # Stores each step attribute in a dict.
-            technique_instance = technique(technique = plan[j])
-            plan_techniques.update({step : technique_instance})
-        return self.plan_class(techniques = plan_techniques)
-
-    def _create_plan_iterables(self):
-        # Uses default name of 'plans' if class doesn't have 'plan_iterable'
-        # attribute.
-        if not hasattr(self, 'plan_iterable'):
+    
+    def _check_plan_iterable(self):
+        """Creates plan iterable attribute to be filled with concrete plans if
+        one does not exist."""
+        if not self.exists('plan_iterable'):
             self.plan_iterable = 'plans'
             self.plans = {}
-        # Creates empty dict for 'plan_iterable' attribute if attribute doesn't
-        # exist.
-        elif (not hasattr(self, self.plan_iterable)
-                or getattr(self, self.plan_iterable) is None):
-            setattr(self, self.plan_iterable, {})
         return self
 
-    def _create_serial_plan_instance(self, plans):
-        plan_techniques = {}
-        print(plans)
-        for step, techniques in plans.items():
-            # Stores each step attribute in a dict.
-            technique_instance = self.options[step](
-                    techniques = techniques)
-            plan_techniques.update({step : technique_instance})
-        return plan_techniques
-
     def _create_steps_lists(self):
-        """Creates list of option lists of techniques."""
+        """Creates list of lists of all possible steps in 'options'."""
         self.all_steps = []
         for step in self.options.keys():
-            # Stores each step attribute in a list
+            # Stores each step attribute in a list.
             if hasattr(self, step):
                 setattr(self, step, self.listify(getattr(self, step)))
+            # Stores a list of 'none' if there is no corresponding local 
+            # attribute.
             else:
                 setattr(self, step, ['none'])
-            # Adds step to a list of all step lists
+            # Adds step to a list of all steps.
             self.all_steps.append(getattr(self, step))
         return self
 
-    def _finalize_parallel(self):
-        """Creates dict with steps as keys and techniques as values for each
-        plan in the 'plans' attribute."""
-        # Creates a list of all possible permutations of step techniques
-        # selected. Each item in the the list is an instance of the plan class.
-        self.all_plans = list(map(list, product(*self.all_steps)))
-        # Iterates through possible steps and either assigns corresponding
-        # technique from 'all_plans'.
+    def _finalize_all_plans(self):
+        """Creates 'all_plans' list of lists depending upon 'manager_type'.
+        
+        Raises:
+            TypeError if 'manager_type' is neither 'parallel' nor 'serial'.
+        """
+        # Creates a list of all possible permutations of step lists.
+        if self.manager_type in ['parallel']:
+            self.all_plans = list(map(list, product(*self.all_steps)))
+        # Creates a list of each step with corresponding technique lists for
+        # each step.
+        elif self.manager_type in ['serial']:
+            self.all_plans = self.steps
+        else:
+            error = 'manager_type must be parallel or serial'
+            raise TypeError(error)
+        return self
+
+    def _finalize_plan_instance(self, plan, number = None):
+        """Creates a plan instance with appropriate arguments.
+        
+        Args:
+            plan (list): strings of step names
+            number (int): optional argument listing the number of the plan in a
+                larger sequence for recordkeeping purposes.
+        
+        Returns
+            instance of plan (named by 'plan_class' attribute)
+
+        Raises:
+            TypeError if 'manager_type' is neither 'parallel' nor 'serial'.
+        """
+        finalized_steps = {}
+        for i, (step_name, step_class) in enumerate(self.options.items()):
+            finalized_steps.update(
+                {step_name : step_class(techniques = plan[i])})
+        if self.manager_type in ['parallel']:
+            return self.plan_class(steps = finalized_steps, number = number)
+        elif self.manager_type in ['serial']:
+            return self.plan_class(steps = finalized_steps)
+        else:
+            error = 'manager_type must be parallel or serial'
+            raise TypeError(error)   
+                         
+    def _finalize_plan_instances(self):
+        """Creates plan instances for all plans stored in 'all_plans'."""
         for i, plan in enumerate(self.all_plans):
-            plan_instance = self._create_parallel_plan_instance(plan = plan)
-            plan_instance.number = i + 1
+            plan_instance = self._finalize_plan_instance(plan = plan, 
+                                                        number = i + 1)
             getattr(self, self.plan_iterable).update({i + 1 : plan_instance})
         return self
-
-    def _finalize_serial(self):
-        """Creates dict with steps as keys and techniques as values."""
-        self.all_plans = dict(zip(self.options.keys(), self.all_steps))
-        # Creates plan instance with all of the techniques converted to
-        # appropriate SimpleStep subclasses.
-        setattr(self, self.plan_iterable, self.plan_class(
-            techniques = self._create_serial_plan_instance(
-                    plans = self.all_plans)))
-        return self
-
-    def _produce_parallel(self, variable = None, **kwargs):
-        """Iterates through SimplePlan techniques 'produce' methods.
-
-        Args:
-            variable(any): variable to be changed by serial SimpleManager
-                subclass.
-            **kwargs: other parameters can be added to method as needed or
-                **kwargs can be used.
-        """
-        for number, plan in getattr(self, self.plan_iterable).items():
-            if self.verbose:
-                print('Testing', plan.name, str(number))
-            plan.produce(variable, **kwargs)
-        return variable
-
-    def _produce_serial(self, variable = None, **kwargs):
-        """Iterates through SimplePlan instance's techniques 'produce' methods.
-
-        Args:
-            variable(any): variable to be changed by serial SimpleManager
-                subclass.
-            **kwargs: other parameters can be added to method as needed or
-                **kwargs can be used.
-        """
-        variable = self.plan_iterable.produce(variable, **kwargs)
-        return variable
 
     """ Core siMpLify methods """
 
     def draft(self):
         """ Declares defaults for class."""
         self.options = {}
-        self.checks = ['steps', 'depot', 'ingredients']
+        self.checks = ['steps', 'depot', 'ingredients', 'plan_iterable']
         self.state_attributes = ['depot', 'ingredients']
         return self
 
     def finalize(self):
-        """Finalizes"""
-        self._create_steps_lists()
-        self._create_plan_iterables()
-        getattr(self, '_finalize_' + self.manager_type)()
+        """Finalizes iterable dict of plans with instanced plan classes."""
+        self._create_steps_lists()   
+        self._finalize_all_plans()
+        self._finalize_plan_instances()
         return self
 
     def produce(self, variable = None, **kwargs):
@@ -724,8 +704,10 @@ class SimpleManager(SimpleClass):
             **kwargs: other parameters can be added to method as needed or
                 **kwargs can be used.
         """
-        variable = getattr(self, '_produce_' + self.manager_type)(
-            variable, **kwargs)
+        for number, plan in getattr(self, self.plan_iterable).items():
+            if self.manager_type in ['parallel'] and self.verbose:
+                print('Testing', self.name, str(number))
+            variable = plan.produce(variable, **kwargs)
         return variable
 
 
@@ -802,11 +784,11 @@ class SimpleStep(SimpleClass):
     SimpleClass to support partial scikit-learn compatibility.
 
     Args:
-        technique(str): name of technique that matches a string in the
-            'options' keys or a wildcard value such as 'default', 'all', or
-            'none'.
+        techniques(list of str): name of technique(s) that match(es) string(s) 
+            in the 'options' keys or a wildcard value such as 'default', 'all', 
+            or 'none'.
         parameters(dict): parameters to be attached to algorithm in 'options'
-            corresponding to 'technique'. This parameter need not be passed to
+            corresponding to 'techniques'. This parameter need not be passed to
             the SimpleStep subclass if the parameters are in the accessible
             Idea instance or if the user wishes to use default parameters.
         auto_finalize(bool): whether 'finalize' method should be called when
@@ -858,9 +840,12 @@ class SimpleStep(SimpleClass):
             parameters[technique].update(self.extra_parameters[technique])
         return parameters
 
-    def _check_nested(self):
-        self.nested_parameters = self.is_nested(dictionary = self.parameters)
-        return self
+    # def _check_nested(self):
+    #     """Creates boolean attribute 'nested_parameters' with value indicating
+    #     whether the 'parameters' dict is nested.
+    #     """
+    #     self.nested_parameters = self.is_nested(dictionary = self.parameters)
+    #     return self
 
     def _finalize_parameters(self):
         """Compiles appropriate parameters for all techniques within
@@ -899,13 +884,14 @@ class SimpleStep(SimpleClass):
             technique(str): name of technique for which parameters are sought.
 
         """
-        if hasattr(self, 'parameters') and self.parameters is not None:
+        print(self.name, self.parameters)
+        if self.exists('parameters'):
             return self.parameters[technique]
         elif technique in self.idea.configuration:
             return {technique : self.idea.configuration[technique]}
         elif self.name in self.idea.configuration:
             return {technique : self.idea.configuration[self.name]}
-        elif hasattr(self, 'default_parameters') and self.default_parameters:
+        elif self.exists('default_parameters'):
             return {technique : self.default_parameters[technique]}
         else:
             return {}
@@ -922,10 +908,9 @@ class SimpleStep(SimpleClass):
             technique(str): name of technique for which runtime parameters are
                 sought.
         """
-        if hasattr(self, 'runtime_parameters') and self.runtime_parameters:
+        if self.exists('runtime_parameters'):
             return self.runtime_parameters[technique]
-        elif (hasattr(self, 'default_runtime_parameters')
-                and self.default_runtime_parameters):
+        elif self.exists('default_runtime_parameters'):
             return {technique : self.default_runtime_parameters[technique]}
         else:
             return {}
@@ -939,12 +924,15 @@ class SimpleStep(SimpleClass):
         use keys of the items in the 'tehchniques' attribute.
         """
         for parameters in self.check_nests:
-            if hasattr(self, parameters):
+            if self.exists('parameters'):
                 if (isinstance(self.techniques, list)
                         or isinstance(self.techniques, str)):
                     setattr(self, parameters, self.nestify(
                             keys = self.listify(self.techniques),
                             dictionaries = getattr(self, parameters)))
+                elif (isinstance(self.techniques, dict) 
+                        and self.is_nested(dictionary = self.techniques)):
+                    pass
                 elif isinstance(self.techniques, dict):
                     setattr(self, parameters, self.nestify(
                             keys = self.listify(self.techniques.keys()),
@@ -960,11 +948,11 @@ class SimpleStep(SimpleClass):
             parameters_to_use(list or str): list or string containing names of
                 parameters to include in final parameters dict.
         """
-        if hasattr(self, 'selected_parameters') and self.selected_parameters:
+        if self.exists('selected_parameters'):
             if not parameters_to_use:
                 if isinstance(self.selected_parameters, list):
                     parameters_to_use = self.selected_parameters
-                elif (hasattr(self, 'default_parameters')
+                elif (self.exists('default_parameters')
                         and isinstance(self.default_parameters, dict)):
                     parameters_to_use = list(
                             self.default_parameters[technique].keys())
@@ -1014,10 +1002,13 @@ class SimpleStep(SimpleClass):
         self.techniques = self._convert_wildcards(value = self.techniques)
         self._nestify_parameters()
         self._finalize_parameters()
-        if self.techniques != ['none']:
-            self.algorithm = self.options[self.technique](**self.parameters)
+        self.algorithms = {}
+        if self.techniques in ['none']:
+            self.algorithms = {'none' : None}
         else:
-            self.algorithm = None
+            for technique in self.listify(self.techniques):
+                self.algorithms.update(
+                    {technique : self.options[technique](**self.parameters)})
         return self
 
     def produce(self, ingredients, plan = None):

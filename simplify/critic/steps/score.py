@@ -8,30 +8,12 @@ from simplify.core.base import SimpleStep
 
 
 @dataclass
-class Score(SimpleStep):
+class Classifier(SimpleStep):
 
     def __post_init__(self):
 
         return self
 
-    def _classifier_report(self):
-        self.classifier_report_default = metrics.classification_report(
-                self.recipe.ingredients.y_test,
-                self.predictions)
-        self.classifier_report_dict = metrics.classification_report(
-                self.recipe.ingredients.y_test,
-                self.predictions,
-                output_dict = True)
-        self.classifier_report = pd.DataFrame(
-                self.classifier_report_dict).transpose()
-        return self
-
-    def _cluster_report(self):
-        return self
-
-
-    def _regressor_report(self):
-        return self
 
 
     def _default_classifier(self):
@@ -90,17 +72,4 @@ class Score(SimpleStep):
         return self
 
 
-    def edit_metrics(self, name, metric, special_type = None,
-                     special_parameters = None, negative_metric = False):
-        """Allows user to manually add a metric to report."""
-        self.options.update({name : metric})
-        if special_type in ['probability']:
-            self.prob_options.update({name : metric})
-        elif special_type in ['scorer']:
-            self.score_options.update({name : metric})
-        if special_parameters:
-           self.special_metrics.update({name : special_parameters})
-        if negative_metric:
-           self.negative_metrics.append[name]
-        return self
 

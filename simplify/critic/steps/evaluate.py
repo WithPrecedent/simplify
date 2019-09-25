@@ -5,30 +5,7 @@ import numpy as np
 import pandas as pd
 
 from simplify.core.base import SimpleStep
-
-
-@dataclass
-class Evaluate(SimpleStep):
-    """Core class for evaluating the results of data analysis produceed by
-    the siMpLify Cookbook.
-
-    """
-    techniques : object = None
-    name : str = 'evaluator'
-    auto_finalize : bool = True
     
-    def __post_init__(self):
-        """Sets up the core attributes of an Evaluator instance."""
-        super().__post_init__()
-        return self
-
-    def draft(self):
-        self.options = {'eli5' : Eli5Evaluator,
-                        'shap' : ShapEvaluator,
-                        'skater' : SkaterEvaluator,
-                        'sklearn' : SklearnEvaluator}
-        self.checks = ['idea']
-        return self         
 
 @dataclass
 class Eli5Evaluator(SimpleStep):
@@ -62,7 +39,7 @@ class Eli5Evaluator(SimpleStep):
         return self
 
     def produce(self):
-        self.permutation_importances = PermutationImportance(
+        self.permutation_importances = self.options['permutation'](
                 self.recipe.model.algorithm,
                 random_state = self.seed).fit(
                         self.recipe.ingredients.x_test,
@@ -131,87 +108,25 @@ class ShapEvaluator(SimpleStep):
 class SklearnEvaluator(SimpleStep):
 
     def __post_init__(self):
-        """Sets up the core attributes of a ShapEvaluator instance."""
+        """Sets up the core attributes of a SklearnEvaluator instance."""
         super().__post_init__()
         return self
-
-    def _confusion_matrix(self):
-        self.confusion = metrics.confusion_matrix(
-                self.recipe.ingredients.y_test, self.predictions)
-        return self
-
-    def _create_predictions(self):
-        """Makes predictions and determines predicted probabilities using
-        the model in the recipe passed."""
-        if hasattr(self.recipe.model.algorithm, 'predict'):
-            self.predictions = self.recipe.model.algorithm.predict(
-                    self.recipe.ingredients.x_test)
-        if hasattr(self.recipe.model.algorithm, 'predict_proba'):
-            self.predicted_probs = self.recipe.model.algorithm.predict_proba(
-                    self.recipe.ingredients.x_test)
-        return self
-
-
-    def _feature_summaries(self):
-        self.feature_list = list(self.recipe.ingredients.x_test.columns)
-        if ('svm_' in self.recipe.model.technique
-                or 'baseline' in self.recipe.model.technique
-                or 'logit' in self.recipe.model.technique
-                or 'tensor_flow' in self.recipe.model.technique):
-            self.feature_import = None
-        else:
-            self.feature_import = pd.Series(
+    
+    def produce(self, recipe):
+        self.features = list(self.recipe.ingredients.x_test.columns)
+        if hasattr(self.recipe.model.algorithm, 'feature_importances_'):
+            self.feature_importances = pd.Series(
                     data = self.recipe.model.algorithm.feature_importances_,
-                    index = self.feature_list)
-            self.feature_import.sort_values(ascending = False,
-                                            inplace = True)
+                    index = self.features)
+            self.feature_importances.sort_values(ascending = False,
+                                                 inplace = True)
+        else:
+            self.feature_importances = None
         return self
+            
 
-    def draft(self):
-        getattr(self, '_default_' + self.model_type)()
-        self.special_metrics = {
-                'fbeta' : {'beta' : 1},
-                'f1_weighted' : {'average' : 'weighted'},
-                'precision_weighted' : {'average' : 'weighted'},
-                'recall_weighted' : {'average' : 'weighted'}}
-        self.negative_metrics = ['brier_loss_score', 'neg_log_loss',
-                                 'zero_one']
-        return self
 
-    def finalize(self):
-        self.options.update(self.prob_options)
-        self.options.update(self.score_options)
-        return self
 
-    def produce(self):
-        """Prepares the results of a single recipe application to be added to
-        the .report dataframe.
-        """
-        self.result = pd.Series(index = self.columns_list)
-        for column, value in self.columns.items():
-            if isinstance(getattr(self.recipe, value), CookbookSimpleStep):
-                self.result[column] = self._format_step(value)
-            else:
-                self.result[column] = getattr(self.recipe, value)
-        for column, value in self.options.items():
-            if column in self.metrics:
-                if column in self.prob_options:
-                    params = {'y_true' : self.recipe.ingredients.y_test,
-                              'y_prob' : self.predicted_probs[:, 1]}
-                elif column in self.score_options:
-                    params = {'y_true' : self.recipe.ingredients.y_test,
-                              'y_score' : self.predicted_probs[:, 1]}
-                else:
-                    params = {'y_true' : self.recipe.ingredients.y_test,
-                              'y_pred' : self.predictions}
-                if column in self.special_metrics:
-                    params.update({column : self.special_metrics[column]})
-                result = value(**params)
-                if column in self.negative_metrics:
-                    result = -1 * result
-                self.result[column] = result
-        self.report.loc[len(self.report)] = self.result
-        return self
 
 @dataclass
 class SkaterEvaluator(SimpleStep):

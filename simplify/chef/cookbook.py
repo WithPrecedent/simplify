@@ -327,13 +327,15 @@ class Recipe(SimplePlan):
     """Defines rules for analyzing data in the siMpLify Cookbook subpackage.
 
     Attributes:
-        steps(dict): dictionary containing keys of step names (strings) and
+        steps (dict): dictionary containing keys of step names (strings) and
             values of Cookbook step instances.
-        name: a string designating the name of the class which should be
-            identical to the section of the Idea instance with relevant
-            settings.
+        number (int): number of recipe in a sequence - used for recordkeeping
+            purposes.
+        name (str): designates the name of the class which should be identical 
+            to the section of the Idea instance with relevant settings.
     """
     steps : object = None
+    number : int = 0
     name : str = 'recipe'
 
     def __post_init__(self):
@@ -367,7 +369,6 @@ class Recipe(SimplePlan):
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
            for step, technique in steps.items():
-               print(step)
                self.ingredients = technique.produce(
                        ingredients = self.ingredients,
                        plan = self)
