@@ -11,34 +11,30 @@ class Mix(SimpleStep):
     """Computes new features using different algorithms selected.
 
     Args:
-        technique(str): name of technique - it should always be 'gauss'
-        parameters(dict): dictionary of parameters to pass to selected technique
+        technique (str): name of technique.
+        parameters (dict): dictionary of parameters to pass to selected
             algorithm.
-        auto_finalize(bool): whether 'finalize' method should be called when the
-            class is instanced. This should generally be set to True.
-        store_names(bool): whether this class requires the feature names to be
-            stored before the 'finalize' and 'produce' methods or called and
-            then restored after both are utilized. This should be set to True
-            when the class is using numpy methods.
-        name(str): name of class for matching settings in the Idea instance and
-            for labeling the columns in files exported by Critic.
+        name (str): name of class for matching settings in the Idea instance
+            and for labeling the columns in files exported by Critic.
+        auto_finalize (bool): whether 'finalize' method should be called when
+            the class is instanced. This should generally be set to True.
     """
-    techniques : str = ''
+
+    technique : str = ''
     parameters : object = None
+    name : str = 'mixer'
     auto_finalize : bool = True
-    store_names : bool = False
-    name: str = 'mixer'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
     def draft(self):
+        super().draft()
         self.options = {'polynomial' : PolynomialEncoder,
                         'quotient' : self.quotient_features,
                         'sum' : self.sum_features,
                         'difference' : self.difference_features}
-        self.default_parameters = {}
         return self
 
     def quotient_features(self):
@@ -62,7 +58,7 @@ class Mix(SimpleStep):
         if not columns:
             columns = ingredients.encoders
         if columns:
-            self.runtime_parameters.update({'cols' : columns})
+            self.runtime_parameters = {'cols' : columns}
         super().finalize()
         self.algorithm.fit(ingredients.x, ingredients.y)
         self.algorithm.transform(

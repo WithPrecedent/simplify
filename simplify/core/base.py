@@ -442,7 +442,7 @@ class SimpleClass(ABC):
 
         Args:
             variable (str or list): variable to be transformed into a list to
-            allow iteration.
+                allow iteration.
 
         Returns:
             variable (list): either the original list, a string converted to a
@@ -455,30 +455,51 @@ class SimpleClass(ABC):
         else:
             return [variable]
 
+#    @staticmethod
+#    def nestify(keys, dictionaries):
+#        """Converts dict to nested dict if not already one.
+#
+#        Args:
+#            keys (list): list to be keys to nested dict.
+#            dictionaries (dict, list(dicts)): dictionary (or list of same) to
+#                be values in nested dictionary.
+#
+#        Returns:
+#            nested dict with keys added to outer layer, with either the same
+#            dict as all values (if one dict) or each dict in the list as a
+#            corresponding value to each key, original dict (if already nested),
+#            or an empty dict.
+#        """
+#        if isinstance(dictionaries, list):
+#            return dict(zip(keys, dictionaries))
+#        elif (isinstance(dictionaries, dict)
+#                and any(isinstance(i, dict) for i in dictionaries.values())):
+#            return dictionaries
+#        elif isinstance(keys, list) and dictionaries is not None:
+#            return dict.fromkeys(keys, dictionaries)
+#        else:
+#            return {}
+
     @staticmethod
-    def nestify(keys, dictionaries):
-        """Converts dict to nested dict if not already one.
+    def stringify(variable):
+        """Converts one item list to a string (if not already a string).
 
         Args:
-            keys (list): list to be keys to nested dict.
-            dictionaries (dict, list(dicts)): dictionary (or list of same) to
-                be values in nested dictionary.
+            variable (list): variable to be transformed into a string.
 
         Returns:
-            nested dict with keys added to outer layer, with either the same
-            dict as all values (if one dict) or each dict in the list as a
-            corresponding value to each key, original dict (if already nested),
-            or an empty dict.
+            variable (str): either the original str, a string pulled from a
+                one-item list, or the original list.
         """
-        if isinstance(dictionaries, list):
-            return dict(zip(keys, dictionaries))
-        elif (isinstance(dictionaries, dict)
-                and any(isinstance(i, dict) for i in dictionaries.values())):
-            return dictionaries
-        elif isinstance(keys, list) and dictionaries is not None:
-            return dict.fromkeys(keys, dictionaries)
+        if variable is None:
+            return 'none'
+        elif isinstance(variable, str):
+            return variable
         else:
-            return {}
+            try:
+                return variable[0]
+            except TypeError:
+                return variable
 
     """ Public Input/Output Methods """
 
@@ -611,13 +632,39 @@ class SimpleManager(SimpleClass):
             setattr(self, self.plan_iterable, {})
         return self
 
+    def _convert_wildcards(self, step):
+        """Converts 'all', 'default' to items from SimpleStep subclass
+        'options'.
+
+        Args:
+            step (str): name of step.
+
+        Returns:
+            if 'all', the keys in 'options' are returned.
+            if 'default', either 'default_techniques' or the keys in 'options'
+                are returned.
+        """
+        step = self.stringify(step)
+        if getattr(self, step) in ['all', 'default']:
+            test_instance = self.options[step](auto_finalize = False)
+            if getattr(self, step) in ['all']:
+                return list(test_instance.options.keys())
+            elif (hasattr(test_instance, 'default_techniques')
+                    and test_instance.default_techniques):
+                return test_instance.default_techniques
+            else:
+                return list(test_instance.options.keys())
+        else:
+            return step
+
     def _create_steps_lists(self):
         """Creates list of lists of all possible steps in 'options'."""
         self.all_steps = []
         for step in self.options.keys():
             # Stores each step attribute in a list.
             if hasattr(self, step):
-                setattr(self, step, self.listify(getattr(self, step)))
+                print(self.name, self._convert_wildcards(step = step))
+                setattr(self, step, self._convert_wildcards(step = step))
             # Stores a list of 'none' if there is no corresponding local
             # attribute.
             else:
@@ -633,7 +680,8 @@ class SimpleManager(SimpleClass):
         for i, plan in enumerate(all_plans):
             finalized_steps = {}
             for j, (step_name, step_class) in enumerate(self.options.items()):
-                finalized_steps.update({step_name : step_class(plan[j])})
+                finalized_steps.update(
+                        {step_name : step_class(technique = plan[j])})
             getattr(self, self.plan_iterable).update(
                     {i + 1 : self.plan_class(steps = finalized_steps,
                                              number = i + 1)})
@@ -641,9 +689,12 @@ class SimpleManager(SimpleClass):
 
     def _finalize_plans_serial(self):
         """Creates plan iterable from list of lists in 'all_steps'."""
-        finalized_steps = dict(zip(self.options.keys(), self.all_steps))
-        getattr(self, self.plan_iterable).update(
-                    {1 : self.plan_class(steps = finalized_steps)})
+        for i, (step_name, step_class) in enumerate(self.options.items()):
+            for technique in self.all_steps[i]:
+                getattr(self, self.plan_iterable).update(
+                            {i : self.plan_class(
+                                    steps = {step_name : step_class(
+                                            technique = technique)})})
         return self
 
     """ Core siMpLify methods """
@@ -698,7 +749,7 @@ class SimplePlan(SimpleClass):
         # Adds name of SimpleManager subclass to sections to inject from Idea
         # so that all of those section entries are available as local
         # attributes.
-        if hasattr(self, 'manager_name'):
+        if self.exists('manager_name'):
             self.idea_sections = [self.manager_name]
         super().__post_init__()
         return self
@@ -711,7 +762,7 @@ class SimplePlan(SimpleClass):
 
     def draft(self):
         """SimplePlan's generic 'draft' method."""
-        self.data_variable = ''
+        pass
         return self
 
     def finalize(self):
@@ -766,7 +817,8 @@ class SimpleStep(SimpleClass):
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
     """
-    techniques : object = None
+
+    technique : str = ''
     parameters : object = None
     auto_finalize : bool = True
 
@@ -774,65 +826,51 @@ class SimpleStep(SimpleClass):
         # Adds name of SimpleManager subclass to sections to inject from Idea
         # so that all of those section entries are available as local
         # attributes.
-        if hasattr(self, 'manager_name'):
+        if self.exists('manager_name'):
             self.idea_sections = [self.manager_name]
-        self.check_nests = ['default_parameters', 'runtime_parameters',
-                            'parameters']
+#        self.check_nests = ['default_parameters', 'runtime_parameters',
+#                            'extra_parameters', 'parameters']
         super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _add_extra_parameters(self, technique, parameters):
-        """Adds parameters from 'extra_parameters' if attribute exists.
+    def _check_parameters(self):
+        """Adds empty 'parameters' dict if it doesn't exist."""
+        if not self.exists('parameters'):
+            self.parameters = {}
+        return self
 
-        Some parameters are stored in 'extra_parameters' because of the way
-        the particular algorithms are constructed by dependency packages. For
-        example, scikit-learn consolidates all its support vector machine
-        classifiers into a single class (SVC). To pick different kernels for
-        that class, a parameter ('kernel') is used. Since siMpLify wants to
-        allow users to compare different SVC kernel models (linear, sigmoid,
-        etc.), the 'extra_parameters attribute is used to add the 'kernel'
-        and 'probability' paramters in the Classifier subclass.
 
-        Args:
-            technique(str): name of technique selected.
-            parameters(dict): a set of parameters for an algorithm.
+    def _denestify(self, technique, parameters):
+        """Removes outer layer of 'parameters' dict, if it exists, by using
+        'technique' as the key.
 
-        Returns:
-            parameters(dict) with 'extra_parameters' added if that attribute
-                exists in the subclass and the technique is listed as a key
-                in the nested 'extra_parameters' dictionary.
+        If 'parameters' is not nested, 'parameters' is returned unaltered.
         """
-        if (hasattr(self, 'extra_parameters')
-                and technique in self.extra_parameters):
-            parameters[technique].update(self.extra_parameters[technique])
-        return parameters
+        if self.is_nested(parameters):
+            return parameters[technique]
+        else:
+            return parameters
 
     def _finalize_parameters(self):
-        """Compiles appropriate parameters for all techniques within
-        'techniques' attribute.
+        """Compiles appropriate parameters for all 'technique'.
 
         After testing several sources for parameters using '_get_parameters',
         parameters are subselected, if necessary, using '_select_parameters'.
         If 'runtime_parameters' and/or 'extra_parameters' exist in the
         subclass, those are added to 'parameters' as well.
         """
-        nested_parameters = {}
-        if not hasattr(self, 'parameters') or self.parameters is None:
-            self.parameters = {}
-            for technique in self.listify(self.techniques):
-                new_params = self._get_parameters(technique)
-                new_params = self._select_parameters(technique, new_params)
-                new_params.update(self._get_runtime_parameters(technique))
-                nested_parameters.update({technique : new_params})
-                nested_parameters = self._add_extra_parameters(
-                        technique = technique,
-                        parameters = nested_parameters)
-        self.parameters = nested_parameters
+        parameter_groups = ['select', 'runtime', 'extra']
+        self.parameters = self._get_parameters()
+        for parameter_group in parameter_groups:
+            self.parameters = getattr(
+                    self, '_get_parameters_' + parameter_group)(
+                            technique = self.technique,
+                            parameters = self.parameters)
         return self
 
-    def _get_parameters(self, technique):
+    def _get_parameters(self):
         """Returns parameters from different possible sources based upon passed
         'technique'.
 
@@ -847,61 +885,58 @@ class SimpleStep(SimpleClass):
 
         """
         if self.exists('parameters') and self.parameters:
-            return self.parameters[technique]
-        elif technique in self.idea.configuration:
-            return {technique : self.idea.configuration[technique]}
+            return self.denestify(self.technique, self.parameters)
+        elif self.technique in self.idea.configuration:
+            return {self.technique : self.idea.configuration[self.technique]}
         elif self.name in self.idea.configuration:
-            return {technique : self.idea.configuration[self.name]}
+            return {self.technique : self.idea.configuration[self.name]}
         elif self.exists('default_parameters'):
-            return {technique : self.default_parameters[technique]}
+            return {self.technique : self.default_parameters[self.technique]}
         else:
             return {}
 
-    def _get_runtime_parameters(self, technique):
-        """Returns runtime parameters from different possible sources based
-        upon passed 'technique'.
+    def _get_parameters_extra(self, technique, parameters):
+        """Adds parameters from 'extra_parameters' if attribute exists.
 
-        If 'runtime_parameters' attribute is None, 'default_rumtime_parameters'
-        are used.  If there are no 'default_runtime_parameters', an empty
-        dictionary is created for the returned runtime parameters.
+        Some parameters are stored in 'extra_parameters' because of the way
+        the particular algorithms are constructed by dependency packages. For
+        example, scikit-learn consolidates all its support vector machine
+        classifiers into a single class (SVC). To pick different kernels for
+        that class, a parameter ('kernel') is used. Since siMpLify wants to
+        allow users to compare different SVC kernel models (linear, sigmoid,
+        etc.), the 'extra_parameters attribute is used to add the 'kernel'
+        and 'probability' paramters in the Classifier subclass.
+
+        Args:
+            technique (str): name of technique selected.
+            parameters (dict): a set of parameters for an algorithm.
+
+        Returns:
+            parameters (dict) with 'extra_parameters' added if that attribute
+                exists in the subclass and the technique is listed as a key
+                in the nested 'extra_parameters' dictionary.
+        """
+        if self.exists('extra_parameters') and self.extra_parameters:
+            return parameters.update(
+                    self.denestify(technique, self.extra_parameters))
+        else:
+            return parameters
+
+    def _get_parameters_runtime(self, technique, parameters):
+        """Adds runtime parameters to parameters based upon passed 'technique'.
 
         Args:
             technique(str): name of technique for which runtime parameters are
                 sought.
         """
         if self.exists('runtime_parameters'):
-            return self.runtime_parameters[technique]
-        elif self.exists('default_runtime_parameters'):
-            return {technique : self.default_runtime_parameters[technique]}
+            return parameters.update(
+                    self.denestify(technique, self.runtime_parameters))
         else:
-            return {}
+            return parameters
 
-    def _nestify_parameters(self):
-        """Converts existing parameter attributes to nested parameter
-        dictionaries.
-
-        The method uses the 'check_nest' attribute list to indicate which
-        local attributes should be transformed. The new nested dictionaries
-        use keys of the items in the 'tehchniques' attribute.
-        """
-        for parameters in self.check_nests:
-            if self.exists(parameters):
-                if (isinstance(self.techniques, list)
-                        or isinstance(self.techniques, str)):
-                    setattr(self, parameters, self.nestify(
-                            keys = self.listify(self.techniques),
-                            dictionaries = getattr(self, parameters)))
-                elif (isinstance(self.techniques, dict)
-                        and self.is_nested(dictionary = self.techniques)):
-                    pass
-                elif isinstance(self.techniques, dict):
-                    setattr(self, parameters, self.nestify(
-                            keys = self.listify(self.techniques.keys()),
-                            dictionaries = getattr(self, parameters)))
-        return self
-
-    def _select_parameters(self, technique, parameters,
-                           parameters_to_use = None):
+    def _get_parameters_selected(self, technique, parameters,
+                                 parameters_to_use = None):
         """For subclasses that only need a subset of the parameters stored in
         idea, this function selects that subset.
 
@@ -909,19 +944,20 @@ class SimpleStep(SimpleClass):
             parameters_to_use(list or str): list or string containing names of
                 parameters to include in final parameters dict.
         """
-        if self.exists('selected_parameters'):
+        if self.exists('selected_parameters') and self.selected_parameters:
             if not parameters_to_use:
                 if isinstance(self.selected_parameters, list):
                     parameters_to_use = self.selected_parameters
-                elif (self.exists('default_parameters')
-                        and isinstance(self.default_parameters, dict)):
-                    parameters_to_use = list(
-                            self.default_parameters[technique].keys())
+                elif self.exists('default_parameters'):
+                    parameters_to_use = list(self.denestify(
+                            technique, self.default_parameters).keys())
             new_parameters = {}
             for key, value in parameters.items():
                 if key in self.listify(parameters_to_use):
                     new_parameters.update({key : value})
-        return new_parameters
+            return new_parameters
+        else:
+            return parameters
 
     """ Core siMpLify Public Methods """
 
@@ -931,11 +967,8 @@ class SimpleStep(SimpleClass):
         This default draft should only be used if users are planning to
         manually add all options and parameters to the SimpleStep subclass.
         """
-        if not hasattr(self, 'options'):
-            self.options = {}
-        if not hasattr(self, 'parameters'):
-            self.parameters = {}
-        self.checks = ['idea']
+        self.options = {}
+        self.checks = ['idea', 'parameters']
         return self
 
     def edit_parameters(self, technique, parameters):
@@ -960,16 +993,17 @@ class SimpleStep(SimpleClass):
 
     def finalize(self):
         """Finalizes parameters and adds 'parameters' to 'algorithm'."""
-        self.techniques = self._convert_wildcards(value = self.techniques)
-        self._nestify_parameters()
+        self.technique = self._convert_wildcards(value = self.technique)
         self._finalize_parameters()
-        self.algorithms = {}
-        if self.techniques in ['none']:
-            self.algorithms = {'none' : None}
+        if self.technique in ['none', 'None', None]:
+            self.technique = 'none'
+            self.algorithm = None
+        elif (self.exists('custom_options')
+                and self.technique in self.custom_options):
+            self.algorithm = self.options[self.technique](
+                    parameters = self.parameters)
         else:
-            for technique in self.listify(self.techniques):
-                self.algorithms.update(
-                    {technique : self.options[technique](**self.parameters)})
+            self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
     def produce(self, ingredients, plan = None):
@@ -1064,8 +1098,6 @@ class SimpleStep(SimpleClass):
             AttributeError if no 'transform' method exists for local
                 'algorithm'.
         """
-        # Local import to avoid circular dependency.
-        from simplify import Ingredients
         if hasattr(self.algorithm, 'transform'):
             if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
                 if y is None:
@@ -1108,9 +1140,6 @@ class SimpleTechnique(SimpleStep):
     learn and other pipeline scripts.
 
     Args:
-        technique(str): name of technique that matches a string in the
-            'options' keys or a wildcard value such as 'default', 'all', or
-            'none'.
         parameters(dict): parameters to be attached to algorithm in 'options'
             corresponding to 'technique'. This parameter need not be passed to
             the SimpleStep subclass if the parameters are in the accessible
@@ -1121,7 +1150,6 @@ class SimpleTechnique(SimpleStep):
     It is also a child class of SimpleStep. So, its documentation applies as
     well.
     """
-    technique : object = None
     parameters : object = None
     auto_finalize : bool = True
 
@@ -1129,7 +1157,7 @@ class SimpleTechnique(SimpleStep):
         # Adds name of SimpleStep subclass to sections to inject from Idea
         # so that all of those section entries are available as local
         # attributes.
-        if hasattr(self, 'step_name'):
+        if self.exists('step_name'):
             self.idea_sections = [self.step_name]
         super().__post_init__()
         return self

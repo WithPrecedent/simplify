@@ -10,7 +10,7 @@ class Predict(SimpleStep):
     """Core class for making predictions based upon machine learning models.
 
     """
-    steps : object = None
+    techniques : object = None
     name : str = 'predictor'
     auto_finalize : bool = True
     auto_produce : bool = False
@@ -58,13 +58,12 @@ class Predict(SimpleStep):
             return None
 
     def draft(self):
+        super().draft()
         self.options = {'outcomes' : self._predict_outcomes,
                         'probabilities' : self._predict_probabilities}
         return self
 
     def produce(self, recipe):
-        for step in self.steps:
-            setattr(self, 'predicted_' + step,
-                    self.options[step](recipe = recipe))
+        self.predictions = self.options[self.technique](recipe = recipe)
         return self
 

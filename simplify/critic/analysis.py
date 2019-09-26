@@ -94,8 +94,8 @@ class Analysis(SimpleManager):
         """Sets default options for the Critic's analysis."""
         super().draft()
         self.options = {'summarizer' : Summarize,
-                        'predictor' : Predict,
                         'scorer' : Score,
+                        'predictor' : Predict,
                         'explainer' : Explain}
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.step = 'critic'

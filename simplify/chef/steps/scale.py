@@ -9,24 +9,25 @@ from sklearn.preprocessing import (KBinsDiscretizer, MaxAbsScaler,
 from simplify.core.base import SimpleStep, SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
+
 @dataclass
 class Scale(SimpleStep):
     """Scales numerical data according to selected algorithm.
 
     Args:
-        technique(str): name of technique - it should always be 'gauss'
-        parameters(dict): dictionary of parameters to pass to selected technique
+        technique (str): name of technique.
+        parameters (dict): dictionary of parameters to pass to selected
             algorithm.
-        auto_finalize(bool): whether 'finalize' method should be called when the
-            class is instanced. This should generally be set to True.
-        name(str): name of class for matching settings in the Idea instance and
-            for labeling the columns in files exported by Critic.
+        name (str): name of class for matching settings in the Idea instance
+            and for labeling the columns in files exported by Critic.
+        auto_finalize (bool): whether 'finalize' method should be called when
+            the class is instanced. This should generally be set to True.
     """
-    techniques : str = ''
+
+    technique : str = ''
     parameters : object = None
-    auto_finalize : bool = True
-    store_names : bool = True
     name : str = 'scaler'
+    auto_finalize : bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -35,11 +36,12 @@ class Scale(SimpleStep):
     """ Core siMpLify Public Methods """
 
     def draft(self):
+        super().draft()
         self.options = {'bins' : KBinsDiscretizer,
                         'gauss' : Gaussify,
                         'maxabs' : MaxAbsScaler,
                         'minmax' : MinMaxScaler,
-                        'normalizer' : Normalizer,
+                        'normalize' : Normalizer,
                         'quantile' : QuantileTransformer,
                         'robust' : RobustScaler,
                         'standard' : StandardScaler}
@@ -50,29 +52,19 @@ class Scale(SimpleStep):
                                               'copy' : False},
                                    'maxabs' : {'copy' : False},
                                    'minmax' : {'copy' : False},
-                                   'normalizer' : {'copy' : False},
+                                   'normalize' : {'copy' : False},
                                    'quantile' : {'copy' : False},
                                    'robust' : {'copy' : False},
                                    'standard' : {'copy' : False}}
         self.selected_parameters = True
-        return self
-
-    def finalize(self):
-        self._nestify_parameters()
-        self._finalize_parameters()
-        if self.techniques in ['gauss']:
-            self.algorithm = self.options[self.techniques](
-                parameters = self.parameters)
-        elif self.techniques != ['none']:
-            print('test', self.parameters)
-            self.algorithm = self.options[self.techniques](**self.parameters)
+        self.custom_options = ['gauss']
         return self
 
     @numpy_shield
     def produce(self, ingredients, plan = None, columns = None):
         if columns is None:
             columns = ingredients.scalers
-        if self.technique == 'gauss':
+        if self.technique in self.custom_options:
             ingredients = self.algorithm.produce(ingredients = ingredients,
                                                  columns = columns)
         else:
@@ -88,22 +80,17 @@ class Gaussify(SimpleTechnique):
     on whether the particular data column has values below zero.
 
     Args:
-        technique(str): name of technique - it should always be 'gauss'
-        parameters(dict): dictionary of parameters to pass to selected technique
+        parameters (dict): dictionary of parameters to pass to selected
             algorithm.
-        custom_algorithm(bool): flag indicating whether this is a class specific
-            to the siMpLify package. This flag can be used by various classes
-            to properly utilize the class instance methods.
-        auto_finalize(bool): whether 'finalize' method should be called when the
-            class is instanced. This should generally be set to True.
-        name(str): name of class for matching settings in the Idea instance and
-            for labeling the columns in files exported by Critic.
+        name (str): name of class for matching settings in the Idea instance
+            and for labeling the columns in files exported by Critic.
+        auto_finalize (bool): whether 'finalize' method should be called when
+            the class is instanced. This should generally be set to True.
     """
-    technique : str = 'gauss'
+
     parameters : object = None
-    custom_algorithm : bool = True
-    auto_finalize : bool = True
     name : str = 'gaussifier'
+    auto_finalize : bool = True
 
     def __post_init__(self):
         super().__post_init__()

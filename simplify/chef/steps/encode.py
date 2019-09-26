@@ -12,32 +12,29 @@ from simplify.core.decorators import numpy_shield
 
 @dataclass
 class Encode(SimpleStep):
-    """Encodes categorical variables according to selected algorithms.
+    """Encodes categorical variables according to a selected algorithm.
 
     Args:
-        technique(str): name of technique - it should always be 'gauss'
-        parameters(dict): dictionary of parameters to pass to selected technique
+        technique (str): name of technique.
+        parameters (dict): dictionary of parameters to pass to selected
             algorithm.
-        auto_finalize(bool): whether 'finalize' method should be called when the
-            class is instanced. This should generally be set to True.
-        store_names(bool): whether this class requires the feature names to be
-            stored before the 'finalize' and 'produce' methods or called and
-            then restored after both are utilized. This should be set to True
-            when the class is using numpy methods.
-        name(str): name of class for matching settings in the Idea instance and
-            for labeling the columns in files exported by Critic.
+        name (str): name of class for matching settings in the Idea instance
+            and for labeling the columns in files exported by Critic.
+        auto_finalize (bool): whether 'finalize' method should be called when
+            the class is instanced. This should generally be set to True.
     """
-    techniques : str = ''
+
+    technique : str = ''
     parameters : object = None
-    auto_finalize : bool = True
-    store_names : bool = False
     name : str = 'encoder'
+    auto_finalize : bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
     def draft(self):
+        super().draft()
         self.options = {'backward' : BackwardDifferenceEncoder,
                         'basen' : BaseNEncoder,
                         'binary' : BinaryEncoder,
@@ -48,7 +45,6 @@ class Encode(SimpleStep):
                         'ordinal' : OrdinalEncoder,
                         'sum' : SumEncoder,
                         'target' : TargetEncoder}
-        self.default_parameters = {}
         return self
 
     def finalize(self):

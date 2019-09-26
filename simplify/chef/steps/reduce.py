@@ -9,30 +9,33 @@ from sklearn.feature_selection import (chi2, f_classif, mutual_info_classif,
 from simplify.core.base import SimpleStep
 from simplify.core.decorators import numpy_shield
 
+
 @dataclass
 class Reduce(SimpleStep):
     """Reduces features using different algorithms, including the model
     algorithm.
 
     Args:
-        technique(str): name of technique - it should always be 'gauss'
-        parameters(dict): dictionary of parameters to pass to selected technique
+        technique (str): name of technique.
+        parameters (dict): dictionary of parameters to pass to selected
             algorithm.
-        auto_finalize(bool): whether 'finalize' method should be called when the
-            class is instanced. This should generally be set to True.
-        name(str): name of class for matching settings in the Idea instance and
-            for labeling the columns in files exported by Critic.
+        name (str): name of class for matching settings in the Idea instance
+            and for labeling the columns in files exported by Critic.
+        auto_finalize (bool): whether 'finalize' method should be called when
+            the class is instanced. This should generally be set to True.
     """
-    techniques : str = ''
+
+    technique : str = ''
     parameters : object = None
-    auto_finalize : bool = True
     name : str = 'reducer'
+    auto_finalize : bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
     def draft(self):
+        super().draft()
         self.options  = {'kbest' : SelectKBest,
                          'fdr' : SelectFdr,
                          'fpr' : SelectFpr,

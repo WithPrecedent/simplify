@@ -23,6 +23,7 @@ class Summarize(SimpleStep):
         auto_produce: sets whether to automatically call the 'produce' method
             when the class is instanced.
     """
+
     techniques : object = None
     name : str = 'summarizer'
     auto_finalize : bool = True
@@ -36,7 +37,8 @@ class Summarize(SimpleStep):
 
     def draft(self):
         """Sets options for Summarize class."""
-        self.options = {'datatype' : ['dtype'],
+        super().draft()
+        self.metrics = {'datatype' : ['dtype'],
                         'count' : 'count',
                         'min' :'min',
                         'q1' : ['quantile', 0.25],

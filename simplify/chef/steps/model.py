@@ -14,18 +14,19 @@ class Model(SimpleStep):
     """Applies machine learning algorithms based upon user selections.
 
     Args:
-        technique(str): name of technique - it should always be 'gauss'
-        parameters(dict): dictionary of parameters to pass to selected technique
+        technique (str): name of technique.
+        parameters (dict): dictionary of parameters to pass to selected
             algorithm.
-        auto_finalize(bool): whether 'finalize' method should be called when the
-            class is instanced. This should generally be set to True.
-        name(str): name of class for matching settings in the Idea instance and
-            for labeling the columns in files exported by Critic.
+        name (str): name of class for matching settings in the Idea instance
+            and for labeling the columns in files exported by Critic.
+        auto_finalize (bool): whether 'finalize' method should be called when
+            the class is instanced. This should generally be set to True.
     """
-    techniques : str = ''
+
+    technique : str = ''
     parameters : object = None
-    auto_finalize : bool = True
     name : str = 'model'
+    auto_finalize : bool = True
 
     def __post_init__(self):
         self.idea_sections = ['cookbook']
@@ -94,11 +95,11 @@ class Model(SimpleStep):
         return self
 
     def draft(self):
+        super().draft()
         self.options = {'classifier' : Classifier,
                         'clusterer' : Clusterer,
                         'regressor' : Regressor}
         self.runtime_parameters = {'random_state' : self.seed}
-        self.check_nests.append('model_parameters')
         return self
 
     def finalize(self):
@@ -106,7 +107,6 @@ class Model(SimpleStep):
         if self.technique != 'none':
             if not hasattr(self, 'parameters') or not self.parameters:
                 self.model_parameters = self.idea[self.technique]
-            self._nestify_parameters()
             self._check_specific_parameters()
             self._parse_search_parameters()
             self._finalize_parameters()
@@ -116,10 +116,6 @@ class Model(SimpleStep):
             self.algorithm.finalize()
         return self
 
-    def fit_transform(self, x, y = None):
-        error = 'fit_transform is not implemented for machine learning models'
-        raise NotImplementedError(error)
-
     def produce(self, ingredients, plan = None):
         """Applies model from recipe to ingredients data."""
         if self.technique != 'none':
@@ -127,6 +123,11 @@ class Model(SimpleStep):
                 print('Applying', self.technique, 'model')
             self.algorithm = self.algorithm.produce(ingredients = ingredients)
         return self
+
+    def fit_transform(self, x, y = None):
+        error = 'fit_transform is not implemented for machine learning models'
+        raise NotImplementedError(error)
+
 
     def transform(self, x, y = None):
         error = 'transform is not implemented for machine learning models'

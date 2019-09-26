@@ -13,7 +13,7 @@ class Score(SimpleStep):
     the siMpLify Cookbook.
 
     """
-    steps : object = None
+    techniques : object = None
     name : str = 'scorer'
     auto_finalize : bool = True
     auto_produce : bool = False
@@ -24,7 +24,8 @@ class Score(SimpleStep):
         return self
 
     def draft(self):
-        self.options = {
+        super().draft()
+        self.metrics = {
             'accuracy' : metrics.accuracy_score,
             'adjusted_mutual_info' : metrics.adjusted_mutual_info_score,
             'adjusted_rand' : metrics.adjusted_rand_score,
@@ -116,7 +117,3 @@ class Score(SimpleStep):
                 self.result[column] = result
         self.report.loc[len(self.report)] = self.result
         return self
-
-
-
-
