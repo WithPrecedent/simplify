@@ -1,6 +1,6 @@
 """
 .. module:: ingredients
-:synopsis: contains data container class of siMpLify package.
+:synopsis: data container for siMpLify package.
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -18,14 +18,12 @@ from simplify.core.types import DataTypes
 
 
 @dataclass
-
 class Ingredients(SimpleClass):
     """Stores pandas DataFrames and Series with related information about those
-    data containers and additional methods to apply to them.
+    data containers.
 
     Ingredients uses pandas DataFrames or Series for all data storage, but it
-    utilizes faster numpy methods where possible to increase performance.
-
+    utilizes faster numpy methods where possible to increase performance. 
     DataFrames and Series stored in ingredients can be imported and exported
     using the 'load' and 'save' methods in a class instance.
 
@@ -34,13 +32,27 @@ class Ingredients(SimpleClass):
     or Series contained in Ingredients by using the 'apply' method (mirroring
     the functionality of the pandas method).
 
-    Args:
+    Args:        
+        idea(Idea or str): an instance of Idea or a string containing the file
+            path or file name (in the current working directory) where a 
+            supoorted settings file for an Idea instance is located. Once an 
+            Idea instance is created by a subclass of SimpleClass, it is
+            automatically made available to all other SimpleClass subclasses
+            that are instanced in the future.
+        depot(Depot or str): an instance of Depot a string containing the full
+            path of where the root folder should be located for file output. 
+            Once a Depot instance is created by a subclass of SimpleClass, it is 
+            automatically made available to all other SimpleClass subclasses 
+            that are instanced in the future.
+        name(str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package.
         df(DataFrame, Series, or str): either a pandas data object or a string
             containing the complete path where a supported file type with data
             is located. This argument should be passed if the user has a
             pre-existing dataset and is not creating a new dataset with Farmer.
         default_df(str): the current default DataFrame or Series attribute name
-        that will be used when a specific DataFrame is not passed to a
+            that will be used when a specific DataFrame is not passed to a
             method within the class. The default value is initially set to
             'df'. The decorator choose_df will look to the default_df to pick
             the appropriate DataFrame in situations where no DataFrame is passed
@@ -62,8 +74,12 @@ class Ingredients(SimpleClass):
         state_dependent(bool): whether this class is depending upon the current
             state in the siMpLify package. Unless the user is radically changing
             the way siMpLify works, this should be set to True.
+            
+    Since this class is a subclass to SimpleClass, all of its documentation 
+    applies as well.
     """
-
+    
+    name: str = 'ingredients'
     df: object = None
     default_df: str = 'df'
     x: object = None
@@ -353,6 +369,26 @@ class Ingredients(SimpleClass):
         self.convert_column_datatypes(df = df)
         return self
 
+    @choose_df
+    def conform(self, df = None, step = None):
+        """Adjusts some of the siMpLify-specific datatypes to the appropriate
+        datatype based upon the current step.
+
+        Args:
+            df(DataFrame): pandas object for datatypes to be conformed.
+            step(str): corresponding to the current state.
+        """
+        self.step = step
+        for column, datatype in self.datatypes.items():
+            if self.step in ['reap', 'clean']:
+                if datatype in ['category', 'encoder', 'interactor']:
+                    self.datatypes[column] = str
+            elif self.step in ['bale', 'deliver']:
+                if datatype in ['list', 'pattern']:
+                    self.datatypes[column] = 'category'
+        self.convert_column_datatypes(df = df)
+        return self
+    
     @choose_df
     def convert_column_datatypes(self, df = None, raise_errors = False):
         """Attempts to convert all column data to the match the datatypes in
@@ -691,26 +727,6 @@ class Ingredients(SimpleClass):
 
     """ Core Public siMpLify Methods """
 
-    @choose_df
-    def conform(self, df = None, step = None):
-        """Adjusts some of the siMpLify-specific datatypes to the appropriate
-        datatype based upon the current step.
-
-        Args:
-            df(DataFrame): pandas object for datatypes to be conformed.
-            step(str): corresponding to the current state.
-        """
-        self.step = step
-        for column, datatype in self.datatypes.items():
-            if self.step in ['reap', 'clean']:
-                if datatype in ['category', 'encoder', 'interactor']:
-                    self.datatypes[column] = str
-            elif self.step in ['bale', 'deliver']:
-                if datatype in ['list', 'pattern']:
-                    self.datatypes[column] = 'category'
-        self.convert_column_datatypes(df = df)
-        return self
-
     def draft(self):
         """Sets defaults for Ingredients when class is instanced."""
         # Declares dictionary of DataFrames contained in Ingredients to allow
@@ -724,6 +740,7 @@ class Ingredients(SimpleClass):
                         'y_test': 'y_test',
                         'x_val': 'x_val',
                         'y_val': 'y_val'}
+        self.checks = ['depot']
         # Copies 'options' so that original mapping is preserved.
         self.default_options = self.options.copy()
         # Creates object for all available datatypes.

@@ -20,13 +20,11 @@ class Review(SimpleManager):
     data and machine learning models.
 
     Args:
-        idea(Idea or str): an instance of Idea or a string containing the file
-            path or file name (in the current working directory) where a 
-            supoorted settings file for an Idea instance is located.
-        depot(Depot): an instance of Depot.
-        ingredients(Ingredients): an instance of Ingredients. This argument need
-            not be passed when the class is instanced. It can be passed directly
-            to the 'produce' method as well.
+        ingredients(Ingredients or str): an instance of Ingredients of a string
+            containing the full file path of where a supported file type that
+            can be loaded into a pandas DataFrame is located. If it is a string,
+            the loaded DataFrame will be bound to a new ingredients instance as
+            the 'df' attribute.
         steps(dict(str: SimpleStep)): names and related SimpleStep classes for
             analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
@@ -43,8 +41,6 @@ class Review(SimpleManager):
     documentation for those classes applies as well.
     
     """
-    idea: object = None
-    depot: object = None
     ingredients: object = None
     steps: object = None
     recipes: object = None
@@ -87,11 +83,6 @@ class Review(SimpleManager):
         else:
             return step.algorithm
 
-    def _finalize_report(self):
-        self._set_columns()
-        self.report = pd.DataFrame(columns = self.columns)
-        return self
-
     def _format_step(self, attribute):
         if getattr(self.recipe, attribute).technique in ['none', 'all']:
             step_column = getattr(self.recipe, attribute).technique
@@ -101,17 +92,27 @@ class Review(SimpleManager):
             step_column = f'{technique}, parameters = {parameters}'
         return step_column
 
+    def _produce_summary(self):
+        self.options['summarize'].produce(df = ingredients.df)
+        self.summary = self.options['summarize'].report
+        return self
+    
     def _set_columns(self):
-        self.columns = {'recipe_number': 'number',
-                        'options': 'techniques',
-                        'seed': 'seed',
-                        'validation_set': 'val_set'}
-        self.columns = list(self.columns_map.keys())
+        self.required_columns = {
+            'recipe_number': 'number',
+            'options': 'techniques',
+            'seed': 'seed',
+            'validation_set': 'val_set'}
+        self.columns = list(self.required_columns.keys())
         for number, instance in getattr(self, self.plan_iterable).items():
-            if hasattr(instance, 'columns'):
+            if hasattr(instance, 'columns') and instance.name != 'summarizer':
                 self.columns.extend(instance.columns)
         return self
 
+    def _start_report(self):
+        self._set_columns()
+        self.report = pd.DataFrame(columns = self.columns)
+        return self
 
     """ Public Tool Methods """
 
@@ -145,15 +146,6 @@ class Review(SimpleManager):
         self.manager_type = 'serial'
         # Sets plan-related attributes to allow use of parent methods.
         self.plan_iterable = 'reviews'
-        self.columns_map = {'recipe_number': 'number',
-                            'options': 'techniques',
-                            'seed': 'seed',
-                            'validation_set': 'val_set'}
-        return self
-
-    def finalize(self):
-        super().finalize()
-        self._finalize_report()
         return self
 
     @localize
@@ -165,17 +157,21 @@ class Review(SimpleManager):
                 Ingredients.
             recipes (list or Recipe): a Recipe or a list of Recipes.
         """
-         if self.ingredients is None:
+        if self.ingredients is None:
             self.ingredients = self.recipes.ingredients
+        if not self.exists('report'):
+            self._start_report()
         for recipe in self.listify(recipes):
             if self.verbose:
-                print('Testing', recipe.name, str(recipe.number))
-            self._check_best(recipe = recipe)
+                print('Reviewing', recipe.name, str(recipe.number))
+            
             row = pd.Series(index = self.columns)
-            for column, value in self.columns.items():
-                if isinstance(getattr(recipe, value), object):
-                    row[column] = self._format_step(value)
-                else:
-                    row[column] = getattr(self.recipe, value)
-            self.report.loc[len(self.report)] = row
+            
+            # self._check_best(recipe = recipe)
+            # for column, value in self.columns.items():
+            #     if isinstance(getattr(recipe, value), object):
+            #         row[column] = self._format_step(value)
+            #     else:
+            #         row[column] = getattr(self.recipe, value)
+            # self.report.loc[len(self.report)] = row
         return self

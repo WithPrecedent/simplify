@@ -43,7 +43,7 @@ class Depot(SimpleClass):
             state in the siMpLify package. Unless the user is radically changing
             the way siMpLify works, this should be set to True.
     """
-
+    idea: object = None
     root_folder: str = ''
     data_folder: str = 'data'
     results_folder: str = 'results'

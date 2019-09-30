@@ -58,10 +58,9 @@ def localize(method):
         method: wrapped method within a class instance.
     """
     @wraps(method)
-    def wrapper(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-        return method(self)
+    def wrapper(self, *args, **kwargs):
+        self.__dict__.update(kwargs)
+        return method
     return wrapper
 
 def local_backups(method, excludes = None, includes = None):

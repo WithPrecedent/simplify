@@ -31,7 +31,7 @@ class Score(SimplePlan):
     steps: object = None
     name: str = 'scorer'
     auto_finalize: bool = True
-    auto_produce: bool = True
+    auto_produce: bool = False
 
     def __post_init__(self):
         super().__post_init__()

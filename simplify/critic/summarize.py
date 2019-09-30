@@ -30,17 +30,14 @@ class Summarize(SimplePlan):
     steps: object = None
     name: str = 'summarizer'
     auto_finalize: bool = True
-    auto_produce: bool = True
+    auto_produce: bool = False
+    lazy_import: bool = False
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
     """ Private Methods """
-
-    def _get_columns(self):
-        """Returns columns list for 'report' DataFrame."""
-        return ['variable'] + (list(self.options.keys()))
 
     def _produce_export_parameters(self, file_name, file_format, transpose):
         self.export_parameters = {'folder': 'experiment',
@@ -75,50 +72,15 @@ class Summarize(SimplePlan):
             self.report.loc[len(self.report)] = row
         return self
 
+    def _set_columns(self):
+        self.columns = ['variable'] + (list(self.options.keys()))
+        return self
+    
     """ Core siMpLify Methods """
 
     def draft(self):
         """Sets options for Summarize class."""
         super().draft()
-        self.options = {
-                'full': FullSummary,
-                'describe': Describe}
-        return self
-
-    def finalize(self):
-        self.report = pd.DataFrame(columns = self._get_columns())
-        return self
-
-    def produce(self, df = None, transpose = True, file_name = 'data_summary',
-                file_format = 'csv'):
-        """Creates a DataFrame of common summary data.
-
-        Args:
-            df (DataFrame): data to create summary report for.
-            transpose (bool): whether the 'df' columns should be listed
-                horizontally (True) or vertically (False) in 'report'.
-            file_name (str): name of file to be exported (without extension).
-            file_format (str): exported file format.
-        """
-        self._produce_report(df = df)
-        self._produce_export_parameters(file_name = file_name,
-                                        file_format = file_format,
-                                        transpose = transpose)
-        return self
-
-
-@dataclass
-class Describe(SimpleStep):
-
-    def draft(self):
-        self.options = {}
-        return self
-
-
-@dataclass
-class FullSummary(SimpleStep):
-
-    def draft(self):
         self.options = {
                 'datatype': ['dtype'],
                 'count': 'count',
@@ -138,3 +100,26 @@ class FullSummary(SimpleStep):
                 'stan_error': 'sem',
                 'unique': 'nunique'}
         return self
+
+    def finalize(self):
+        self._set_columns()
+        self.report = pd.DataFrame(columns = self.columns)
+        return self
+
+    def produce(self, df = None, transpose = True, file_name = 'data_summary',
+                file_format = 'csv'):
+        """Creates a DataFrame of common summary data.
+
+        Args:
+            df(DataFrame): data to create summary report for.
+            transpose(bool): whether the 'df' columns should be listed
+                horizontally (True) or vertically (False) in 'report'.
+            file_name(str): name of file to be exported (without extension).
+            file_format(str): exported file format.
+        """
+        self._produce_report(df = df)
+        self._produce_export_parameters(file_name = file_name,
+                                        file_format = file_format,
+                                        transpose = transpose)
+        return self.report
+

@@ -1,6 +1,6 @@
 """
 .. module:: idea
-:synopsis: contains class storing the settings for siMpLify package.
+:synopsis: stores settings and configuration for siMpLify project
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -86,38 +86,35 @@ class Idea(SimpleClass):
                 return self
 
     Regardless of the idea_sections added, all idea settings can be similarly
-    accessed using dict keys. For example:
+    accessed using dict keys or local attributes. For example:
 
         self.idea['general']['seed'] # typical dict access technique
-                                and
+                                
         self.idea['seed'] # if no section or other key is named 'seed'
-                            both return 43.
-
+        
+        self.seed # exists because 'seed' is in the 'general' section
+        
+                            all return 43.
 
     Because Idea uses ConfigParser, it only allows 2-level dictionaries. The
     desire for accessibility and simplicity dictated this limitation.
 
     Args:
         configuration(str or dict): either a file path, file name, or two-level
-        nested dictionary storing settings. If a file path is provided, A
-        nested dict will automatically be created from the file and stored in
-            'configuration'. If a file name is provided, Idea will look for it
-            in the current working directory and store its contents in
+            nested dictionary storing settings. If a file path is provided, a
+            nested dict will automatically be created from the file and stored 
+            in 'configuration'. If a file name is provided, Idea will look for 
+            it in the current working directory and store its contents in
             'configuration'.
-        infer_types(bool): variable determines whether values in
-            'configuration' are converted to other types (True) or left as
-            strings (False).
+        infer_types(bool): whether values in 'configuration' are converted to 
+            other types (True) or left as strings (False).
         auto_finalize(bool): whether to automatically call the 'finalize'
             method when the class is instanced. Unless adding a new source for
-            'configuration' settings, this should be set to True.
-        auto_produce(bool): whether to automatically call the 'produce' method
-            when the class is instanced. Unless adding a new source for
             'configuration' settings, this should be set to True.
     """
     configuration: object = None
     infer_types: bool = True
     auto_finalize: bool = True
-    auto_produce: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -237,6 +234,11 @@ class Idea(SimpleClass):
         Raises:
             AttributeError if 'configuration' attribute is neither a file path
                 dict, nor Idea instance.
+            TypeError if 'configuration' is a string path to a file that neither
+                has an 'ini' nor 'py' extension or if 'configuration' is neither
+                a string nor a dictionary.
+            FileNotFoundError if 'configuration' is a string path to a file that
+                does not exist.
         """
         if self.configuration:
             if isinstance(self.configuration, str):
@@ -246,7 +248,7 @@ class Idea(SimpleClass):
                     self.technique = 'py_file'
                 else:
                     error = 'configuration file must be .py or .ini file'
-                    raise FileNotFoundError(error)
+                    raise TypeError(error)
                 if not os.path.isfile(os.path.abspath(self.configuration)):
                     self.configuration = os.path.join(os.getcwd(),
                                                       self.configuration)
@@ -256,27 +258,6 @@ class Idea(SimpleClass):
         else:
             error = 'configuration dict or path needed to instance Idea'
             raise AttributeError(error)
-        return self
-
-    def _create_from_ini(self):
-        """Creates a configuration dictionary from an .ini file."""
-        if os.path.isfile(self.configuration):
-            configuration = ConfigParser(dict_type = dict)
-            configuration.optionxform = lambda option: option
-            configuration.read(self.configuration)
-            self.configuration = dict(configuration._sections)
-        else:
-            error = 'configuration file ' + self.configuration + ' not found'
-            raise FileNotFoundError(error)
-        return self
-
-    def _create_from_py(self):
-        """Creates a configuration dictionary from an .py file.
-
-        Todo:
-            Add .py file implementation.
-        """
-        pass
         return self
 
     def _infer_types(self):
@@ -294,6 +275,27 @@ class Idea(SimpleClass):
         the instance is available to other files in the siMpLify package.
         """
         setattr(SimpleClass, 'idea', self)
+        return self
+
+    def _load_from_ini(self):
+        """Creates a configuration dictionary from an .ini file."""
+        if os.path.isfile(self.configuration):
+            configuration = ConfigParser(dict_type = dict)
+            configuration.optionxform = lambda option: option
+            configuration.read(self.configuration)
+            self.configuration = dict(configuration._sections)
+        else:
+            error = 'configuration file ' + self.configuration + ' not found'
+            raise FileNotFoundError(error)
+        return self
+
+    def _load_from_py(self):
+        """Creates a configuration dictionary from an .py file.
+
+        Todo:
+            Add .py file implementation.
+        """
+        pass
         return self
 
     @staticmethod
@@ -365,22 +367,16 @@ class Idea(SimpleClass):
     def draft(self):
         """Sets options to create 'configuration' dict'."""
         # Sets options for creating 'configuration'.
-        self.options = {'py_file': self._create_from_py,
-                        'ini_file': self._create_from_ini,
+        self.options = {'py_file': self._load_from_py,
+                        'ini_file': self._load_from_ini,
                         'dict': None}
         return self
 
     def finalize(self):
         """Prepares instance of Idea by checking passed configuration
-        parameter.
+        parameter and injecting Idea into SimpleClass.
         """
         self._check_configuration()
-        return self
-
-
-    def produce(self):
-        """Creates configuration setttings and injects Idea into SimpleClass.
-        """
         if self.options[self.technique]:
             self.options[self.technique]()
         self._infer_types()

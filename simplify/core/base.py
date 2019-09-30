@@ -13,6 +13,7 @@ Contents:
     SimpleStep: parent class of the iterable steps of the SimplePlan
         subclasses.
     SimpleTechnique: parent class of algorithms used by SimpleStep subclasses.
+    Simplify: controller class for highly-automated siMpLify projects.
 
 This module contains the parent classes used by the siMpLify package and
 should be subclassed in any additional extensions to the siMpLify package.
@@ -30,6 +31,8 @@ from more_itertools import unique_everseen
 import numpy as np
 import pandas as pd
 #from tensorflow.test import is_gpu_available
+
+from simplify.core.decorators import localize
 
 
 @dataclass
@@ -52,6 +55,9 @@ class SimpleClass(ABC):
     and/or 'produce' methods are called when the class is instanced.
 
     Args: 
+        These arguments are not required for any SimpleClass, but are commonly
+        used throughout the package. Brief descriptions are included here:
+        
         idea(Idea or str): an instance of Idea or a string containing the file
             path or file name (in the current working directory) where a 
             supoorted settings file for an Idea instance is located. Once an 
@@ -75,12 +81,6 @@ class SimpleClass(ABC):
             is instanced.
             
     """
-    idea: object = None
-    depot: object = None
-    ingredients: object = None
-    name: str = 'simple_class'
-    auto_finalize: bool = False
-    auto_produce: bool = False
     
     def __post_init__(self):
         """Calls selected initialization methods."""
@@ -99,10 +99,10 @@ class SimpleClass(ABC):
         # Registers subclass into lists based upon specific subclass needs.
         self._register_subclass()
         # Calls 'finalize' method if 'auto_finalize' is True.
-        if  self.auto_finalize:
+        if hasattr(self, 'auto_finalize') and self.auto_finalize:
             self.finalize()
             # Calls 'produce' method if 'auto_produce' is True.
-            if self.auto_produce:
+            if hasattr(self, 'auto_produce') and self.auto_produce:
                 self.produce()
         return self
 
@@ -230,7 +230,11 @@ class SimpleClass(ABC):
         """
         # Local import to avoid circular dependency.
         from simplify import Depot
-        if not self.exists('depot'):
+        if self.exists('depot'):
+            if isinstance(self.depot, str):
+                self.depot = Depot(root_folder = self.depot,
+                                   idea = self.idea)
+        else:
             self.depot = Depot(idea = self.idea)
         return self
 
@@ -386,7 +390,7 @@ class SimpleClass(ABC):
                     for name, settings in self.options.items():
                         imported_options.update(
                             {name: getattr(import_module(settings[0]),
-                                            settings[1])})
+                                           settings[1])})
                     self.options = imported_options
         return self
 
@@ -684,18 +688,10 @@ class SimpleManager(SimpleClass):
 
     This class adds methods useful to create iterators, iterate over user
     options, and transform data or fit models.
-
-    Args:
-    
-        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
-            analyzing fitted models.
             
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
     """
-
-    steps: object = None
-    name: str = 'manager'
 
     def __post_init__(self):
         super().__post_init__()
@@ -712,31 +708,6 @@ class SimpleManager(SimpleClass):
         elif not self.exists(self.plan_iterable):
             setattr(self, self.plan_iterable, {})
         return self
-
-#    def _convert_wildcards(self, step):
-#        """Converts 'all', 'default' to items from SimpleStep subclass
-#        'options'.
-#
-#        Args:
-#            step (str): name of step.
-#
-#        Returns:
-#            if 'all', the keys in 'options' are returned.
-#            if 'default', either 'default_techniques' or the keys in 'options'
-#                are returned.
-#        """
-#        step = self.stringify(step)
-#        if getattr(self, step) in ['all', 'default']:
-#            test_instance = self.options[step](auto_finalize = False)
-#            if getattr(self, step) in ['all']:
-#                return list(test_instance.options.keys())
-#            elif (hasattr(test_instance, 'default_techniques')
-#                    and test_instance.default_techniques):
-#                return test_instance.default_techniques
-#            else:
-#                return list(test_instance.options.keys())
-#        else:
-#            return step
 
     def _create_steps_lists(self):
         """Creates list of lists of all possible steps in 'options'."""
@@ -1304,3 +1275,120 @@ class SimpleTechnique(SimpleStep):
             self.algorithm.fit(ingredients.x_train, ingredients.y_train)
             ingredients.x_train = self.algorithm.transform(ingredients.x_train)
         return ingredients
+    
+    
+@dataclass
+class Simplify(SimpleClass):
+    """Controller class for completely automated projects.
+
+    This class is provided for applications that rely exclusively on Idea
+    settings and/or subclass attributes. For a more customized application,
+    users can access the subpackages ('farmer', 'chef', 'critic', and 'artist')
+    directly.
+
+    Args:
+        idea(Idea or str): an instance of Idea or a string containing the file
+            path or file name (in the current working directory) where a 
+            supoorted settings file for an Idea instance is located. Once an 
+            Idea instance is created by a subclass of SimpleClass, it is
+            automatically made available to all other SimpleClass subclasses
+            that are instanced in the future.
+        ingredients(Ingredients or str): an instance of Ingredients or a string
+            containing the file path of where a data file for a pandas
+            DataFrame is located.
+        depot(Depot or str): an instance of Depot a string containing the full
+            path of where the root folder should be located for file output. 
+            Once a Depot instance is created by a subclass of SimpleClass, it is 
+            automatically made available to all other SimpleClass subclasses 
+            that are instanced in the future.
+        name(str): name of class used to match settings sections in an Idea
+            settings file and other portions of the siMpLify package. This is
+            used instead of __class__.__name__ so that subclasses can maintain
+            the same string name without altering the formal class name.
+        auto_finalize(bool): sets whether to automatically call the 'finalize'
+            method when the class is instanced. If you do not plan to make any
+            adjustments beyond the Idea configuration, this option should be
+            set to True. If you plan to make such changes, 'finalize' should be
+            called when those changes are complete.
+        auto_produce(bool): sets whether to automatically call the 'produce' 
+            method when the class is instanced.
+
+    """
+
+    idea: object = None
+    ingredients: object = None
+    depot: object = None
+    name: str = 'simplify'
+    auto_finalize: bool = True
+    auto_produce: bool = False
+
+    def __post_init__(self):
+        super().__post_init__()
+        return self
+
+    @localize
+    def __call__(self, **kwargs):
+        """Calls the class as a function.
+
+        Only keyword arguments are accepted so that they can be properly
+        turned into local attributes. Those attributes are then used by the
+        various 'produce' methods.
+
+        Args:
+            **kwargs(list(Recipe) and/or Ingredients): variables that will
+                be turned into localized attributes.
+        """
+        self.__post_init__()
+        self.finalize()
+        self.produce(**kwargs)
+        return self
+
+    """ Private Methods """
+
+    def _artist_produce(self):
+        self.getattr(self, 'artist').produce(
+                ingredients = self.ingredients,
+                recipes = self.recipes)
+        return self
+
+    def _chef_produce(self):
+        self.ingredients, self.recipes = getattr(self, 'chef').produce(
+                ingredients = self.ingredients)
+        return self
+
+    def _critic_produce(self):
+        self.ingredients = getattr(self, 'critic').produce(
+                ingredients = self.ingredients,
+                recipes = self.recipes)
+        return self
+
+    def _farmer_produce(self):
+        self.ingredients = getattr(self, 'farmer').produce(
+                ingredients = self.ingredients)
+        return self
+
+    """ Core siMpLify Methods """
+
+    def draft(self):
+        self.options = {
+                'farmer': ['simplify.farmer', 'Almanac'],
+                'chef': ['simplify.chef', 'Cookbook'],
+                'critic': ['simplify.critic', 'Review'],
+                'artist': ['simplify.artist', 'Canvas']}
+        self.checks = ['depot', 'ingredients']
+        return self
+
+    def finalize(self):
+        self.steps = {}
+        for name, settings in self.options.items():
+            if name in self.subpackages:
+                setattr(self, name, self.options[name]())
+                getattr(self, name).finalize()
+                self.steps.update({name: getattr(self, name)})
+        return self
+    
+    @localize
+    def produce(self, **kwargs):
+        for step_name, step_instance in self.steps.items():
+            getattr(self, step_name + '_produce_')()
+        return self

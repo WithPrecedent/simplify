@@ -16,10 +16,6 @@ class Canvas(SimpleManager):
     """Builds tools for data visualization.
 
     Args:
-        idea(Idea or str): an instance of Idea or a string containing the file
-            path or file name (in the current working directory) where a 
-            supoorted settings file for an Idea instance is located.
-        depot(Depot): an instance of Depot.
         ingredients(Ingredients): an instance of Ingredients. This argument need
             not be passed when the class is instanced. It can be passed directly
             to the 'produce' method as well.
@@ -43,8 +39,7 @@ class Canvas(SimpleManager):
     documentation for those classes applies as well.
     
     """
-    idea: object = None
-    depot: object = None
+    
     ingredients: object = None
     steps: object = None
     recipes: object = None
@@ -138,10 +133,10 @@ class Canvas(SimpleManager):
     def produce(self, recipes = None, reviews = None, ingredients = None):
         if self.ingredients is None:
             self.ingredients = self.recipes.ingredients
-        for name,  in self.steps
-        for recipe in self.listify(self.recipes):
-            if self.verbose:
-                print('Visualizing', recipe.name + recipe.number)
-            for step, technique in getattr(self, self.plan_iterable).items():
-                technique.produce(recipe = recipe, review = reviews)
+        for name, step  in self.steps:
+            for recipe in self.listify(self.recipes):
+                if self.verbose:
+                    print('Visualizing', recipe.name + recipe.number)
+                for step, technique in getattr(self, self.plan_iterable).items():
+                    technique.produce(recipe = recipe, review = reviews)
         return self

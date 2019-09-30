@@ -21,10 +21,6 @@ class Cookbook(SimpleManager):
     analysis using a unified interface and architecture.
 
     Args:
-        idea(Idea or str): an instance of Idea or a string containing the file
-            path or file name (in the current working directory) where a 
-            supoorted settings file for an Idea instance is located.
-        depot(Depot): an instance of Depot.
         ingredients(Ingredients or str): an instance of Ingredients or a string
             with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced. However,
@@ -55,8 +51,7 @@ class Cookbook(SimpleManager):
     documentation for those classes applies as well.
     
     """
-    idea: object = None
-    depot: object = None
+    
     ingredients: object = None
     steps: object = None
     recipes: object = None
@@ -241,14 +236,14 @@ class Cookbook(SimpleManager):
         """Sets default options for the Chef's cookbook."""
         super().draft()
         self.options = {
-                'scale': ['simplify.chef.steps', 'Scale'],
-                'split': ['simplify.chef.steps', 'Split'],
-                'encode': ['simplify.chef.steps', 'Encode'],
-                'mix': ['simplify.chef.steps', 'Mix'],
-                'cleave': ['simplify.chef.steps', 'Cleave'],
-                'sample': ['simplify.chef.steps', 'Sample'],
-                'reduce': ['simplify.chef.steps', 'Reduce'],
-                'model': ['simplify.chef.steps', 'Model']}
+                'scale': ['simplify.chef.steps.scale', 'Scale'],
+                'split': ['simplify.chef.steps.split', 'Split'],
+                'encode': ['simplify.chef.steps.encode', 'Encode'],
+                'mix': ['simplify.chef.steps.mix', 'Mix'],
+                'cleave': ['simplify.chef.steps.cleave', 'Cleave'],
+                'sample': ['simplify.chef.steps.sample', 'Sample'],
+                'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
+                'model': ['simplify.chef.steps.model', 'Model']}
         # Adds GPU check to other checks to be produceed.
         self.checks.extend(['gpu', 'ingredients'])
         # Locks 'step' attribute at 'cook' for conform methods in package.
