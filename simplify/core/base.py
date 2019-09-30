@@ -1,9 +1,9 @@
 """
 .. module:: base
- :synopsis: core parent classes of siMpLify package.
- :author: Corey Rayburn Yung
- :copyright: 2019
- :license: CC-BY-NC-4.0
+:synopsis: core parent classes of siMpLify package
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 
 Contents:
     SimpleClass: parent abstract base class for all siMpLify classes.
@@ -54,8 +54,13 @@ class SimpleClass(ABC):
     Args: 
         idea(Idea or str): an instance of Idea or a string containing the file
             path or file name (in the current working directory) where a 
-            supoorted settings file for an Idea instance is located.
-        depot(Depot): an instance of Depot.
+            supoorted settings file for an Idea instance is located. Once an 
+            Idea instance is created by a subclass of SimpleClass, it is
+            automatically made available to all other SimpleClass subclasses
+            that are instanced in the future.
+        depot(Depot): an instance of Depot. Once a Depot instance is created by 
+            a subclass of SimpleClass, it is automatically made available to all
+            other SimpleClass subclasses that are instanced in the future.
         ingredients(Ingredients or str): an instance of Ingredients of a string
             containing the full file path of where a supported file type that
             can be loaded into a pandas DataFrame is located. If it is a string,

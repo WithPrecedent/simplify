@@ -1,3 +1,10 @@
+"""
+.. module:: sow
+:synopsis: acquires and does basic preparation of data
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
+"""
 
 from dataclasses import dataclass
 

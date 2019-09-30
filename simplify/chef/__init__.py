@@ -1,6 +1,6 @@
 """
 .. module:: siMpLify chef
- :synopsis: machine learning made simple
+:synopsis: machine learning made simple
 """
 
 

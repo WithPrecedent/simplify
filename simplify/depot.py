@@ -3,7 +3,7 @@
 :synopsis: contains class for file management of siMpLify package.
 :author: Corey Rayburn Yung
 :copyright: 2019
-:license: CC-BY-NC-4.0
+:license: Apache-2.0
 """
 
 import csv

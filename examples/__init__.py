@@ -1,4 +1,7 @@
 """
-.. module:: siMpLify examples
-  :synopsis: simple examples with common data science problems
+.. module:: examples
+:synopsis: example applications of the siMpLify package
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """

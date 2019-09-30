@@ -1,9 +1,9 @@
 """
 .. module:: recipe
-:synopsis: stores steps for data analysis
+:synopsis: stores steps for data analysis and machine learning
 :author: Corey Rayburn Yung
 :copyright: 2019
-:license: CC-BY-NC-4.0
+:license: Apache-2.0
 """
 
 from dataclasses import dataclass

@@ -1,9 +1,9 @@
 """
 .. module:: simplify
- :synopsis: data science made simple
- :author: Corey Rayburn Yung
- :copyright: 2019
- :license: CC-BY-NC-4.0
+:synopsis: data science made simple
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
 
 from dataclasses import dataclass

@@ -1,12 +1,9 @@
 """
-.. module:: analysis
- :synopsis: core classes for Critic subpackage.
- :author: Corey Rayburn Yung
- :copyright: 2019
- :license: CC-BY-NC-4.0
-
-This is the primary control file for evaluating, summarizing, and analyzing
-data, as well as machine learning and other statistical models.
+.. module:: review
+:synopsis: core classes for Critic subpackage.
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
 
 from dataclasses import dataclass
@@ -14,25 +11,44 @@ from dataclasses import dataclass
 import pandas as pd
 
 from simplify.core.base import SimpleManager
+from simplify.core.decorators import localize
 
 
 @dataclass
 class Review(SimpleManager):
-    """Summarizes data and evaluates, explains, and creates predictions from
-    machine learning models.
+    """Builds tools for evaluating, explaining, and creating predictions from
+    data and machine learning models.
 
     Args:
+        idea(Idea or str): an instance of Idea or a string containing the file
+            path or file name (in the current working directory) where a 
+            supoorted settings file for an Idea instance is located.
+        depot(Depot): an instance of Depot.
+        ingredients(Ingredients): an instance of Ingredients. This argument need
+            not be passed when the class is instanced. It can be passed directly
+            to the 'produce' method as well.
         steps(dict(str: SimpleStep)): names and related SimpleStep classes for
             analyzing fitted models.
+        recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
+            This argument need not be passed when the class is instanced. It
+            can be passed directly to the 'produce' method as well.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_finalize (bool): whether to call the 'finalize' method when the
+        auto_finalize(bool): whether to call the 'finalize' method when the
             class is instanced.
-        auto_produce (bool): whether to call the 'produce' method when the class
+        auto_produce(bool): whether to call the 'produce' method when the class
             is instanced.
+            
+    Since this class is a subclass to SimpleManager and SimpleClass, all
+    documentation for those classes applies as well.
+    
     """
+    idea: object = None
+    depot: object = None
+    ingredients: object = None
     steps: object = None
-    name: str = 'analysis'
+    recipes: object = None
+    name: str = 'review'
     auto_finalize: bool = True
     auto_produce: bool = False
 
@@ -140,7 +156,8 @@ class Review(SimpleManager):
         self._finalize_report()
         return self
 
-    def produce(self, ingredients = None, recipes = None):
+    @localize
+    def produce(self, recipes = None, ingredients = None):
         """Evaluates recipe with various tools and finalizes report.
 
         Args:
@@ -148,6 +165,8 @@ class Review(SimpleManager):
                 Ingredients.
             recipes (list or Recipe): a Recipe or a list of Recipes.
         """
+         if self.ingredients is None:
+            self.ingredients = self.recipes.ingredients
         for recipe in self.listify(recipes):
             if self.verbose:
                 print('Testing', recipe.name, str(recipe.number))

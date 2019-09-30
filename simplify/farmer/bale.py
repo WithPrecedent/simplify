@@ -1,3 +1,10 @@
+"""
+.. module:: bale
+:synopsis: merges and joins datasets
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
+"""
 
 from dataclasses import dataclass
 

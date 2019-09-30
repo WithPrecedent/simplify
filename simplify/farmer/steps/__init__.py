@@ -1,16 +1,10 @@
 """
-.. module:: siMpLify harvest steps
- :synopsis: data processing workflow made simple
+.. module:: farmer steps
+:synopsis: steps and techniques for data processing
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
 
-from .sow import Sow
-from .reap import Reap
-from .clean import Clean
-from .bale import Bale
-from .deliver import Deliver
 
-__all__ = ['Sow',
-           'Reap',
-           'Clean',
-           'Bale',
-           'Deliver']
+__all__ = []

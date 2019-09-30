@@ -1,3 +1,10 @@
+"""
+.. module:: almanac
+:synopsis: data gathering, munging, and preprocessing builder module
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
+"""
 
 from dataclasses import dataclass
 
@@ -12,30 +19,36 @@ class Almanac(SimpleManager):
     cleaning methods for the siMpLify package.
 
     Args:
-
-        ingredients: an instance of Ingredients (or a subclass). This argument
-            need not be passed when the class is instanced, particularly if
-            the user in the early stages of data gathering and initial parsing.
-        steps: a list of string step names to be completed in order. This
+        idea(Idea or str): an instance of Idea or a string containing the file
+            path or file name (in the current working directory) where a 
+            supoorted settings file for an Idea instance is located.
+        depot(Depot): an instance of Depot.
+        ingredients(Ingredients or str): an instance of Ingredients or a string
+            with the file path for a pandas DataFrame that will. This argument
+            does not need to be passed when the class is instanced. 
+        steps(dict(str: SimpleStep)): steps to be completed in order. This
             argument should only be passed if the user wishes to override the
             steps listed in the Idea settings or if the user is not using the
             Idea class.
-        plans(list(SimpleStep): a list of instances of Harvest. Ordinarily, a list of draft is
-            not passed when Harvest is instanced, but the argument is included
-            if the user wishes to use previously built harvest techniques.
-        name: a string designating the name of the class which should be
-            identical to the section of the Idea section with relevant settings.
-        auto_finalize: sets whether to automatically call the 'finalize' method
-            when the class is instanced. If you do not plan to make any
+        plans(SimplePlan): instanced subclasses of SimplePlan for prepared tools
+            for the Almanac.
+        name(str): designates the name of the class which should be identical
+            to the section of the idea configuration with relevant settings.
+        auto_finalize(bool): whether to call the 'finalize' method when the
+            class is instanced. If you do not plan to make any
             adjustments to the steps, techniques, or algorithms beyond the
             Idea configuration, this option should be set to True. If you plan
-            to make such changes, 'finalize' should be called when those changes
-            are complete.
-        auto_produce: sets whether to automatically call the 'produce' method
-            when the class is instanced.
+            to make such changes, 'finalize' should be called when those
+            changes are complete.
+        auto_produce(bool): whether to call the 'produce' method when the class
+            is instanced.
+            
+    Since this class is a subclass to SimpleManager and SimpleClass, all
+    documentation for those classes applies as well.
 
     """
-
+    idea: object = None
+    depot: object = None
     ingredients: object = None
     steps: object = None
     plans: object = None

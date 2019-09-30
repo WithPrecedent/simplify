@@ -1,35 +1,55 @@
 """
-canvas.py is the primary control file for data visualization in the siMpLify
-package.
-
-Contents:
-
-    Canvas: class which handles construction and utilization of visuals
-        to create charts, graphs, and other visuals in the siMpLify package.
-    Illustration: class which stores a particular set of techniques and
-        algorithms used to create data visualizations.
-
-    Both classes are subclasses to SimpleClass and follow its structural rules.
-
+.. module:: canvas
+:synopsis: data visualizations
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
+
 from dataclasses import dataclass
 
-from simplify.artist.steps.style import Style
-from simplify.artist.steps.paint import Paint
-from simplify.artist.steps.animate import Animate
-from simplify.core.base import SimpleClass, SimplePlan
-
+from simplify.core.base import SimpleManager
+from simplify.core.decorators import localize
 
 @dataclass
-class Canvas(SimpleClass):
-    """Visualizes data and analysis based upon the nature of the machine
-    learning model used in the siMpLify package.
+class Canvas(SimpleManager):
+    """Builds tools for data visualization.
+
+    Args:
+        idea(Idea or str): an instance of Idea or a string containing the file
+            path or file name (in the current working directory) where a 
+            supoorted settings file for an Idea instance is located.
+        depot(Depot): an instance of Depot.
+        ingredients(Ingredients): an instance of Ingredients. This argument need
+            not be passed when the class is instanced. It can be passed directly
+            to the 'produce' method as well.
+        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
+            analyzing fitted models.
+        recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
+            This argument need not be passed when the class is instanced. It
+            can be passed directly to the 'produce' method as well.
+        reviews(Review): an instance of Review containing all metrics and 
+            evaluation results.This argument need not be passed when the class 
+            is instanced. It can be passed directly to the 'produce' method as 
+            well.
+        name(str): designates the name of the class which should be identical
+            to the section of the idea configuration with relevant settings.
+        auto_finalize (bool): whether to call the 'finalize' method when the
+            class is instanced.
+        auto_produce (bool): whether to call the 'produce' method when the class
+            is instanced.
+            
+    Since this class is a subclass to SimpleManager and SimpleClass, all
+    documentation for those classes applies as well.
+    
     """
+    idea: object = None
+    depot: object = None
     ingredients: object = None
     steps: object = None
     recipes: object = None
+    reviews: object = None
     name: str = 'canvas'
-    planner_type: str = 'serial'
     auto_finalize: bool = True
     auto_produce: bool = True
 
@@ -96,7 +116,7 @@ class Canvas(SimpleClass):
     def draft(self):
         """Sets default styles, options, and plots."""
         self.options = {
-                'styler': ['simplify.artist.illustrate', 'Style'],
+                'style': ['simplify.artist.syle', 'Style'],
                 'illustrate': ['simplify.artist.illustrate', 'Illustrate'],
                 'paint': ['simplify.artist.paint', 'Paint'],
                 'animate': ['simplify.artist.animate', 'Animate']}
@@ -106,36 +126,22 @@ class Canvas(SimpleClass):
         # Sets 'manager_type' so that proper parent methods are used.
         self.manager_type = 'serial'
         # Sets 'plan_class' to allow use of parent methods.
-        self.plan_class = Illustration
-        self.plan_iterable = 'illustrations'
-
+        self.plan_iterable = 'depictions'
         return self
 
     def finalize(self):
         self._set_styler()
         super().finalize()
-        self.illustrations = Illustration()
         return self
 
-    def produce(self, recipes = None, reviews = None):
-        for recipe in self.listify(recipes):
+    @localize
+    def produce(self, recipes = None, reviews = None, ingredients = None):
+        if self.ingredients is None:
+            self.ingredients = self.recipes.ingredients
+        for name,  in self.steps
+        for recipe in self.listify(self.recipes):
             if self.verbose:
-                print('Evaluating', recipe.name + 's')
+                print('Visualizing', recipe.name + recipe.number)
             for step, technique in getattr(self, self.plan_iterable).items():
-                technique.produce(recipe = recipe, review = review)
-        return self
-
-
-@dataclass
-class Illustration(SimplePlan):
-
-    def __post_init__(self):
-        super().__post_init__()
-        return self
-
-    def produce(self, recipes, reviews):
-        for i, recipe in enumerate(self.listify(recipes)):
-            review = self.listify(reviews)[i]
-            for step, technique in self.techniques.items():
-                recipe = technique.produce(recipe = recipe, review = review)
+                technique.produce(recipe = recipe, review = reviews)
         return self

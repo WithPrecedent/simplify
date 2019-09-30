@@ -1,12 +1,15 @@
 """
 .. module:: siMpLify critic
- :synopsis: data and model evaluation made simple
+:synopsis: model evaluation made simple
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
 
-from .analysis import Analysis
+from .review import Review
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = ['Analysis']
+__all__ = ['Review']

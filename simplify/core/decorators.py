@@ -1,16 +1,11 @@
 """
-Contents:
-
-    timer (and related convert_time function): wrapper which can be attached
-        to any class, function, or method to determine how long a process
-        takes. Output is in hours, minutes, seconds, with the possibility
-        of passing a string to the decorator so that printed output is linked
-        to the operation or process.
-    local_backups: wrapper which checks for identically named local attributes
-        if method arguments are unpassed or passed as None. A list of arguments
-        not to substitute ('exclude') can be passed for wrapped methods so that
-        certain designated arguments will not be replaced.
+.. module:: decorators
+:synopsis: decorators for methods and functions throughout siMpLify
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
+
 from functools import wraps
 from inspect import getfullargspec, signature
 import time

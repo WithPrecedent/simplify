@@ -1,3 +1,10 @@
+"""
+.. module:: predict
+:synopsis: creates predictions from machine learning models
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
+"""
 
 from dataclasses import dataclass
 
@@ -7,15 +14,22 @@ from simplify.core.base import SimplePlan, SimpleStep
 
 @dataclass
 class Predict(SimplePlan):
-    """Core class for making predictions based upon machine learning models.
-
+    """Creates predictions from fitted models for out-of-sample data.
+    
     Args:
-
+        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
+            explaining data analysis models.
+        name(str): designates the name of the class which should be identical
+            to the section of the idea configuration with relevant settings.
+        auto_finalize (bool): whether to call the 'finalize' method when the
+            class is instanced.
+        auto_produce (bool): whether to call the 'produce' method when the class
+            is instanced.
     """
-
     steps: object = None
     name: str = 'predictor'
     auto_finalize: bool = True
+    auto_produce: bool = True
 
     def __post_init__(self):
         super().__post_init__()

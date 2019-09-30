@@ -1,18 +1,14 @@
 """
 .. module:: siMpLify core
- :synopsis: siMpLify base classes and functions
+:synopsis: siMpLify core classes and functions
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
 
-from simplify.core.base import (SimpleClass, SimpleManager, SimplePlan,
-                                SimpleStep)
-from simplify.core.decorators import timer
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = ['SimpleClass',
-           'SimpleManager',
-           'SimplePlan',
-           'SimpleStep',
-           'timer']
+__all__ = []

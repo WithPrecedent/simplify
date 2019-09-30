@@ -1,13 +1,11 @@
 """
-.. module:: siMpLify cookbook models
- :synopsis: machine learning modelling made simple
+.. module:: siMpLify chef techniques
+:synopsis: machine learning and preprocessing algorithms
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
+""
 
-#from .classifier import Classifier
-#from .clusterer import Clusterer
-#from .regressor import Regressor
 
-#
-#__all__ = ['Classifier',
-#           'Clusterer',
-#           'Regressor']
+__all__ = []

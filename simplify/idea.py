@@ -1,9 +1,9 @@
 """
 .. module:: idea
- :synopsis: contains class storing the settings for siMpLify package.
- :author: Corey Rayburn Yung
- :copyright: 2019
- :license: CC-BY-NC-4.0
+:synopsis: contains class storing the settings for siMpLify package.
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
 
 from configparser import ConfigParser

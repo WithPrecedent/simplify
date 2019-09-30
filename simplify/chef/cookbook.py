@@ -1,20 +1,9 @@
 """
 .. module:: cookbook
-:synopsis: contains core classes of siMpLify package.
+:synopsis: data analysis and machine learning builder module
 :author: Corey Rayburn Yung
 :copyright: 2019
-:license: CC-BY-NC-4.0
-
-cookbook.py is the primary control file for the siMpLify machine learning
-subpackage.
-
-Contents:
-
-    Cookbook: class which handles construction and utilization of recipes of
-        limited preprocessing and machine learning of data in the siMpLify
-        package.
-    Recipe: class which stores a particular set of techniques and algorithms
-        of limited preprocessing and machine learning operations.
+:license: Apache-2.0
 """
 
 from dataclasses import dataclass
@@ -32,6 +21,10 @@ class Cookbook(SimpleManager):
     analysis using a unified interface and architecture.
 
     Args:
+        idea(Idea or str): an instance of Idea or a string containing the file
+            path or file name (in the current working directory) where a 
+            supoorted settings file for an Idea instance is located.
+        depot(Depot): an instance of Depot.
         ingredients(Ingredients or str): an instance of Ingredients or a string
             with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced. However,
@@ -40,34 +33,36 @@ class Cookbook(SimpleManager):
             passed to the 'produce' method if it isn't when the class is
             instanced. Consequently, it is recommended that 'ingredients' be
             passed when the class is instanced.
-        steps: a list of string step names to be completed in order. This
+        steps(dict(str: SimpleStep)): steps to be completed in order. This
             argument should only be passed if the user wishes to override the
             steps listed in the Idea settings or if the user is not using the
             Idea class.
-        recipes: a list of instances of Recipe which Cookbook creates through
-            the 'finalize' method and applies through the 'produce' method.
-            Ordinarily, 'recipes' is not passed when Cookbook is instanced, but
-            the argument is included if the user wishes to reexamine past
-            recipes or manually create new recipes.
-        name: a string designating the name of the class which should be
-            identical to the section of the Idea section with relevant
-            settings.
-        auto_finalize: sets whether to automatically call the 'finalize' method
-            when the class is instanced. If you do not plan to make any
+        recipes(Recipe or list(Recipe)): Ordinarily, 'recipes' is not passed 
+            when Cookbook is instanced, but the argument is included if the user
+            wishes to reexamine past recipes or manually create new recipes.
+        name(str): designates the name of the class which should be identical
+            to the section of the idea configuration with relevant settings.
+        auto_finalize(bool): whether to call the 'finalize' method when the
+            class is instanced. If you do not plan to make any
             adjustments to the steps, techniques, or algorithms beyond the
             Idea configuration, this option should be set to True. If you plan
             to make such changes, 'finalize' should be called when those
             changes are complete.
-        auto_produce: sets whether to automatically call the 'produce' method
-            when the class is instanced.
+        auto_produce(bool): whether to call the 'produce' method when the class
+            is instanced.
+            
+    Since this class is a subclass to SimpleManager and SimpleClass, all
+    documentation for those classes applies as well.
+    
     """
-
+    idea: object = None
+    depot: object = None
     ingredients: object = None
     steps: object = None
     recipes: object = None
     name: str = 'cookbook'
     auto_finalize: bool = True
-    auto_produce: bool = True
+    auto_produce: bool = False
 
     def __post_init__(self):
         super().__post_init__()

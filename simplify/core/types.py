@@ -1,15 +1,19 @@
 """
-
+.. module:: types
+:synopsis: data and file type parent classes
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 
 Contents:
 
     SimpleType: abstract base class that serves as the parent class for data,
         file, and other types throughout the siMpLify package.
-    DataType: subclass of SimpleType which stores proxy names of datatypes
+    DataTypes: subclass of SimpleType which stores proxy names of datatypes
         used by siMpLify which are connected to python, numpy, and pandas
         datatypes. Also, default values for each datatype are stored, which
         are primarily used in filling missing data.
-    FileType: subclass of SimpleType which stores proxy names of file formats
+    FileTypes: subclass of SimpleType which stores proxy names of file formats
         linked to file extensions used for loading and saving files.
 """
 from abc import ABC, abstractmethod

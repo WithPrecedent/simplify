@@ -1,9 +1,9 @@
 """
 .. module:: ingredients
- :synopsis: contains data container class of siMpLify package.
- :author: Corey Rayburn Yung
- :copyright: 2019
- :license: CC-BY-NC-4.0
+:synopsis: contains data container class of siMpLify package.
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
 """
 
 from dataclasses import dataclass

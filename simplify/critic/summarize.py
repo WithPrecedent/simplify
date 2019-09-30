@@ -1,3 +1,10 @@
+"""
+.. module:: summarize
+:synopsis: summarizes data
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
+"""
 
 from dataclasses import dataclass
 
@@ -8,23 +15,22 @@ from simplify.core.base import SimplePlan, SimpleStep
 
 @dataclass
 class Summarize(SimplePlan):
-    """Stores and exports a DataFrame of summary data for pandas DataFrame.
-
-    Summary is more inclusive than pandas.describe() and includes
-    boolean and numerical columns by default. It is also extensible: more
-    metrics can easily be added to the report DataFrame.
-
+    """Summarizes data.
+    
     Args:
-        name: a string designating the name of the class which should be
-            identical to the section of the idea configuration with relevant
-            settings.
-        auto_finalize: a boolean value that sets whether the finalize method is
-            automatically called when the class is instanced.
+        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
+            explaining data analysis models.
+        name(str): designates the name of the class which should be identical
+            to the section of the idea configuration with relevant settings.
+        auto_finalize (bool): whether to call the 'finalize' method when the
+            class is instanced.
+        auto_produce (bool): whether to call the 'produce' method when the class
+            is instanced.
     """
-
     steps: object = None
     name: str = 'summarizer'
     auto_finalize: bool = True
+    auto_produce: bool = True
 
     def __post_init__(self):
         super().__post_init__()
