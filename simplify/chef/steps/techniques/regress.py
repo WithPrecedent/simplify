@@ -18,10 +18,10 @@ class Regress(SimpleTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    auto_finalize : bool = True
-    name : str = 'regressor'
+    technique: object = None
+    parameters: object = None
+    auto_finalize: bool = True
+    name: str = 'regressor'
 
     def __post_init__(self):
         super().__post_init__()
@@ -43,15 +43,15 @@ class Regress(SimpleTechnique):
                 'svm_rbf': ['sklearn.svm', 'SVR'],
                 'svm_sigmoid': ['sklearn.svm', 'SVR'],
                 'xgboost': ['xgboost', 'XGBRegressor']}
-        self.extra_parameters = {'baseline' : {'strategy' : 'mean'},
-                                 'svm_linear' : {'kernel' : 'linear',
-                                                 'probability' : True},
-                                  'svm_poly' : {'kernel' : 'poly',
-                                                'probability' : True},
-                                  'svm_rbf' : {'kernel' : 'rbf',
-                                               'probability' : True},
-                                  'svm_sigmoid' : {'kernel' : 'sigmoid',
-                                                   'probability' : True}}
+        self.extra_parameters = {'baseline': {'strategy': 'mean'},
+                                 'svm_linear': {'kernel': 'linear',
+                                                 'probability': True},
+                                  'svm_poly': {'kernel': 'poly',
+                                                'probability': True},
+                                  'svm_rbf': {'kernel': 'rbf',
+                                               'probability': True},
+                                  'svm_sigmoid': {'kernel': 'sigmoid',
+                                                   'probability': True}}
         return self
 
     def produce(self, ingredients):

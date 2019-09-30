@@ -1,6 +1,6 @@
 """
 .. module:: siMpLify cookbook steps
-  :synopsis: machine learning workflow made simple
+ :synopsis: machine learning workflow made simple
 """
 
 from .cleave import Cleave

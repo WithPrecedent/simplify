@@ -1,9 +1,9 @@
 """
 .. module:: idea
-  :synopsis: contains class storing the settings for siMpLify package.
-  :author: Corey Rayburn Yung
-  :copyright: 2019
-  :license: CC-BY-NC-4.0
+ :synopsis: contains class storing the settings for siMpLify package.
+ :author: Corey Rayburn Yung
+ :copyright: 2019
+ :license: CC-BY-NC-4.0
 """
 
 from configparser import ConfigParser
@@ -114,10 +114,10 @@ class Idea(SimpleClass):
             when the class is instanced. Unless adding a new source for
             'configuration' settings, this should be set to True.
     """
-    configuration : object = None
-    infer_types : bool = True
-    auto_finalize : bool = True
-    auto_produce : bool = True
+    configuration: object = None
+    infer_types: bool = True
+    auto_finalize: bool = True
+    auto_produce: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -262,7 +262,7 @@ class Idea(SimpleClass):
         """Creates a configuration dictionary from an .ini file."""
         if os.path.isfile(self.configuration):
             configuration = ConfigParser(dict_type = dict)
-            configuration.optionxform = lambda option : option
+            configuration.optionxform = lambda option: option
             configuration.read(self.configuration)
             self.configuration = dict(configuration._sections)
         else:
@@ -365,9 +365,9 @@ class Idea(SimpleClass):
     def draft(self):
         """Sets options to create 'configuration' dict'."""
         # Sets options for creating 'configuration'.
-        self.options = {'py_file' : self._create_from_py,
-                        'ini_file' : self._create_from_ini,
-                        'dict' : None}
+        self.options = {'py_file': self._create_from_py,
+                        'ini_file': self._create_from_ini,
+                        'dict': None}
         return self
 
     def finalize(self):

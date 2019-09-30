@@ -17,9 +17,9 @@ class Clean(SimplePlan):
             the class is instanced. This should generally be set to True.
     """
 
-    steps : object = None
-    name : str = 'cleaner'
-    auto_finalize : bool = True
+    steps: object = None
+    name: str = 'cleaner'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()

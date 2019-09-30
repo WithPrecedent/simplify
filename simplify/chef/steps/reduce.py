@@ -20,10 +20,10 @@ class Reduce(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : str = ''
-    parameters : object = None
-    name : str = 'reducer'
-    auto_finalize : bool = True
+    technique: str = ''
+    parameters: object = None
+    name: str = 'reducer'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -39,32 +39,32 @@ class Reduce(SimpleStep):
                 'rank': ['simplify.critic.rank', 'RankSelect'],
                 'rfe': ['sklearn.feature_selection', 'RFE'],
                 'rfecv': ['sklearn.feature_selection', 'RFECV']}
-#        self.scorers = {'f_classif' : f_classif,
-#                        'chi2' : chi2,
-#                        'mutual_class' : mutual_info_classif,
-#                        'mutual_regress' : mutual_info_regression}
+#        self.scorers = {'f_classif': f_classif,
+#                        'chi2': chi2,
+#                        'mutual_class': mutual_info_classif,
+#                        'mutual_regress': mutual_info_regression}
         self.selected_parameters = True
         return self
 
     def _set_parameters(self, estimator):
 #        if self.technique in ['rfe', 'rfecv']:
-#            self.default_parameters = {'n_features_to_select' : 10,
-#                                       'step' : 1}
-#            self.runtime_parameters = {'estimator' : estimator}
+#            self.default_parameters = {'n_features_to_select': 10,
+#                                       'step': 1}
+#            self.runtime_parameters = {'estimator': estimator}
 #        elif self.technique == 'kbest':
-#            self.default_parameters = {'k' : 10,
-#                                       'score_func' : f_classif}
+#            self.default_parameters = {'k': 10,
+#                                       'score_func': f_classif}
 #            self.runtime_parameters = {}
 #        elif self.technique in ['fdr', 'fpr']:
-#            self.default_parameters = {'alpha' : 0.05,
-#                                       'score_func' : f_classif}
+#            self.default_parameters = {'alpha': 0.05,
+#                                       'score_func': f_classif}
 #            self.runtime_parameters = {}
 #        elif self.technique == 'custom':
-#            self.default_parameters = {'threshold' : 'mean'}
-#            self.runtime_parameters = {'estimator' : estimator}
+#            self.default_parameters = {'threshold': 'mean'}
+#            self.runtime_parameters = {'estimator': estimator}
 #        self._finalize_parameters()
 #        self._select_parameters()
-#        self.parameters.update({'estimator' : estimator})
+#        self.parameters.update({'estimator': estimator})
 #        if 'k' in self.parameters:
 #            self.num_features = self.parameters['k']
 #        else:

@@ -20,10 +20,10 @@ class TFModel(SimpleTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    auto_finalize : bool = True
-    name : str = 'tensorflow'
+    technique: object = None
+    parameters: object = None
+    auto_finalize: bool = True
+    name: str = 'tensorflow'
 
     def __post_init__(self):
         super().__post_init__()
@@ -31,9 +31,9 @@ class TFModel(SimpleTechnique):
 
     def draft(self):
         super().draft()
-        self.default_parameters = {'build_fn' : self._tensor_flow_model,
-                                   'batch_size' : 10,
-                                   'epochs' : 2}
+        self.default_parameters = {'build_fn': self._tensor_flow_model,
+                                   'batch_size': 10,
+                                   'epochs': 2}
         return self
 
 #    def _downcast_features(self, ingredients):
@@ -51,14 +51,14 @@ class TFModel(SimpleTechnique):
 
 #
 #    def _set_feature_types(self):
-#        self.type_interface = {'boolean' : tf.bool,
-#                               'float' : tf.float16,
-#                               'integer' : tf.int8,
-#                               'string' : object,
-#                               'categorical' : CategoricalDtype,
-#                               'list' : list,
-#                               'datetime' : datetime64,
-#                               'timedelta' : timedelta}
+#        self.type_interface = {'boolean': tf.bool,
+#                               'float': tf.float16,
+#                               'integer': tf.int8,
+#                               'string': object,
+#                               'categorical': CategoricalDtype,
+#                               'list': list,
+#                               'datetime': datetime64,
+#                               'timedelta': timedelta}
 
 
 #    def _tensor_flow_model(self):

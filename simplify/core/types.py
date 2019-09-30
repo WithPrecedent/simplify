@@ -83,13 +83,13 @@ class SimpleType(ABC):
             item: key name to be set in 'name_to_type'.
             value: value to be set in 'name_to_type'.
         """
-        self.name_to_type.update({key : value})
-        self.type_to_name.update({value : key})
+        self.name_to_type.update({key: value})
+        self.type_to_name.update({value: key})
         if hasattr(self, 'default_values'):
             if value in self.type_to_name:
-                self.default_values.update({key : self.type_to_name[value]})
+                self.default_values.update({key: self.type_to_name[value]})
             else:
-                self.default_values.update({key : None})
+                self.default_values.update({key: None})
         return self
 
     """ Private Methods """
@@ -99,7 +99,7 @@ class SimpleType(ABC):
         'type_to_name'.
         """
         self.type_to_name = {
-            value : key for key, value in self.name_to_type.items()}
+            value: key for key, value in self.name_to_type.items()}
         return self
 
     """ Public Methods """
@@ -161,23 +161,23 @@ class DataTypes(SimpleType):
     def draft(self):
         """Sets default values related to datatypes."""
         # Sets string names of various datatypes available.
-        self.name_to_type = {'boolean' : bool,
-                             'float' : float,
-                             'integer' : int,
-                             'string' : object,
-                             'categorical' : CategoricalDtype,
-                             'list' : list,
-                             'datetime' : datetime64,
-                             'timedelta' : timedelta}
+        self.name_to_type = {'boolean': bool,
+                             'float': float,
+                             'integer': int,
+                             'string': object,
+                             'categorical': CategoricalDtype,
+                             'list': list,
+                             'datetime': datetime64,
+                             'timedelta': timedelta}
         # Sets default values for missing data based upon datatype of column.
-        self.default_values = {'boolean' : False,
-                               'float' : 0.0,
-                               'integer' : 0,
-                               'string' : '',
-                               'categorical' : '',
-                               'list' : [],
-                               'datetime' : 1/1/1900,
-                               'timedelta' : 0}
+        self.default_values = {'boolean': False,
+                               'float': 0.0,
+                               'integer': 0,
+                               'string': '',
+                               'categorical': '',
+                               'list': [],
+                               'datetime': 1/1/1900,
+                               'timedelta': 0}
         return self
      
     def edit_datatypes(self, names = None, python_types = None, 
@@ -222,13 +222,13 @@ class FileTypes(SimpleType):
     def draft(self):
         """Sets default values related to filetypes."""
         # Sets string names of various datatypes available.
-        self.name_to_type = {'csv' : '.csv',
-                             'excel' : '.xlsx',
-                             'feather' : '.ftr',
-                             'h5' : '.hdf',
-                             'hdf' : '.hdf',
-                             'pickle' : '.pkl',
-                             'png' : '.png',
-                             'text' : '.txt',
-                             'txt' : '.txt'}
+        self.name_to_type = {'csv': '.csv',
+                             'excel': '.xlsx',
+                             'feather': '.ftr',
+                             'h5': '.hdf',
+                             'hdf': '.hdf',
+                             'pickle': '.pkl',
+                             'png': '.png',
+                             'text': '.txt',
+                             'txt': '.txt'}
         return self

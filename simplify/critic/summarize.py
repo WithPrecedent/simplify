@@ -22,9 +22,9 @@ class Summarize(SimplePlan):
             automatically called when the class is instanced.
     """
 
-    steps : object = None
-    name : str = 'summarizer'
-    auto_finalize : bool = True
+    steps: object = None
+    name: str = 'summarizer'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -37,14 +37,14 @@ class Summarize(SimplePlan):
         return ['variable'] + (list(self.options.keys()))
 
     def _produce_export_parameters(self, file_name, file_format, transpose):
-        self.export_parameters = {'folder' : 'experiment',
-                                  'file_name' : file_name,
-                                  'file_format' : file_format}
+        self.export_parameters = {'folder': 'experiment',
+                                  'file_name': file_name,
+                                  'file_format': file_format}
         if not transpose:
             self.report = self.report.transpose()
-            self.export_parameters.update({'header' : False, 'index' : True})
+            self.export_parameters.update({'header': False, 'index': True})
         else:
-            self.export_parameters.update({'header' : True, 'index' : False})
+            self.export_parameters.update({'header': True, 'index': False})
         return self
 
     def _produce_report(self, df):
@@ -114,21 +114,21 @@ class FullSummary(SimpleStep):
 
     def draft(self):
         self.options = {
-                'datatype' : ['dtype'],
-                'count' : 'count',
-                'min' :'min',
-                'q1' : ['quantile', 0.25],
-                'median' : 'median',
-                'q3' : ['quantile', 0.75],
-                'max' : 'max',
-                'mad' : 'mad',
-                'mean' : 'mean',
-                'stan_dev' : 'std',
-                'mode' : ['mode', [0]],
-                'sum' : 'sum',
-                'kurtosis' : 'kurtosis',
-                'skew' : 'skew',
-                'variance' : 'var',
-                'stan_error' : 'sem',
-                'unique' : 'nunique'}
+                'datatype': ['dtype'],
+                'count': 'count',
+                'min':'min',
+                'q1': ['quantile', 0.25],
+                'median': 'median',
+                'q3': ['quantile', 0.75],
+                'max': 'max',
+                'mad': 'mad',
+                'mean': 'mean',
+                'stan_dev': 'std',
+                'mode': ['mode', [0]],
+                'sum': 'sum',
+                'kurtosis': 'kurtosis',
+                'skew': 'skew',
+                'variance': 'var',
+                'stan_error': 'sem',
+                'unique': 'nunique'}
         return self

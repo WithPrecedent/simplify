@@ -19,10 +19,10 @@ class Encode(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : str = ''
-    parameters : object = None
-    name : str = 'encoder'
-    auto_finalize : bool = True
+    technique: str = ''
+    parameters: object = None
+    name: str = 'encoder'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -52,7 +52,7 @@ class Encode(SimpleStep):
         if columns is None:
             columns = ingredients.encoders
         if columns:
-            self.runtime_parameters.update({'cols' : columns})
+            self.runtime_parameters.update({'cols': columns})
         super().finalize()
         self.algorithm.fit(ingredients.x, ingredients.y)
         self.algorithm.transform(

@@ -20,10 +20,10 @@ class Model(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    name : str = 'model'
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    name: str = 'model'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         self.idea_sections = ['cookbook']
@@ -52,9 +52,9 @@ class Model(SimpleStep):
 
     def _finalize_search_parameters(self):
         self.search_parameters = self.idea['search_parameters']
-        self.search_parameters.update({'estimator' : self.algorithm.algorithm,
-                                       'param_distributions' : self.space,
-                                       'random_state' : self.seed})
+        self.search_parameters.update({'estimator': self.algorithm.algorithm,
+                                       'param_distributions': self.space,
+                                       'random_state': self.seed})
         return self
 
     def _get_parameters_conditional(self, technique, parameters):
@@ -62,9 +62,9 @@ class Model(SimpleStep):
                 and not 'scale_pos_weight' in parameters
                 and hasattr(self, 'scale_pos_weight')):
             self.parameters.update(
-                    {'scale_pos_weight' : self.scale_pos_weight})
+                    {'scale_pos_weight': self.scale_pos_weight})
             if self.gpu:
-                self.parameters.update({'tree_method' : 'gpu_exact'})
+                self.parameters.update({'tree_method': 'gpu_exact'})
         return self
 
     def _parse_parameters(self):
@@ -82,11 +82,11 @@ class Model(SimpleStep):
             if isinstance(values, list):
                 self.hyperparameter_search = True
                 if self._datatype_in_list(values, float):
-                    self.space.update({param : uniform(values[0], values[1])})
+                    self.space.update({param: uniform(values[0], values[1])})
                 elif self._datatype_in_list(values, int):
-                    self.space.update({param : randint(values[0], values[1])})
+                    self.space.update({param: randint(values[0], values[1])})
             else:
-                new_parameters.update({param : values})
+                new_parameters.update({param: values})
         self.parameters = new_parameters
         return self
 
@@ -102,7 +102,7 @@ class Model(SimpleStep):
                 'regress': ['simplify.chef.steps.techniques.regress',
                             'Regress'],
                 'search': ['simplify.chef.steps.techniques.search', 'Search']}
-        self.runtime_parameters = {'random_state' : self.seed}
+        self.runtime_parameters = {'random_state': self.seed}
         self.custom_options = ['classifier', 'clusterer', 'regressor']
         return self
 

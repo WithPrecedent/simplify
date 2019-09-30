@@ -86,15 +86,15 @@ def local_backups(method, excludes = None, includes = None):
         if includes:
             for unpassed in unpassed_args:
                 if unpassed in includes and hasattr(self, unpassed):
-                    kwargs.update({unpassed : getattr(self, unpassed)})
+                    kwargs.update({unpassed: getattr(self, unpassed)})
         elif excludes:
             for unpassed in unpassed_args:
                 if unpassed not in excludes and hasattr(self, unpassed):
-                    kwargs.update({unpassed : getattr(self, unpassed)})
+                    kwargs.update({unpassed: getattr(self, unpassed)})
         else:
             for unpassed in unpassed_args:
                 if hasattr(self, unpassed):
-                    kwargs.update({unpassed : getattr(self, unpassed)})
+                    kwargs.update({unpassed: getattr(self, unpassed)})
         return method(self, *args, **kwargs)
     return wrapper
 
@@ -115,7 +115,7 @@ def choose_df(method):
         argspec = getfullargspec(method)
         unpassed_args = argspec.args[len(args):]
         if 'df' in argspec.args and 'df' in unpassed_args:
-            kwargs.update({'df' : getattr(self, self.default_df)})
+            kwargs.update({'df': getattr(self, self.default_df)})
         return method(self, *args, **kwargs)
     return wrapper
 
@@ -152,7 +152,7 @@ def combine_lists(method, arguments_to_check = None):
                 if argument in ['prefixes', 'mask'] and argument in kwargs:
                     del kwargs[argument]
             columns = self.create_column_list(**new_kwargs)
-            kwargs.update({'columns' : columns})
+            kwargs.update({'columns': columns})
         return method(self, **kwargs)
     return wrapper
 

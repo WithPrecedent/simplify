@@ -10,11 +10,11 @@ from simplify.core.base import SimpleStep
 @dataclass
 class Style(SimpleStep):
 
-    technique : str = ''
-    parameters : object = None
-    auto_finalize : bool = True
-    auto_produce : bool = True
-    name : str = 'styler'
+    technique: str = ''
+    parameters: object = None
+    auto_finalize: bool = True
+    auto_produce: bool = True
+    name: str = 'styler'
 
     def __post_init__(self):
         super().__post_init__()

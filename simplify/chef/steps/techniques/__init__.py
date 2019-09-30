@@ -1,6 +1,6 @@
 """
 .. module:: siMpLify cookbook models
-  :synopsis: machine learning modelling made simple
+ :synopsis: machine learning modelling made simple
 """
 
 #from .classifier import Classifier

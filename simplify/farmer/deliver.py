@@ -19,9 +19,9 @@ class Deliver(SimplePlan):
             the class is instanced. This should generally be set to True.
     """
 
-    steps : object = None
-    name : str = 'delivery'
-    auto_finalize : bool = True
+    steps: object = None
+    name: str = 'delivery'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -40,10 +40,10 @@ class Deliver(SimplePlan):
                 'reshape': ['simplify.farmer.steps.reshape', 'Reshape'],
                 'streamline': ['simplify.farmer.steps.streamline',
                                'Streamline']}
-        self.needed_parameters = {'shapers' : ['shape_type', 'stubs',
+        self.needed_parameters = {'shapers': ['shape_type', 'stubs',
                                                'id_column', 'values',
                                                'separator'],
-                                  'streamliners' : ['method']}
+                                  'streamliners': ['method']}
         return self
 
     def produce(self, ingredients):

@@ -18,9 +18,9 @@ class Harvest(SimplePlan):
             the class is instanced. This should generally be set to True.
     """
 
-    steps : object = None
-    name : str = 'harvester'
-    auto_finalize : bool = True
+    steps: object = None
+    name: str = 'harvester'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -29,8 +29,8 @@ class Harvest(SimplePlan):
     def _finalize_organize(self, key):
         file_path = os.path.join(self.depot.instructions,
                                  'organizer_' + key + '.csv')
-        self.parameters = {'technique' : self.technique,
-                           'file_path' : file_path}
+        self.parameters = {'technique': self.technique,
+                           'file_path': file_path}
         algorithm = self.options[self.technique](**self.parameters)
         self._set_columns(algorithm)
         return algorithm
@@ -38,8 +38,8 @@ class Harvest(SimplePlan):
     def _finalize_parse(self, key):
         file_path = os.path.join(self.depot.instructions,
                                  'parser_' + key + '.csv')
-        self.parameters = {'technique' : self.technique,
-                           'file_path' : file_path}
+        self.parameters = {'technique': self.technique,
+                           'file_path': file_path}
         algorithm = self.options[self.technique](**self.parameters)
         return algorithm
 

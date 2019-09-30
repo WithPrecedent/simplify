@@ -13,9 +13,9 @@ class Predict(SimplePlan):
 
     """
 
-    steps : object = None
-    name : str = 'predictor'
-    auto_finalize : bool = True
+    steps: object = None
+    name: str = 'predictor'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -52,10 +52,10 @@ class PredictOutcomes(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    name : str = 'outcome_predictor'
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    name: str = 'outcome_predictor'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -100,10 +100,10 @@ class PredictProbabilities(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    name : str = 'probabilities_predictor'
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    name: str = 'probabilities_predictor'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -148,10 +148,10 @@ class PredictLogProbabilities(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    name : str = 'log_probabilities_predictor'
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    name: str = 'log_probabilities_predictor'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -196,10 +196,10 @@ class PredictShapProbabilities(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    name : str = 'log_probabilities_predictor'
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    name: str = 'log_probabilities_predictor'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()

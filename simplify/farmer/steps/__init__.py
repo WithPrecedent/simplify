@@ -1,6 +1,6 @@
 """
 .. module:: siMpLify harvest steps
-  :synopsis: data processing workflow made simple
+ :synopsis: data processing workflow made simple
 """
 
 from .sow import Sow

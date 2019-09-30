@@ -19,10 +19,10 @@ class Sample(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : str = ''
-    parameters : object = None
-    name : str = 'sampler'
-    auto_finalize : bool = True
+    technique: str = ''
+    parameters: object = None
+    name: str = 'sampler'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -33,7 +33,7 @@ class Sample(SimpleStep):
         if self.technique in ['smotenc']:
             if columns:
                 cat_features = self._get_indices(ingredients.x, columns)
-                self.parameters.update({'categorical_features' : cat_features})
+                self.parameters.update({'categorical_features': cat_features})
             else:
                 cat_features = self._get_indices(ingredients.x,
                                                  ingredients.categoricals)
@@ -55,8 +55,8 @@ class Sample(SimpleStep):
                 'smotenc': ['imblearn.over_sampling', 'SMOTENC'],
                 'smoteenn':  ['imblearn.combine', 'SMOTEENN'],
                 'smotetomek': ['imblearn.combine', 'SMOTETomek']}
-        self.default_parameters = {'sampling_strategy' : 'auto'}
-        self.runtime_parameters = {'random_state' : self.seed}
+        self.default_parameters = {'sampling_strategy': 'auto'}
+        self.runtime_parameters = {'random_state': self.seed}
         return self
 
     @numpy_shield

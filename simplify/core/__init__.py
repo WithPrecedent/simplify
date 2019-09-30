@@ -1,6 +1,6 @@
 """
 .. module:: siMpLify core
-  :synopsis: siMpLify base classes and functions
+ :synopsis: siMpLify base classes and functions
 """
 
 from simplify.core.base import (SimpleClass, SimpleManager, SimplePlan,

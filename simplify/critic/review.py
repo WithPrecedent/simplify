@@ -1,18 +1,12 @@
 """
 .. module:: analysis
-  :synopsis: core classes for Critic subpackage.
-  :author: Corey Rayburn Yung
-  :copyright: 2019
-  :license: CC-BY-NC-4.0
+ :synopsis: core classes for Critic subpackage.
+ :author: Corey Rayburn Yung
+ :copyright: 2019
+ :license: CC-BY-NC-4.0
 
 This is the primary control file for evaluating, summarizing, and analyzing
 data, as well as machine learning and other statistical models.
-
-Contents:
-    Analysis: primary class for model evaluation and preparing reports about
-        that evaluation and data.
-    Review: class for storing metrics, evaluations, and reports related to data
-        and models.
 """
 
 from dataclasses import dataclass
@@ -24,24 +18,23 @@ from simplify.core.base import SimpleManager
 
 @dataclass
 class Review(SimpleManager):
-    """Summarizes, evaluates, and creates visualizations for data and data
-    analysis from the siMpLify Harvest and Cookbook.
+    """Summarizes data and evaluates, explains, and creates predictions from
+    machine learning models.
 
     Args:
-        steps: an ordered list of step names to be completed. This argument
-            should only be passed if the user whiches to override the steps
-            listed in 'idea.configuration'.
-        name (str): designates the name of the class which should be identical
+        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
+            analyzing fitted models.
+        name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
         auto_finalize (bool): whether to call the 'finalize' method when the
             class is instanced.
         auto_produce (bool): whether to call the 'produce' method when the class
             is instanced.
     """
-    steps : object = None
-    name : str = 'analysis'
-    auto_finalize : bool = True
-    auto_produce : bool = False
+    steps: object = None
+    name: str = 'analysis'
+    auto_finalize: bool = True
+    auto_produce: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -93,10 +86,10 @@ class Review(SimpleManager):
         return step_column
 
     def _set_columns(self):
-        self.columns = {'recipe_number' : 'number',
-                        'options' : 'techniques',
-                        'seed' : 'seed',
-                        'validation_set' : 'val_set'}
+        self.columns = {'recipe_number': 'number',
+                        'options': 'techniques',
+                        'seed': 'seed',
+                        'validation_set': 'val_set'}
         self.columns = list(self.columns_map.keys())
         for number, instance in getattr(self, self.plan_iterable).items():
             if hasattr(instance, 'columns'):
@@ -111,7 +104,7 @@ class Review(SimpleManager):
         if self.verbose:
             print('The best test recipe, based upon the',
                   self.listify(self.metrics)[0], 'metric with a score of',
-                  f'{self.best_recipe_score : 4.4f}', 'is:')
+                  f'{self.best_recipe_score: 4.4f}', 'is:')
             for technique in getattr(self,
                     self.plan_iterable).best_recipe.techniques:
                 print(technique.capitalize(), ':',
@@ -136,10 +129,10 @@ class Review(SimpleManager):
         self.manager_type = 'serial'
         # Sets plan-related attributes to allow use of parent methods.
         self.plan_iterable = 'reviews'
-        self.columns_map = {'recipe_number' : 'number',
-                            'options' : 'techniques',
-                            'seed' : 'seed',
-                            'validation_set' : 'val_set'}
+        self.columns_map = {'recipe_number': 'number',
+                            'options': 'techniques',
+                            'seed': 'seed',
+                            'validation_set': 'val_set'}
         return self
 
     def finalize(self):

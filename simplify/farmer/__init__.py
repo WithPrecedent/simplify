@@ -1,6 +1,6 @@
 """
 .. module:: siMpLify farmer
-  :synopsis: data gathering, munging, merging, and preprocessing made simple
+ :synopsis: data gathering, munging, merging, and preprocessing made simple
 """
 
 

@@ -19,10 +19,10 @@ class Scale(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : str = ''
-    parameters : object = None
-    name : str = 'scaler'
-    auto_finalize : bool = True
+    technique: str = ''
+    parameters: object = None
+    name: str = 'scaler'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -42,19 +42,19 @@ class Scale(SimpleStep):
                 'quantile': ['sklearn.preprocessing', 'QuantileTransformer'],
                 'robust': ['sklearn.preprocessing', 'RobustScaler'],
                 'standard': ['sklearn.preprocessing', 'StandardScaler']}
-        self.default_parameters = {'bins' : {'encode' : 'ordinal',
-                                             'strategy' : 'uniform',
-                                             'n_bins' : 5},
-                                   'gauss' : {'standardize' : False,
-                                              'copy' : False},
-                                   'maxabs' : {'copy' : False},
-                                   'minmax' : {'copy' : False},
-                                   'normalize' : {'copy' : False},
-                                   'quantile' : {'copy' : False},
-                                   'robust' : {'copy' : False},
-                                   'standard' : {'copy' : False}}
+        self.default_parameters = {'bins': {'encode': 'ordinal',
+                                             'strategy': 'uniform',
+                                             'n_bins': 5},
+                                   'gauss': {'standardize': False,
+                                              'copy': False},
+                                   'maxabs': {'copy': False},
+                                   'minmax': {'copy': False},
+                                   'normalize': {'copy': False},
+                                   'quantile': {'copy': False},
+                                   'robust': {'copy': False},
+                                   'standard': {'copy': False}}
         self.extra_parameters = {
-                'gauss': {'rescaler' : self.options['minmax']}}
+                'gauss': {'rescaler': self.options['minmax']}}
         self.selected_parameters = True
         self.custom_options = ['gauss']
         return self

@@ -20,10 +20,10 @@ class Cleave(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : str = ''
-    parameters : object = None
-    name : str = 'cleaver'
-    auto_finalize : bool = True
+    technique: str = ''
+    parameters: object = None
+    name: str = 'cleaver'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -45,14 +45,14 @@ class Cleave(SimpleStep):
         for group, columns in self.options.items():
             self.test_columns.extend(columns)
         if self.parameters['include_all']:
-            self.options.update({'all' : self.test_columns})
+            self.options.update({'all': self.test_columns})
         return self
 
     def add(self, cleave_group, columns):
         """For the cleavers in siMpLify, this step alows users to manually
         add a new cleave group to the cleaver dictionary.
         """
-        self.options.update({cleave_group : columns})
+        self.options.update({cleave_group: columns})
         return self
 
     def draft(self):

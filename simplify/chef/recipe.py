@@ -24,14 +24,14 @@ class Recipe(SimplePlan):
             and elsewhere in the siMpLify package.
         auto_finalize(bool): whether 'finalize' method should be called when
             the class is instanced. This should generally be set to True.
-        auto_finalize : bool = True
+        auto_finalize: bool = True
 
     """
 
     number: int = 0
     steps: object = None
     name: str = 'recipe'
-    auto_finalize : bool = True
+    auto_finalize: bool = True
 
     def __post_init__(self):
         self.idea_sections = ['cookbook']

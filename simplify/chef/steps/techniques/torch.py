@@ -18,10 +18,10 @@ class TorchModel(SimpleTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    auto_finalize : bool = True
-    name : str = 'torch'
+    technique: object = None
+    parameters: object = None
+    auto_finalize: bool = True
+    name: str = 'torch'
 
     def __post_init__(self):
         super().__post_init__()

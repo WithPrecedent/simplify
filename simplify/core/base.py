@@ -1,13 +1,13 @@
 """
 .. module:: base
-  :synopsis: core parent classes of siMpLify package.
-  :author: Corey Rayburn Yung
-  :copyright: 2019
-  :license: CC-BY-NC-4.0
+ :synopsis: core parent classes of siMpLify package.
+ :author: Corey Rayburn Yung
+ :copyright: 2019
+ :license: CC-BY-NC-4.0
 
 Contents:
     SimpleClass: parent abstract base class for all siMpLify classes.
-    SimpleManager: parent class for the iterable creation classes.
+    SimpleManager: parent class for the builder classes.
     SimplePlan: parent container class for storing iterables created by
         SimpleManager subclasses.
     SimpleStep: parent class of the iterable steps of the SimplePlan
@@ -16,6 +16,7 @@ Contents:
 
 This module contains the parent classes used by the siMpLify package and
 should be subclassed in any additional extensions to the siMpLify package.
+
 """
 
 from abc import ABC, abstractmethod
@@ -41,17 +42,41 @@ class SimpleClass(ABC):
     the core methods used throughout the siMpLify package:
 
         1) draft: sets default attributes (required).
-        2) edit: makes any desired changes to the default attributes
-            (required).
-        3) finalize: creates objects based upon those attributes.
+        2) edit: makes any desired changes to the default attributes.
+        3) finalize: creates python objects based upon those attributes.
         4) produce: applies those finalized objects to passed variables
             (usually data).
 
     If the subclass includes boolean attributes of 'auto_finalize' or
     'auto_produce', and those attributes are set to True, then the 'finalize'
     and/or 'produce' methods are called when the class is instanced.
-    """
 
+    Args: 
+        idea(Idea or str): an instance of Idea or a string containing the file
+            path or file name (in the current working directory) where a 
+            supoorted settings file for an Idea instance is located.
+        depot(Depot): an instance of Depot.
+        ingredients(Ingredients or str): an instance of Ingredients of a string
+            containing the full file path of where a supported file type that
+            can be loaded into a pandas DataFrame is located. If it is a string,
+            the loaded DataFrame will be bound to a new ingredients instance as
+            the 'df' attribute.
+        name(str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package.
+        auto_finalize(bool): whether to call the 'finalize' method when the
+            class is instanced.
+        auto_produce(bool): whether to call the 'produce' method when the class
+            is instanced.
+            
+    """
+    idea: object = None
+    depot: object = None
+    ingredients: object = None
+    name: str = 'simple_class'
+    auto_finalize: bool = False
+    auto_produce: bool = False
+    
     def __post_init__(self):
         """Calls selected initialization methods."""
         # Removes various python warnings from console output.
@@ -68,11 +93,11 @@ class SimpleClass(ABC):
         self._lazily_import_options()
         # Registers subclass into lists based upon specific subclass needs.
         self._register_subclass()
-        # Calls 'finalize' method if it exists and 'auto_finalize' is True.
-        if hasattr(self, 'auto_finalize') and self.auto_finalize:
+        # Calls 'finalize' method if 'auto_finalize' is True.
+        if  self.auto_finalize:
             self.finalize()
-            # Calls 'produce' method if it exists and 'auto_produce' is True.
-            if hasattr(self, 'auto_produce') and self.auto_produce:
+            # Calls 'produce' method if 'auto_produce' is True.
+            if self.auto_produce:
                 self.produce()
         return self
 
@@ -81,14 +106,16 @@ class SimpleClass(ABC):
     def __call__(self, idea, *args, **kwargs):
         """When called as a function, a subclass will return the produce method
         after running __post_init__.
+        
         Args:
-            idea (Idea or str): an instance of Idea or path where an Idea
-                configuration file is located must be passed when a subclass is
-                called as a function.
+            idea(Idea or str): an instance of Idea or path where an Idea
+                configuration file is located. This argument must be passed when 
+                a subclass is called as a function.
             *args and **kwargs (any): passed to the 'produce' method.
 
         Returns:
             return value of 'produce' method.
+            
         """
         self.idea = idea
         self.auto_finalize = True
@@ -100,10 +127,11 @@ class SimpleClass(ABC):
         """Checks if item is in 'options'.
 
         Args:
-            item (str): item to be searched for in 'options' keys.
+            item(str): item to be searched for in 'options' keys.
 
         Returns:
             True, if 'item' in 'options' - otherwise False.
+            
         """
         return item in self.options
 
@@ -112,11 +140,12 @@ class SimpleClass(ABC):
         is assigned a value of None.
 
         Args:
-            item (str): item to be deleted from 'options' or attribute to be
+            item(str): item to be deleted from 'options' or attribute to be
                 assigned None.
 
         Raises:
             KeyError: if item is neither in 'options' or an attribute.
+            
         """
         if item in self.options:
             del self.options[item]
@@ -132,13 +161,15 @@ class SimpleClass(ABC):
         are sought from the class instance.
 
         Args:
-            attr (str): attribute sought.
+            attr(str): attribute sought.
 
         Returns:
             attribute or None, if attribute does not exist.
 
         Raises:
-            AttributeError: if a dunder attribute is sought.
+            AttributeError: if a dunder attribute is sought or attribute does
+                not exist.
+            
         """
         # Intercepts common dict methods and applies them to 'options' dict.
         if attr in ['clear', 'items', 'pop', 'keys', 'update', 'values']:
@@ -156,11 +187,12 @@ class SimpleClass(ABC):
         """Returns item if 'item' is in 'options' or is an atttribute.
 
         Args:
-            item (str): item matching dict key or attribute name.
+            item(str): item matching 'options' dictionary key or attribute name.
 
         Returns:
             Value for item in 'options', 'item' attribute value, or None if
                 neither of those exist.
+                
         """
         if item in self.options:
             return self.options[item]
@@ -177,9 +209,10 @@ class SimpleClass(ABC):
         """Adds item and value to options dictionary.
 
         Args:
-            item (str): 'options' key to be set.
-            value (any): corresponding value to be set for 'item' key in
+            item(str): 'options' key to be set.
+            value(any): corresponding value to be set for 'item' key in
                 'options'.
+                
         """
         self.options[item] = value
         return self
@@ -338,7 +371,7 @@ class SimpleClass(ABC):
         would be done through normal, blanket importation.
 
         To use this method, 'options' should be formatted as follows:
-            {name(str) : [module_path(str), class_name(str)]}
+            {name(str): [module_path(str), class_name(str)]}
 
         """
         imported_options = {}
@@ -347,7 +380,7 @@ class SimpleClass(ABC):
                 if self.has_list_values(self.options):
                     for name, settings in self.options.items():
                         imported_options.update(
-                            {name : getattr(import_module(settings[0]),
+                            {name: getattr(import_module(settings[0]),
                                             settings[1])})
                     self.options = imported_options
         return self
@@ -356,7 +389,7 @@ class SimpleClass(ABC):
     def _register_subclass(self):
         """Adds subclass to appropriate list based on attribute in subclass."""
         self._registered_subclasses = {
-            'registered_state_subclasses' : 'state_dependent'}
+            'registered_state_subclasses': 'state_dependent'}
         for subclass_list, attribute in self._registered_subclasses.items():
             if not hasattr(self, subclass_list):
                 setattr(self, subclass_list, [])
@@ -647,12 +680,17 @@ class SimpleManager(SimpleClass):
     This class adds methods useful to create iterators, iterate over user
     options, and transform data or fit models.
 
+    Args:
+    
+        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
+            analyzing fitted models.
+            
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
     """
 
-    steps : object = None
-    name : str = 'manager'
+    steps: object = None
+    name: str = 'manager'
 
     def __post_init__(self):
         super().__post_init__()
@@ -718,9 +756,9 @@ class SimpleManager(SimpleClass):
             finalized_steps = {}
             for j, (step_name, step_class) in enumerate(self.options.items()):
                 finalized_steps.update(
-                        {step_name : step_class(technique = plan[j])})
+                        {step_name: step_class(technique = plan[j])})
             getattr(self, self.plan_iterable).update(
-                    {i + 1 : self.plan_class(steps = finalized_steps,
+                    {i + 1: self.plan_class(steps = finalized_steps,
                                              number = i + 1)})
         return self
 
@@ -729,7 +767,7 @@ class SimpleManager(SimpleClass):
         for i, (plan_name, plan_class) in enumerate(self.options.items()):
             for steps in self.all_steps[i]:
                 getattr(self, self.plan_iterable).update(
-                        {i + 1 : plan_class(steps = steps)})
+                        {i + 1: plan_class(steps = steps)})
         return self
 
     def _produce_parallel(self, variable = None, **kwargs):
@@ -814,7 +852,7 @@ class SimplePlan(SimpleClass):
     well.
     """
 
-    steps : object = None
+    steps: object = None
 
     def __post_init__(self):
         # Adds name of SimpleManager subclass to sections to inject from Idea
@@ -889,9 +927,9 @@ class SimpleStep(SimpleClass):
     well.
     """
 
-    technique : object = None
-    parameters : object = None
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    auto_finalize: bool = True
 
     def __post_init__(self):
         # Adds name of SimpleManager subclass to sections to inject from Idea
@@ -1028,7 +1066,7 @@ class SimpleStep(SimpleClass):
             new_parameters = {}
             for key, value in parameters.items():
                 if key in self.listify(parameters_to_use):
-                    new_parameters.update({key : value})
+                    new_parameters.update({key: value})
             self.parameters = new_parameters
         return self
 
@@ -1056,7 +1094,7 @@ class SimpleStep(SimpleClass):
         """
         if isinstance(parameters, dict):
             if not hasattr(self, 'parameters') or self.parameters is None:
-                self.parameters = {technique : parameters}
+                self.parameters = {technique: parameters}
             else:
                 self.parameters[technique].update(parameters)
             return self
@@ -1222,9 +1260,9 @@ class SimpleTechnique(SimpleStep):
     It is also a child class of SimpleStep. So, its documentation applies as
     well.
     """
-    technique : object = None
-    parameters : object = None
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    auto_finalize: bool = True
 
     def __post_init__(self):
         # Adds name of SimpleStep subclass to sections to inject from Idea

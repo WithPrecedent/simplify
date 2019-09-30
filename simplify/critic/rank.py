@@ -14,9 +14,9 @@ class Rank(SimplePlan):
     Args:
 
     """
-    steps : object = None
-    name : str = 'explainer'
-    auto_finalize : bool = True
+    steps: object = None
+    name: str = 'explainer'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -66,7 +66,7 @@ class PermutationImportances(SimpleStep):
         return self
 
     def draft(self):
-        self.options = {'eli5' : ['eli5.sklearn', 'PermutationImportance']}
+        self.options = {'eli5': ['eli5.sklearn', 'PermutationImportance']}
         return self
 
 

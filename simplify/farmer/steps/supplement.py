@@ -18,10 +18,10 @@ class Supplement(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    name : str = 'supplementer'
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    name: str = 'supplementer'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         return self

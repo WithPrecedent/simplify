@@ -25,13 +25,13 @@ class Canvas(SimpleClass):
     """Visualizes data and analysis based upon the nature of the machine
     learning model used in the siMpLify package.
     """
-    ingredients : object = None
-    steps : object = None
-    recipes : object = None
-    name : str = 'canvas'
-    planner_type : str = 'serial'
-    auto_finalize : bool = True
-    auto_produce : bool = True
+    ingredients: object = None
+    steps: object = None
+    recipes: object = None
+    name: str = 'canvas'
+    planner_type: str = 'serial'
+    auto_finalize: bool = True
+    auto_produce: bool = True
 
     def __post_init__(self):
         self.styler = []
@@ -96,7 +96,7 @@ class Canvas(SimpleClass):
     def draft(self):
         """Sets default styles, options, and plots."""
         self.options = {
-                'styler' : ['simplify.artist.illustrate', 'Style'],
+                'styler': ['simplify.artist.illustrate', 'Style'],
                 'illustrate': ['simplify.artist.illustrate', 'Illustrate'],
                 'paint': ['simplify.artist.paint', 'Paint'],
                 'animate': ['simplify.artist.animate', 'Animate']}

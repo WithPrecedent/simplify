@@ -1,9 +1,9 @@
 """
 .. module:: ingredients
-  :synopsis: contains data container class of siMpLify package.
-  :author: Corey Rayburn Yung
-  :copyright: 2019
-  :license: CC-BY-NC-4.0
+ :synopsis: contains data container class of siMpLify package.
+ :author: Corey Rayburn Yung
+ :copyright: 2019
+ :license: CC-BY-NC-4.0
 """
 
 from dataclasses import dataclass
@@ -64,20 +64,20 @@ class Ingredients(SimpleClass):
             the way siMpLify works, this should be set to True.
     """
 
-    df : object = None
-    default_df : str = 'df'
-    x : object = None
-    y : object = None
-    x_train : object = None
-    y_train : object = None
-    x_test : object = None
-    y_test : object = None
-    x_val : object = None
-    y_val : object = None
-    datatypes : object = None
-    prefixes : object = None
-    auto_finalize : bool = True
-    state_dependent : bool = True
+    df: object = None
+    default_df: str = 'df'
+    x: object = None
+    y: object = None
+    x_train: object = None
+    y_train: object = None
+    x_test: object = None
+    y_test: object = None
+    x_val: object = None
+    y_val: object = None
+    datatypes: object = None
+    prefixes: object = None
+    auto_finalize: bool = True
+    state_dependent: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -684,7 +684,7 @@ class Ingredients(SimpleClass):
         self.y = df[label]
         # Drops columns in self.y from datatypes dictionary and stores its
         # datatype in 'label_datatype'.
-        self.label_datatype = {label : self.datatypes[label]}
+        self.label_datatype = {label: self.datatypes[label]}
         del self.datatypes[label]
         return self
 
@@ -716,14 +716,14 @@ class Ingredients(SimpleClass):
         # Declares dictionary of DataFrames contained in Ingredients to allow
         # temporary remapping of attributes in __getattr__. __setattr does
         # not use this mapping.
-        self.options = {'x' : 'x',
-                        'y' : 'y',
-                        'x_train' : 'x_train',
-                        'y_train' : 'y_train',
-                        'x_test' : 'x_test',
-                        'y_test' : 'y_test',
-                        'x_val' : 'x_val',
-                        'y_val' : 'y_val'}
+        self.options = {'x': 'x',
+                        'y': 'y',
+                        'x_train': 'x_train',
+                        'y_train': 'y_train',
+                        'x_test': 'x_test',
+                        'y_test': 'y_test',
+                        'x_val': 'x_val',
+                        'y_val': 'y_val'}
         # Copies 'options' so that original mapping is preserved.
         self.default_options = self.options.copy()
         # Creates object for all available datatypes.

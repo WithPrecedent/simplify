@@ -20,10 +20,10 @@ class Combine(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    name : str = 'combiner'
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    name: str = 'combiner'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init()
@@ -48,9 +48,9 @@ class Combine(SimpleStep):
         return ingredients
 
     def draft(self):
-        self.options = {'all' : self._combine_all,
-                        'any' : self._combine_any,
-                        'dict' : self._dict}
+        self.options = {'all': self._combine_all,
+                        'any': self._combine_any,
+                        'dict': self._dict}
         if isinstance(self.method, str):
             self.algorithm = self.options[self.method]
         else:

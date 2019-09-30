@@ -17,9 +17,9 @@ class Sow(SimplePlan):
             the class is instanced. This should generally be set to True.
     """
 
-    steps : object = None
-    name : str = 'sower'
-    auto_finalize : bool = True
+    steps: object = None
+    name: str = 'sower'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -31,11 +31,11 @@ class Sow(SimplePlan):
                 'scrape': ['simplify.farmer.steps.scrape', 'Scrape'],
                 'convert': ['simplify.farmer.steps.convert', 'Convert'],
                 'divide': ['simplify.farmer.steps.divide', 'Divide']}
-        self.needed_parameters = {'convert' : ['file_in', 'file_out',
+        self.needed_parameters = {'convert': ['file_in', 'file_out',
                                                  'method'],
-                                  'download' : ['file_url', 'file_name'],
-                                  'scrape' : ['file_url', 'file_name'],
-                                  'split' : ['in_folder', 'out_folder',
+                                  'download': ['file_url', 'file_name'],
+                                  'scrape': ['file_url', 'file_name'],
+                                  'split': ['in_folder', 'out_folder',
                                                 'method']}
         if self.technique in ['split']:
             self.import_folder = 'raw'

@@ -20,10 +20,10 @@ class Streamline(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : str = ''
-    parameters : object = None
-    name : str = 'scaler'
-    auto_finalize : bool = True
+    technique: str = ''
+    parameters: object = None
+    name: str = 'scaler'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         return self

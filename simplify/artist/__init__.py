@@ -1,6 +1,6 @@
 """
 .. module:: siMpLify artist
-  :synopsis: data visualization made simple
+ :synopsis: data visualization made simple
 """
 
 

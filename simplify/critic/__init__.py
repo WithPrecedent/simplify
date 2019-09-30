@@ -1,6 +1,6 @@
 """
 .. module:: siMpLify critic
-  :synopsis: data and model evaluation made simple
+ :synopsis: data and model evaluation made simple
 """
 
 from .analysis import Analysis

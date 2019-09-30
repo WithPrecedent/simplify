@@ -21,10 +21,10 @@ class Search(SimpleTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    auto_finalize : bool = True
-    name : str = 'searcher'
+    technique: object = None
+    parameters: object = None
+    auto_finalize: bool = True
+    name: str = 'searcher'
 
     def __post_init__(self):
         super().__post_init__()
@@ -44,7 +44,7 @@ class Search(SimpleTechnique):
                   self.technique, 'search algorithm')
             print('The', self.parameters['scoring'],
                   'score of the best estimator for this model is',
-                  f'{self.algorithm.best_score_ : 4.4f}')
+                  f'{self.algorithm.best_score_: 4.4f}')
         return self
 
     """ Core siMpLify Methods """

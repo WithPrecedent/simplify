@@ -26,7 +26,7 @@ class SimpleIterables(object):
             return [f'{prefix}_{value}' for value in iterable]
         elif isinstance(iterable, dict):
             return (
-                {f'{prefix}_{key}' : value for key, value in iterable.items()})
+                {f'{prefix}_{key}': value for key, value in iterable.items()})
         elif isinstance(iterable, pd.Series):
             return iterable.edit_prefix(prefix)
         elif isinstance(iterable, pd.DataFrame):
@@ -40,7 +40,7 @@ class SimpleIterables(object):
             return [f'{value}_{suffix}' for value in iterable]
         elif isinstance(iterable, dict):
             return (
-                {f'{key}_{suffix}' : value for key, value in iterable.items()})
+                {f'{key}_{suffix}': value for key, value in iterable.items()})
         elif isinstance(iterable, pd.Series):
             return iterable.edit_suffix(suffix)
         elif isinstance(iterable, pd.DataFrame):

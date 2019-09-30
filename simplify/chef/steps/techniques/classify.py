@@ -19,10 +19,10 @@ class Classify(SimpleTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : object = None
-    parameters : object = None
-    name : str = 'classifier'
-    auto_finalize : bool = True
+    technique: object = None
+    parameters: object = None
+    name: str = 'classifier'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -41,15 +41,15 @@ class Classify(SimpleTechnique):
                 'svm_rbf': ['sklearn.svm', 'SVC'],
                 'svm_sigmoid': ['sklearn.svm', 'SVC'],
                 'xgboost': ['xgboost', 'XGBClassifier']}
-        self.extra_parameters = {'baseline' : {'strategy' : 'most_frequent'},
-                                 'svm_linear' : {'kernel' : 'linear',
-                                                 'probability' : True},
-                                 'svm_poly' : {'kernel' : 'poly',
-                                               'probability' : True},
-                                 'svm_rbf' : {'kernel' : 'rbf',
-                                              'probability' : True},
-                                 'svm_sigmoid' : {'kernel' : 'sigmoid',
-                                                  'probability' : True}}
+        self.extra_parameters = {'baseline': {'strategy': 'most_frequent'},
+                                 'svm_linear': {'kernel': 'linear',
+                                                 'probability': True},
+                                 'svm_poly': {'kernel': 'poly',
+                                               'probability': True},
+                                 'svm_rbf': {'kernel': 'rbf',
+                                              'probability': True},
+                                 'svm_sigmoid': {'kernel': 'sigmoid',
+                                                  'probability': True}}
         return self
 
     def finalize(self):

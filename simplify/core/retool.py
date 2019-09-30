@@ -35,18 +35,18 @@ class ReTool(SimpleClass):
     is with a very large dataframe and a relatively small (< 500 rows)
     expressions dictionary.
     """
-    technique : str
-    keys : str = 'keys'
-    values : str = 'values'
-    sections : str = 'sections'
-    datatypes : str = 'datatypes'
-    flags : object = None
-    zipped : object = None
-    file_path : str = ''
-    encoding : str = 'windows-1252'
-    section_prefix : str = 'section'
-    edit_prefixes : bool = True
-    auto_finalize : bool = True
+    technique: str
+    keys: str = 'keys'
+    values: str = 'values'
+    sections: str = 'sections'
+    datatypes: str = 'datatypes'
+    flags: object = None
+    zipped: object = None
+    file_path: str = ''
+    encoding: str = 'windows-1252'
+    section_prefix: str = 'section'
+    edit_prefixes: bool = True
+    auto_finalize: bool = True
 
     def __post_init__(self):
         self.draft()
@@ -103,25 +103,25 @@ class ReTool(SimpleClass):
 
     def draft(self):
         # Sets str names for corresponding regex compiling flags.
-        self.flag_options = {'ignorecase' : re.IGNORECASE,
-                             'dotall' : re.DOTALL,
-                             'locale' : re.LOCALE,
-                             'multiline' : re.MULTILINE,
-                             'verbose' : re.VERBOSE,
-                             'ascii' : re.ASCII}
+        self.flag_options = {'ignorecase': re.IGNORECASE,
+                             'dotall': re.DOTALL,
+                             'locale': re.LOCALE,
+                             'multiline': re.MULTILINE,
+                             'verbose': re.VERBOSE,
+                             'ascii': re.ASCII}
         # Sets options for matcher classes.
-        self.options = {'organize' : ReOrganize,
-                        'parse' : ReSearch,
-                        'keyword' : ReFrame}
+        self.options = {'organize': ReOrganize,
+                        'parse': ReSearch,
+                        'keyword': ReFrame}
         return self
 
     def _set_matcher(self):
         # Sets matcher options based upon data datatype.
-        parameters = {'expressions' : self.expressions,
-                      'sections' : self.sections,
-                      'datatypes' : self.datatypes,
-                      'edit_prefixes' : self.edit_prefixes,
-                      'section_prefix' : self.section_prefix}
+        parameters = {'expressions': self.expressions,
+                      'sections': self.sections,
+                      'datatypes': self.datatypes,
+                      'edit_prefixes': self.edit_prefixes,
+                      'section_prefix': self.section_prefix}
         self.matcher = self.options[self.technique](**parameters)
         self.matcher.default_values = self.default_values
         return self
@@ -169,22 +169,22 @@ class ReTool(SimpleClass):
         return ingredients
 
     def update(self, key, value):
-        self.expressions.update({key : value})
+        self.expressions.update({key: value})
         return self
 
 
 @dataclass
 class ReBuild(object):
 
-    keys : str = 'keys'
-    values : str = 'values'
-    sections : str = 'sections'
-    datatypes : str = 'datatypes'
-    flags : object = None
-    zipped : object = None
-    auto_finalize : bool = True
-    section_prefix : str = 'section'
-    flag_options : object = None
+    keys: str = 'keys'
+    values: str = 'values'
+    sections: str = 'sections'
+    datatypes: str = 'datatypes'
+    flags: object = None
+    zipped: object = None
+    auto_finalize: bool = True
+    section_prefix: str = 'section'
+    flag_options: object = None
 
     def __post_init__(self):
         if self.auto_finalize:
@@ -208,15 +208,15 @@ class ReBuild(object):
 @dataclass
 class ReLoad(object):
 
-    keys : str = 'keys'
-    values : str = 'values'
-    sections : str = 'sections'
-    datatypes : str = 'datatypes'
-    file_path : str = ''
-    auto_finalize : bool = True
-    encoding : str = 'windows-1252'
-    section_prefix : str = 'section'
-    flag_options : object = None
+    keys: str = 'keys'
+    values: str = 'values'
+    sections: str = 'sections'
+    datatypes: str = 'datatypes'
+    file_path: str = ''
+    auto_finalize: bool = True
+    encoding: str = 'windows-1252'
+    section_prefix: str = 'section'
+    flag_options: object = None
 
     def __post_init__(self):
         if self.auto_finalize:
@@ -304,11 +304,11 @@ class ReFrame(ReMatch):
     name passed in 'out_column.' The return is all matched patterns based upon
     a regular expression stored in a python list within each dataframe column.
     """
-    expressions : object
-    sections : object
-    datatypes : object
-    edit_prefixes : bool = True
-    section_prefix : str = 'section'
+    expressions: object
+    sections: object
+    datatypes: object
+    edit_prefixes: bool = True
+    section_prefix: str = 'section'
 
     def __post_init__(self):
         return self
@@ -360,11 +360,11 @@ class ReFrame(ReMatch):
 @dataclass
 class ReSearch(ReMatch):
 
-    expressions : object
-    sections : object
-    datatypes : object
-    edit_prefixes : bool = True
-    section_prefix : str = 'section'
+    expressions: object
+    sections: object
+    datatypes: object
+    edit_prefixes: bool = True
+    section_prefix: str = 'section'
 
     def __post_init__(self):
         super().__post_init__()
@@ -434,11 +434,11 @@ class ReOrganize(ReMatch):
     selected.
 
     """
-    expressions : object
-    sections : object
-    datatypes : object
-    edit_prefixes : bool = True
-    section_prefix : str = 'section'
+    expressions: object
+    sections: object
+    datatypes: object
+    edit_prefixes: bool = True
+    section_prefix: str = 'section'
 
     def __post_init__(self):
         return self
@@ -467,23 +467,23 @@ class ReTypes(SimpleType):
     def draft(self):
         """Sets default attributes related to ReTool datatypes."""
         # Sets string names for python and special datatypes.
-        self.name_to_type = {'boolean' : bool,
-                             'float' : float,
-                             'integer' : int,
-                             'list' : list,
-                             'pattern' : 'pattern',
-                             'patterns' : 'patterns',
-                             'remove' : 'remove',
-                             'replace' : 'replace',
-                             'string' : str}
+        self.name_to_type = {'boolean': bool,
+                             'float': float,
+                             'integer': int,
+                             'list': list,
+                             'pattern': 'pattern',
+                             'patterns': 'patterns',
+                             'remove': 'remove',
+                             'replace': 'replace',
+                             'string': str}
         # Sets default values for missing data based upon datatype of column.
-        self.default_values = {'boolean' : False,
-                               'float' : 0.0,
-                               'integer' : 0,
-                               'list' : [],
-                               'pattern' : '',
-                               'patterns' : [],
-                               'remove' : '',
-                               'replace' : '',
-                               'string' : ''}
+        self.default_values = {'boolean': False,
+                               'float': 0.0,
+                               'integer': 0,
+                               'list': [],
+                               'pattern': '',
+                               'patterns': [],
+                               'remove': '',
+                               'replace': '',
+                               'string': ''}
         return self

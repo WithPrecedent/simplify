@@ -16,11 +16,11 @@ from simplify.core.base import SimpleStep
 @dataclass
 class Paint(SimpleStep):
 
-    technique : str = ''
-    parameters : object = None
-    auto_finalize : bool = True
-    auto_produce : bool = False
-    name : str = 'painter'
+    technique: str = ''
+    parameters: object = None
+    auto_finalize: bool = True
+    auto_produce: bool = False
+    name: str = 'painter'
 
     def __post_init__(self):
         super().__post_init__()
@@ -68,29 +68,29 @@ class Paint(SimpleStep):
 
     def draft(self):
         """Sets available plots dictionary."""
-        self.options = {'calibration' : self.calibration,
-                        'cluster_tree' : self.cluster_tree,
-                        'confusion' : self.confusion,
-                        'cumulative_gain' : self.cumulative,
-                        'decision_boundaries' : self.decision_boundaries,
-                        'elbow' : self.elbow_curve,
-                        'heat_map' : self.heat_map,
-                        'histogram' : self.histogram,
-                        'kde' : self.kde_plot,
-                        'ks_statistic' : self.ks_stat,
-                        'lift' : self.lift_curve,
-                        'linear' : self.linear_regress,
-                        'logistic' : self.logistic_regress,
-                        'pair_plot' : self.pair_plot,
-                        'pr_curve' : self.pr_plot,
-                        'residuals' : self.residuals,
-                        'roc_curve' : self.roc_plot,
-                        'shap_dependency' : self.shap_dependency,
-                        'shap_force' : self.shap_force_plot,
-                        'shap_heat_map' : self.shap_heat_map,
-                        'shap_interactions' : self.shap_interactions,
-                        'shap_summary' : self.shap_summary,
-                        'silhouette' : self.silhouette}
+        self.options = {'calibration': self.calibration,
+                        'cluster_tree': self.cluster_tree,
+                        'confusion': self.confusion,
+                        'cumulative_gain': self.cumulative,
+                        'decision_boundaries': self.decision_boundaries,
+                        'elbow': self.elbow_curve,
+                        'heat_map': self.heat_map,
+                        'histogram': self.histogram,
+                        'kde': self.kde_plot,
+                        'ks_statistic': self.ks_stat,
+                        'lift': self.lift_curve,
+                        'linear': self.linear_regress,
+                        'logistic': self.logistic_regress,
+                        'pair_plot': self.pair_plot,
+                        'pr_curve': self.pr_plot,
+                        'residuals': self.residuals,
+                        'roc_curve': self.roc_plot,
+                        'shap_dependency': self.shap_dependency,
+                        'shap_force': self.shap_force_plot,
+                        'shap_heat_map': self.shap_heat_map,
+                        'shap_interactions': self.shap_interactions,
+                        'shap_summary': self.shap_summary,
+                        'silhouette': self.silhouette}
         return self
 
 #    def _edit_dependency_plots(self):

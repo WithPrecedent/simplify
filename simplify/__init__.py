@@ -1,6 +1,6 @@
 """
 .. module:: simplify
-  :synopsis: data science made simple
+ :synopsis: data science made simple
 """
 from simplify.idea import Idea
 from simplify.depot import Depot

@@ -19,10 +19,10 @@ class Mix(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique : str = ''
-    parameters : object = None
-    name : str = 'mixer'
-    auto_finalize : bool = True
+    technique: str = ''
+    parameters: object = None
+    name: str = 'mixer'
+    auto_finalize: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -61,7 +61,7 @@ class Mix(SimpleStep):
         if not columns:
             columns = ingredients.encoders
         if columns:
-            self.runtime_parameters = {'cols' : columns}
+            self.runtime_parameters = {'cols': columns}
         super().finalize()
         self.algorithm.fit(ingredients.x, ingredients.y)
         self.algorithm.transform(
