@@ -1,10 +1,9 @@
 
 from dataclasses import dataclass
 
-from category_encoders import PolynomialEncoder
-
 from simplify.core.base import SimpleStep
 from simplify.core.decorators import numpy_shield
+
 
 @dataclass
 class Mix(SimpleStep):
@@ -31,10 +30,14 @@ class Mix(SimpleStep):
 
     def draft(self):
         super().draft()
-        self.options = {'polynomial' : PolynomialEncoder,
-                        'quotient' : self.quotient_features,
-                        'sum' : self.sum_features,
-                        'difference' : self.difference_features}
+        self.options = {
+                'polynomial': ['category_encoders', 'PolynomialEncoder'],
+                'quotient': ['simplify.chef.steps.techniques.mixers',
+                             'QuotientFeatures'],
+                'sum': ['simplify.chef.steps.techniques.mixers',
+                        'SumFeatures'],
+                'difference': ['simplify.chef.steps.techniques.mixers',
+                               'DifferenceFeatures']}
         return self
 
     def quotient_features(self):

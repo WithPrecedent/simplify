@@ -1,11 +1,6 @@
 
 from dataclasses import dataclass
 
-from category_encoders import (BackwardDifferenceEncoder, BaseNEncoder,
-                               BinaryEncoder, HashingEncoder, HelmertEncoder,
-                               LeaveOneOutEncoder, OneHotEncoder,
-                               OrdinalEncoder, SumEncoder, TargetEncoder)
-
 from simplify.core.base import SimpleStep
 from simplify.core.decorators import numpy_shield
 
@@ -35,16 +30,17 @@ class Encode(SimpleStep):
 
     def draft(self):
         super().draft()
-        self.options = {'backward' : BackwardDifferenceEncoder,
-                        'basen' : BaseNEncoder,
-                        'binary' : BinaryEncoder,
-                        'dummy' : OneHotEncoder,
-                        'hashing' : HashingEncoder,
-                        'helmert' : HelmertEncoder,
-                        'loo' : LeaveOneOutEncoder,
-                        'ordinal' : OrdinalEncoder,
-                        'sum' : SumEncoder,
-                        'target' : TargetEncoder}
+        self.options = {
+                'backward': ['category_encoders', 'BackwardDifferenceEncoder'],
+                'basen': ['category_encoders', 'BaseNEncoder'],
+                'binary': ['category_encoders', 'BinaryEncoder'],
+                'dummy': ['category_encoders', 'OneHotEncoder'],
+                'hashing': ['category_encoders', 'HashingEncoder'],
+                'helmert': ['category_encoders', 'HelmertEncoder'],
+                'loo': ['category_encoders', 'LeaveOneOutEncoder'],
+                'ordinal': ['category_encoders', 'OrdinalEncoder'],
+                'sum': ['category_encoders', 'SumEncoder'],
+                'target': ['category_encoders', 'TargetEncoder']}
         return self
 
     def finalize(self):

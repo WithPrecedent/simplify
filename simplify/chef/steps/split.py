@@ -1,9 +1,6 @@
 
 from dataclasses import dataclass
 
-from sklearn.model_selection import (GroupKFold, KFold, ShuffleSplit,
-                                     StratifiedKFold, TimeSeriesSplit)
-
 from simplify.core.base import SimpleStep
 
 
@@ -33,11 +30,12 @@ class Split(SimpleStep):
 
     def draft(self):
         super().draft()
-        self.options = {'group_kfold' : GroupKFold,
-                        'kfold' : KFold,
-                        'stratified' : StratifiedKFold,
-                        'time' : TimeSeriesSplit,
-                        'train_test' : ShuffleSplit}
+        self.options = {
+                'group_kfold': ['sklearn.model_selection', 'GroupKFold'],
+                'kfold': ['sklearn.model_selection', 'KFold'],
+                'stratified': ['sklearn.model_selection', 'StratifiedKFold'],
+                'time': ['sklearn.model_selection', 'TimeSeriesSplit'],
+                'train_test': ['sklearn.model_selection', 'ShuffleSplit']}
         self.default_parameters = {
                 'train_test' : {'test_size' : 0.33},
                 'kfold' : {'n_splits' : 5, 'shuffle' : False},

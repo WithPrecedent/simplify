@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from simplify.core.base import SimpleStep
 from simplify.core.decorators import numpy_shield
 
+
 @dataclass
 class Cleave(SimpleStep):
     """Stores different groups of features (to allow comparison among those
@@ -52,6 +53,15 @@ class Cleave(SimpleStep):
         add a new cleave group to the cleaver dictionary.
         """
         self.options.update({cleave_group : columns})
+        return self
+
+    def draft(self):
+        self.options = {
+                'compare': ['simplify.chef.steps.techniques.cleavers',
+                            'CompareCleaves'],
+
+                'combine': ['simplify.chef.steps.techniques.cleavers',
+                            'CombineCleaves']}
         return self
 
     def finalize(self):

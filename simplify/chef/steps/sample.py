@@ -1,11 +1,6 @@
 
 from dataclasses import dataclass
 
-from imblearn.combine import SMOTEENN, SMOTETomek
-from imblearn.over_sampling import ADASYN, RandomOverSampler, SMOTE, SMOTENC
-from imblearn.under_sampling import (AllKNN, ClusterCentroids, NearMiss,
-                                     RandomUnderSampler)
-
 from simplify.core.base import SimpleStep
 from simplify.core.decorators import numpy_shield
 
@@ -47,16 +42,19 @@ class Sample(SimpleStep):
 
     def draft(self):
         super().draft()
-        self.options = {'adasyn' : ADASYN,
-                        'cluster' : ClusterCentroids,
-                        'knn' : AllKNN,
-                        'near_miss' : NearMiss,
-                        'random_over' : RandomOverSampler,
-                        'random_under' : RandomUnderSampler,
-                        'smote' : SMOTE,
-                        'smotenc' : SMOTENC,
-                        'smoteenn' :  SMOTEENN,
-                        'smotetomek' : SMOTETomek}
+        self.options = {
+                'adasyn': ['imblearn.over_sampling', 'ADASYN'],
+                'cluster': ['imblearn.under_sampling', 'ClusterCentroids'],
+                'knn': ['imblearn.under_sampling', 'AllKNN'],
+                'near_miss': ['imblearn.under_sampling', 'NearMiss'],
+                'random_over': ['imblearn.over_sampling',
+                                 'RandomOverSampler'],
+                'random_under': ['imblearn.under_sampling',
+                                  'RandomUnderSampler'],
+                'smote': ['imblearn.over_sampling', 'SMOTE'],
+                'smotenc': ['imblearn.over_sampling', 'SMOTENC'],
+                'smoteenn':  ['imblearn.combine', 'SMOTEENN'],
+                'smotetomek': ['imblearn.combine', 'SMOTETomek']}
         self.default_parameters = {'sampling_strategy' : 'auto'}
         self.runtime_parameters = {'random_state' : self.seed}
         return self

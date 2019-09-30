@@ -3,9 +3,6 @@ from dataclasses import dataclass
 
 from scipy.stats import randint, uniform
 
-from simplify.chef.steps.models.classifier import Classifier
-from simplify.chef.steps.models.clusterer import Clusterer
-from simplify.chef.steps.models.regressor import Regressor
 from simplify.core.base import SimpleStep
 
 
@@ -14,16 +11,16 @@ class Model(SimpleStep):
     """Applies machine learning algorithms based upon user selections.
 
     Args:
-        technique (str): name of technique.
-        parameters (dict): dictionary of parameters to pass to selected
+        technique(str): name of technique.
+        parameters(dict): dictionary of parameters to pass to selected
             algorithm.
-        name (str): name of class for matching settings in the Idea instance
-            and for labeling the columns in files exported by Critic.
-        auto_finalize (bool): whether 'finalize' method should be called when
+        name(str): name of class for matching settings in the Idea instance
+            and elsewhere in the siMpLify package.
+        auto_finalize(bool): whether 'finalize' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
-    technique : str = ''
+    technique : object = None
     parameters : object = None
     name : str = 'model'
     auto_finalize : bool = True
@@ -33,45 +30,44 @@ class Model(SimpleStep):
         super().__post_init__()
         return self
 
-    def _check_specific_parameters(self):
-        if ('xgboost' in self.model_parameters
-                and not 'scale_pos_weight' in self.model_parameters['xgboost']
-                and hasattr(self, 'scale_pos_weight')):
-            self.parameters['xgboost'].update(
-                    {'scale_pos_weight' : self.scale_pos_weight})
-        if 'xgboost' in self.model_parameters and self.gpu:
-            self.runtime_parameters.update(
-                    {'xgboost' : {'tree_method' : 'gpu_exact'}})
-        return self
+    """ Private Methods """
 
     def _datatype_in_list(self, test_list, data_type):
         """Tests whether any item in a list is of the passed data type."""
         return any(isinstance(i, data_type) for i in test_list)
 
+    def _finalize_options_gpu(self):
+        self.classifier_algorithms.update({
+                'forest_inference': ['cuml', 'ForestInference'],
+                'random_forest': ['cuml', 'RandomForestClassifier'],
+                'logit': ['cuml', 'LogisticRegression']})
+        self.clusterer_algorithms.update({
+                'dbscan': ['cuml', 'DBScan'],
+                'kmeans': ['cuml', 'KMeans']})
+        self.regressor_algorithms.update({
+                'lasso': ['cuml', 'Lasso'],
+                'ols': ['cuml', 'LinearRegression'],
+                'ridge': ['cuml', 'RidgeRegression']})
+        return self
 
-    # def finalize(self):
-    #     self._edit_specific_parameters()
-    #     if self.gpu:
-    #        self._gpu_parameters()
-    #     self._parse_parameters()
-    #     self.estimator = self.options[self.technique]
-    #     if self.hyperparameter_search:
-    #         parameters = {'estimator' : self.estimator,
-    #                       'space' : self.space}
-    #         self.searcher = Search(technique = self.search_technique,
-    #                                parameters = parameters )
-    #     self.algorithm = self.estimator(**self.parameters)
-    #     return self
+    def _finalize_search_parameters(self):
+        self.search_parameters = self.idea['search_parameters']
+        self.search_parameters.update({'estimator' : self.algorithm.algorithm,
+                                       'param_distributions' : self.space,
+                                       'random_state' : self.seed})
+        return self
 
-    # def produce(self, ingredients):
-    #     if self.hyperparameter_search:
-    #         self.searcher.produce(ingredients = ingredients)
-    #         self.algorithm = self.searcher.best_estimator
-    #     else:
-    #         self.algorithm.fit(ingredients.x_train, ingredients.y_train)
-    #     return ingredients
+    def _get_parameters_conditional(self, technique, parameters):
+        if (technique in ['xgboost']
+                and not 'scale_pos_weight' in parameters
+                and hasattr(self, 'scale_pos_weight')):
+            self.parameters.update(
+                    {'scale_pos_weight' : self.scale_pos_weight})
+            if self.gpu:
+                self.parameters.update({'tree_method' : 'gpu_exact'})
+        return self
 
-    def _parse_search_parameters(self):
+    def _parse_parameters(self):
         """Parses parameters to determine if the user has created ranges of
         parameters. If so, parameters are divided between those to be searched
         and those that are fixed. If any parameters include a range of values,
@@ -94,40 +90,53 @@ class Model(SimpleStep):
         self.parameters = new_parameters
         return self
 
+    """ Core siMpLify Methods """
+
     def draft(self):
         super().draft()
-        self.options = {'classifier' : Classifier,
-                        'clusterer' : Clusterer,
-                        'regressor' : Regressor}
+        self.options = {
+                'classify': ['simplify.chef.steps.techniques.classify',
+                             'Classify'],
+                'cluster': ['simplify.chef.steps.techniques.cluster',
+                            'Cluster'],
+                'regress': ['simplify.chef.steps.techniques.regress',
+                            'Regress'],
+                'search': ['simplify.chef.steps.techniques.search', 'Search']}
         self.runtime_parameters = {'random_state' : self.seed}
+        self.custom_options = ['classifier', 'clusterer', 'regressor']
         return self
 
     def finalize(self):
-        """Adds parameters to machine learning algorithm."""
         if self.technique != 'none':
-            if not hasattr(self, 'parameters') or not self.parameters:
-                self.model_parameters = self.idea[self.technique]
-            self._check_specific_parameters()
-            self._parse_search_parameters()
             self._finalize_parameters()
+            self._parse_parameters()
             self.algorithm = self.options[self.model_type](
-                    technique = self.technique,
-                    parameters = self.parameters)
-            self.algorithm.finalize()
+                technique = self.technique,
+                parameters = self.parameters)
+            if self.hyperparameter_search:
+                self._finalize_search_parameters()
+                self.search_algorithm = Searcher(
+                        technique = self.search_technique,
+                        parameters = self.search_parameters)
+
         return self
 
     def produce(self, ingredients, plan = None):
         """Applies model from recipe to ingredients data."""
         if self.technique != 'none':
-            if self.verbose:
-                print('Applying', self.technique, 'model')
-            self.algorithm = self.algorithm.produce(ingredients = ingredients)
-        return self
+            if self.hyperparameter_search:
+                self.algorithm = self.search_algorithm.produce(
+                        ingredients = ingredients)
+            else:
+                self.algorithm = self.algorithm.produce(
+                        ingredients = ingredients)
+        return ingredients
+
+    """ Scikit-Learn Compatibility Methods """
 
     def fit_transform(self, x, y = None):
         error = 'fit_transform is not implemented for machine learning models'
         raise NotImplementedError(error)
-
 
     def transform(self, x, y = None):
         error = 'transform is not implemented for machine learning models'

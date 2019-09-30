@@ -95,9 +95,11 @@ class Canvas(SimpleClass):
 
     def draft(self):
         """Sets default styles, options, and plots."""
-        self.options = {'styler' : Style,
-                        'painter' : Paint,
-                        'animator' : Animate}
+        self.options = {
+                'styler' : ['simplify.artist.illustrate', 'Style'],
+                'illustrate': ['simplify.artist.illustrate', 'Illustrate'],
+                'paint': ['simplify.artist.paint', 'Paint'],
+                'animate': ['simplify.artist.animate', 'Animate']}
         self.checks = ['steps', 'model_type']
         # Locks 'step' attribute at 'artist' for conform methods in package.
         self.step = 'artist'

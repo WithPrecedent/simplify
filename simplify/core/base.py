@@ -20,6 +20,7 @@ should be subclassed in any additional extensions to the siMpLify package.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from importlib import import_module
 from itertools import product
 import os
 import warnings
@@ -63,6 +64,8 @@ class SimpleClass(ABC):
         self.draft()
         # Runs attribute checks from list in 'checks' attribute (if it exists).
         self._run_checks()
+        # Converts values in 'options' to classes by lazily importing them.
+        self._lazily_import_options()
         # Registers subclass into lists based upon specific subclass needs.
         self._register_subclass()
         # Calls 'finalize' method if it exists and 'auto_finalize' is True.
@@ -323,9 +326,31 @@ class SimpleClass(ABC):
             else:
                 return list(self.options.keys())
         elif value in ['none', ['none'], None]:
-            return ['none']
+            return 'none'
         else:
-            return self.listify(value)
+            return value
+
+    def _lazily_import_options(self):
+        """Limits module imports to only needed package dependencies.
+
+        This method allows users to either save memory or have less
+        dependencies locally available by importing fewer packages than
+        would be done through normal, blanket importation.
+
+        To use this method, 'options' should be formatted as follows:
+            {name(str) : [module_path(str), class_name(str)]}
+
+        """
+        imported_options = {}
+        if self.exists('options'):
+            if not hasattr(self, 'lazy_import') or self.lazy_import:
+                if self.has_list_values(self.options):
+                    for name, settings in self.options.items():
+                        imported_options.update(
+                            {name : getattr(import_module(settings[0]),
+                                            settings[1])})
+                    self.options = imported_options
+        return self
 
     @classmethod
     def _register_subclass(self):
@@ -422,6 +447,19 @@ class SimpleClass(ABC):
         """
         return (hasattr(self, attribute)
                 and getattr(self, attribute) is not None)
+
+    @staticmethod
+    def has_list_values(dictionary):
+        """Returns if passed 'dictionary' has lists for values.
+
+        Args:
+            dictionary (dict): dict to be tested.
+
+        Returns:
+            boolean value indicating whether any value in the 'dictionary' has
+                list for all values
+        """
+        return all(isinstance(d, list) for d in dictionary.values())
 
     @staticmethod
     def is_nested(dictionary):
@@ -632,30 +670,30 @@ class SimpleManager(SimpleClass):
             setattr(self, self.plan_iterable, {})
         return self
 
-    def _convert_wildcards(self, step):
-        """Converts 'all', 'default' to items from SimpleStep subclass
-        'options'.
-
-        Args:
-            step (str): name of step.
-
-        Returns:
-            if 'all', the keys in 'options' are returned.
-            if 'default', either 'default_techniques' or the keys in 'options'
-                are returned.
-        """
-        step = self.stringify(step)
-        if getattr(self, step) in ['all', 'default']:
-            test_instance = self.options[step](auto_finalize = False)
-            if getattr(self, step) in ['all']:
-                return list(test_instance.options.keys())
-            elif (hasattr(test_instance, 'default_techniques')
-                    and test_instance.default_techniques):
-                return test_instance.default_techniques
-            else:
-                return list(test_instance.options.keys())
-        else:
-            return step
+#    def _convert_wildcards(self, step):
+#        """Converts 'all', 'default' to items from SimpleStep subclass
+#        'options'.
+#
+#        Args:
+#            step (str): name of step.
+#
+#        Returns:
+#            if 'all', the keys in 'options' are returned.
+#            if 'default', either 'default_techniques' or the keys in 'options'
+#                are returned.
+#        """
+#        step = self.stringify(step)
+#        if getattr(self, step) in ['all', 'default']:
+#            test_instance = self.options[step](auto_finalize = False)
+#            if getattr(self, step) in ['all']:
+#                return list(test_instance.options.keys())
+#            elif (hasattr(test_instance, 'default_techniques')
+#                    and test_instance.default_techniques):
+#                return test_instance.default_techniques
+#            else:
+#                return list(test_instance.options.keys())
+#        else:
+#            return step
 
     def _create_steps_lists(self):
         """Creates list of lists of all possible steps in 'options'."""
@@ -663,8 +701,7 @@ class SimpleManager(SimpleClass):
         for step in self.options.keys():
             # Stores each step attribute in a list.
             if hasattr(self, step):
-                print(self.name, self._convert_wildcards(step = step))
-                setattr(self, step, self._convert_wildcards(step = step))
+                setattr(self, step, self.listify(getattr(self, step)))
             # Stores a list of 'none' if there is no corresponding local
             # attribute.
             else:
@@ -689,13 +726,47 @@ class SimpleManager(SimpleClass):
 
     def _finalize_plans_serial(self):
         """Creates plan iterable from list of lists in 'all_steps'."""
-        for i, (step_name, step_class) in enumerate(self.options.items()):
-            for technique in self.all_steps[i]:
+        for i, (plan_name, plan_class) in enumerate(self.options.items()):
+            for steps in self.all_steps[i]:
                 getattr(self, self.plan_iterable).update(
-                            {i : self.plan_class(
-                                    steps = {step_name : step_class(
-                                            technique = technique)})})
+                        {i + 1 : plan_class(steps = steps)})
         return self
+
+    def _produce_parallel(self, variable = None, **kwargs):
+        """Method that implements all of the finalized objects on the
+        passed variable.
+
+        The variable is returned after being transformed by called methods.
+
+        Args:
+            variable(any): any variable. In most cases in the siMpLify package,
+                variable is an instance of Ingredients. However, any variable
+                or datatype can be used here.
+            **kwargs: other parameters can be added to method as needed or
+                **kwargs can be used.
+        """
+        for number, plan in getattr(self, self.plan_iterable).items():
+            if self.verbose:
+                print('Testing', self.name, str(number))
+            variable = plan.produce(variable, **kwargs)
+        return variable
+
+    def _produce_serial(self, variable = None, **kwargs):
+        """Method that implements all of the finalized objects on the
+        passed variable.
+
+        The variable is returned after being transformed by called methods.
+
+        Args:
+            variable(any): any variable. In most cases in the siMpLify package,
+                variable is an instance of Ingredients. However, any variable
+                or datatype can be used here.
+            **kwargs: other parameters can be added to method as needed or
+                **kwargs can be used.
+        """
+        for number, plan in getattr(self, self.plan_iterable).items():
+            variable = plan.produce(variable, **kwargs)
+        return variable
 
     """ Core siMpLify methods """
 
@@ -714,8 +785,9 @@ class SimpleManager(SimpleClass):
 
     def produce(self, variable = None, **kwargs):
         """Method that implements all of the finalized objects on the
-        passed variable. The variable is returned after being transformed by
-        called methods.
+        passed variable.
+
+        The variable is returned after being transformed by called methods.
 
         Args:
             variable(any): any variable. In most cases in the siMpLify package,
@@ -724,10 +796,8 @@ class SimpleManager(SimpleClass):
             **kwargs: other parameters can be added to method as needed or
                 **kwargs can be used.
         """
-        for number, plan in getattr(self, self.plan_iterable).items():
-            if self.manager_type in ['parallel'] and self.verbose:
-                print('Testing', self.name, str(number))
-            variable = plan.produce(variable, **kwargs)
+        variable = getattr(self, '_produce_' + self.manager_type)(
+                variable = variable, **kwargs)
         return variable
 
 
@@ -741,7 +811,8 @@ class SimplePlan(SimpleClass):
             values of SimpleStep subclass instances.
 
     It is also a child class of SimpleClass. So, its documentation applies as
-    well."""
+    well.
+    """
 
     steps : object = None
 
@@ -818,7 +889,7 @@ class SimpleStep(SimpleClass):
     well.
     """
 
-    technique : str = ''
+    technique : object = None
     parameters : object = None
     auto_finalize : bool = True
 
@@ -828,8 +899,6 @@ class SimpleStep(SimpleClass):
         # attributes.
         if self.exists('manager_name'):
             self.idea_sections = [self.manager_name]
-#        self.check_nests = ['default_parameters', 'runtime_parameters',
-#                            'extra_parameters', 'parameters']
         super().__post_init__()
         return self
 
@@ -848,7 +917,7 @@ class SimpleStep(SimpleClass):
 
         If 'parameters' is not nested, 'parameters' is returned unaltered.
         """
-        if self.is_nested(parameters):
+        if self.is_nested(parameters) and technique in parameters:
             return parameters[technique]
         else:
             return parameters
@@ -861,16 +930,17 @@ class SimpleStep(SimpleClass):
         If 'runtime_parameters' and/or 'extra_parameters' exist in the
         subclass, those are added to 'parameters' as well.
         """
-        parameter_groups = ['select', 'runtime', 'extra']
-        self.parameters = self._get_parameters()
+        parameter_groups = ['', '_selected', '_runtime', '_extra',
+                            '_conditional']
         for parameter_group in parameter_groups:
-            self.parameters = getattr(
-                    self, '_get_parameters_' + parameter_group)(
-                            technique = self.technique,
-                            parameters = self.parameters)
+            if hasattr(self, '_get_parameters' + parameter_group):
+                getattr(self, '_get_parameters' + parameter_group)(
+                        technique = self.technique,
+                        parameters = self.parameters)
+
         return self
 
-    def _get_parameters(self):
+    def _get_parameters(self, technique, parameters):
         """Returns parameters from different possible sources based upon passed
         'technique'.
 
@@ -885,15 +955,18 @@ class SimpleStep(SimpleClass):
 
         """
         if self.exists('parameters') and self.parameters:
-            return self.denestify(self.technique, self.parameters)
+            self.parameters = self._denestify(self.technique, self.parameters)
         elif self.technique in self.idea.configuration:
-            return {self.technique : self.idea.configuration[self.technique]}
+            self.parameters = self.idea.configuration[self.technique]
         elif self.name in self.idea.configuration:
-            return {self.technique : self.idea.configuration[self.name]}
+            self.parameters = self.idea.configuration[self.name]
         elif self.exists('default_parameters'):
-            return {self.technique : self.default_parameters[self.technique]}
+            self.parameters = self._denestify(
+                    technique = self.technique,
+                    parameters = self.default_parameters)
         else:
-            return {}
+            self.parameters = {}
+        return self
 
     def _get_parameters_extra(self, technique, parameters):
         """Adds parameters from 'extra_parameters' if attribute exists.
@@ -917,10 +990,10 @@ class SimpleStep(SimpleClass):
                 in the nested 'extra_parameters' dictionary.
         """
         if self.exists('extra_parameters') and self.extra_parameters:
-            return parameters.update(
-                    self.denestify(technique, self.extra_parameters))
-        else:
-            return parameters
+            parameters.update(
+                    self._denestify(technique = technique,
+                                    parameters = self.extra_parameters))
+            return
 
     def _get_parameters_runtime(self, technique, parameters):
         """Adds runtime parameters to parameters based upon passed 'technique'.
@@ -930,10 +1003,11 @@ class SimpleStep(SimpleClass):
                 sought.
         """
         if self.exists('runtime_parameters'):
-            return parameters.update(
-                    self.denestify(technique, self.runtime_parameters))
-        else:
+            parameters.update(
+                    self._denestify(technique = technique,
+                                    parameters = self.runtime_parameters))
             return parameters
+
 
     def _get_parameters_selected(self, technique, parameters,
                                  parameters_to_use = None):
@@ -949,15 +1023,14 @@ class SimpleStep(SimpleClass):
                 if isinstance(self.selected_parameters, list):
                     parameters_to_use = self.selected_parameters
                 elif self.exists('default_parameters'):
-                    parameters_to_use = list(self.denestify(
+                    parameters_to_use = list(self._denestify(
                             technique, self.default_parameters).keys())
             new_parameters = {}
             for key, value in parameters.items():
                 if key in self.listify(parameters_to_use):
                     new_parameters.update({key : value})
-            return new_parameters
-        else:
-            return parameters
+            self.parameters = new_parameters
+        return self
 
     """ Core siMpLify Public Methods """
 
@@ -1021,10 +1094,9 @@ class SimpleStep(SimpleClass):
                 used when the current SimpleStep subclass needs to look back at
                 previous SimpleSteps (as in Cookbook steps).
         """
-        if self.algorithms:
-            for algorithm in self.algorithms:
-                algorithm.fit(ingredients.x, ingredients.y)
-                ingredients.x = algorithm.transform(ingredients.x)
+        if self.algorithm != 'none':
+            self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+            ingredients.x_train = self.algorithm.transform(ingredients.x_train)
         return ingredients
 
 
@@ -1140,16 +1212,17 @@ class SimpleTechnique(SimpleStep):
     learn and other pipeline scripts.
 
     Args:
-        parameters(dict): parameters to be attached to algorithm in 'options'
+        parameters (dict): parameters to be attached to algorithm in 'options'
             corresponding to 'technique'. This parameter need not be passed to
             the SimpleStep subclass if the parameters are in the accessible
             Idea instance or if the user wishes to use default parameters.
-        auto_finalize(bool): whether 'finalize' method should be called when
+        auto_finalize (bool): whether 'finalize' method should be called when
             the  class is instanced. This should generally be set to True.
 
     It is also a child class of SimpleStep. So, its documentation applies as
     well.
     """
+    technique : object = None
     parameters : object = None
     auto_finalize : bool = True
 
@@ -1166,7 +1239,8 @@ class SimpleTechnique(SimpleStep):
 
     def finalize(self):
         """Finalizes parameters and adds 'parameters' to 'algorithm'."""
-        if self.techniques != ['none']:
+        self._finalize_parameters()
+        if self.technique != ['none']:
             self.algorithm = self.options[self.technique](**self.parameters)
         else:
             self.algorithm = None

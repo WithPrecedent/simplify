@@ -53,6 +53,22 @@ def timer(process = None):
         return decorated
     return shell_timer
 
+def localize(method):
+    """Converts passed keyword arguments into local attributes in the class
+    instance.
+
+    The created attributes use the same names as the keyword parameters.
+
+    Args:
+        method: wrapped method within a class instance.
+    """
+    @wraps(method)
+    def wrapper(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        return method(self)
+    return wrapper
+
 def local_backups(method, excludes = None, includes = None):
     """Decorator which uses class instance attribute of the same name as a
     passed parameter if no argument is passed for that parameter and the

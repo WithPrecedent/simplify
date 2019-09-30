@@ -18,10 +18,8 @@ Contents:
 from dataclasses import dataclass
 
 import pandas as pd
-from sklearn import metrics
 
 from simplify.core.base import SimpleManager, SimplePlan
-from simplify.critic.steps import Summarize, Predict, Score, Explain
 
 
 @dataclass
@@ -73,6 +71,27 @@ class Analysis(SimpleManager):
                     self.listify(self.metrics)[0]]
         return self
 
+    def _finalize_report(self):
+        self._set_columns()
+        self.report = pd.DataFrame(columns = self.columns)
+        return self
+
+    def _format_step(self, attribute):
+        if getattr(self.recipe, attribute).technique in ['none', 'all']:
+            step_column = getattr(self.recipe, attribute).technique
+        else:
+            technique = getattr(self.recipe, attribute).technique
+            parameters = getattr(self.recipe, attribute).parameters
+            step_column = f'{technique}, parameters = {parameters}'
+        return step_column
+
+    def _set_columns(self):
+        self.columns = list(self.columns_map.keys())
+        for number, instance in getattr(self, self.plan_iterable).items():
+            if hasattr(instance, 'columns'):
+                self.columns.extend(instance.columns)
+        return self
+
     """ Public Tool Methods """
 
     def print_best(self):
@@ -93,17 +112,27 @@ class Analysis(SimpleManager):
     def draft(self):
         """Sets default options for the Critic's analysis."""
         super().draft()
-        self.options = {'summarizer' : Summarize,
-                        'scorer' : Score,
-                        'predictor' : Predict,
-                        'explainer' : Explain}
+        self.options = {
+                'summarize': ['simplify.critic.summarize', 'Summarize'],
+                'explain': ['simplify.critic.explain', 'Explain'],
+                'rank': ['simplify.critic.rank', 'Rank'],
+                'predict': ['simplify.critic.predict', 'Predict'],
+                'score': ['simplify.critic.score', 'Score']}
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.step = 'critic'
         # Sets 'manager_type' so that proper parent methods are used.
         self.manager_type = 'serial'
         # Sets plan-related attributes to allow use of parent methods.
-        self.plan_class = Review
-        self.plan_iterable = 'review'
+        self.plan_iterable = 'reviews'
+        self.columns_map = {'recipe_number' : 'number',
+                            'options' : 'techniques',
+                            'seed' : 'seed',
+                            'validation_set' : 'val_set'}
+        return self
+
+    def finalize(self):
+        super().finalize()
+        self._finalize_report()
         return self
 
     def produce(self, ingredients = None, recipes = None):
@@ -114,9 +143,17 @@ class Analysis(SimpleManager):
                 Ingredients.
             recipes (list or Recipe): a Recipe or a list of Recipes.
         """
-        if recipes:
-            self.recipes = recipes
-        super().produce(plans = recipes)
+        for recipe in self.listify(recipes):
+            if self.verbose:
+                print('Testing', recipe.name, str(recipe.number))
+            self._check_best(recipe = recipe)
+            row = pd.Series(index = self.columns)
+            for column, value in self.columns.items():
+                if isinstance(getattr(recipe, value), object):
+                    row[column] = self._format_step(value)
+                else:
+                    row[column] = getattr(self.recipe, value)
+            self.report.loc[len(self.report)] = row
         return self
 
 
@@ -156,11 +193,7 @@ class Review(SimplePlan):
                         'options' : 'techniques',
                         'seed' : 'seed',
                         'validation_set' : 'val_set'}
-        for step in self.recipe.techniques:
-            self.columns.update({step : step})
-        self.columns_list = list(self.columns.keys())
-        self.columns_list.extend(self.listify(self.metrics))
-        self.report = pd.DataFrame(columns = self.columns_list)
+
         return self
 
 
@@ -195,14 +228,6 @@ class Review(SimplePlan):
     def _regressor_report(self):
         return self
 
-    def _format_step(self, attribute):
-        if getattr(self.recipe, attribute).technique in ['none', 'all']:
-            step_column = getattr(self.recipe, attribute).technique
-        else:
-            technique = getattr(self.recipe, attribute).technique
-            parameters = getattr(self.recipe, attribute).parameters
-            step_column = f'{technique}, parameters = {parameters}'
-        return step_column
 
 
     def _print_classifier_results(self, recipe):

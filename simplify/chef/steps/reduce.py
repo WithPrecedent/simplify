@@ -1,11 +1,6 @@
 
 from dataclasses import dataclass
 
-from sklearn.feature_selection import (chi2, f_classif, mutual_info_classif,
-                                       mutual_info_regression, RFE, RFECV,
-                                       SelectKBest, SelectFdr, SelectFpr,
-                                       SelectFromModel)
-
 from simplify.core.base import SimpleStep
 from simplify.core.decorators import numpy_shield
 
@@ -36,42 +31,44 @@ class Reduce(SimpleStep):
 
     def draft(self):
         super().draft()
-        self.options  = {'kbest' : SelectKBest,
-                         'fdr' : SelectFdr,
-                         'fpr' : SelectFpr,
-                         'custom' : SelectFromModel,
-                         'rfe' : RFE,
-                         'rfecv' : RFECV}
-        self.scorers = {'f_classif' : f_classif,
-                        'chi2' : chi2,
-                        'mutual_class' : mutual_info_classif,
-                        'mutual_regress' : mutual_info_regression}
+        self.options  = {
+                'kbest': ['sklearn.feature_selection', 'SelectKBest'],
+                'fdr': ['sklearn.feature_selection', 'SelectFdr'],
+                'fpr': ['sklearn.feature_selection', 'SelectFpr'],
+                'custom': ['sklearn.feature_selection', 'SelectFromModel'],
+                'rank': ['simplify.critic.rank', 'RankSelect'],
+                'rfe': ['sklearn.feature_selection', 'RFE'],
+                'rfecv': ['sklearn.feature_selection', 'RFECV']}
+#        self.scorers = {'f_classif' : f_classif,
+#                        'chi2' : chi2,
+#                        'mutual_class' : mutual_info_classif,
+#                        'mutual_regress' : mutual_info_regression}
         self.selected_parameters = True
         return self
 
     def _set_parameters(self, estimator):
-        if self.technique in ['rfe', 'rfecv']:
-            self.default_parameters = {'n_features_to_select' : 10,
-                                       'step' : 1}
-            self.runtime_parameters = {'estimator' : estimator}
-        elif self.technique == 'kbest':
-            self.default_parameters = {'k' : 10,
-                                       'score_func' : f_classif}
-            self.runtime_parameters = {}
-        elif self.technique in ['fdr', 'fpr']:
-            self.default_parameters = {'alpha' : 0.05,
-                                       'score_func' : f_classif}
-            self.runtime_parameters = {}
-        elif self.technique == 'custom':
-            self.default_parameters = {'threshold' : 'mean'}
-            self.runtime_parameters = {'estimator' : estimator}
-        self._finalize_parameters()
-        self._select_parameters()
-        self.parameters.update({'estimator' : estimator})
-        if 'k' in self.parameters:
-            self.num_features = self.parameters['k']
-        else:
-            self.num_features = self.parameters['n_features_to_select']
+#        if self.technique in ['rfe', 'rfecv']:
+#            self.default_parameters = {'n_features_to_select' : 10,
+#                                       'step' : 1}
+#            self.runtime_parameters = {'estimator' : estimator}
+#        elif self.technique == 'kbest':
+#            self.default_parameters = {'k' : 10,
+#                                       'score_func' : f_classif}
+#            self.runtime_parameters = {}
+#        elif self.technique in ['fdr', 'fpr']:
+#            self.default_parameters = {'alpha' : 0.05,
+#                                       'score_func' : f_classif}
+#            self.runtime_parameters = {}
+#        elif self.technique == 'custom':
+#            self.default_parameters = {'threshold' : 'mean'}
+#            self.runtime_parameters = {'estimator' : estimator}
+#        self._finalize_parameters()
+#        self._select_parameters()
+#        self.parameters.update({'estimator' : estimator})
+#        if 'k' in self.parameters:
+#            self.num_features = self.parameters['k']
+#        else:
+#            self.num_features = self.parameters['n_features_to_select']
         return self
 
     def finalize(self):

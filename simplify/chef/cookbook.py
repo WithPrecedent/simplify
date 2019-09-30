@@ -1,9 +1,9 @@
 """
 .. module:: cookbook
-  :synopsis: contains core classes of siMpLify package.
-  :author: Corey Rayburn Yung
-  :copyright: 2019
-  :license: CC-BY-NC-4.0
+:synopsis: contains core classes of siMpLify package.
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: CC-BY-NC-4.0
 
 cookbook.py is the primary control file for the siMpLify machine learning
 subpackage.
@@ -20,13 +20,10 @@ Contents:
 from dataclasses import dataclass
 import datetime
 
-from simplify.artist.canvas import Canvas
-from simplify.chef.steps import (Cleave, Encode, Mix, Model, Reduce, Sample,
-                                 Scale, Split)
+from simplify.chef.recipe import Recipe
 from simplify.core.decorators import local_backups
 from simplify.core.base import (SimpleManager, SimplePlan, SimpleStep,
                                 SimpleTechnique)
-from simplify.critic.analysis import Analysis
 
 
 @dataclass
@@ -35,7 +32,8 @@ class Cookbook(SimpleManager):
     analysis using a unified interface and architecture.
 
     Args:
-        ingredients: an instance of Ingredients (or a subclass). This argument
+        ingredients(Ingredients or str): an instance of Ingredients or a string
+            with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced. However,
             failing to do so will prevent the use of the Cleave step and the
            '_calculate_hyperparameters' method. 'ingredients' will need to be
@@ -63,12 +61,13 @@ class Cookbook(SimpleManager):
         auto_produce: sets whether to automatically call the 'produce' method
             when the class is instanced.
     """
-    ingredients : object = None
-    steps : object = None
-    recipes : object = None
-    name : str = 'cookbook'
-    auto_finalize : bool = True
-    auto_produce : bool = True
+
+    ingredients: object = None
+    steps: object = None
+    recipes: object = None
+    name: str = 'cookbook'
+    auto_finalize: bool = True
+    auto_produce: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -91,8 +90,9 @@ class Cookbook(SimpleManager):
             self.ingredients.split_xy(label = self.label)
             # Model class is injected with scale_pos_weight for algorithms that
             # use that parameter.
-            Model.scale_pos_weight = (len(self.ingredients.y.index) /
-                                    ((self.ingredients.y == 1).sum())) - 1
+            self.options['model'].scale_pos_weight = (
+                    len(self.ingredients.y.index) /
+                    ((self.ingredients.y == 1).sum())) - 1
         return self
 
     def _produce_recipes(self):
@@ -155,7 +155,8 @@ class Cookbook(SimpleManager):
             self.cleaves = []
         columns = self.ingredients.create_column_list(prefixes = prefixes,
                                                       columns = columns)
-        Cleave.add(cleave_group = cleave_group, columns = columns)
+        self.options['cleave'].edit(cleave_group = cleave_group,
+                    columns = columns)
         self.cleaves.append(cleave_group)
         return self
 
@@ -244,14 +245,15 @@ class Cookbook(SimpleManager):
     def draft(self):
         """Sets default options for the Chef's cookbook."""
         super().draft()
-        self.options = {'scaler' : Scale,
-                        'splitter' : Split,
-                        'encoder' : Encode,
-                        'mixer' : Mix,
-                        'cleaver' : Cleave,
-                        'sampler' : Sample,
-                        'reducer' : Reduce,
-                        'model' : Model}
+        self.options = {
+                'scale': ['simplify.chef.steps', 'Scale'],
+                'split': ['simplify.chef.steps', 'Split'],
+                'encode': ['simplify.chef.steps', 'Encode'],
+                'mix': ['simplify.chef.steps', 'Mix'],
+                'cleave': ['simplify.chef.steps', 'Cleave'],
+                'sample': ['simplify.chef.steps', 'Sample'],
+                'reduce': ['simplify.chef.steps', 'Reduce'],
+                'model': ['simplify.chef.steps', 'Model']}
         # Adds GPU check to other checks to be produceed.
         self.checks.extend(['gpu', 'ingredients'])
         # Locks 'step' attribute at 'cook' for conform methods in package.
@@ -280,13 +282,13 @@ class Cookbook(SimpleManager):
                 recipes = list(recipes.values())
                 last_num = list(self.recipes.keys())[-1:]
             for i, recipe in enumerate(self.listify(recipes)):
-                self.recipes.update({last_num + i + 1 : recipe})
+                self.recipes.update({last_num + i + 1: recipe})
         elif isinstance(recipes, dict):
             self.recipes = recipes
         else:
             self.recipes = {}
             for i, recipe in enumerate(self.listify(recipes)):
-                self.recipes.update({i + 1 : recipe})
+                self.recipes.update({i + 1: recipe})
         return self
 
     def finalize(self):
@@ -294,9 +296,6 @@ class Cookbook(SimpleManager):
         methods. Each set of methods is stored in a list of instances of the
         class stored in self.recipes.
         """
-        # Sets attributes for data analysis and export.
-        self.analysis = Analysis()
-#        self.canvas = Canvas()
         self._set_experiment_folder()
         # Creates all recipe combinations and store Recipe instances in
         # 'recipes'.
@@ -322,56 +321,4 @@ class Cookbook(SimpleManager):
         else:
             self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
             self._produce_recipes()
-        return self
-
-@dataclass
-class Recipe(SimplePlan):
-    """Defines rules for analyzing data in the siMpLify Cookbook subpackage.
-
-    Attributes:
-        steps (dict): dictionary containing keys of step names (strings) and
-            values of Cookbook step instances.
-        number (int): number of recipe in a sequence - used for recordkeeping
-            purposes.
-        name (str): designates the name of the class which should be identical
-            to the section of the Idea instance with relevant settings.
-    """
-    steps : object = None
-    number : int = 0
-    name : str = 'recipe'
-
-    def __post_init__(self):
-        self.idea_sections = ['cookbook']
-        super().__post_init__()
-        return self
-
-    def produce(self, ingredients):
-        """Applies the Cookbook steps to the passed ingredients."""
-        steps = self.steps.copy()
-        self.ingredients = ingredients
-        self.ingredients.split_xy(label = self.label)
-        # If using cross-validation or other data splitting technique, the
-        # pre-split methods apply to the 'x' data. After the split, steps
-        # must incorporate the split into 'x_train' and 'x_test'.
-        for step in list(steps.keys()):
-            steps.pop(step)
-            if step == 'splitter':
-                break
-            else:
-                self.ingredients = self.steps[step].produce(
-                    ingredients = self.ingredients,
-                    plan = self)
-        split_algorithm = self.steps['splitter'].algorithm
-        for train_index, test_index in split_algorithm.split(
-                self.ingredients.x, self.ingredients.y):
-           self.ingredients.x_train, self.ingredients.x_test = (
-                   self.ingredients.x.iloc[train_index],
-                   self.ingredients.x.iloc[test_index])
-           self.ingredients.y_train, self.ingredients.y_test = (
-                   self.ingredients.y.iloc[train_index],
-                   self.ingredients.y.iloc[test_index])
-           for step, technique in steps.items():
-               self.ingredients = technique.produce(
-                       ingredients = self.ingredients,
-                       plan = self)
         return self

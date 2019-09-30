@@ -1,26 +1,13 @@
-"""
-harvest.py is the primary control file for the data gathering and processing
-portions of the siMpLify package. 
 
-Contents:
-    Almanac: class which handles construction and utilization of harvests of
-        data gathering, parsing, munging, merging, and staging of data in
-        the siMpLify package.
-    Harvest: class which stores a particular set of techniques and algorithms
-        for data gathering, parsing, munging, merging, and staging of data in
-        the siMpLify package.
-        
-    Both classes are subclasses to SimpleClass and follow its structural rules.
-"""
 from dataclasses import dataclass
 
-from simplify.farmer.harvest import Harvest
-from simplify.farmer.steps import Sow, Reap, Clean, Bale, Deliver
-from simplify.core.base import SimpleClass
+from simplify.core.decorators import local_backups
+from simplify.core.base import (SimpleManager, SimplePlan, SimpleStep,
+                                SimpleTechnique)
 
 
 @dataclass
-class Almanac(SimpleClass):
+class Almanac(SimpleManager):
     """Implements data parsing, wrangling, munging, merging, engineering, and
     cleaning methods for the siMpLify package.
 
@@ -29,12 +16,12 @@ class Almanac(SimpleClass):
         ingredients: an instance of Ingredients (or a subclass). This argument
             need not be passed when the class is instanced, particularly if
             the user in the early stages of data gathering and initial parsing.
-        steps: a list of string step names to be completed in order. This 
-            argument should only be passed if the user wishes to override the 
+        steps: a list of string step names to be completed in order. This
+            argument should only be passed if the user wishes to override the
             steps listed in the Idea settings or if the user is not using the
             Idea class.
-        harvests: a list of instances of Harvest. Ordinarily, a list of draft is 
-            not passed when Harvest is instanced, but the argument is included 
+        plans(list(SimpleStep): a list of instances of Harvest. Ordinarily, a list of draft is
+            not passed when Harvest is instanced, but the argument is included
             if the user wishes to use previously built harvest techniques.
         name: a string designating the name of the class which should be
             identical to the section of the Idea section with relevant settings.
@@ -48,12 +35,13 @@ class Almanac(SimpleClass):
             when the class is instanced.
 
     """
-    ingredients : object = None
-    steps : object = None
-    harvests : object = None
-    name : str = 'harvest'
-    auto_finalize : bool = True
-    auto_produce : bool = True
+
+    ingredients: object = None
+    steps: object = None
+    plans: object = None
+    name: str = 'cookbook'
+    auto_finalize: bool = True
+    auto_produce: bool = True
 
     def __post_init__(self):
         """Sets up the core attributes of Harvest."""
@@ -82,30 +70,53 @@ class Almanac(SimpleClass):
                 self.sections = {}
         return self
 
-    def draft(self):
-        self.index_column = 'index_universal'
-        self.metadata_columns = []
-        return self
-
     def _finalize_draft(self):
         """Initializes the step classes for use by the Harvest."""
         self.drafts = []
         for step in self.steps:
             step_instance = self.draft_class(name = step,
                                             index_column = self.index_column)
-            for technique in listify(getattr(self, step + '_techniques')):
+            for technique in self.listify(getattr(self, step + '_techniques')):
                 tool_instance = self.edit_technique(
                         step = step,
                         technique = technique,
-                        parameters = listify(getattr(self, technique)))
+                        parameters = self.listify(getattr(self, technique)))
                 step_instance.techniques.append(tool_instance)
             step_instance.finalize()
             self.drafts.append(step_instance)
         return self
 
+    def _produce_file(self, ingredients):
+        with open(
+                self.depot.path_in, mode = 'r', errors = 'ignore',
+                encoding = self.idea['files']['file_encoding']) as a_file:
+            ingredients.source = a_file.read()
+            for technique in self.techniques:
+                ingredients = technique.produce(ingredients = ingredients)
+            self.depot.save(variable = ingredients.df)
+        return ingredients
+
+    def _produce_glob(self, ingredients):
+        self.depot.initialize_writer(
+                file_path = self.depot.path_out)
+        ingredients.create_series()
+        for file_num, a_path in enumerate(self.depot.path_in):
+            if (file_num + 1) % 100 == 0 and self.verbose:
+                print(file_num + 1, 'files parsed')
+            with open(
+                    a_path, mode = 'r', errors = 'ignore',
+                    encoding = self.idea['files']['file_encoding']) as a_file:
+                ingredients.source = a_file.read()
+                print(ingredients.df)
+                ingredients.df[self.index_column] = file_num + 1
+                for technique in self.techniques:
+                    ingredients = technique.produce(ingredients = ingredients)
+                self.depot.save(variable = ingredients.df)
+        return ingredients
+
     def _set_columns(self, organizer):
         if not hasattr(self, 'columns'):
-            self.columns = {self.index_column : int}
+            self.columns = {self.index_column: int}
             if self.metadata_columns:
                 self.columns.update(self.metadata_columns)
         self.columns.update(dict.fromkeys(self.columns, str))
@@ -114,11 +125,12 @@ class Almanac(SimpleClass):
     def draft(self):
         """ Declares default step names and classes in an Harvest."""
         super().draft()
-        self.options = {'sow' : Sow,
-                        'reap' : Reap,
-                        'clean' : Clean,
-                        'bale' : Bale,
-                        'deliver' : Deliver}
+        self.options = {
+                'sow': ['simplify.farmer.sow', 'Sow'],
+                'harvest': ['simplify.farmer.harvest', 'Harvest'],
+                'clean': ['simplify.farmer.clean', 'Clean'],
+                'bale': ['simplify.farmer.bale', 'Bale'],
+                'deliver': ['simplify.farmer.deliver', 'Deliver']}
         self.draft_class = Almanac
         self.checks.extend(['drafts', 'sections', 'defaults'])
         return self
@@ -152,81 +164,3 @@ class Almanac(SimpleClass):
             self.depot.save(variable = self.ingredients,
                                 file_name = self.step + '_ingredients')
         return self
-    
-
-@dataclass
-class Harvest(object):
-    """Defines rules for sowing, reaping, cleaning, bundling, and delivering
-    data as part of the siMpLify Harvest subpackage.
-
-    Attributes:
-        techniques: a list of Harvest step techniques to complete.
-        name: a string designating the name of the class which should be
-            identical to the section of the idea with relevant settings.
-    """
-    techniques : object = None
-    name : str = 'draft'
-    index_column : str = 'index_universal'
-
-    def __post_init__(self):
-        if not self.techniques:
-            self.techniques = []
-        return self
-#
-#    def _check_attributes(self):
-#        for technique in self.techniques:
-#            if not hasattr(self, technique.technique):
-#                error = technique.technique + ' has not been passed to class.'
-#                raise AttributeError(error)
-#        return self
-#
-#    def _set_columns(self, variable):
-#        if (not hasattr(self, 'column_names')
-#            and variable.technique in ['organize']):
-#            self.column_names = listify(self.index_column)
-#            self.column_names.extend(variable.columns)
-#        elif not hasattr(self, 'column_names'):
-#            self.column_names = list(variable.columns.keys())
-#        return self
-
-    def _produce_file(self, ingredients):
-        with open(
-                self.depot.path_in, mode = 'r', errors = 'ignore',
-                encoding = self.idea['files']['file_encoding']) as a_file:
-            ingredients.source = a_file.read()
-            for technique in self.techniques:
-                ingredients = technique.produce(ingredients = ingredients)
-            self.depot.save(variable = ingredients.df)
-        return ingredients
-
-    def _produce_glob(self, ingredients):
-        self.depot.initialize_writer(
-                file_path = self.depot.path_out)
-        ingredients.create_series()
-        for file_num, a_path in enumerate(self.depot.path_in):
-            if (file_num + 1) % 100 == 0 and self.verbose:
-                print(file_num + 1, 'files parsed')
-            with open(
-                    a_path, mode = 'r', errors = 'ignore',
-                    encoding = self.idea['files']['file_encoding']) as a_file:
-                ingredients.source = a_file.read()
-                print(ingredients.df)
-                ingredients.df[self.index_column] = file_num + 1
-                for technique in self.techniques:
-                    ingredients = technique.produce(ingredients = ingredients)
-                self.depot.save(variable = ingredients.df)
-        return ingredients
-
-    def finalize(self):
-#        self._check_attributes()
-#        for technique in self.techniques:
-#            self._set_columns(variable = technique)
-        return self
-
-    def produce(self, ingredients):
-        """Applies the Harvest technique classes to the passed ingredients."""
-        if isinstance(self.depot.path_in, list):
-            ingredients = self._produce_glob(ingredients = ingredients)
-        else:
-            ingredients = self._produce_file(ingredients = ingredients)
-        return ingredients

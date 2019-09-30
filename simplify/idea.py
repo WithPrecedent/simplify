@@ -296,6 +296,16 @@ class Idea(SimpleClass):
         setattr(SimpleClass, 'idea', self)
         return self
 
+    @staticmethod
+    def _numify(variable):
+        try:
+            return int(variable)
+        except ValueError:
+            try:
+                return float(variable)
+            except ValueError:
+                return variable
+
     def _typify(self, variable):
         """Converts str to appropriate, supported datatype.
 
@@ -311,15 +321,10 @@ class Idea(SimpleClass):
             variable(str, list, int, float, or bool): converted variable.
         """
         if ', ' in variable:
-            return variable.split(', ')
+            variable = variable.split(', ')
+            return [self._numify(v) for v in variable]
         elif re.search('\d', variable):
-            try:
-                return int(variable)
-            except ValueError:
-                try:
-                    return float(variable)
-                except ValueError:
-                    return variable
+            return self._numify(variable)
         elif variable in ['True', 'true', 'TRUE']:
             return True
         elif variable in ['False', 'false', 'FALSE']:
@@ -329,22 +334,7 @@ class Idea(SimpleClass):
         else:
             return variable
 
-    """ Core Public siMpLify Methods """
-
-    def draft(self):
-        """Sets options to create 'configuration' dict'."""
-        # Sets options for creating 'configuration'.
-        self.options = {'py_file' : self._create_from_py,
-                        'ini_file' : self._create_from_ini,
-                        'dict' : None}
-        return self
-
-    def finalize(self):
-        """Prepares instance of Idea by checking passed configuration
-        parameter.
-        """
-        self._check_configuration()
-        return self
+    """ Public Tool Methods """
 
     def inject(self, instance, sections, override = False):
         """Stores the section or sections of the 'configuration' dictionary in
@@ -369,6 +359,24 @@ class Idea(SimpleClass):
                 if not hasattr(instance, key) or override:
                     setattr(instance, key, value)
         return instance
+
+    """ Core Public siMpLify Methods """
+
+    def draft(self):
+        """Sets options to create 'configuration' dict'."""
+        # Sets options for creating 'configuration'.
+        self.options = {'py_file' : self._create_from_py,
+                        'ini_file' : self._create_from_ini,
+                        'dict' : None}
+        return self
+
+    def finalize(self):
+        """Prepares instance of Idea by checking passed configuration
+        parameter.
+        """
+        self._check_configuration()
+        return self
+
 
     def produce(self):
         """Creates configuration setttings and injects Idea into SimpleClass.

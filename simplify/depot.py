@@ -1,9 +1,9 @@
 """
 .. module:: depot
-  :synopsis: contains class for file management of siMpLify package.
-  :author: Corey Rayburn Yung
-  :copyright: 2019
-  :license: CC-BY-NC-4.0
+:synopsis: contains class for file management of siMpLify package.
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: CC-BY-NC-4.0
 """
 
 import csv
@@ -20,15 +20,14 @@ from simplify.core.types import FileTypes
 @dataclass
 class Depot(SimpleClass):
     """Manages files and folders for the Creates and stores dynamic and static
-    file paths, properly formats
-    files for import and export, and allows loading and saving of siMpLify,
-    pandas, and numpy objects in set folders.
+    file paths, properly formats files for import and export, and allows
+    loading and saving of siMpLify, pandas, and numpy objects in set folders.
 
     Args:
         root_folder(str): the complete path from which the other paths and
-        folders     used by Depot should be created.
+            folders used by Depot should be created.
         data_folder(str): the data subfolder name or a complete path if the
-        'data_folder' is not off of 'root_folder'.
+            'data_folder' is not off of 'root_folder'.
         results_folder(str): the results subfolder name or a complete path if
             the 'results_folder' is not off of 'root_folder'.
         datetime_naming(bool): whether the date and time should be used to
@@ -44,13 +43,15 @@ class Depot(SimpleClass):
             state in the siMpLify package. Unless the user is radically changing
             the way siMpLify works, this should be set to True.
     """
-    root_folder : str = ''
-    data_folder : str = 'data'
-    results_folder : str = 'results'
-    datetime_naming : bool = True
-    auto_finalize : bool = True
-    auto_produce : bool = True
-    state_dependent : bool = True
+
+    root_folder: str = ''
+    data_folder: str = 'data'
+    results_folder: str = 'results'
+    datetime_naming: bool = True
+    auto_finalize: bool = True
+    auto_produce: bool = True
+    state_dependent: bool = True
+    lazy_import: bool = False
 
     def __post_init__(self):
         # Adds additional section of idea to be injected as local attributes.
@@ -91,7 +92,7 @@ class Depot(SimpleClass):
         # Checks whether True/False should be exported in data files. If
         # 'boolean_out' is set to False, 1/0 are used instead.
         if hasattr(self, 'boolean_out') and self.boolean_out == False:
-            variable.replace({True : 1, False : 0}, inplace = True)
+            variable.replace({True: 1, False: 0}, inplace = True)
         return variable
 
     def _check_file_name(self, file_name, io_status = None):
@@ -177,9 +178,9 @@ class Depot(SimpleClass):
             if not variable in passed_kwargs:
                 if variable in self.default_kwargs:
                     new_kwargs.update(
-                            {variable : self.default_kwargs[variable]})
+                            {variable: self.default_kwargs[variable]})
                 elif hasattr(self, variable):
-                    new_kwargs.update({variable : getattr(self, variable)})
+                    new_kwargs.update({variable: getattr(self, variable)})
         return new_kwargs
 
     def _check_root_folder(self):
@@ -235,7 +236,7 @@ class Depot(SimpleClass):
         kwargs = self._check_kwargs(variables_to_check = additional_kwargs,
                                     passed_kwargs = kwargs)
         if self.test_data and not 'chunksize' in kwargs:
-            kwargs.update({'nrows' : self.test_chunk})
+            kwargs.update({'nrows': self.test_chunk})
         variable = pd.read_csv(file_path, **kwargs)
         return variable
 
@@ -252,7 +253,7 @@ class Depot(SimpleClass):
         kwargs = self._check_kwargs(variables_to_check = additional_kwargs,
                                     passed_kwargs = kwargs)
         if self.test_data and not 'chunksize' in kwargs:
-            kwargs.update({'nrows' : self.test_chunk})
+            kwargs.update({'nrows': self.test_chunk})
         variable = pd.read_excel(file_path, **kwargs)
         return variable
 
@@ -291,9 +292,9 @@ class Depot(SimpleClass):
         kwargs = self._check_kwargs(variables_to_check = additional_kwargs,
                                     passed_kwargs = kwargs)
         if self.test_data and not 'chunksize' in kwargs:
-            kwargs.update({'chunksize' : self.test_rows})
+            kwargs.update({'chunksize': self.test_rows})
         if 'usecols' in kwargs:
-            kwargs.update({'columns' : kwargs['usecols']})
+            kwargs.update({'columns': kwargs['usecols']})
             kwargs.pop('usecols')
         return pd.read_hdf(file_path, **kwargs)
 
@@ -310,9 +311,9 @@ class Depot(SimpleClass):
         kwargs = self._check_kwargs(variables_to_check = additional_kwargs,
                                     passed_kwargs = kwargs)
         if self.test_data and not 'chunksize' in kwargs:
-            kwargs.update({'chunksize' : self.test_rows})
+            kwargs.update({'chunksize': self.test_rows})
         if 'usecols' in kwargs:
-            kwargs.update({'columns' : kwargs['usecols']})
+            kwargs.update({'columns': kwargs['usecols']})
             kwargs.pop('usecols')
         return pd.read_json(file_path = file_path, **kwargs)
 
@@ -602,40 +603,40 @@ class Depot(SimpleClass):
         self.data_subfolders = ['raw', 'interim', 'processed', 'external']
         # Creates default parameters when they are not passed as kwargs to
         # methods in the class.
-        self.default_kwargs = {'index' : False,
-                               'header' : None,
-                               'low_memory' : False,
-                               'dialect' : 'excel',
-                               'usecols' : None,
-                               'columns' : None,
-                               'nrows' : None,
-                               'index_col' : False}
+        self.default_kwargs = {'index': False,
+                               'header': None,
+                               'low_memory': False,
+                               'dialect': 'excel',
+                               'usecols': None,
+                               'columns': None,
+                               'nrows': None,
+                               'index_col': False}
         # Creates options dict with keys as names of stages in siMpLify and the
         # values as 2-item lists with the first item being the default import
         # folder and the second being the default export folder.
-        self.options = {'sow' : ['raw', 'raw'],
-                        'reap' : ['raw', 'interim'],
-                        'clean' : ['interim', 'interim'],
-                        'bale' : ['interim', 'interim'],
-                        'deliver' : ['interim', 'processed'],
-                        'cook' : ['processed', 'processed'],
-                        'critic' : ['processed', 'processed']}
+        self.options = {'sow': ['raw', 'raw'],
+                        'reap': ['raw', 'interim'],
+                        'clean': ['interim', 'interim'],
+                        'bale': ['interim', 'interim'],
+                        'deliver': ['interim', 'processed'],
+                        'cook': ['processed', 'processed'],
+                        'critic': ['processed', 'processed']}
         # Sets index for import and export folders in 'options' dict.
-        self.options_index = {'import' : 0,
-                              'export' : 1}
+        self.options_index = {'import': 0,
+                              'export': 1}
         # Sets default folders to use for imports and exports that are not
         # data containers. The keys are based upon 'name' attributes of classes.
-        self.class_options = {'ingredients' : 'default',
-                              'datatypes' : 'recipe',
-                              'cookbook' : 'experiment',
-                              'recipe' : 'recipe',
-                              'almanac' : 'harvesters',
-                              'harvest' : 'harvesters',
-                              'review' : 'experiment',
-                              'visualizer' : 'recipe',
-                              'evaluator' : 'recipe',
-                              'summarizer' : 'recipe',
-                              'comparer' : 'experiment'}
+        self.class_options = {'ingredients': 'default',
+                              'datatypes': 'recipe',
+                              'cookbook': 'experiment',
+                              'recipe': 'recipe',
+                              'almanac': 'harvesters',
+                              'harvest': 'harvesters',
+                              'review': 'experiment',
+                              'visualizer': 'recipe',
+                              'evaluator': 'recipe',
+                              'summarizer': 'recipe',
+                              'comparer': 'experiment'}
         return self
 
     def edit_file_formats(self, file_format, extension, load_method,
@@ -650,7 +651,7 @@ class Depot(SimpleClass):
             save_method(method): a method to be used when saving files of the
             passed file_format.
         """
-        self.extensions.update({file_format : extension})
+        self.extensions.update({file_format: extension})
         if isinstance(load_method, str):
             setattr(self, '_load_' + file_format, '_load_' + load_method)
         else:
