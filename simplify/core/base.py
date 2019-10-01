@@ -54,17 +54,17 @@ class SimpleClass(ABC):
     'auto_produce', and those attributes are set to True, then the 'finalize'
     and/or 'produce' methods are called when the class is instanced.
 
-    Args: 
+    Args:
         These arguments are not required for any SimpleClass, but are commonly
         used throughout the package. Brief descriptions are included here:
-        
+
         idea(Idea or str): an instance of Idea or a string containing the file
-            path or file name (in the current working directory) where a 
-            supoorted settings file for an Idea instance is located. Once an 
+            path or file name (in the current working directory) where a
+            supoorted settings file for an Idea instance is located. Once an
             Idea instance is created by a subclass of SimpleClass, it is
             automatically made available to all other SimpleClass subclasses
             that are instanced in the future.
-        depot(Depot): an instance of Depot. Once a Depot instance is created by 
+        depot(Depot): an instance of Depot. Once a Depot instance is created by
             a subclass of SimpleClass, it is automatically made available to all
             other SimpleClass subclasses that are instanced in the future.
         ingredients(Ingredients or str): an instance of Ingredients of a string
@@ -79,9 +79,9 @@ class SimpleClass(ABC):
             class is instanced.
         auto_produce(bool): whether to call the 'produce' method when the class
             is instanced.
-            
+
     """
-    
+
     def __post_init__(self):
         """Calls selected initialization methods."""
         # Removes various python warnings from console output.
@@ -111,16 +111,16 @@ class SimpleClass(ABC):
     def __call__(self, idea, *args, **kwargs):
         """When called as a function, a subclass will return the produce method
         after running __post_init__.
-        
+
         Args:
             idea(Idea or str): an instance of Idea or path where an Idea
-                configuration file is located. This argument must be passed when 
+                configuration file is located. This argument must be passed when
                 a subclass is called as a function.
             *args and **kwargs (any): passed to the 'produce' method.
 
         Returns:
             return value of 'produce' method.
-            
+
         """
         self.idea = idea
         self.auto_finalize = True
@@ -136,7 +136,7 @@ class SimpleClass(ABC):
 
         Returns:
             True, if 'item' in 'options' - otherwise False.
-            
+
         """
         return item in self.options
 
@@ -150,7 +150,7 @@ class SimpleClass(ABC):
 
         Raises:
             KeyError: if item is neither in 'options' or an attribute.
-            
+
         """
         if item in self.options:
             del self.options[item]
@@ -169,12 +169,12 @@ class SimpleClass(ABC):
             attr(str): attribute sought.
 
         Returns:
-            attribute or None, if attribute does not exist.
+            dict method applied to 'options' or attribute, if attribute exists.
 
         Raises:
             AttributeError: if a dunder attribute is sought or attribute does
                 not exist.
-            
+
         """
         # Intercepts common dict methods and applies them to 'options' dict.
         if attr in ['clear', 'items', 'pop', 'keys', 'update', 'values']:
@@ -197,7 +197,7 @@ class SimpleClass(ABC):
         Returns:
             Value for item in 'options', 'item' attribute value, or None if
                 neither of those exist.
-                
+
         """
         if item in self.options:
             return self.options[item]
@@ -217,7 +217,7 @@ class SimpleClass(ABC):
             item(str): 'options' key to be set.
             value(any): corresponding value to be set for 'item' key in
                 'options'.
-                
+
         """
         self.options[item] = value
         return self
@@ -232,10 +232,9 @@ class SimpleClass(ABC):
         from simplify import Depot
         if self.exists('depot'):
             if isinstance(self.depot, str):
-                self.depot = Depot(root_folder = self.depot,
-                                   idea = self.idea)
+                self.depot = Depot(root_folder = self.depot)
         else:
-            self.depot = Depot(idea = self.idea)
+            self.depot = Depot()
         return self
 
     def _check_gpu(self):
@@ -688,7 +687,7 @@ class SimpleManager(SimpleClass):
 
     This class adds methods useful to create iterators, iterate over user
     options, and transform data or fit models.
-            
+
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
     """
@@ -1275,8 +1274,8 @@ class SimpleTechnique(SimpleStep):
             self.algorithm.fit(ingredients.x_train, ingredients.y_train)
             ingredients.x_train = self.algorithm.transform(ingredients.x_train)
         return ingredients
-    
-    
+
+
 @dataclass
 class Simplify(SimpleClass):
     """Controller class for completely automated projects.
@@ -1288,8 +1287,8 @@ class Simplify(SimpleClass):
 
     Args:
         idea(Idea or str): an instance of Idea or a string containing the file
-            path or file name (in the current working directory) where a 
-            supoorted settings file for an Idea instance is located. Once an 
+            path or file name (in the current working directory) where a
+            supoorted settings file for an Idea instance is located. Once an
             Idea instance is created by a subclass of SimpleClass, it is
             automatically made available to all other SimpleClass subclasses
             that are instanced in the future.
@@ -1297,9 +1296,9 @@ class Simplify(SimpleClass):
             containing the file path of where a data file for a pandas
             DataFrame is located.
         depot(Depot or str): an instance of Depot a string containing the full
-            path of where the root folder should be located for file output. 
-            Once a Depot instance is created by a subclass of SimpleClass, it is 
-            automatically made available to all other SimpleClass subclasses 
+            path of where the root folder should be located for file output.
+            Once a Depot instance is created by a subclass of SimpleClass, it is
+            automatically made available to all other SimpleClass subclasses
             that are instanced in the future.
         name(str): name of class used to match settings sections in an Idea
             settings file and other portions of the siMpLify package. This is
@@ -1310,7 +1309,7 @@ class Simplify(SimpleClass):
             adjustments beyond the Idea configuration, this option should be
             set to True. If you plan to make such changes, 'finalize' should be
             called when those changes are complete.
-        auto_produce(bool): sets whether to automatically call the 'produce' 
+        auto_produce(bool): sets whether to automatically call the 'produce'
             method when the class is instanced.
 
     """
@@ -1381,12 +1380,13 @@ class Simplify(SimpleClass):
     def finalize(self):
         self.steps = {}
         for name, settings in self.options.items():
+            print(self.subpackages)
             if name in self.subpackages:
                 setattr(self, name, self.options[name]())
                 getattr(self, name).finalize()
                 self.steps.update({name: getattr(self, name)})
         return self
-    
+
     @localize
     def produce(self, **kwargs):
         for step_name, step_instance in self.steps.items():

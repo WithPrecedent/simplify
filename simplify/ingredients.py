@@ -23,7 +23,7 @@ class Ingredients(SimpleClass):
     data containers.
 
     Ingredients uses pandas DataFrames or Series for all data storage, but it
-    utilizes faster numpy methods where possible to increase performance. 
+    utilizes faster numpy methods where possible to increase performance.
     DataFrames and Series stored in ingredients can be imported and exported
     using the 'load' and 'save' methods in a class instance.
 
@@ -32,17 +32,17 @@ class Ingredients(SimpleClass):
     or Series contained in Ingredients by using the 'apply' method (mirroring
     the functionality of the pandas method).
 
-    Args:        
+    Args:
         idea(Idea or str): an instance of Idea or a string containing the file
-            path or file name (in the current working directory) where a 
-            supoorted settings file for an Idea instance is located. Once an 
+            path or file name (in the current working directory) where a
+            supoorted settings file for an Idea instance is located. Once an
             Idea instance is created by a subclass of SimpleClass, it is
             automatically made available to all other SimpleClass subclasses
             that are instanced in the future.
         depot(Depot or str): an instance of Depot a string containing the full
-            path of where the root folder should be located for file output. 
-            Once a Depot instance is created by a subclass of SimpleClass, it is 
-            automatically made available to all other SimpleClass subclasses 
+            path of where the root folder should be located for file output.
+            Once a Depot instance is created by a subclass of SimpleClass, it is
+            automatically made available to all other SimpleClass subclasses
             that are instanced in the future.
         name(str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
@@ -74,11 +74,11 @@ class Ingredients(SimpleClass):
         state_dependent(bool): whether this class is depending upon the current
             state in the siMpLify package. Unless the user is radically changing
             the way siMpLify works, this should be set to True.
-            
-    Since this class is a subclass to SimpleClass, all of its documentation 
+
+    Since this class is a subclass to SimpleClass, all of its documentation
     applies as well.
     """
-    
+
     name: str = 'ingredients'
     df: object = None
     default_df: str = 'df'
@@ -380,7 +380,7 @@ class Ingredients(SimpleClass):
         """
         self.step = step
         for column, datatype in self.datatypes.items():
-            if self.step in ['reap', 'clean']:
+            if self.step in ['harvest', 'clean']:
                 if datatype in ['category', 'encoder', 'interactor']:
                     self.datatypes[column] = str
             elif self.step in ['bale', 'deliver']:
@@ -388,7 +388,7 @@ class Ingredients(SimpleClass):
                     self.datatypes[column] = 'category'
         self.convert_column_datatypes(df = df)
         return self
-    
+
     @choose_df
     def convert_column_datatypes(self, df = None, raise_errors = False):
         """Attempts to convert all column data to the match the datatypes in

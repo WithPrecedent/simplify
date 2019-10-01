@@ -19,9 +19,11 @@ from simplify.core.types import FileTypes
 
 @dataclass
 class Depot(SimpleClass):
-    """Manages files and folders for the Creates and stores dynamic and static
-    file paths, properly formats files for import and export, and allows
-    loading and saving of siMpLify, pandas, and numpy objects in set folders.
+    """Manages files and folders for the siMpLify package.
+
+    Creates and stores dynamic and static file paths, properly formats files
+    for import and export, and allows loading and saving of siMpLify, pandas,
+    and numpy objects in set folders.
 
     Args:
         root_folder(str): the complete path from which the other paths and
@@ -37,19 +39,18 @@ class Depot(SimpleClass):
             when the class is instanced. Unless making major changes to the
             file structure (beyond the 'root_folder', 'data_folder', and
             'results_folder' parameters), this should be set to True.
-        auto_produce(bool): whether to automatically call the 'produce' method
-            when the class is instanced.
         state_dependent(bool): whether this class is depending upon the current
             state in the siMpLify package. Unless the user is radically changing
             the way siMpLify works, this should be set to True.
+        lazy_import(bool): whether to import 'options' classes lazily. This
+            should be set to False because the default 'options' do not include
+            any classes in its values.
     """
-    idea: object = None
     root_folder: str = ''
     data_folder: str = 'data'
     results_folder: str = 'results'
     datetime_naming: bool = True
     auto_finalize: bool = True
-    auto_produce: bool = True
     state_dependent: bool = True
     lazy_import: bool = False
 
@@ -83,7 +84,7 @@ class Depot(SimpleClass):
 
         Args:
             variable(DataFrame or Series): pandas DataFrame or Series with some
-            boolean values.
+                boolean values.
 
         Returns:
             variable(DataFrame or Series): either the original pandas data or
@@ -106,14 +107,15 @@ class Depot(SimpleClass):
                 file in question is being imported or exported.
 
         Returns:
-            str containing file name.
+            string containing file name.
         """
         if file_name:
             return file_name
         elif io_status == 'import':
-            return self.file_in
+            return list(self.options.keys())[list(
+                    self.options.keys()).index(self.step) - 1] + 'ed_data'
         elif io_status == 'export':
-            return self.file_out
+            return self.step + 'ed_data'
 
     def _check_file_format(self, file_format = None, io_status = None):
         """Checks value of local file_format variable. If not supplied, the
@@ -133,9 +135,9 @@ class Depot(SimpleClass):
         if file_format:
             return file_format
         elif io_status == 'import':
-            return self.format_in
+            return self._get_file_format(io_status = 'import')
         elif io_status == 'export':
-            return self.format_out
+            return self._get_file_format(io_status = 'export')
         else:
             return 'csv'
 
@@ -158,9 +160,9 @@ class Depot(SimpleClass):
         elif folder and isinstance(folder, str):
             return getattr(self, folder)
         elif io_status == 'import':
-            return self.folder_in
+            return getattr(self, self.options[self.step])[0]
         elif io_status == 'export':
-            return self.folder_out
+            return getattr(self, self.options[self.step])[1]
 
     def _check_kwargs(self, variables_to_check, passed_kwargs):
         """Checks kwargs to see which ones are required for the particular
@@ -172,6 +174,7 @@ class Depot(SimpleClass):
 
         Returns:
             new_kwargs(dict): kwargs with only relevant parameters.
+
         """
         new_kwargs = passed_kwargs
         for variable in variables_to_check:
@@ -700,8 +703,8 @@ class Depot(SimpleClass):
             No value is returned, but passed instance is now injected with
             selected attributes.
         """
-        instance.data_in = self.path_in
-        instance.data_out = self.path_out
+        instance.data_in = self.create_path(io_status = 'import')
+        instance.data_out = self.create_path(io_status = 'export')
         for section in self.listify(sections):
             if hasattr(self, section + '_in') and override:
                 setattr(instance, section + '_in',
@@ -787,55 +790,3 @@ class Depot(SimpleClass):
         getattr(self, '_save_' + file_format)(variable, file_path, **kwargs)
         return
 
-    """ Properties """
-
-    @property
-    def file_in(self):
-        """Returns the data input file name, or folder containing data in
-        multiple files.
-        """
-        if self.options[self.step][0] in ['raw']:
-            return self.folder_in
-        else:
-            return list(self.options.keys())[list(
-                    self.options.keys()).index(self.step) - 1] + 'ed_data'
-
-    @property
-    def file_out(self):
-        """Returns the data output file name, or folder containing where
-        multiple files should be saved.
-        """
-        if self.options[self.step][1] in ['raw']:
-            return self.folder_out
-        else:
-            return self.step + 'ed_data'
-
-    @property
-    def folder_in(self):
-        """Returns folder where the data input file is located."""
-        return getattr(self, self.options[self.step])[0]
-
-    @property
-    def folder_out(self):
-        """Returns folder where the data output file is located."""
-        return getattr(self, self.options[self.step])[1]
-
-    @property
-    def format_in(self):
-        """Returns file format of input data file."""
-        return self._get_file_format(io_status = 'import')
-
-    @property
-    def format_out(self):
-        """Returns file format of output data file."""
-        return self._get_file_format(io_status = 'export')
-
-    @property
-    def path_in(self):
-        """Returns full file path of input data file."""
-        return self.create_path(io_status = 'import')
-
-    @property
-    def path_out(self):
-        """Returns full file path of output data file."""
-        return self.create_path(io_status = 'export')

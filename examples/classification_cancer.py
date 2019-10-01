@@ -10,7 +10,7 @@ from sklearn.datasets import load_breast_cancer
 from simplify import Simplify, Idea
 
 # Sets path to settings file and root folder for file output.
-idea = Idea(configuration = os.path.join(os.getcwd(), 'examples', 
+idea = Idea(configuration = os.path.join(os.getcwd(),
                                          'cancer_settings.ini'))
 root_folder = os.path.join('..', '..')
 
@@ -24,7 +24,7 @@ cancer_project = Simplify(ingredients = df,
                           idea = idea,
                           depot = root_folder)
 # Converts label to boolean type to correct numpy default above.
-cancer_project.ingredients.change_datatype(columns = 'target', 
+cancer_project.ingredients.change_datatype(columns = 'target',
                                            datatype = 'boolean')
 # Fills missing data with appropriate default values based on column datatype.
 cancer_project.ingredients.smart_fill()
