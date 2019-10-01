@@ -12,7 +12,7 @@ import os
 import re
 
 from simplify.core.base import SimpleClass
-
+from simplify.core.state import StateRegulator
 
 @dataclass
 class Idea(SimpleClass):
@@ -271,10 +271,12 @@ class Idea(SimpleClass):
         return self
 
     def _inject_base(self):
-        """Injects parent class, SimpleClass with this Idea instance so that
-        the instance is available to other files in the siMpLify package.
+        """Injects parent class, SimpleClass with this Idea and StateRegulator
+        instances so that they are available to other modules in the siMpLify 
+        package.
         """
         setattr(SimpleClass, 'idea', self)
+        setattr(SimpleClass, 'state_machine', StateRegulator(idea = self))
         return self
 
     def _load_from_ini(self):
@@ -300,6 +302,14 @@ class Idea(SimpleClass):
 
     @staticmethod
     def _numify(variable):
+        """Attempts to convert 'variable' to a numeric type.
+        
+        Args:
+            variable(str): variable to be converted.
+            
+        Returns
+            variable(int, float, str) converted to numeric type, if possible.
+        """
         try:
             return int(variable)
         except ValueError:
@@ -346,7 +356,7 @@ class Idea(SimpleClass):
             instance(object): either a class instance or class to which
                 attributes should be added.
             sections(str or list): the sections of the configuration dictionary
-            which should have key, value pairs added as attributes to
+                which should have key, value pairs added as attributes to
                 instance.
             override (bool): if True, even existing attributes in instance will
                 be replaced by configuration dictionary items. If False,
@@ -362,7 +372,7 @@ class Idea(SimpleClass):
                     setattr(instance, key, value)
         return instance
 
-    """ Core Public siMpLify Methods """
+    """ Core siMpLify Methods """
 
     def draft(self):
         """Sets options to create 'configuration' dict'."""
@@ -390,7 +400,7 @@ class Idea(SimpleClass):
 
         Args:
            new_settings(dict, str, or Idea): can either be a dictionary or Idea
-           object containing new attribute, value pairs or a string
+               object containing new attribute, value pairs or a string
                containing a file path from which new configuration options can
                be found.
 
@@ -407,6 +417,6 @@ class Idea(SimpleClass):
                 and isinstance(new_settings.configuration, dict)):
             self.configuration.update(new_settings.configuration)
         else:
-            error_message = 'new_options must be dict, Idea instance, or path'
+            error_message = 'new_options must be dict, Idea , or file path'
             raise TypeError(error_message)
         return self

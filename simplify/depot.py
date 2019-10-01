@@ -112,10 +112,9 @@ class Depot(SimpleClass):
         if file_name:
             return file_name
         elif io_status == 'import':
-            return list(self.options.keys())[list(
-                    self.options.keys()).index(self.step) - 1] + 'ed_data'
+            return self.state_machine.file_in
         elif io_status == 'export':
-            return self.step + 'ed_data'
+            return self.state_machine.file_out
 
     def _check_file_format(self, file_format = None, io_status = None):
         """Checks value of local file_format variable. If not supplied, the
@@ -160,9 +159,9 @@ class Depot(SimpleClass):
         elif folder and isinstance(folder, str):
             return getattr(self, folder)
         elif io_status == 'import':
-            return getattr(self, self.options[self.step])[0]
+            return self.state_machine.folder_in
         elif io_status == 'export':
-            return getattr(self, self.options[self.step])[1]
+            return self.state_machine.folder_out
 
     def _check_kwargs(self, variables_to_check, passed_kwargs):
         """Checks kwargs to see which ones are required for the particular
@@ -208,15 +207,10 @@ class Depot(SimpleClass):
         Returns:
             str containing file format.
         """
-        if (self.options[self.step][self.options_index[io_status]]
-                in ['raw']):
-            return self.source_format
-        elif (self.options[self.step][self.options_index[io_status]]
-                in ['interim']):
-            return self.interim_format
-        elif (self.options[self.step][self.options_index[io_status]]
-                in ['processed']):
-            return self.final_format
+        if io_status == 'import':
+            return self.state_machine.format_in
+        else:
+            return self.state_machine.format_out
 
     def _inject_base(self):
         """Injects parent class with this Depot instance so that the instance is

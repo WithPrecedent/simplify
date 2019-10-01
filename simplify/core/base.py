@@ -90,6 +90,9 @@ class SimpleClass(ABC):
         # was instanced. Injects attributes from 'idea' to subclass.
         if self.__class__.__name__ != 'Idea':
             self._check_idea()
+            # Sets appropriate state of siMpLify package using 'state_machine' 
+            # created by Idea instance.    
+            self.state_machine.advance()
         # Calls draft method to set up class instance defaults.
         self.draft()
         # Runs attribute checks from list in 'checks' attribute (if it exists).
@@ -626,7 +629,7 @@ class SimpleClass(ABC):
                         file_format = file_format)
         return
 
-    """ Core Public siMpLify Methods """
+    """ Core siMpLify Methods """
 
     @abstractmethod
     def draft(self):

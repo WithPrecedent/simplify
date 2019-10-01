@@ -725,7 +725,7 @@ class Ingredients(SimpleClass):
         return self
 
 
-    """ Core Public siMpLify Methods """
+    """ Core siMpLify Methods """
 
     def draft(self):
         """Sets defaults for Ingredients when class is instanced."""

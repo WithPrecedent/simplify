@@ -8,18 +8,17 @@
 
 from dataclasses import dataclass
 
-from simplify import SimpleClass
-
 
 @dataclass
-class StateRegulator(SimpleClass):
+class StateRegulator(object):
 
-    initial_state : str = ''
-    overwrite : bool = True
+    idea: object
+    initial_state: str = ''
+    overwrite: bool = True
 
     def __post_init__(self):
-        super().__post_init__()
-        self.state = self.options['initial_state']
+        self.draft()
+        self.idea.inject(instance = self, sections = ['general', 'files'])
         self._set_initial_state()
         return self
 
@@ -34,7 +33,7 @@ class StateRegulator(SimpleClass):
             self.state = self.options['unsplit']
         elif 'review' in self.subpackages:
             self.state = self.options['review']
-        elif 'review' in self.subpackages:
+        elif 'artist' in self.subpackages:
             self.state = self.options['canvas']
         else:
             self.state = self.options['unsplit']
@@ -53,11 +52,9 @@ class StateRegulator(SimpleClass):
                 'canvas' : CanvasState}
         return self
 
-    def advance(self, stage):
-        self.state = self.state.advance(stage)
-        for option, setting in self.files.items():
-            if self.overwrite:
-                setattr(self, option, setting)
+    def advance(self):
+        if hasattr(self, 'name') and self.name in self.options:
+            self.state = self.options[self.name].advance()
         return self
 
 @dataclass
@@ -67,8 +64,10 @@ class State(object):
         super().__post_init__()
         return self
 
-    def advance(self, stage):
-        pass
+    def advance(self):
+        for option, setting in self.files.items():
+            if self.overwrite:
+                setattr(self, option, setting)
         return self
 
     def __repr__(self):
@@ -81,6 +80,9 @@ class State(object):
 class SowState(State):
 
     def __post_init__(self):
+        return self
+    
+    def advance(self):
         self.files = {
                 'folder_in' : 'raw',
                 'folder_out' : 'raw',
@@ -112,6 +114,19 @@ class HarvestState(State):
 class CleanState(State):
 
     def __post_init__(self):
+        self.module_trigger = 'clean'
+        return self
+
+    def advance(self):
+        self.files = {
+                'folder_in' : 'interim',
+                'folder_out' : 'interim',
+                'file_in' : 'harvested_data',
+                'file_out' : 'cleaned_data',
+                'format_in' : 'csv',
+                'format_out' : 'csv'}
+        self.datatypes = {'list' : 'list',
+                          'pattern' : 'pattern'}
         return self
 
 @dataclass
@@ -120,17 +135,13 @@ class BaleState(State):
     def __post_init__(self):
         return self
 
-@dataclass
-class DeliverState(State):
-
-    def __post_init__(self):
     def advance(self):
         self.files = {
-                'folder_in' : 'raw',
+                'folder_in' : 'interim',
                 'folder_out' : 'interim',
-                'file_in' : 'sowed_data',
-                'file_out' : 'harvested_data',
-                'format_in' : 'txt',
+                'file_in' : 'cleaned_data',
+                'file_out' : 'baled_data',
+                'format_in' : 'csv',
                 'format_out' : 'csv'}
         self.datatypes = {'list' : 'list',
                           'pattern' : 'pattern'}
@@ -138,26 +149,93 @@ class DeliverState(State):
 
 
 @dataclass
+class DeliverState(State):
+
+    def __post_init__(self):
+        return self
+        
+    def advance(self):
+        self.files = {
+                'folder_in' : 'interim',
+                'folder_out' : 'processed',
+                'file_in' : ['cleaned_data', 'baled_data'],
+                'file_out' : 'final_data',
+                'format_in' : 'csv',
+                'format_out' : 'csv'}
+        self.datatypes = {'list' : 'category',
+                          'pattern' : 'category'}
+        return self
+
+
+@dataclass
 class UnsplitState(State):
 
-    def __post_init__(State):
+    def __post_init__(self):
+        return self
+
+    def advance(self):
+        self.files = {
+                'folder_in' : 'processed',
+                'folder_out' : 'processed',
+                'file_in' : 'final_data',
+                'file_out' : None,
+                'format_in' : 'txt',
+                'format_out' : 'csv'}
+        self.datatypes = {'list' : 'category',
+                          'pattern' : 'category'}
         return self
 
 @dataclass
 class SplitState(object):
 
-    def __post_init__(State):
+    def __post_init__(self):
+        return self
+
+    def advance(self):
+        self.files = {
+                'folder_in' : 'processed',
+                'folder_out' : 'processed',
+                'file_in' : 'final_data',
+                'file_out' : None,
+                'format_in' : 'txt',
+                'format_out' : 'csv'}
+        self.datatypes = {'list' : 'category',
+                          'pattern' : 'category'}
         return self
 
 @dataclass
 class ReviewState(object):
 
-    def __post_init__(State):
+    def __post_init__(self):
+        return self
+
+    def advance(self):
+        self.files = {
+                'folder_in' : 'processed',
+                'folder_out' : 'processed',
+                'file_in' : 'final_data',
+                'file_out' : 'predicted_data',
+                'format_in' : 'txt',
+                'format_out' : 'csv'}
+        self.datatypes = {'list' : 'category',
+                          'pattern' : 'category'}
         return self
 
 
 @dataclass
-class CanvasState(object):
+class CanvasState(State):
 
     def __post_init__(self):
+        return self
+
+    def advance(self):
+        self.files = {
+                'folder_in' : 'processed',
+                'folder_out' : 'processed',
+                'file_in' : ['predicted_data', 'final_data'],
+                'file_out' : None,
+                'format_in' : 'txt',
+                'format_out' : 'csv'}
+        self.datatypes = {'list' : 'category',
+                          'pattern' : 'category'}
         return self

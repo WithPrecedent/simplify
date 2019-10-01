@@ -106,7 +106,7 @@ class Canvas(SimpleManager):
             self.steps = ['styler'] + self.steps
         return self
 
-    """ Core Public siMpLify Methods """
+    """ Core siMpLify Methods """
 
     def draft(self):
         """Sets default styles, options, and plots."""

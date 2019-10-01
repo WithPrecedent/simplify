@@ -10,7 +10,7 @@ from sklearn.datasets import load_breast_cancer
 from simplify import Simplify, Idea
 
 # Sets path to settings file and root folder for file output.
-idea = Idea(configuration = os.path.join(os.getcwd(),
+idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
                                          'cancer_settings.ini'))
 root_folder = os.path.join('..', '..')
 

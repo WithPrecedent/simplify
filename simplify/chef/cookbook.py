@@ -230,7 +230,7 @@ class Cookbook(SimpleManager):
                         header = True)
         return
 
-    """ Core Public siMpLify Methods """
+    """ Core siMpLify Methods """
 
     def draft(self):
         """Sets default options for the Chef's cookbook."""
