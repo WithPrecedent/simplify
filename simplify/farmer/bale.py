@@ -16,7 +16,7 @@ class Bale(SimplePlan):
     """Class for combining different datasets."""
     technique: str = ''
     parameters: object = None
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -30,7 +30,7 @@ class Bale(SimplePlan):
         self.needed_parameters = {'merger': ['index_columns', 'merge_type']}
         return self
 
-    def finalize(self):
+    def publish(self):
         self.algorithm = self.options[self.technique](**self.parameters)
         return self
 

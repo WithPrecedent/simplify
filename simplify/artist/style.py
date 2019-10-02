@@ -19,7 +19,7 @@ class Style(SimpleStep):
 
     technique: str = ''
     parameters: object = None
-    auto_finalize: bool = True
+    auto_publish: bool = True
     auto_produce: bool = True
     name: str = 'styler'
 

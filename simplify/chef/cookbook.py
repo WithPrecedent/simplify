@@ -38,11 +38,11 @@ class Cookbook(SimpleManager):
             wishes to reexamine past recipes or manually create new recipes.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_finalize(bool): whether to call the 'finalize' method when the
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced. If you do not plan to make any
             adjustments to the steps, techniques, or algorithms beyond the
             Idea configuration, this option should be set to True. If you plan
-            to make such changes, 'finalize' should be called when those
+            to make such changes, 'publish' should be called when those
             changes are complete.
         auto_produce(bool): whether to call the 'produce' method when the class
             is instanced.
@@ -56,7 +56,7 @@ class Cookbook(SimpleManager):
     steps: object = None
     recipes: object = None
     name: str = 'cookbook'
-    auto_finalize: bool = True
+    auto_publish: bool = True
     auto_produce: bool = False
 
     def __post_init__(self):
@@ -281,7 +281,7 @@ class Cookbook(SimpleManager):
                 self.recipes.update({i + 1: recipe})
         return self
 
-    def finalize(self):
+    def publish(self):
         """Creates a planner with all possible selected permutations of
         methods. Each set of methods is stored in a list of instances of the
         class stored in self.recipes.
@@ -289,7 +289,7 @@ class Cookbook(SimpleManager):
         self._set_experiment_folder()
         # Creates all recipe combinations and store Recipe instances in
         # 'recipes'.
-        super().finalize()
+        super().publish()
         return self
 
     @local_backups

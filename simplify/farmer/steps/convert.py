@@ -22,14 +22,14 @@ class Convert(SimpleStep):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
-        auto_finalize(bool): whether 'finalize' method should be called when
+        auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: str = ''
     parameters: object = None
     name: str = 'converter'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -39,7 +39,7 @@ class Convert(SimpleStep):
         file_path = os.path.join(self.depot.external, file_name)
         return file_path
 
-    def finalize(self):
+    def publish(self):
         self.file_path_in = self.make_path(self.file_in)
         self.file_path_out = self.make_path(self.file_out)
         return self

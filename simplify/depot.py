@@ -36,13 +36,10 @@ class Depot(SimpleClass):
         datetime_naming(bool): whether the date and time should be used to
             create experiment subfolders (so that prior results are not
             overwritten).
-        auto_finalize(bool): whether to automatically call the 'finalize' method
+        auto_publish(bool): whether to automatically call the 'publish' method
             when the class is instanced. Unless making major changes to the
             file structure (beyond the 'root_folder', 'data_folder', and
             'results_folder' parameters), this should be set to True.
-        state_dependent(bool): whether this class is depending upon the current
-            state in the siMpLify package. Unless the user is radically changing
-            the way siMpLify works, this should be set to True.
         lazy_import(bool): whether to import 'options' classes lazily. This
             should be set to False because the default 'options' do not include
             any classes in its values.
@@ -51,8 +48,7 @@ class Depot(SimpleClass):
     data_folder: str = 'data'
     results_folder: str = 'results'
     datetime_naming: bool = True
-    auto_finalize: bool = True
-    state_dependent: bool = True
+    auto_publish: bool = True
     lazy_import: bool = False
 
     def __post_init__(self):
@@ -112,10 +108,9 @@ class Depot(SimpleClass):
         """
         if file_name:
             return file_name
-        elif io_status == 'import':
-            return self.state_machine.file_in
-        elif io_status == 'export':
-            return self.state_machine.file_out
+        else:
+            return self.data_file_names[self.step][
+                self.settings_index[io_status]]
 
     def _check_file_format(self, file_format = None, io_status = None):
         """Checks value of local file_format variable. If not supplied, the
@@ -134,12 +129,9 @@ class Depot(SimpleClass):
         """
         if file_format:
             return file_format
-        elif io_status == 'import':
-            return self._get_file_format(io_status = 'import')
-        elif io_status == 'export':
-            return self._get_file_format(io_status = 'export')
         else:
-            return 'csv'
+            return self.data_file_formats[self.step][
+                self.settings_index[io_status]]
 
     def _check_folder(self, folder, io_status = None):
         """Checks if folder is a full path or string matching an attribute.
@@ -159,10 +151,8 @@ class Depot(SimpleClass):
             return folder
         elif folder and isinstance(folder, str):
             return getattr(self, folder)
-        elif io_status == 'import':
-            return self.state_machine.folder_in
-        elif io_status == 'export':
-            return self.state_machine.folder_out
+        else:
+            return self.data_folders[self.step][self.settings_index[io_status]]
 
     def _check_kwargs(self, variables_to_check, passed_kwargs):
         """Checks kwargs to see which ones are required for the particular
@@ -561,6 +551,33 @@ class Depot(SimpleClass):
             self.writer.writerow(columns)
         return self
 
+    def inject(self, instance, sections, override = True):
+        """Stores the default paths in the passed instance.
+
+        Args:
+            instance(object): either a class instance or class to which
+                attributes should be added.
+            sections(list): attributes to be added to passed class. Data import
+                and export paths are automatically added.
+            override(bool): if True, existing attributes in instance will be
+                replaced by items from this class.
+
+        Returns:
+            No value is returned, but passed instance is now injected with
+            selected attributes.
+        """
+        instance.data_in = self.create_path(io_status = 'import')
+        instance.data_out = self.create_path(io_status = 'export')
+        for section in self.listify(sections):
+            if hasattr(self, section + '_in') and override:
+                setattr(instance, section + '_in',
+                        getattr(self, section + '_in'))
+                setattr(instance, section + '_out',
+                        getattr(self, section + '_out'))
+            elif override:
+                setattr(instance, section, getattr(self, section))
+        return
+    
     def iterate(self, plans, ingredients = None, return_ingredients = True):
         """Iterates through a list of files contained in self.batch and
         applies the plans created by a Planner method (or subclass).
@@ -590,126 +607,8 @@ class Depot(SimpleClass):
                     plan.produce()
             return self
 
-    """ Core siMpLify Public Methods """
-
-    def draft(self):
-        """Creates default folder and file dicts."""
-        # Initializes dict with file format names and corresponding file
-        # extensions.
-        self.extensions = FileTypes()
-        # Creates list of default subfolders from 'data_folder' to create.
-        self.data_subfolders = ['raw', 'interim', 'processed', 'external']
-        # Creates default parameters when they are not passed as kwargs to
-        # methods in the class.
-        self.default_kwargs = {'index': False,
-                               'header': None,
-                               'low_memory': False,
-                               'dialect': 'excel',
-                               'usecols': None,
-                               'columns': None,
-                               'nrows': None,
-                               'index_col': False}
-        # Creates options dict with keys as names of stages in siMpLify and the
-        # values as 2-item lists with the first item being the default import
-        # folder and the second being the default export folder.
-        self.options = {'sow': ['raw', 'raw'],
-                        'reap': ['raw', 'interim'],
-                        'clean': ['interim', 'interim'],
-                        'bale': ['interim', 'interim'],
-                        'deliver': ['interim', 'processed'],
-                        'cook': ['processed', 'processed'],
-                        'critic': ['processed', 'processed']}
-        # Sets index for import and export folders in 'options' dict.
-        self.options_index = {'import': 0,
-                              'export': 1}
-        # Sets default folders to use for imports and exports that are not
-        # data containers. The keys are based upon 'name' attributes of classes.
-        self.class_options = {'ingredients': 'default',
-                              'datatypes': 'recipe',
-                              'cookbook': 'experiment',
-                              'recipe': 'recipe',
-                              'almanac': 'harvesters',
-                              'harvest': 'harvesters',
-                              'review': 'experiment',
-                              'visualizer': 'recipe',
-                              'evaluator': 'recipe',
-                              'summarizer': 'recipe',
-                              'comparer': 'experiment'}
-        return self
-
-    def edit_file_formats(self, file_format, extension, load_method,
-                          save_method):
-        """Adds or replaces a file extension option.
-
-        Args:
-            file_format(str): string name of the file_format.
-            extension(str): file extension (without period) to be used.
-            load_method(method): a method to be used when loading files of the
-            passed file_format.
-            save_method(method): a method to be used when saving files of the
-            passed file_format.
-        """
-        self.extensions.update({file_format: extension})
-        if isinstance(load_method, str):
-            setattr(self, '_load_' + file_format, '_load_' + load_method)
-        else:
-            setattr(self, '_load_' + file_format, load_method)
-        if isinstance(save_method, str):
-            setattr(self, '_save_' + file_format, '_save_' + save_method)
-        else:
-            setattr(self, '_save_' + file_format, save_method)
-        return self
-
-    def edit_folders(self, root_folder, subfolders):
-        """Adds a list of subfolders to an existing root_folder.
-
-        Args:
-            root_folder(str): path of folder where subfolders should be created.
-            subfolders(str or list): subfolder names to be created.
-        """
-        for subfolder in self.listify(subfolders):
-            temp_folder = self.create_folder(folder = root_folder,
-                                             subfolder = subfolder)
-            setattr(self, subfolder, temp_folder)
-        return self
-
-    def finalize(self):
-        """Creates data and results folders as well as other default subfolders.
-        """
-        self._check_root_folder()
-        self.edit_folders(root_folder = self.root,
-                         subfolders = [self.data_folder, self.results_folder])
-        self.edit_folders(root_folder = self.data,
-                         subfolders = self.data_subfolders)
-        return self
-
-    def inject(self, instance, sections, override = True):
-        """Stores the default paths in the passed instance.
-
-        Args:
-            instance(object): either a class instance or class to which
-                attributes should be added.
-            sections(list): attributes to be added to passed class. Data import
-                and export paths are automatically added.
-            override(bool): if True, existing attributes in instance will be
-                replaced by items from this class.
-
-        Returns:
-            No value is returned, but passed instance is now injected with
-            selected attributes.
-        """
-        instance.data_in = self.create_path(io_status = 'import')
-        instance.data_out = self.create_path(io_status = 'export')
-        for section in self.listify(sections):
-            if hasattr(self, section + '_in') and override:
-                setattr(instance, section + '_in',
-                        getattr(self, section + '_in'))
-                setattr(instance, section + '_out',
-                        getattr(self, section + '_out'))
-            elif override:
-                setattr(instance, section, getattr(self, section))
-        return
-
+    """ Public Import/Export Methods """
+    
     def load(self, file_path = None, folder = None, file_name = None,
              file_format = None, **kwargs):
         """Imports file by calling appropriate method based on file_format. If
@@ -750,11 +649,6 @@ class Depot(SimpleClass):
         else:
             return None
 
-    def produce(self):
-        """Injects Depot instance into base SimpleClass."""
-        self._inject_base()
-        return self
-
     def save(self, variable, file_path = None, folder = None, file_name = None,
              file_format = None, **kwargs):
         """Exports file by calling appropriate method based on file_format. If
@@ -784,4 +678,133 @@ class Depot(SimpleClass):
                                          io_status = 'export')
         getattr(self, '_save_' + file_format)(variable, file_path, **kwargs)
         return
+    
+    """ Core siMpLify Methods """
 
+    def draft(self):
+        """Creates default folder and file settings."""
+        # Calls SimpleClass draft for initial baseline settings.
+        super().draft()
+        self.checks.append('root_folder')
+        # Creates dict with file format names and file extensions.
+        self.extensions = FileTypes()
+        # Creates list of default subfolders from 'data_folder' to create.
+        self.data_subfolders = ['raw', 'interim', 'processed', 'external']    
+        # Creates default parameters when they are not passed as kwargs to
+        # methods in the class.
+        self.default_kwargs = {
+            'index': False,
+            'header': None,
+            'low_memory': False,
+            'dialect': 'excel',
+            'usecols': None,
+            'columns': None,
+            'nrows': None,
+            'index_col': False}
+        # Creates default data folders, file names, and file formats linked to
+        # the various stages of the siMpLify process. Each values includes a
+        # 2-item list with the first item being the default import option and 
+        # the second being the default export option.
+        self.data_folders = {
+            'sow': ['raw', 'raw'],
+            'reap': ['raw', 'interim'],
+            'clean': ['interim', 'interim'],
+            'bale': ['interim', 'interim'],
+            'deliver': ['interim', 'processed'],
+            'cook': ['processed', 'processed'],
+            'critic': ['processed', 'recipe']}
+        self.data_file_names = {
+            'sow': [None, None],
+            'harvest': [None, 'harvested_data'],
+            'clean': ['harvested_data', 'cleaned_data'],
+            'bale': ['cleaned_data', 'baled_data'],
+            'deliver': ['baled_data', 'final_data'],
+            'cook': ['final_data', 'final_data'],
+            'critic': ['final_data', 'predicted_data']}
+        self.data_file_formats = {
+            'sow' : [self.source_format, self.source_format],
+            'harvest' : [self.source_format, self.interim_format],
+            'clean' : [self.interim_format, self.interim_format],
+            'bale' : [self.interim_format, self.interim_format],
+            'deliver' : [self.interim_format, self.final_format],
+            'cook' : [self.final_format, self.final_format],
+            'critic' : [self.final_format, self.final_format]}
+        # Sets dict to translate 'import'/'export' strings to index of lists in
+        # the data settings above.
+        self.settings_index = {'import': 0, 'export': 1}
+        # Sets default folders for results to be exported based upon type of
+        # information being exported.
+        self.results_folders = {
+            'isolated' : 'recipe',
+            'comparative' : 'experiment'}
+        return self
+
+    def edit_default_kwargs(self, kwargs, settings):
+        """Adds or replaces default keys and values for kwargs for load/save
+        methods.
+        
+        Args:
+            kwargs(str or list(str)): key(s) to change in 'default_kwargs'.
+            settings(str or list(str)): values(s) to change in 'default_kwargs'.
+        """
+        self.default_kwargs(dict(zip(kwargs, settings)))
+        return self
+    
+    def edit_file_formats(self, file_format, extension, load_method,
+                          save_method):
+        """Adds or replaces a file extension option.
+
+        Args:
+            file_format(str): string name of the file_format.
+            extension(str): file extension (without period) to be used.
+            load_method(object): a method to be used when loading files of the
+                passed file_format.
+            save_method(object): a method to be used when saving files of the
+                passed file_format.
+        """
+        self.extensions.update({file_format: extension})
+        if isinstance(load_method, str):
+            setattr(self, '_load_' + file_format, '_load_' + load_method)
+        else:
+            setattr(self, '_load_' + file_format, load_method)
+        if isinstance(save_method, str):
+            setattr(self, '_save_' + file_format, '_save_' + save_method)
+        else:
+            setattr(self, '_save_' + file_format, save_method)
+        return self
+
+    def edit_file_names(self, steps, file_names):
+        """Adds data file names for specific steps.
+        
+        Args:
+            steps(str or list(str)): step or step names
+            file_names(str or list(str)): file name or file names (without
+                extension(s))
+        """      
+        self.file_names.update(dict(zip(steps, file_names)))
+        return self
+    
+    def edit_folders(self, root_folder, subfolders):
+        """Adds a list of subfolders to an existing root_folder.
+
+        Args:
+            root_folder(str): path of folder where subfolders should be created.
+            subfolders(str or list): subfolder names to be created.
+        """
+        for subfolder in self.listify(subfolders):
+            temp_folder = self.create_folder(folder = root_folder,
+                                             subfolder = subfolder)
+            setattr(self, subfolder, temp_folder)
+        return self
+
+    def publish(self):
+        """Creates data and results folders as well as other default subfolders.
+        """
+        self._check_root_folder()
+        self.edit_folders(root_folder = self.root,
+                         subfolders = [self.data_folder, self.results_folder])
+        self.edit_folders(root_folder = self.data,
+                         subfolders = self.data_subfolders)
+        # Injects Depot instance into base SimpleClass
+        self._inject_base()
+        return self

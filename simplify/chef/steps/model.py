@@ -23,14 +23,14 @@ class Model(SimpleStep):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
-        auto_finalize(bool): whether 'finalize' method should be called when
+        auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: object = None
     parameters: object = None
     name: str = 'model'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         self.idea_sections = ['cookbook']
@@ -43,7 +43,7 @@ class Model(SimpleStep):
         """Tests whether any item in a list is of the passed data type."""
         return any(isinstance(i, data_type) for i in test_list)
 
-    def _finalize_options_gpu(self):
+    def _publish_options_gpu(self):
         self.classifier_algorithms.update({
                 'forest_inference': ['cuml', 'ForestInference'],
                 'random_forest': ['cuml', 'RandomForestClassifier'],
@@ -57,7 +57,7 @@ class Model(SimpleStep):
                 'ridge': ['cuml', 'RidgeRegression']})
         return self
 
-    def _finalize_search_parameters(self):
+    def _publish_search_parameters(self):
         self.search_parameters = self.idea['search_parameters']
         self.search_parameters.update({'estimator': self.algorithm.algorithm,
                                        'param_distributions': self.space,
@@ -113,15 +113,15 @@ class Model(SimpleStep):
         self.custom_options = ['classifier', 'clusterer', 'regressor']
         return self
 
-    def finalize(self):
+    def publish(self):
         if self.technique != 'none':
-            self._finalize_parameters()
+            self._publish_parameters()
             self._parse_parameters()
             self.algorithm = self.options[self.model_type](
                 technique = self.technique,
                 parameters = self.parameters)
             if self.hyperparameter_search:
-                self._finalize_search_parameters()
+                self._publish_search_parameters()
                 self.search_algorithm = Searcher(
                         technique = self.search_technique,
                         parameters = self.search_parameters)

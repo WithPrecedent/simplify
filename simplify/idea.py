@@ -12,7 +12,6 @@ import os
 import re
 
 from simplify.core.base import SimpleClass
-from simplify.core.state import StateRegulator
 
 @dataclass
 class Idea(SimpleClass):
@@ -108,13 +107,13 @@ class Idea(SimpleClass):
             'configuration'.
         infer_types(bool): whether values in 'configuration' are converted to 
             other types (True) or left as strings (False).
-        auto_finalize(bool): whether to automatically call the 'finalize'
+        auto_publish(bool): whether to automatically call the 'publish'
             method when the class is instanced. Unless adding a new source for
             'configuration' settings, this should be set to True.
     """
     configuration: object = None
     infer_types: bool = True
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -229,7 +228,7 @@ class Idea(SimpleClass):
 
     def _check_configuration(self):
         """Checks the datatype of 'configuration' and sets 'technique' to
-        properly finalize 'configuration'.
+        properly publish 'configuration'.
 
         Raises:
             AttributeError if 'configuration' attribute is neither a file path
@@ -271,12 +270,10 @@ class Idea(SimpleClass):
         return self
 
     def _inject_base(self):
-        """Injects parent class, SimpleClass with this Idea and StateRegulator
-        instances so that they are available to other modules in the siMpLify 
-        package.
+        """Injects parent class, SimpleClass with this Idea so that it is 
+        available to other modules in the siMpLify package.
         """
         setattr(SimpleClass, 'idea', self)
-        setattr(SimpleClass, 'state_machine', StateRegulator(idea = self))
         return self
 
     def _load_from_ini(self):
@@ -382,7 +379,7 @@ class Idea(SimpleClass):
                         'dict': None}
         return self
 
-    def finalize(self):
+    def publish(self):
         """Prepares instance of Idea by checking passed configuration
         parameter and injecting Idea into SimpleClass.
         """

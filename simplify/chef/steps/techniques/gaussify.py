@@ -24,7 +24,7 @@ class Gaussify(SimpleTechnique):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize(bool): whether 'fina
+        auto_publish(bool): whether 'fina
         lize' method should be called when
             the class is instanced. This should generally be set to True.
     """
@@ -32,7 +32,7 @@ class Gaussify(SimpleTechnique):
     technique: str = 'box-cox and yeo-johnson'
     parameters: object = None
     name: str = 'gaussifier'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -44,11 +44,11 @@ class Gaussify(SimpleTechnique):
                 'yeo-johnson': ['sklearn.preprocessing', 'PowerTransformer']}
         return self
 
-    def finalize(self):
+    def publish(self):
         self.rescaler = self.parameters['rescaler'](
                 copy = self.parameters['copy'])
         del self.parameters['rescaler']
-        self._finalize_parameters()
+        self._publish_parameters()
         self.positive_tool = self.options['box_cox'](
                 method = 'box_cox', **self.parameters)
         self.negative_tool = self.options['yeo_johnson'](

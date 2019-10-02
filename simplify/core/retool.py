@@ -55,12 +55,12 @@ class ReTool(SimpleClass):
     encoding: str = 'windows-1252'
     section_prefix: str = 'section'
     edit_prefixes: bool = True
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         self.draft()
-        if self.auto_finalize:
-            self.finalize()
+        if self.auto_publish:
+            self.publish()
         return self
 
     def _aggregate_flags(self, row):
@@ -135,14 +135,14 @@ class ReTool(SimpleClass):
         self.matcher.default_values = self.default_values
         return self
 
-    def finalize(self):
+    def publish(self):
         if self.file_path:
             tool = ReLoad(keys = self.keys,
                           values = self.values,
                           sections = self.sections,
                           datatypes = self.datatypes,
                           file_path = self.file_path,
-                          auto_finalize = self.auto_finalize,
+                          auto_publish = self.auto_publish,
                           encoding = self.encoding,
                           section_prefix = self.section_prefix,
                           flag_options = self.flag_options)
@@ -153,7 +153,7 @@ class ReTool(SimpleClass):
                            datatypes = self.datatypes,
                            flags = self.flags,
                            zipped = self.zipped,
-                           auto_finalize = self.auto_finalize,
+                           auto_publish = self.auto_publish,
                            section_prefix = self.section_prefix,
                            flag_options = self.flag_options)
             self.keys = tool.keys
@@ -191,16 +191,16 @@ class ReBuild(object):
     datatypes: str = 'datatypes'
     flags: object = None
     zipped: object = None
-    auto_finalize: bool = True
+    auto_publish: bool = True
     section_prefix: str = 'section'
     flag_options: object = None
 
     def __post_init__(self):
-        if self.auto_finalize:
-            self.finalize()
+        if self.auto_publish:
+            self.publish()
         return self
 
-    def finalize(self):
+    def publish(self):
         """Builds regular expressions table."""
         self.expressions = pd.DataFrame(list(zip(self.keys, self.values)),
                                         columns = ['keys', 'values'])
@@ -222,14 +222,14 @@ class ReLoad(object):
     sections: str = 'sections'
     datatypes: str = 'datatypes'
     file_path: str = ''
-    auto_finalize: bool = True
+    auto_publish: bool = True
     encoding: str = 'windows-1252'
     section_prefix: str = 'section'
     flag_options: object = None
 
     def __post_init__(self):
-        if self.auto_finalize:
-            self.finalize()
+        if self.auto_publish:
+            self.publish()
         return self
 
     def _explode_sections(self):
@@ -237,7 +237,7 @@ class ReLoad(object):
             self.expressions.explode(column = 'section')
         return self
 
-    def finalize(self):
+    def publish(self):
         """Loads data for expressions table from .csv file, converts keys to
         strings, and removes a common encording error character.
         """

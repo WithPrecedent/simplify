@@ -23,14 +23,14 @@ class Cleave(SimpleStep):
             algorithm.
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize (bool): whether 'finalize' method should be called when
+        auto_publish (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: str = ''
     parameters: object = None
     name: str = 'cleaver'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -48,7 +48,7 @@ class Cleave(SimpleStep):
                                             inplace = True)
         return ingredients
 
-    def _finalize_cleaves(self):
+    def _publish_cleaves(self):
         for group, columns in self.options.items():
             self.test_columns.extend(columns)
         if self.parameters['include_all']:
@@ -71,12 +71,12 @@ class Cleave(SimpleStep):
                             'CombineCleaves']}
         return self
 
-    def finalize(self):
+    def publish(self):
         self.algorithm = self._cleave
         return self
 
     @numpy_shield
     def produce(self, ingredients, plan = None):
-        self._finalize_cleaves()
+        self._publish_cleaves()
         ingredients = self.algorithm(ingredients)
         return ingredients

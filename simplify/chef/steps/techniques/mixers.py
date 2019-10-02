@@ -24,7 +24,7 @@ class DifferenceFeatures(SimpleTechnique):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize(bool): whether 'fina
+        auto_publish(bool): whether 'fina
         lize' method should be called when
             the class is instanced. This should generally be set to True.
     """
@@ -32,7 +32,7 @@ class DifferenceFeatures(SimpleTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'difference_mixer'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -52,7 +52,7 @@ class QuotientFeatures(SimpleTechnique):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize(bool): whether 'fina
+        auto_publish(bool): whether 'fina
         lize' method should be called when
             the class is instanced. This should generally be set to True.
     """
@@ -60,7 +60,7 @@ class QuotientFeatures(SimpleTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'quotient_mixer'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -80,7 +80,7 @@ class SumFeatures(SimpleTechnique):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize(bool): whether 'fina
+        auto_publish(bool): whether 'fina
         lize' method should be called when
             the class is instanced. This should generally be set to True.
     """
@@ -88,7 +88,7 @@ class SumFeatures(SimpleTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'sum_mixer'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()

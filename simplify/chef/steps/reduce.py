@@ -23,14 +23,14 @@ class Reduce(SimpleStep):
             algorithm.
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize (bool): whether 'finalize' method should be called when
+        auto_publish (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: str = ''
     parameters: object = None
     name: str = 'reducer'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -69,7 +69,7 @@ class Reduce(SimpleStep):
 #        elif self.technique == 'custom':
 #            self.default_parameters = {'threshold': 'mean'}
 #            self.runtime_parameters = {'estimator': estimator}
-#        self._finalize_parameters()
+#        self._publish_parameters()
 #        self._select_parameters()
 #        self.parameters.update({'estimator': estimator})
 #        if 'k' in self.parameters:
@@ -78,7 +78,7 @@ class Reduce(SimpleStep):
 #            self.num_features = self.parameters['n_features_to_select']
         return self
 
-    def finalize(self):
+    def publish(self):
         """All preparation has to be at runtime for reduce because of the
         possible inclusion of a fit estimator."""
         pass

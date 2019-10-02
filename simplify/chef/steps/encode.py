@@ -22,14 +22,14 @@ class Encode(SimpleStep):
             algorithm.
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize (bool): whether 'finalize' method should be called when
+        auto_publish (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: str = ''
     parameters: object = None
     name: str = 'encoder'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -50,7 +50,7 @@ class Encode(SimpleStep):
                 'target': ['category_encoders', 'TargetEncoder']}
         return self
 
-    def finalize(self):
+    def publish(self):
         pass
         return self
 
@@ -60,7 +60,7 @@ class Encode(SimpleStep):
             columns = ingredients.encoders
         if columns:
             self.runtime_parameters.update({'cols': columns})
-        super().finalize()
+        super().publish()
         self.algorithm.fit(ingredients.x, ingredients.y)
         self.algorithm.transform(
                 ingredients.x_train).reset_index(drop = True)

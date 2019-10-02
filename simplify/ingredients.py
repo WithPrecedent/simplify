@@ -69,7 +69,7 @@ class Ingredients(SimpleClass):
             values for columns in a DataFrames or Series. Ingredients assumes
             that all data containers within the instance are related and share a
             pool of column names and types.
-        auto_finalize(bool): whether 'finalize' method should be called when the
+        auto_publish(bool): whether 'publish' method should be called when the
             class is instanced. This should generally be set to True.
         state_dependent(bool): whether this class is depending upon the current
             state in the siMpLify package. Unless the user is radically changing
@@ -92,7 +92,7 @@ class Ingredients(SimpleClass):
     y_val: object = None
     datatypes: object = None
     prefixes: object = None
-    auto_finalize: bool = True
+    auto_publish: bool = True
     state_dependent: bool = True
 
     def __post_init__(self):
@@ -758,7 +758,7 @@ class Ingredients(SimpleClass):
         self.dropped_columns = []
         return self
 
-    def finalize(self):
+    def publish(self):
         """Finalizes Ingredients class instance."""
         if self.verbose:
             print('Preparing ingredients')

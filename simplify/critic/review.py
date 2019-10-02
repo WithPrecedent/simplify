@@ -32,7 +32,7 @@ class Review(SimpleManager):
             can be passed directly to the 'produce' method as well.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_finalize(bool): whether to call the 'finalize' method when the
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
         auto_produce(bool): whether to call the 'produce' method when the class
             is instanced.
@@ -45,7 +45,7 @@ class Review(SimpleManager):
     steps: object = None
     recipes: object = None
     name: str = 'review'
-    auto_finalize: bool = True
+    auto_publish: bool = True
     auto_produce: bool = False
 
     def __post_init__(self):
@@ -150,7 +150,7 @@ class Review(SimpleManager):
 
     @localize
     def produce(self, recipes = None, ingredients = None):
-        """Evaluates recipe with various tools and finalizes report.
+        """Evaluates recipe with various tools and publishs report.
 
         Args:
             ingredients (Ingredients): an instance or subclass instance of

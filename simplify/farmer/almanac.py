@@ -34,11 +34,11 @@ class Almanac(SimpleManager):
             for the Almanac.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_finalize(bool): whether to call the 'finalize' method when the
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced. If you do not plan to make any
             adjustments to the steps, techniques, or algorithms beyond the
             Idea configuration, this option should be set to True. If you plan
-            to make such changes, 'finalize' should be called when those
+            to make such changes, 'publish' should be called when those
             changes are complete.
         auto_produce(bool): whether to call the 'produce' method when the class
             is instanced.
@@ -53,7 +53,7 @@ class Almanac(SimpleManager):
     steps: object = None
     plans: object = None
     name: str = 'cookbook'
-    auto_finalize: bool = True
+    auto_publish: bool = True
     auto_produce: bool = True
 
     def __post_init__(self):
@@ -83,7 +83,7 @@ class Almanac(SimpleManager):
                 self.sections = {}
         return self
 
-    def _finalize_draft(self):
+    def _publish_draft(self):
         """Initializes the step classes for use by the Harvest."""
         self.drafts = []
         for step in self.steps:
@@ -95,7 +95,7 @@ class Almanac(SimpleManager):
                         technique = technique,
                         parameters = self.listify(getattr(self, technique)))
                 step_instance.techniques.append(tool_instance)
-            step_instance.finalize()
+            step_instance.publish()
             self.drafts.append(step_instance)
         return self
 
@@ -148,15 +148,15 @@ class Almanac(SimpleManager):
         self.checks.extend(['drafts', 'sections', 'defaults'])
         return self
 
-    def finalize(self):
+    def publish(self):
         """Creates a Harvest with all sequenced techniques applied at each
         step. Each set of methods is stored in a list within a Almanac instance.
         """
         if self.verbose:
             print('Preparing Harvest')
-        self._finalize_draft_class()
-        self._finalize_steps()
-        self._finalize_draft()
+        self._publish_draft_class()
+        self._publish_steps()
+        self._publish_draft()
         if hasattr(self, '_set_folders'):
             self._set_folders()
         return self

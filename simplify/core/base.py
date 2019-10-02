@@ -46,12 +46,12 @@ class SimpleClass(ABC):
 
         1) draft: sets default attributes (required).
         2) edit: makes any desired changes to the default attributes.
-        3) finalize: creates python objects based upon those attributes.
-        4) produce: applies those finalized objects to passed variables
+        3) publish: creates python objects based upon those attributes.
+        4) produce: applies those publishd objects to passed variables
             (usually data).
 
-    If the subclass includes boolean attributes of 'auto_finalize' or
-    'auto_produce', and those attributes are set to True, then the 'finalize'
+    If the subclass includes boolean attributes of 'auto_publish' or
+    'auto_produce', and those attributes are set to True, then the 'publish'
     and/or 'produce' methods are called when the class is instanced.
 
     Args:
@@ -75,7 +75,7 @@ class SimpleClass(ABC):
         name(str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
             throughout the siMpLify package.
-        auto_finalize(bool): whether to call the 'finalize' method when the
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
         auto_produce(bool): whether to call the 'produce' method when the class
             is instanced.
@@ -101,9 +101,9 @@ class SimpleClass(ABC):
         self._lazily_import_options()
         # Registers subclass into lists based upon specific subclass needs.
         self._register_subclass()
-        # Calls 'finalize' method if 'auto_finalize' is True.
-        if hasattr(self, 'auto_finalize') and self.auto_finalize:
-            self.finalize()
+        # Calls 'publish' method if 'auto_publish' is True.
+        if hasattr(self, 'auto_publish') and self.auto_publish:
+            self.publish()
             # Calls 'produce' method if 'auto_produce' is True.
             if hasattr(self, 'auto_produce') and self.auto_produce:
                 self.produce()
@@ -126,7 +126,7 @@ class SimpleClass(ABC):
 
         """
         self.idea = idea
-        self.auto_finalize = True
+        self.auto_publish = True
         self.auto_produce = False
         self.__post_init__()
         return self.produce(*args, **kwargs)
@@ -667,7 +667,7 @@ class SimpleClass(ABC):
         return self
 
     @abstractmethod
-    def finalize(self, **kwargs):
+    def publish(self, **kwargs):
         """Required method which creates any objects to be applied to data or
         variables.
 
@@ -676,7 +676,7 @@ class SimpleClass(ABC):
 
         Args:
             **kwargs: keyword arguments are not ordinarily included in the
-                finalize method. But nothing precludes them from being added
+                publish method. But nothing precludes them from being added
                 to subclasses.
         """
         pass
@@ -726,21 +726,21 @@ class SimpleManager(SimpleClass):
             self.all_steps.append(getattr(self, step))
         return self
 
-    def _finalize_plans_parallel(self):
+    def _publish_plans_parallel(self):
         """Creates plan iterable from list of lists in 'all_steps'."""
         # Creates a list of all possible permutations of step lists.
         all_plans = list(map(list, product(*self.all_steps)))
         for i, plan in enumerate(all_plans):
-            finalized_steps = {}
+            publishd_steps = {}
             for j, (step_name, step_class) in enumerate(self.options.items()):
-                finalized_steps.update(
+                publishd_steps.update(
                         {step_name: step_class(technique = plan[j])})
             getattr(self, self.plan_iterable).update(
-                    {i + 1: self.plan_class(steps = finalized_steps,
+                    {i + 1: self.plan_class(steps = publishd_steps,
                                              number = i + 1)})
         return self
 
-    def _finalize_plans_serial(self):
+    def _publish_plans_serial(self):
         """Creates plan iterable from list of lists in 'all_steps'."""
         for i, (plan_name, plan_class) in enumerate(self.options.items()):
             for steps in self.all_steps[i]:
@@ -749,7 +749,7 @@ class SimpleManager(SimpleClass):
         return self
 
     def _produce_parallel(self, variable = None, **kwargs):
-        """Method that implements all of the finalized objects on the
+        """Method that implements all of the publishd objects on the
         passed variable.
 
         The variable is returned after being transformed by called methods.
@@ -768,7 +768,7 @@ class SimpleManager(SimpleClass):
         return variable
 
     def _produce_serial(self, variable = None, **kwargs):
-        """Method that implements all of the finalized objects on the
+        """Method that implements all of the publishd objects on the
         passed variable.
 
         The variable is returned after being transformed by called methods.
@@ -793,14 +793,14 @@ class SimpleManager(SimpleClass):
         self.state_attributes = ['depot', 'ingredients']
         return self
 
-    def finalize(self):
+    def publish(self):
         """Finalizes iterable dict of plans with instanced plan classes."""
         self._create_steps_lists()
-        getattr(self, '_finalize_plans_' + self.manager_type)()
+        getattr(self, '_publish_plans_' + self.manager_type)()
         return self
 
     def produce(self, variable = None, **kwargs):
-        """Method that implements all of the finalized objects on the
+        """Method that implements all of the publishd objects on the
         passed variable.
 
         The variable is returned after being transformed by called methods.
@@ -852,8 +852,8 @@ class SimplePlan(SimpleClass):
         pass
         return self
 
-    def finalize(self):
-        """SimplePlan's generic 'finalize' method requires no extra
+    def publish(self):
+        """SimplePlan's generic 'publish' method requires no extra
         preparation.
         """
         pass
@@ -898,7 +898,7 @@ class SimpleStep(SimpleClass):
             corresponding to 'techniques'. This parameter need not be passed to
             the SimpleStep subclass if the parameters are in the accessible
             Idea instance or if the user wishes to use default parameters.
-        auto_finalize(bool): whether 'finalize' method should be called when
+        auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     It is also a child class of SimpleClass. So, its documentation applies as
@@ -907,7 +907,7 @@ class SimpleStep(SimpleClass):
 
     technique: object = None
     parameters: object = None
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         # Adds name of SimpleManager subclass to sections to inject from Idea
@@ -938,7 +938,7 @@ class SimpleStep(SimpleClass):
         else:
             return parameters
 
-    def _finalize_parameters(self):
+    def _publish_parameters(self):
         """Compiles appropriate parameters for all 'technique'.
 
         After testing several sources for parameters using '_get_parameters',
@@ -1080,10 +1080,10 @@ class SimpleStep(SimpleClass):
             error = 'parameters must be a dict type'
             raise TypeError(error)
 
-    def finalize(self):
+    def publish(self):
         """Finalizes parameters and adds 'parameters' to 'algorithm'."""
         self.technique = self._convert_wildcards(value = self.technique)
-        self._finalize_parameters()
+        self._publish_parameters()
         if self.technique in ['none', 'None', None]:
             self.technique = 'none'
             self.algorithm = None
@@ -1232,7 +1232,7 @@ class SimpleTechnique(SimpleStep):
             corresponding to 'technique'. This parameter need not be passed to
             the SimpleStep subclass if the parameters are in the accessible
             Idea instance or if the user wishes to use default parameters.
-        auto_finalize (bool): whether 'finalize' method should be called when
+        auto_publish (bool): whether 'publish' method should be called when
             the  class is instanced. This should generally be set to True.
 
     It is also a child class of SimpleStep. So, its documentation applies as
@@ -1240,7 +1240,7 @@ class SimpleTechnique(SimpleStep):
     """
     technique: object = None
     parameters: object = None
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         # Adds name of SimpleStep subclass to sections to inject from Idea
@@ -1253,9 +1253,9 @@ class SimpleTechnique(SimpleStep):
 
     """ Core siMpLify Public Methods """
 
-    def finalize(self):
+    def publish(self):
         """Finalizes parameters and adds 'parameters' to 'algorithm'."""
-        self._finalize_parameters()
+        self._publish_parameters()
         if self.technique != ['none']:
             self.algorithm = self.options[self.technique](**self.parameters)
         else:
@@ -1307,10 +1307,10 @@ class Simplify(SimpleClass):
             settings file and other portions of the siMpLify package. This is
             used instead of __class__.__name__ so that subclasses can maintain
             the same string name without altering the formal class name.
-        auto_finalize(bool): sets whether to automatically call the 'finalize'
+        auto_publish(bool): sets whether to automatically call the 'publish'
             method when the class is instanced. If you do not plan to make any
             adjustments beyond the Idea configuration, this option should be
-            set to True. If you plan to make such changes, 'finalize' should be
+            set to True. If you plan to make such changes, 'publish' should be
             called when those changes are complete.
         auto_produce(bool): sets whether to automatically call the 'produce'
             method when the class is instanced.
@@ -1321,7 +1321,7 @@ class Simplify(SimpleClass):
     ingredients: object = None
     depot: object = None
     name: str = 'simplify'
-    auto_finalize: bool = True
+    auto_publish: bool = True
     auto_produce: bool = False
 
     def __post_init__(self):
@@ -1341,7 +1341,7 @@ class Simplify(SimpleClass):
                 be turned into localized attributes.
         """
         self.__post_init__()
-        self.finalize()
+        self.publish()
         self.produce(**kwargs)
         return self
 
@@ -1380,13 +1380,13 @@ class Simplify(SimpleClass):
         self.checks = ['depot', 'ingredients']
         return self
 
-    def finalize(self):
+    def publish(self):
         self.steps = {}
         for name, settings in self.options.items():
             print(self.subpackages)
             if name in self.subpackages:
                 setattr(self, name, self.options[name]())
-                getattr(self, name).finalize()
+                getattr(self, name).publish()
                 self.steps.update({name: getattr(self, name)})
         return self
 

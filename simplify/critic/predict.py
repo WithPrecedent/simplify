@@ -21,14 +21,14 @@ class Predict(SimplePlan):
             explaining data analysis models.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_finalize (bool): whether to call the 'finalize' method when the
+        auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
         auto_produce (bool): whether to call the 'produce' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'predictor'
-    auto_finalize: bool = True
+    auto_publish: bool = True
     auto_produce: bool = False
 
     def __post_init__(self):
@@ -62,14 +62,14 @@ class PredictOutcomes(SimpleStep):
             algorithm.
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize (bool): whether 'finalize' method should be called when
+        auto_publish (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: object = None
     parameters: object = None
     name: str = 'outcome_predictor'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -77,7 +77,7 @@ class PredictOutcomes(SimpleStep):
 
     """ Core siMpLify Methods """
 
-    def finalize(self):
+    def publish(self):
         pass
         return self
 
@@ -110,14 +110,14 @@ class PredictProbabilities(SimpleStep):
             algorithm.
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize (bool): whether 'finalize' method should be called when
+        auto_publish (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: object = None
     parameters: object = None
     name: str = 'probabilities_predictor'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -125,7 +125,7 @@ class PredictProbabilities(SimpleStep):
 
     """ Core siMpLify Methods """
 
-    def finalize(self):
+    def publish(self):
         pass
         return self
 
@@ -158,14 +158,14 @@ class PredictLogProbabilities(SimpleStep):
             algorithm.
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize (bool): whether 'finalize' method should be called when
+        auto_publish (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: object = None
     parameters: object = None
     name: str = 'log_probabilities_predictor'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -173,7 +173,7 @@ class PredictLogProbabilities(SimpleStep):
 
     """ Core siMpLify Methods """
 
-    def finalize(self):
+    def publish(self):
         pass
         return self
 
@@ -206,14 +206,14 @@ class PredictShapProbabilities(SimpleStep):
             algorithm.
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_finalize (bool): whether 'finalize' method should be called when
+        auto_publish (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: object = None
     parameters: object = None
     name: str = 'log_probabilities_predictor'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -221,7 +221,7 @@ class PredictShapProbabilities(SimpleStep):
 
     """ Core siMpLify Methods """
 
-    def finalize(self):
+    def publish(self):
         pass
         return self
 

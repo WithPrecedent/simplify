@@ -30,7 +30,7 @@ class Canvas(SimpleManager):
             well.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_finalize (bool): whether to call the 'finalize' method when the
+        auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
         auto_produce (bool): whether to call the 'produce' method when the class
             is instanced.
@@ -45,7 +45,7 @@ class Canvas(SimpleManager):
     recipes: object = None
     reviews: object = None
     name: str = 'canvas'
-    auto_finalize: bool = True
+    auto_publish: bool = True
     auto_produce: bool = True
 
     def __post_init__(self):
@@ -124,9 +124,9 @@ class Canvas(SimpleManager):
         self.plan_iterable = 'depictions'
         return self
 
-    def finalize(self):
+    def publish(self):
         self._set_styler()
-        super().finalize()
+        super().publish()
         return self
 
     @localize

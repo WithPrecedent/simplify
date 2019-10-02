@@ -21,19 +21,19 @@ class Harvest(SimplePlan):
             and values of SimpleStep class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
-        auto_finalize(bool): whether 'finalize' method should be called when
+        auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     steps: object = None
     name: str = 'harvester'
-    auto_finalize: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    def _finalize_organize(self, key):
+    def _publish_organize(self, key):
         file_path = os.path.join(self.depot.instructions,
                                  'organizer_' + key + '.csv')
         self.parameters = {'technique': self.technique,
@@ -42,7 +42,7 @@ class Harvest(SimplePlan):
         self._set_columns(algorithm)
         return algorithm
 
-    def _finalize_parse(self, key):
+    def _publish_parse(self, key):
         file_path = os.path.join(self.depot.instructions,
                                  'parser_' + key + '.csv')
         self.parameters = {'technique': self.technique,
@@ -75,12 +75,12 @@ class Harvest(SimplePlan):
                                          source = ingredients.source)
         return ingredients
 
-    def finalize(self):
+    def publish(self):
         for key in self.parameters:
-            if hasattr(self, '_finalize_' + self.technique):
+            if hasattr(self, '_publish_' + self.technique):
                 algorithm = getattr(
-                        self, '_finalize_' + self.technique)(key = key)
+                        self, '_publish_' + self.technique)(key = key)
             else:
-                algorithm = getattr(self, '_finalize_generic_list')(key = key)
+                algorithm = getattr(self, '_publish_generic_list')(key = key)
             self.algorithms.append(algorithm)
         return self
