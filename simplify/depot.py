@@ -17,6 +17,7 @@ import pandas as pd
 from simplify.core.base import SimpleClass
 from simplify.core.types import FileTypes
 
+
 @dataclass
 class Depot(SimpleClass):
     """Manages files and folders for the siMpLify package.
