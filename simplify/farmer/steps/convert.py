@@ -44,7 +44,7 @@ class Convert(SimpleStep):
         self.file_path_out = self.make_path(self.file_out)
         return self
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         converted = self.method(file_path = self.file_path_in)
         self.depot.save_df(converted, file_path = self.file_path_out)
         return self

@@ -14,6 +14,7 @@ import warnings
 
 from more_itertools import unique_everseen
 import pandas as pd
+#from tensorflow.test import is_gpu_available
 
 
 @dataclass
@@ -28,12 +29,12 @@ class SimpleClass(ABC):
         1) draft: sets default attributes (required).
         2) edit: makes any desired changes to the default attributes.
         3) publish: creates python objects based upon those attributes.
-        4) read: applies those publishd objects to passed variables
+        4) implement: applies those publishd objects to passed variables
             (usually data).
 
     If the subclass includes boolean attributes of 'auto_publish' or
-    'auto_read', and those attributes are set to True, then the 'publish'
-    and/or 'read' methods are called when the class is instanced.
+    'auto_implement', and those attributes are set to True, then the 'publish'
+    and/or 'implement' methods are called when the class is instanced.
 
     Args:
         These arguments are not required for any SimpleClass, but are commonly
@@ -58,7 +59,7 @@ class SimpleClass(ABC):
             throughout the siMpLify package.
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_read(bool): whether to call the 'read' method when the class
+        auto_implement(bool): whether to call the 'implement' method when the class
             is instanced.
 
     """
@@ -77,37 +78,35 @@ class SimpleClass(ABC):
         self._run_checks()
         # Converts values in 'options' to classes by lazily importing them.
         self._lazily_import_options()
-        # Registers subclass into lists based upon specific subclass needs.
-        self._register_subclass()
         # Calls 'publish' method if 'auto_publish' is True.
         if hasattr(self, 'auto_publish') and self.auto_publish:
             self.publish()
-            # Calls 'read' method if 'auto_read' is True.
-            if hasattr(self, 'auto_read') and self.auto_read:
-                self.read()
+            # Calls 'implement' method if 'auto_implement' is True.
+            if hasattr(self, 'auto_implement') and self.auto_implement:
+                self.implement()
         return self
 
     """ Magic Methods """
 
     def __call__(self, idea, *args, **kwargs):
-        """When called as a function, a subclass will return the read method
+        """When called as a function, a subclass will return the implement method
         after running __post_init__.
 
         Args:
             idea(Idea or str): an instance of Idea or path where an Idea
                 configuration file is located. This argument must be passed when
                 a subclass is called as a function.
-            *args and **kwargs (any): passed to the 'read' method.
+            *args and **kwargs (any): passed to the 'implement' method.
 
         Returns:
-            return value of 'read' method.
+            return value of 'implement' method.
 
         """
         self.idea = idea
         self.auto_publish = True
-        self.auto_read = False
+        self.auto_implement = False
         self.__post_init__()
-        return self.read(*args, **kwargs)
+        return self.implement(*args, **kwargs)
 
     def __contains__(self, item):
         """Checks if item is in 'options'.
@@ -376,17 +375,6 @@ class SimpleClass(ABC):
                     self.options = imported_options
         return self
 
-    def _register_subclass(self):
-        """Adds subclass to appropriate list based on attribute in subclass."""
-        self._registered_subclasses = {
-            'registered_state_subclasses': 'state_dependent'}
-        for subclass_list, attribute in self._registered_subclasses.items():
-            if not hasattr(self, subclass_list):
-                setattr(self, subclass_list, [])
-            if hasattr(self, attribute) and getattr(self, attribute):
-                getattr(self, subclass_list).append(self)
-        return self
-
     def _run_checks(self):
         """Checks attributes from 'checks' and runs corresponding methods based
         upon strings stored in 'checks'.
@@ -402,22 +390,6 @@ class SimpleClass(ABC):
         return self
 
     """ Public Tool Methods """
-
-    def conform(self, step):
-        """Sets 'step' attribute to passed 'step' throughout package.
-
-        This method is used to maintain a universal state in the package for
-        subclasses that are state dependent. It iterates through any subclasses
-        listed in 'registered_state_subclasses' to call their 'conform'
-        methods.
-
-        Args:
-            step(str): corresponds to current state in siMpLify package.
-        """
-        self.step = step
-        for _subclass in self.registered_state_subclasses:
-            _subclass.conform(step = step)
-        return self
 
     @staticmethod
     def deduplicate(iterable):
@@ -626,7 +598,7 @@ class SimpleClass(ABC):
         variables.
 
         In the case of iterative classes, such as Cookbook, this method should
-        construct any plans to be later implemented by the 'read' method.
+        construct any plans to be later implemented by the 'implement' method.
 
         Args:
             **kwargs: keyword arguments are not ordinarily included in the

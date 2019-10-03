@@ -37,5 +37,5 @@ class Supplement(SimpleStep):
         self.options = {}
         return self
 
-    def read(self, ingredients, sources):
+    def implement(self, ingredients, sources):
         return ingredients

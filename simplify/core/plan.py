@@ -37,9 +37,9 @@ class SimplePlan(SimpleClass):
 
     def __call__(self, *args, **kwargs):
         """When called as a function, a SimplePlan class or subclass instance
-        will return the 'read' method.
+        will return the 'implement' method.
         """
-        return self.read(*args, **kwargs)
+        return self.implement(*args, **kwargs)
 
     def draft(self):
         """SimplePlan's generic 'draft' method."""
@@ -53,8 +53,8 @@ class SimplePlan(SimpleClass):
         pass
         return self
 
-    def read(self, variable, **kwargs):
-        """Iterates through SimpleStep techniques 'read' methods.
+    def implement(self, variable, **kwargs):
+        """Iterates through SimpleStep techniques 'implement' methods.
 
         Args:
             variable(any): variable to be changed by serial SimpleManager
@@ -67,6 +67,6 @@ class SimplePlan(SimpleClass):
         if not self.data_variable and hasattr(variable, 'name'):
             self.data_variable = variable.name
         for step, technique in self.steps.items():
-            setattr(self, self.data_variable, technique.read(
+            setattr(self, self.data_variable, technique.implement(
                     getattr(self, self.data_variable), **kwargs))
         return self

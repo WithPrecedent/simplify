@@ -36,6 +36,6 @@ class Scrape(SimpleStep):
         return self
 
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         file_path = os.path.join(self.depot.external, self.file_name)
         return self

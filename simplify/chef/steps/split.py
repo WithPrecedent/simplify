@@ -28,7 +28,7 @@ class Split(SimpleStep):
 
     technique: str = ''
     parameters: object = None
-    name: str = 'splitter'
+    name: str = 'split'
     auto_publish: bool = True
 
     def __post_init__(self):
@@ -53,9 +53,3 @@ class Split(SimpleStep):
         self.extra_parameters = {'train_test': {'n_splits': 1}}
         self.selected_parameters = True
         return self
-
-    def read(self, ingredients):
-        if self.algorithm != 'none':
-            self.algorithm.split(ingredients.x_train, ingredients.y_train)
-            ingredients.x_train = self.algorithm.transform(ingredients.x_train)
-        return ingredients

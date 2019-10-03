@@ -25,13 +25,13 @@ class Rank(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_read (bool): whether to call the 'read' method when the class
+        auto_implement (bool): whether to call the 'implement' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'ranker'
     auto_publish: bool = True
-    auto_read: bool = True
+    auto_implement: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -45,7 +45,7 @@ class Rank(SimplePlan):
                 'builtin': BuiltinImportances}
         return self
 
-    def read(self):
+    def implement(self):
 
 
         return self
@@ -62,7 +62,7 @@ class GiniImportances(SimpleStep):
         self.options = {}
         return self
 
-    def read(self, recipe):
+    def implement(self, recipe):
         features = list(recipe.ingredients.x_test.columns)
         if hasattr(recipe.model.algorithm, 'feature_importances_'):
             importances = pd.Series(
@@ -85,7 +85,7 @@ class PermutationImportances(SimpleStep):
         return self
 
 
-    def read(self, recipe):
+    def implement(self, recipe):
         importance_instance = PermutationImportance(
                 estimator = recipe.model.algorithm,
                 random_state = self.seed)
@@ -116,11 +116,11 @@ class BuiltinImportances(SimpleStep):
         super().__post_init__()
         return self
 
-    def _read_cover(self, recipe):
+    def _implement_cover(self, recipe):
 
         return importances
 
-    def _read_weight(self, recipe):
+    def _implement_weight(self, recipe):
         return importances
 
     def draft(self):

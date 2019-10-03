@@ -29,7 +29,7 @@ class Cleave(SimpleStep):
 
     technique: str = ''
     parameters: object = None
-    name: str = 'cleaver'
+    name: str = 'cleave'
     auto_publish: bool = True
 
     def __post_init__(self):
@@ -76,7 +76,7 @@ class Cleave(SimpleStep):
         return self
 
     @numpy_shield
-    def read(self, ingredients, plan = None):
+    def implement(self, ingredients, plan = None):
         self._publish_cleaves()
         ingredients = self.algorithm(ingredients)
         return ingredients

@@ -29,12 +29,12 @@ class Review(SimpleManager):
             analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It
-            can be passed directly to the 'read' method as well.
+            can be passed directly to the 'implement' method as well.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_read(bool): whether to call the 'read' method when the class
+        auto_implement(bool): whether to call the 'implement' method when the class
             is instanced.
 
     Since this class is a subclass to SimpleManager and SimpleClass, all
@@ -46,7 +46,7 @@ class Review(SimpleManager):
     recipes: object = None
     name: str = 'review'
     auto_publish: bool = True
-    auto_read: bool = False
+    auto_implement: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -92,8 +92,8 @@ class Review(SimpleManager):
             step_column = f'{technique}, parameters = {parameters}'
         return step_column
 
-    def _read_summary(self):
-        self.options['summarize'].read(df = self.ingredients.df)
+    def _implement_summary(self):
+        self.options['summarize'].implement(df = self.ingredients.df)
         self.summary = self.options['summarize'].report
         return self
 
@@ -166,7 +166,7 @@ class Review(SimpleManager):
         return self
 
     @localize
-    def read(self, recipes = None, ingredients = None):
+    def implement(self, recipes = None, ingredients = None):
         """Evaluates recipe with various tools and publishs report.
 
         Args:

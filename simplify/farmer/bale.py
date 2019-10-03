@@ -34,6 +34,6 @@ class Bale(SimplePlan):
         self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def read(self, ingredients):
-        ingredients = self.algorithm.read(ingredients)
+    def implement(self, ingredients):
+        ingredients = self.algorithm.implement(ingredients)
         return ingredients

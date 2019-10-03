@@ -85,7 +85,7 @@ class Idea(SimpleClass):
                 self.cookbook_steps = ['split', 'reduce', 'model']
                 return self
 
-    Regardless of the idea_sections added, all idea settings can be similarly
+    Regardless of the idea_sections added, all Idea settings can be similarly
     accessed using dict keys or local attributes. For example:
 
         self.idea['general']['seed'] # typical dict access technique
@@ -319,12 +319,12 @@ class Idea(SimpleClass):
 
     def _set_initial_state(self):
         """Sets initial 'step' for state_depenent subclasses."""
-        if 'farmer' in self.configuration['general']['subpackages']:
+        if 'farmer' in self.configuration['general']['packages']:
             self.step = self.listify(
                     self.idea.configuration['almanac']['almanac_steps'])[0]
-        elif 'chef' in self.configuration['general']['subpackages']:
+        elif 'chef' in self.configuration['general']['packages']:
             self.step = 'cook'
-        elif 'review' in self.configuration['general']['subpackages']:
+        elif 'review' in self.configuration['general']['packages']:
             self.step = 'review'
         else:
             self.step = 'canvas'

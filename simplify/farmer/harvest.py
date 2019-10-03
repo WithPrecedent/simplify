@@ -65,13 +65,13 @@ class Harvest(SimplePlan):
         self.columns.extend(new_columns)
         return self
 
-    def _read_organize(self, ingredients, algorithm):
-        ingredients.df, ingredients.source = algorithm.read(
+    def _implement_organize(self, ingredients, algorithm):
+        ingredients.df, ingredients.source = algorithm.implement(
                 df = ingredients.df, source = ingredients.source)
         return ingredients
 
-    def _read_parse(self, ingredients, algorithm):
-        ingredients.df = algorithm.read(df = ingredients.df,
+    def _implement_parse(self, ingredients, algorithm):
+        ingredients.df = algorithm.implement(df = ingredients.df,
                                          source = ingredients.source)
         return ingredients
 

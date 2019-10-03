@@ -166,15 +166,15 @@ class ReTool(SimpleClass):
         self._set_matcher()
         return self
 
-    def read(self, ingredients = None, df = None, source = None,
+    def implement(self, ingredients = None, df = None, source = None,
               remove_from_source = True):
         df, source = self._check_ingredients(ingredients = ingredients,
                                              df = df,
                                              source = source)
         if remove_from_source:
-            df, source = self.matcher.read(df = df, source = source)
+            df, source = self.matcher.implement(df = df, source = source)
         else:
-            df = self.matcher.read(df = df, source = source)
+            df = self.matcher.implement(df = df, source = source)
         return ingredients
 
     def update(self, key, value):
@@ -241,7 +241,7 @@ class ReLoad(object):
         """Loads data for expressions table from .csv file, converts keys to
         strings, and removes a common encording error character.
         """
-        self.expressions = (pd.read_csv(self.file_path,
+        self.expressions = (pd.implement_csv(self.file_path,
                                         index_col = False,
                                         encoding = self.encoding)
                               .astype(str)
@@ -276,7 +276,7 @@ class ReMatch(object):
             self.source = self.value
         return self
 
-    def read(self, df):
+    def implement(self, df):
         for self.key, self.value in self.expressions.items():
             self._set_source()
             self.section = self.sections[self.value]
@@ -452,7 +452,7 @@ class ReOrganize(ReMatch):
     def __post_init__(self):
         return self
 
-    def read(self, df, source):
+    def implement(self, df, source):
         for self.key, self.value in self.expressions.items():
             self._set_out_column()
             if re.search(self.key, source):

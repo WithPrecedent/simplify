@@ -17,7 +17,7 @@ The siMpLify package uses an extended metaphor, which is familiar in computer
 programming, as the basis for its overall structure: food preparation. Words 
 like 'recipe' and 'cookbook' appear with regularity in discussing computer code. 
 siMpLify extends this metaphor a bit further in the creation of its four core
-subpackages:
+packages:
     1) Farmer: harvests data from a variety of sources, cleans it, and prepares
         it for consumption.
     2) Chef: using a cookbook of recipes derived from user selections, the Chef 
@@ -32,7 +32,7 @@ Although scikit-learn has gone a long way toward unifying interfaces with many c
 1) It doesn't incorporate many tools for data that isn't already [tidy](https://vita.had.co.nz/papers/tidy-data.pdf).
 2) There is [a needlessly convoluted process](https://github.com/scikit-learn-contrib/sklearn-pandas#transformation-mapping) for implementing transformers on a subset of columns. Whereas many packages include a "cols" argument, [scikit-learn does not](https://medium.com/vickdata/easier-machine-learning-with-the-new-column-transformer-from-scikit-learn-c2268ea9564c).
 3) fit methods do not work with certain preprocessing algorithms (e.g., [target encoding in category-encoders](https://github.com/scikit-learn-contrib/categorical-encoding/issues/104)) because scikit-learn does not allow the label data to be passed to a fit method.
-4) Pipeline and FeatureUnion [lack a mix-and-match grid-search type system](https://buildmedia.readthedocs.org/media/pdf/scikit-learn-enhancement-proposals/latest/scikit-learn-enhancement-proposals.pdf) for preprocessing, only for hyperparameter searches.
+4) Pipeline and FeatureUnion [lack a mix-and-match grid-search type system](https://buildmedia.implementthedocs.org/media/pdf/scikit-learn-enhancement-proposals/latest/scikit-learn-enhancement-proposals.pdf) for preprocessing, only for hyperparameter searches.
 5) It doesn't directly use pandas dataframes despite various attempts to bridge the gap (e.g., [sklearn_pandas](https://github.com/scikit-learn-contrib/sklearn-pandas)). This can cause confusion and difficulty in keeping feature names attached to columns of data because numpy arrays do not incorporate string names of columns. This is why, for example, [default feature_importances graphs do not include the actual feature names](https://stackoverflow.com/questions/44511636/matplotlib-plot-feature-importance-with-feature-names).
 6) The structuring of scikit-learn compatible preprocessing algorithms to comply with the rigid .fit and .transform methods makes their use sometimes unintuitive.
 7) The process for implementing different transformers on different groups of data (test, train, full, validation, etc.) within a Pipeline is [often messy and difficult](https://towardsdatascience.com/preprocessing-with-sklearn-a-complete-and-comprehensive-guide-670cb98fcfb9).
@@ -163,7 +163,7 @@ The examples folder, from which the above settings are taken, currently shows ho
     cookbook = Cookbook(ingredients = ingredients)
     # Iterates through every recipe and exports plots, explainers, and other
     # metrics from each recipe.
-    cookbook.read()
+    cookbook.implement()
     # Saves the recipes, results, and cookbook.
     cookbook.save_everything()
     # Outputs information about the best recipe to the terminal.

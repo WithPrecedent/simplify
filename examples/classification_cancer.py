@@ -10,8 +10,11 @@ from sklearn.datasets import load_breast_cancer
 from simplify import Simplify, Idea
 
 # Sets path to settings file and root folder for file output.
-idea = Idea(configuration = os.path.join(os.getcwd(),
+idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
                                          'cancer_settings.ini'))
+# Depending upon your OS and python configuration, this path might work better.
+# idea = Idea(configuration = os.path.join(os.getcwd(),
+#                                          'cancer_settings.ini'))
 root_folder = os.path.join('..', '..')
 
 # Loads cancer data and converts from numpy arrays to pandas dataframe.
@@ -30,7 +33,7 @@ cancer_project.ingredients.change_datatype(columns = 'target',
 cancer_project.ingredients.smart_fill()
 # Iterates through every recipe and exports plots, explainers, and other
 # metrics from each recipe.
-cancer_project.read()
+cancer_project.implement()
 # Saves the recipes, results, and cookbook.
 cancer_project.chef.save_everything()
 # Outputs information about the best recipe to the terminal.

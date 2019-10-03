@@ -28,7 +28,7 @@ class Sample(SimpleStep):
 
     technique: str = ''
     parameters: object = None
-    name: str = 'sampler'
+    name: str = 'sample'
     auto_publish: bool = True
 
     def __post_init__(self):
@@ -67,7 +67,7 @@ class Sample(SimpleStep):
         return self
 
     @numpy_shield
-    def read(self, ingredients, plan = None, columns = None):
+    def implement(self, ingredients, plan = None, columns = None):
         self._recheck_parameters(ingredients.x, columns)
         if plan.data_to_use in ['full']:
             resampled_x, resampled_y = self.algorithm.fit_resample(

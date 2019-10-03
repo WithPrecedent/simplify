@@ -38,7 +38,7 @@ class Recipe(SimplePlan):
         super().__post_init__()
         return self
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         """Applies the Cookbook steps to the passed ingredients."""
         steps = self.steps.copy()
         self.ingredients = ingredients
@@ -48,14 +48,13 @@ class Recipe(SimplePlan):
         # must incorporate the split into 'x_train' and 'x_test'.
         for step in list(steps.keys()):
             steps.pop(step)
-            if step == 'splitter':
+            if step == 'split':
                 break
             else:
-                print(step)
-                self.ingredients = self.steps[step].read(
+                self.ingredients = self.steps[step].implement(
                     ingredients = self.ingredients,
                     plan = self)
-        split_algorithm = self.steps['splitter'].algorithm
+        split_algorithm = self.steps['split'].algorithm
         for train_index, test_index in split_algorithm.split(
                 self.ingredients.x, self.ingredients.y):
             self.ingredients.x_train, self.ingredients.x_test = (
@@ -65,7 +64,7 @@ class Recipe(SimplePlan):
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
             for step, technique in steps.items():
-                self.ingredients = technique.read(
+                self.ingredients = technique.implement(
                        ingredients = self.ingredients,
                        plan = self)
         return self

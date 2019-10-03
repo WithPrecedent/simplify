@@ -61,6 +61,6 @@ class Regress(SimpleTechnique):
                                                    'probability': True}}
         return self
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         self.algorithm.fit(ingredients.x_train, ingredients.y_train)
         return self.algorithm

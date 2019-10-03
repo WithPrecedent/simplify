@@ -12,7 +12,7 @@ setup(name = 'siMpLify',
       version = __version__,
       entry_points = {'console_scripts': ['simplify = simplify.cli:cli']},
       python_requires = '>= 3.6',
-      install_requires = open('requirements.txt').readlines(),
+      install_requires = open('requirements.txt').implementlines(),
       keywords = 'data science machine learning pandas sklearn',
       classifiers = ['Programming Language :: Python :: 3.6',
                      'Programming Language :: Python :: 3.7'])

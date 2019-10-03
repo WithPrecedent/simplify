@@ -72,14 +72,14 @@ class SimpleTechnique(SimpleStep):
             self.algorithm = None
         return self
 
-    def read(self, ingredients, plan = None):
+    def implement(self, ingredients, plan = None):
         """Generic implementation method for SimpleTechnique subclass.
 
         Args:
             ingredients(Ingredients): an instance of Ingredients or subclass.
             plan(SimplePlan subclass or instance): is not used by the generic
                 method but is made available as an optional keyword for
-                compatibility with other 'read'  methods. This parameter is
+                compatibility with other 'implement'  methods. This parameter is
                 used when the current SimpleTechnique subclass needs to look
                 back at previous SimpleSteps.
         """

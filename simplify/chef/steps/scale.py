@@ -28,7 +28,7 @@ class Scale(SimpleStep):
 
     technique: str = ''
     parameters: object = None
-    name: str = 'scaler'
+    name: str = 'scale'
     auto_publish: bool = True
 
     def __post_init__(self):
@@ -67,11 +67,11 @@ class Scale(SimpleStep):
         return self
 
     @numpy_shield
-    def read(self, ingredients, plan = None, columns = None):
+    def implement(self, ingredients, plan = None, columns = None):
         if columns is None:
             columns = ingredients.scalers
         if self.technique in self.custom_options:
-            ingredients = self.algorithm.read(ingredients = ingredients,
+            ingredients = self.algorithm.implement(ingredients = ingredients,
                                                  columns = columns)
         else:
             ingredients.x[columns] = self.algorithm.fit_transform(

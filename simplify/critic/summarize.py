@@ -25,13 +25,13 @@ class Summarize(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_read (bool): whether to call the 'read' method when the class
+        auto_implement (bool): whether to call the 'implement' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'summarizer'
     auto_publish: bool = True
-    auto_read: bool = False
+    auto_implement: bool = False
     lazy_import: bool = False
 
     def __post_init__(self):
@@ -40,7 +40,7 @@ class Summarize(SimplePlan):
 
     """ Private Methods """
 
-    def _read_export_parameters(self, file_name, file_format, transpose):
+    def _implement_export_parameters(self, file_name, file_format, transpose):
         self.export_parameters = {'folder': 'experiment',
                                   'file_name': file_name,
                                   'file_format': file_format}
@@ -51,7 +51,7 @@ class Summarize(SimplePlan):
             self.export_parameters.update({'header': True, 'index': False})
         return self
 
-    def _read_report(self, df):
+    def _implement_report(self, df):
         for column in df.columns:
             row = pd.Series(index = self.columns)
             row['variable'] = column
@@ -107,7 +107,7 @@ class Summarize(SimplePlan):
         self.report = pd.DataFrame(columns = self.columns)
         return self
 
-    def read(self, df = None, transpose = True, file_name = 'data_summary',
+    def implement(self, df = None, transpose = True, file_name = 'data_summary',
                 file_format = 'csv'):
         """Creates a DataFrame of common summary data.
 
@@ -118,8 +118,8 @@ class Summarize(SimplePlan):
             file_name(str): name of file to be exported (without extension).
             file_format(str): exported file format.
         """
-        self._read_report(df = df)
-        self._read_export_parameters(file_name = file_name,
+        self._implement_report(df = df)
+        self._implement_export_parameters(file_name = file_name,
                                         file_format = file_format,
                                         transpose = transpose)
         return self.report

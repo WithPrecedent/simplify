@@ -42,7 +42,7 @@ class Almanac(SimpleManager):
             Idea configuration, this option should be set to True. If you plan
             to make such changes, 'publish' should be called when those
             changes are complete.
-        auto_read(bool): whether to call the 'read' method when the class
+        auto_implement(bool): whether to call the 'implement' method when the class
             is instanced.
             
     Since this class is a subclass to SimpleManager and SimpleClass, all
@@ -56,7 +56,7 @@ class Almanac(SimpleManager):
     plans: object = None
     name: str = 'cookbook'
     auto_publish: bool = True
-    auto_read: bool = True
+    auto_implement: bool = True
 
     def __post_init__(self):
         """Sets up the core attributes of Harvest."""
@@ -101,17 +101,17 @@ class Almanac(SimpleManager):
             self.drafts.append(step_instance)
         return self
 
-    def _read_file(self, ingredients):
+    def _implement_file(self, ingredients):
         with open(
                 self.depot.path_in, mode = 'r', errors = 'ignore',
                 encoding = self.idea['files']['file_encoding']) as a_file:
-            ingredients.source = a_file.read()
+            ingredients.source = a_file.implement()
             for technique in self.techniques:
-                ingredients = technique.read(ingredients = ingredients)
+                ingredients = technique.implement(ingredients = ingredients)
             self.depot.save(variable = ingredients.df)
         return ingredients
 
-    def _read_glob(self, ingredients):
+    def _implement_glob(self, ingredients):
         self.depot.initialize_writer(
                 file_path = self.depot.path_out)
         ingredients.create_series()
@@ -121,11 +121,11 @@ class Almanac(SimpleManager):
             with open(
                     a_path, mode = 'r', errors = 'ignore',
                     encoding = self.idea['files']['file_encoding']) as a_file:
-                ingredients.source = a_file.read()
+                ingredients.source = a_file.implement()
                 print(ingredients.df)
                 ingredients.df[self.index_column] = file_num + 1
                 for technique in self.techniques:
-                    ingredients = technique.read(ingredients = ingredients)
+                    ingredients = technique.implement(ingredients = ingredients)
                 self.depot.save(variable = ingredients.df)
         return ingredients
 
@@ -163,7 +163,7 @@ class Almanac(SimpleManager):
             self._set_folders()
         return self
 
-    def read(self, ingredients = None):
+    def implement(self, ingredients = None):
         """Completes an iteration of an Harvest."""
         if not ingredients:
             ingredients = self.ingredients
@@ -175,7 +175,7 @@ class Almanac(SimpleManager):
                 self._set_columns(organizer = draft)
                 ingredients.columns = self.columns
             self.conform(step = self.step)
-            self.ingredients = draft.read(ingredients = self.ingredients)
+            self.ingredients = draft.implement(ingredients = self.ingredients)
             self.depot.save(variable = self.ingredients,
                                 file_name = self.step + '_ingredients')
         return self

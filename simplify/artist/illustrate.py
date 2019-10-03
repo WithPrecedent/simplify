@@ -25,13 +25,13 @@ class Illustrate(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_read (bool): whether to call the 'read' method when the class
+        auto_implement (bool): whether to call the 'implement' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'illustrator'
     auto_publish: bool = True
-    auto_read: bool = True
+    auto_implement: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -67,7 +67,7 @@ class Illustrate(SimplePlan):
         return self
 
     @localize
-    def read(self, recipes = None, reviews = None):
+    def implement(self, recipes = None, reviews = None):
         for step in self.steps:
             getattr(self, step)()
         return self

@@ -35,5 +35,5 @@ class Divide(SimpleStep):
         super().__post_init__()
         return self
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         return self

@@ -9,8 +9,6 @@
 from dataclasses import dataclass
 from itertools import product
 
-#from tensorflow.test import is_gpu_available
-
 from simplify.core.base import SimpleClass
 
 
@@ -80,7 +78,7 @@ class SimpleManager(SimpleClass):
                         {i + 1: plan_class(steps = steps)})
         return self
 
-    def _read_parallel(self, variable = None, **kwargs):
+    def _implement_parallel(self, variable = None, **kwargs):
         """Method that implements all of the publishd objects on the
         passed variable.
 
@@ -96,10 +94,10 @@ class SimpleManager(SimpleClass):
         for number, plan in getattr(self, self.plan_iterable).items():
             if self.verbose:
                 print('Testing', self.name, str(number))
-            variable = plan.read(variable, **kwargs)
+            variable = plan.implement(variable, **kwargs)
         return variable
 
-    def _read_serial(self, variable = None, **kwargs):
+    def _implement_serial(self, variable = None, **kwargs):
         """Method that implements all of the publishd objects on the
         passed variable.
 
@@ -113,7 +111,7 @@ class SimpleManager(SimpleClass):
                 **kwargs can be used.
         """
         for number, plan in getattr(self, self.plan_iterable).items():
-            variable = plan.read(variable, **kwargs)
+            variable = plan.implement(variable, **kwargs)
         return variable
 
     """ Core siMpLify methods """
@@ -131,7 +129,7 @@ class SimpleManager(SimpleClass):
         getattr(self, '_publish_plans_' + self.manager_type)()
         return self
 
-    def read(self, variable = None, **kwargs):
+    def implement(self, variable = None, **kwargs):
         """Method that implements all of the publishd objects on the
         passed variable.
 
@@ -144,6 +142,6 @@ class SimpleManager(SimpleClass):
             **kwargs: other parameters can be added to method as needed or
                 **kwargs can be used.
         """
-        variable = getattr(self, '_read_' + self.manager_type)(
+        variable = getattr(self, '_implement_' + self.manager_type)(
                 variable = variable, **kwargs)
         return variable

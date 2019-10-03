@@ -20,7 +20,7 @@ class Style(SimpleStep):
     technique: str = ''
     parameters: object = None
     auto_publish: bool = True
-    auto_read: bool = True
+    auto_implement: bool = True
     name: str = 'styler'
 
     def __post_init__(self):

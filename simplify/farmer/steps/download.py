@@ -39,7 +39,7 @@ class Download(SimpleStep):
     def publish(self):
         return self
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         """Downloads file from a URL if the file is available."""
         file_path = os.path.join(self.depot.external,
                                  self.file_name)

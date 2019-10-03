@@ -39,9 +39,9 @@ def timer(process = None):
             process = process.__class__.__name__
     def shell_timer(_function):
         def decorated(*args, **kwargs):
-            read_time = time.time()
+            implement_time = time.time()
             result = _function(*args, **kwargs)
-            total_time = time.time() - read_time
+            total_time = time.time() - implement_time
             h, m, s = convert_time(total_time)
             print(f'{process} completed in %d:%02d:%02d' % (h, m, s))
             return result
@@ -179,21 +179,22 @@ def numpy_shield(method):
         arguments = signature(method).bind(self, *args, **kwargs).arguments
         result = arguments['ingredients']
         if hasattr(self, 'technique') and self.technique != 'none':
-            for df in dataframes_to_check:
-                if not getattr(arguments['ingredients'], df) is None:
-                    x_columns = list(getattr(
-                            arguments['ingredients'], df).values)
+            for df_attr in dataframes_to_check:
+                if not getattr(result, df_attr) is None:
+                    x_columns = list(getattr(result, df_attr).columns.values)
                     break
             result = method(self, *args, **kwargs)
-            for df in dataframes_to_check:
-                if isinstance(getattr(result, df), np.ndarray):
-                    if not getattr(result, df) is None:
-                        setattr(result, df, pd.DataFrame(
-                                getattr(result, df), columns = x_columns))
+            for df_attr in dataframes_to_check:
+                if isinstance(getattr(result, df_attr), np.ndarray):
+                    if not getattr(result, df_attr) is None:
+                        setattr(result, df_attr, pd.DataFrame(
+                                getattr(result, df_attr), 
+                                columns = x_columns))
             for series in series_to_restore:
                 if isinstance(getattr(result, series), np.ndarray):
                     if isinstance(getattr(result, series), np.ndarray):
                         setattr(result, series, pd.Series(
-                                getattr(result, series), name = self.label))
+                                getattr(result, series),
+                                name = self.label))
         return result
     return wrapper

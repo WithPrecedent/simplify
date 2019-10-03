@@ -22,13 +22,13 @@ class Animate(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_read (bool): whether to call the 'read' method when the class
+        auto_implement (bool): whether to call the 'implement' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'animator'
     auto_publish: bool = True
-    auto_read: bool = False
+    auto_implement: bool = False
     
     def __post_init__(self):
         super().__post_init__()

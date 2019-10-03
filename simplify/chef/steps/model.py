@@ -128,14 +128,14 @@ class Model(SimpleStep):
 
         return self
 
-    def read(self, ingredients, plan = None):
+    def implement(self, ingredients, plan = None):
         """Applies model from recipe to ingredients data."""
         if self.technique != 'none':
             if self.hyperparameter_search:
-                self.algorithm = self.search_algorithm.read(
+                self.algorithm = self.search_algorithm.implement(
                         ingredients = ingredients)
             else:
-                self.algorithm = self.algorithm.read(
+                self.algorithm = self.algorithm.implement(
                         ingredients = ingredients)
         return ingredients
 

@@ -35,6 +35,6 @@ class Streamline(SimpleStep):
     def __post_init__(self):
         return self
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         ingredients = self.method(ingredients)
         return ingredients

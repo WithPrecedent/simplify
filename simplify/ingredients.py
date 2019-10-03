@@ -57,10 +57,13 @@ class Ingredients(SimpleClass):
             'df'. The decorator choose_df will look to the default_df to pick
             the appropriate DataFrame in situations where no DataFrame is passed
             to a method.
-        x, y, x_train, y_train, x_test, y_test, x_val, y_val(DataFrames,
+        _x, _y, _x_train, _y_train, _x_test, _y_test, _x_val, _y_val(DataFrames,
             Series, or file paths): These need not be passed when the class is
             instanced. They are merely listed for users who already have divided
-            datasets and still wish to use the siMpLify package.
+            datasets and still wish to use the siMpLify package. The arguments
+            are prefixed with an underscore to allow mapping to the 
+            corresponding public attributes (x, y, x_train, y_train, x_test,
+            y_test, x_val, y_val)
         datatypes(dict): contains column names as keys and datatypes for values
             for columns in a DataFrames or Series. Ingredients assumes that all
             data containers within the instance are related and share a pool of
@@ -82,14 +85,14 @@ class Ingredients(SimpleClass):
     name: str = 'ingredients'
     df: object = None
     default_df: str = 'df'
-    x: object = None
-    y: object = None
-    x_train: object = None
-    y_train: object = None
-    x_test: object = None
-    y_test: object = None
-    x_val: object = None
-    y_val: object = None
+    _x: object = None
+    _y: object = None
+    _x_train: object = None
+    _y_train: object = None
+    _x_test: object = None
+    _y_test: object = None
+    _x_val: object = None
+    _y_val: object = None
     datatypes: object = None
     prefixes: object = None
     auto_publish: bool = True
@@ -97,73 +100,6 @@ class Ingredients(SimpleClass):
     def __post_init__(self):
         super().__post_init__()
         return self
-
-    """ Magic Methods """
-
-    def __getattr__(self, attr):
-        """Returns values from column datatypes, column datatype dictionary,
-        and section prefixes dictionary.
-
-        Args:
-            attr(str): attribute sought.
-
-        Returns:
-            If 'attr' is the name of a DataFrame or Series beginning with 'x' or
-                'y'), a DataFrame or Series is returned based upon the current
-                mapping in the 'options' dict.
-            If 'attr' is the name of a datatype, a list of columns that have
-                that datatype is returned. In addition 'numerics' combines float
-                and int columns into one list.
-            If 'attr' is related to one of the Cookbook methods ('scalers',
-                'encoders', 'mixers'), a list of columns stored in that
-                attribute name or default for that method type.
-
-        Raises:
-            AttributeError: if user attempts to access dunder method.
-        """
-        if attr in ['x', 'y', 'x_train', 'y_train', 'x_test', 'y_test']:
-            return self.__dict__[self.options[attr]]
-        elif attr in ['booleans', 'floats', 'integers', 'strings',
-                      'categoricals', 'lists', 'datetimes', 'timedeltas']:
-            return self._get_columns_by_type(attr[:-1])
-        elif attr in ['numerics']:
-            return (self._get_columns_by_type('float')
-                    + self._get_columns_by_type('integer'))
-        elif (attr in ['scalers', 'encoders', 'mixers']
-              and attr not in self.__dict__):
-            return getattr(self, '_get_default_' + attr)()
-        elif attr in self.__dict__:
-            return self.__dict__[attr]
-        elif attr.startswith('__') and attr.endswith('__'):
-            error = 'Access to magic methods not permitted through __getattr__'
-            raise AttributeError(error)
-        else:
-            error = attr + ' not found in ' + self.__class__.__name__
-            raise AttributeError(error)
-
-    def __setattr__(self, attr, value):
-        """Sets values in column datatypes, column datatype dictionary, and
-        section prefixes dictionary.
-
-        Args:
-            attr(str): string of attribute name to be set.
-            value(any): value of the set attribute.
-        """
-        if attr in ['x', 'y', 'x_train', 'y_train', 'x_test', 'y_test']:
-            if hasattr(self, 'options') and self.options is not None:
-                self.__dict__[self.options[attr]] = value
-            else:
-                self.__dict__[attr] = value
-            return self
-        elif attr in ['booleans', 'floats', 'integers', 'strings',
-                    'categoricals', 'lists', 'datetimes', 'timedeltas']:
-            self.__dict__['datatypes'].update(
-                    dict.fromkeys(self.listify(
-                            self._all_datatypes[attr[:-1]]), value))
-            return self
-        else:
-            self.__dict__[attr] = value
-            return self
 
     """ Private Methods """
 
@@ -203,22 +139,18 @@ class Ingredients(SimpleClass):
         """
         return [k for k, v in self.datatypes.items() if v == datatype]
 
-    def _get_default_encoders(self):
-        """Returns list of categorical columns."""
-        return self.categoricals
-
-    def _get_default_mixers(self):
-        """Returns an empty list of mixers."""
-        return []
-
-    def _get_default_scalers(self):
-        """Returns all numeric columns."""
-        return self.integers + self.floats
-
     def _get_indices(self, df, columns):
         """Gets column indices for a list of column names."""
         return [df.columns.get_loc(column) for column in columns]
 
+    def _hide_dataframes(self):
+        """Hides dataframe from public variables to allow remapping and 
+        __getattr__ interception.
+        """
+        for proxy, hidden in self.options.items():
+            self.__dict__[hidden] = self.__dict__.pop(proxy)
+        return self
+        
     def _initialize_datatypes(self, df = None):
         """Initializes datatypes for columns of pandas DataFrame or Series if
         not already provided.
@@ -232,8 +164,8 @@ class Ingredients(SimpleClass):
             if isinstance(_data, pd.DataFrame) or isinstance(_data, pd.Series):
                 if not self.datatypes:
                     self.infer_datatypes(df = _data)
-                else:
-                    self._crosscheck_columns(df = _data)
+                # else:
+                #     self._crosscheck_columns(df = _data)
                 break
         return self
 
@@ -257,23 +189,23 @@ class Ingredients(SimpleClass):
         if data_to_use == 'train_test':
             self.options = self.default_options.copy()
         elif data_to_use == 'train_val':
-            self.options['x_test'] = 'x_val'
-            self.options['y_test'] = 'y_val'
+            self.options['x_test'] = '_x_val'
+            self.options['y_test'] = '_y_val'
             self.using_validation_set = True
         elif data_to_use == 'full':
-            self.options['x_train'] = 'x'
-            self.options['y_train'] = 'y'
-            self.options['x_test'] = 'x'
-            self.options['y_test'] = 'y'
+            self.options['x_train'] = '_x'
+            self.options['y_train'] = '_y'
+            self.options['x_test'] = '_x'
+            self.options['y_test'] = '_y'
         elif data_to_use == 'train':
-            self.options['x'] = 'x_train'
-            self.options['y'] = 'y_train'
+            self.options['x'] = '_x_train'
+            self.options['y'] = '_y_train'
         elif data_to_use == 'test':
-            self.options['x'] = 'x_test'
-            self.options['y'] = 'y_test'
+            self.options['x'] = '_x_test'
+            self.options['y'] = '_y_test'
         elif data_to_use == 'val':
-            self.options['x'] = 'x_val'
-            self.options['y'] = 'y_val'
+            self.options['x'] = '_x_val'
+            self.options['y'] = '_y_val'
             self.using_validation_set = True
         return self
 
@@ -715,14 +647,18 @@ class Ingredients(SimpleClass):
             df(DataFrame): initial pandas object to be split
             label(str or list): name of column(s) to be stored in self.y
         """
-        self.x = df.drop(label, axis = 'columns')
+        self.unsplit_columns = list(df.columns.values)
+        self.split_columns = list(df.columns.values)
+        self.split_columns.remove(label)
+        self.x = df[self.split_columns]
+        # self.x = df.drop(label, axis = 'columns')
         self.y = df[label]
         # Drops columns in self.y from datatypes dictionary and stores its
         # datatype in 'label_datatype'.
-        self.label_datatype = {label: self.datatypes[label]}
-        del self.datatypes[label]
+        if not self.exists('label_datatype'):
+            self.label_datatype = {label: self.datatypes[label]}
+            del self.datatypes[label]
         return self
-
 
     """ Core siMpLify Methods """
 
@@ -731,14 +667,17 @@ class Ingredients(SimpleClass):
         # Declares dictionary of DataFrames contained in Ingredients to allow
         # temporary remapping of attributes in __getattr__. __setattr does
         # not use this mapping.
-        self.options = {'x': 'x',
-                        'y': 'y',
-                        'x_train': 'x_train',
-                        'y_train': 'y_train',
-                        'x_test': 'x_test',
-                        'y_test': 'y_test',
-                        'x_val': 'x_val',
-                        'y_val': 'y_val'}
+        self.options = {'x': '_x',
+                        'y': '_y',
+                        'x_train': '_x_train',
+                        'y_train': '_y_train',
+                        'x_test': '_x_test',
+                        'y_test': '_y_test',
+                        'x_val': '_x_val',
+                        'y_val': '_y_val'}
+        # Hides dataframe names to allow remapping with properties
+        # self._hide_dataframes()
+        # Sets checks to run.
         self.checks = ['depot']
         # Copies 'options' so that original mapping is preserved.
         self.default_options = self.options.copy()
@@ -759,14 +698,10 @@ class Ingredients(SimpleClass):
 
     def publish(self):
         """Finalizes Ingredients class instance."""
-        if self.verbose:
-            print('Preparing ingredients')
         # If 'df' or other DataFrame attribute is a file path, the file located
         # there is imported.
-        for df_name in self.options.keys():
-            if (not(isinstance(getattr(self, df_name), pd.DataFrame) or
-                    isinstance(getattr(self, df_name), pd.Series))
-                    and getattr(self, df_name)
+        for df_name in self.options.values():
+            if (isinstance(getattr(self, df_name), str)
                     and os.path.isfile(getattr(self, df_name))):
                 self.load(name = df_name, file_path = self.df)
         # If datatypes passed, checks to see if columns are in 'df'. Otherwise,
@@ -777,25 +712,135 @@ class Ingredients(SimpleClass):
     """ Properties """
 
     @property
+    def x(self):
+        """Returns data currently mapped to 'x'"""
+        return getattr(self, self.options['x'])
+
+    @x.setter
+    def x(self, value):
+        """Sets value of attribute currently mapped to 'x'"""
+        if hasattr(self, 'options'):
+            setattr(self, self.options['x'], value)
+        else:
+            self._x = value
+        return self
+       
+    @property
+    def y(self):
+        """Returns data currently mapped to 'y'"""
+        return getattr(self, self.options['y'])
+ 
+    @y.setter
+    def y(self, value):
+        """Sets value of attribute currently mapped to 'y'"""
+        if hasattr(self, 'options'):
+            setattr(self, self.options['y'], value)
+        else:
+            self._y = value
+        return self
+      
+    @property
+    def x_train(self):
+        """Returns data currently mapped to 'x_train'"""
+        return getattr(self, self.options['x_train'])
+ 
+    @x_train.setter
+    def x_train(self, value):
+        """Sets value of attribute currently mapped to 'x_train'"""
+        if hasattr(self, 'options'):
+            setattr(self, self.options['x_train'], value)
+        else:
+            self._x_train = value
+        return self
+          
+    @property
+    def y_train(self):
+        """Returns data currently mapped to 'y_train'"""
+        return getattr(self, self.options['y_train'])
+ 
+    @y_train.setter
+    def y_train(self, value):
+        """Sets value of attribute currently mapped to 'y_train'"""
+        if hasattr(self, 'options'):
+            setattr(self, self.options['y_train'], value)
+        else:
+            self._y_train = value
+        return self
+    
+    @property
+    def x_test(self):
+        """Returns data currently mapped to 'x_test'"""
+        return getattr(self, self.options['x_test'])
+ 
+    @x_test.setter
+    def x_test(self, value):
+        """Sets value of attribute currently mapped to 'x_test'"""
+        if hasattr(self, 'options'):
+            setattr(self, self.options['x_test'], value)
+        else:
+            self._x_test = value
+        return self
+          
+    @property
+    def y_test(self):
+        """Returns data currently mapped to 'y_test'"""
+        return getattr(self, self.options['y_test'])
+ 
+    @y_test.setter
+    def y_test(self, value):
+        """Sets value of attribute currently mapped to 'y_test'"""
+        if hasattr(self, 'options'):
+            setattr(self, self.options['y_test'], value)
+        else:
+            self._y_test = value
+        return self         
+    @property
+    def x_val(self):
+        """Returns data currently mapped to 'x_val'"""
+        return getattr(self, self.options['x_val'])
+ 
+    @x_val.setter
+    def x_val(self, value):
+        """Sets value of attribute currently mapped to 'x_val'"""
+        if hasattr(self, 'options'):
+            setattr(self, self.options['x_val'], value)
+        else:
+            self._x_val = value
+        return self
+          
+    @property
+    def y_val(self):
+        """Returns data currently mapped to 'y_val'"""
+        return getattr(self, self.options['y_val'])
+ 
+    @y_val.setter
+    def y_val(self, value):
+        """Sets value of attribute currently mapped to 'y_val'"""
+        if hasattr(self, 'options'):
+            setattr(self, self.options['y_val'], value)
+        else:
+            self._y_val = value
+        return self
+      
+    @property
     def full(self):
         """Returns the full dataset divided into x and y twice.
 
         This is used when the user wants the training and testing datasets to
         be the full dataset. This creates obvious data leakage problems, but
-        is sometimes used after the model is tested and validated to read
+        is sometimes used after the model is tested and validated to implement
         metrics and results based upon all of the data."""
-        return (self.options['x'], self.options['y'],
-                self.options['x'], self.options['y'])
+        return (self.x, self.y, self.x, self.y)
 
     @property
     def test(self):
         """Returns the test data."""
-        return self.options['x_test'], self.options['y_test']
+        return self.x_test, self.y_test
 
     @property
     def train(self):
         """Returns the training data."""
-        return self.options['x_train'], self.options['y_train']
+        return self.x_train, self.y_train
 
     @property
     def train_test(self):
@@ -815,9 +860,105 @@ class Ingredients(SimpleClass):
     @property
     def val(self):
         """Returns the validation data."""
-        return self.options['x_val'], self.options['y_val']
+        return self.x_val, self.y_val
 
     @property
     def xy(self):
         """Returns the full dataset divided into x and y."""
-        return self.options['x'], self.options['y']
+        return self.x_val, self.y_val
+    
+    @property
+    def booleans(self):
+        return self._get_columns_by_type('boolean')
+    
+    @booleans.setter
+    def booleans(self, values):
+        self.datatypes.update(dict.fromkeys(self.listify(
+            self._all_datatypes['boolean']), values))  
+        return self
+          
+    @property
+    def floats(self):
+        return self._get_columns_by_type('float')
+    
+    @floats.setter
+    def floats(self, values):
+        self.datatypes.update(dict.fromkeys(self.listify(
+            self._all_datatypes['float']), values))  
+        return self
+    
+    @property
+    def integers(self):
+        return self._get_columns_by_type('integer')
+    
+    @integers.setter
+    def integers(self, values):
+        self.datatypes.update(dict.fromkeys(self.listify(
+            self._all_datatypes['integer']), values))  
+        return self
+    
+    @property
+    def strings(self):
+        return self._get_columns_by_type('string')
+    
+    @strings.setter
+    def strings(self, values):
+        self.datatypes.update(dict.fromkeys(self.listify(
+            self._all_datatypes['string']), values))  
+        return self
+    
+    @property
+    def categoricals(self):
+        return self._get_columns_by_type('category')
+    
+    @categoricals.setter
+    def categoricals(self, values):
+        self.datatypes.update(dict.fromkeys(self.listify(
+            self._all_datatypes['category']), values))  
+        return self
+    
+    @property
+    def lists(self):
+        return self._get_columns_by_type('list')
+    
+    @lists.setter
+    def lists(self, values):
+        self.datatypes.update(dict.fromkeys(self.listify(
+            self._all_datatypes['lists']), values))  
+        return self
+    
+    @property
+    def datetimes(self):
+        return self._get_columns_by_type('datetime')
+    
+    @datetimes.setter
+    def datetimes(self, values):
+        self.datatypes.update(dict.fromkeys(self.listify(
+            self._all_datatypes['datetime']), values))  
+        return self
+    
+    @property
+    def timedeltas(self):
+        return self._get_columns_by_type('timedelta')
+    
+    @timedeltas.setter
+    def timedeltas(self, values):
+        self.datatypes.update(dict.fromkeys(self.listify(
+            self._all_datatypes['timedelta']), values))  
+        return self
+    
+    @property
+    def numerics(self):
+        return self.floats + self.integers
+    
+    @property
+    def scalers(self):
+        return self.integers + self.floats
+    
+    @property
+    def encoders(self):
+        return self.categoricals
+
+    @property
+    def mixers(self):
+        return []

@@ -55,7 +55,7 @@ class Gaussify(SimpleTechnique):
                 method = 'yeo_johnson', **self.parameters)
         return self
 
-    def read(self, ingredients, columns = None):
+    def implement(self, ingredients, columns = None):
         if not columns:
             columns = ingredients.numerics
         for column in columns:

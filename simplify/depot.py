@@ -225,7 +225,7 @@ class Depot(SimpleClass):
                                     passed_kwargs = kwargs)
         if self.test_data and not 'chunksize' in kwargs:
             kwargs.update({'nrows': self.test_chunk})
-        variable = pd.read_csv(file_path, **kwargs)
+        variable = pd.implement_csv(file_path, **kwargs)
         return variable
 
     def _load_excel(self, file_path, **kwargs):
@@ -242,7 +242,7 @@ class Depot(SimpleClass):
                                     passed_kwargs = kwargs)
         if self.test_data and not 'chunksize' in kwargs:
             kwargs.update({'nrows': self.test_chunk})
-        variable = pd.read_excel(file_path, **kwargs)
+        variable = pd.implement_excel(file_path, **kwargs)
         return variable
 
     def _load_feather(self, file_path, **kwargs):
@@ -254,7 +254,7 @@ class Depot(SimpleClass):
         Returns:
             variable(DataFrame): data loaded from disc.
         """
-        return pd.read_feather(file_path, nthreads = -1, **kwargs)
+        return pd.implement_feather(file_path, nthimplements = -1, **kwargs)
 
     def _load_h5(self, file_path, **kwargs):
         """Loads hdf5 with '.h5' extension into pandas DataFrame.
@@ -284,7 +284,7 @@ class Depot(SimpleClass):
         if 'usecols' in kwargs:
             kwargs.update({'columns': kwargs['usecols']})
             kwargs.pop('usecols')
-        return pd.read_hdf(file_path, **kwargs)
+        return pd.implement_hdf(file_path, **kwargs)
 
     def _load_json(self, file_path, **kwargs):
         """Loads json file into pandas DataFrame.
@@ -303,7 +303,7 @@ class Depot(SimpleClass):
         if 'usecols' in kwargs:
             kwargs.update({'columns': kwargs['usecols']})
             kwargs.pop('usecols')
-        return pd.read_json(file_path = file_path, **kwargs)
+        return pd.implement_json(file_path = file_path, **kwargs)
 
     def _load_pickle(self, file_path, **kwargs):
         """Returns an unpickled python object.
@@ -326,7 +326,7 @@ class Depot(SimpleClass):
         raise NotImplementedError(error)
 
     def _load_text(self, file_path, **kwargs):
-        """Loads text file with python reader.
+        """Loads text file with python implementer.
 
         Args:
             file_path(str): complete file path of file.
@@ -337,7 +337,7 @@ class Depot(SimpleClass):
         return self._load_txt(file_path = file_path, **kwargs)
 
     def _load_txt(self, file_path, **kwargs):
-        """Loads text file with python reader.
+        """Loads text file with python implementer.
 
         Args:
             file_path(str): complete file path of file.
@@ -347,7 +347,7 @@ class Depot(SimpleClass):
         """
         with open(file_path, mode = 'r', errors = 'ignore',
                   encoding = self.file_encoding) as a_file:
-            return a_file.read()
+            return a_file.implement()
 
     def _make_folder(self, folder):
         """Creates folder if it doesn't already exist.
@@ -596,7 +596,7 @@ class Depot(SimpleClass):
             for file_path in self.batch:
                 ingredients.source = self.load(file_path = file_path)
                 for plan in plans:
-                    ingredients = plan.read(ingredients = ingredients)
+                    ingredients = plan.implement(ingredients = ingredients)
             if return_ingredients:
                 return ingredients
             else:
@@ -604,7 +604,7 @@ class Depot(SimpleClass):
         else:
             for file_path in self.batch:
                 for plan in plans:
-                    plan.read()
+                    plan.implement()
             return self
 
     """ Public Import/Export Methods """

@@ -53,6 +53,6 @@ class Deliver(SimplePlan):
                                   'streamliners': ['method']}
         return self
 
-    def read(self, ingredients):
-        ingredients = self.algorithm.read(ingredients)
+    def implement(self, ingredients):
+        ingredients = self.algorithm.implement(ingredients)
         return ingredients

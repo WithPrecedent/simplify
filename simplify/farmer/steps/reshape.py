@@ -57,6 +57,6 @@ class Reshape(SimpleStep):
         return df
 
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         ingredients.df = getattr(self, '_' + self.shape_type)(ingredients.df)
         return ingredients

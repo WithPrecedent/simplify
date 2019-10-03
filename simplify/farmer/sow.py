@@ -52,6 +52,6 @@ class Sow(SimplePlan):
             self.export_folder = 'external'
         return self
 
-    def read(self, ingredients):
-        self.algorithm.read(ingredients)
+    def implement(self, ingredients):
+        self.algorithm.implement(ingredients)
         return ingredients

@@ -28,7 +28,7 @@ class Encode(SimpleStep):
 
     technique: str = ''
     parameters: object = None
-    name: str = 'encoder'
+    name: str = 'encode'
     auto_publish: bool = True
 
     def __post_init__(self):
@@ -55,7 +55,7 @@ class Encode(SimpleStep):
         return self
 
     @numpy_shield
-    def read(self, ingredients, plan = None, columns = None):
+    def implement(self, ingredients, plan = None, columns = None):
         if columns is None:
             columns = ingredients.encoders
         if columns:

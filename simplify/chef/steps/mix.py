@@ -28,7 +28,7 @@ class Mix(SimpleStep):
 
     technique: str = ''
     parameters: object = None
-    name: str = 'mixer'
+    name: str = 'mix'
     auto_publish: bool = True
 
     def __post_init__(self):
@@ -64,7 +64,7 @@ class Mix(SimpleStep):
         return self
 
     @numpy_shield
-    def read(self, ingredients, plan = None, columns = None):
+    def implement(self, ingredients, plan = None, columns = None):
         if not columns:
             columns = ingredients.encoders
         if columns:

@@ -28,7 +28,7 @@ class Cookbook(SimpleManager):
             does not need to be passed when the class is instanced. However,
             failing to do so will prevent the use of the Cleave step and the
            '_calculate_hyperparameters' method. 'ingredients' will need to be
-            passed to the 'read' method if it isn't when the class is
+            passed to the 'implement' method if it isn't when the class is
             instanced. Consequently, it is recommended that 'ingredients' be
             passed when the class is instanced.
         steps(dict(str: SimpleStep)): steps to be completed in order. This
@@ -46,7 +46,7 @@ class Cookbook(SimpleManager):
             Idea configuration, this option should be set to True. If you plan
             to make such changes, 'publish' should be called when those
             changes are complete.
-        auto_read(bool): whether to call the 'read' method when the class
+        auto_implement(bool): whether to call the 'implement' method when the class
             is instanced.
 
     Since this class is a subclass to SimpleManager and SimpleClass, all
@@ -59,7 +59,7 @@ class Cookbook(SimpleManager):
     recipes: object = None
     name: str = 'cookbook'
     auto_publish: bool = True
-    auto_read: bool = False
+    auto_implement: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -87,17 +87,17 @@ class Cookbook(SimpleManager):
                     ((self.ingredients.y == 1).sum())) - 1
         return self
 
-    def _read_recipes(self):
+    def _implement_recipes(self):
         """Tests 'recipes' with all combinations of step techniques selected.
         """
         for recipe_number, recipe in getattr(self, self.plan_iterable).items():
             if self.verbose:
                 print('Testing', recipe.name, str(recipe_number))
-            recipe.read(ingredients = self.ingredients)
+            recipe.implement(ingredients = self.ingredients)
             if self.export_all_recipes:
                 self.save_recipe(recipe = recipe)
-            self.analysis.read(recipes = recipe)
-#            self.canvas.read(recipes = recipe,
+            # self.analysis.implement(recipes = recipe)
+#            self.canvas.implement(recipes = recipe,
 #                                reviews = self.analysis.reviews)
         return self
 
@@ -229,7 +229,7 @@ class Cookbook(SimpleManager):
                 'sample': ['simplify.chef.steps.sample', 'Sample'],
                 'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
                 'model': ['simplify.chef.steps.model', 'Model']}
-        # Adds GPU check to other checks to be readed.
+        # Adds GPU check to other checks to be implemented.
         self.checks.extend(['gpu', 'ingredients'])
         # Locks 'step' attribute at 'cook' for conform methods in package.
         self.step = 'cook'
@@ -278,7 +278,7 @@ class Cookbook(SimpleManager):
         return self
 
 #    @local_backups
-    def read(self, ingredients = None):
+    def implement(self, ingredients = None):
         """Completes an iteration of a Cookbook.
 
         Args:
@@ -290,10 +290,10 @@ class Cookbook(SimpleManager):
             self.ingredients = ingredients
         if 'train_test_val' in self.data_to_use:
             self.ingredients._remap_dataframes(data_to_use = 'train_test')
-            self._read_recipes()
+            self._implement_recipes()
             self.ingredients._remap_dataframes(data_to_use = 'train_val')
-            self._read_recipes()
+            self._implement_recipes()
         else:
             self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
-            self._read_recipes()
+            self._implement_recipes()
         return self

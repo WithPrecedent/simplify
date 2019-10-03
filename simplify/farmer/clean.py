@@ -38,14 +38,14 @@ class Clean(SimplePlan):
                 'combine': ['simplify.farmer.steps.combine', 'Combine']}
         return self
 
-    def _read_combiner(self, ingredients):
-        ingredients = self.algorithm.read(ingredients)
+    def _implement_combiner(self, ingredients):
+        ingredients = self.algorithm.implement(ingredients)
         return ingredients
 
-    def _read_keyword(self, ingredients):
-        ingredients.df = self.algorithm.read(ingredients.df)
+    def _implement_keyword(self, ingredients):
+        ingredients.df = self.algorithm.implement(ingredients.df)
         return ingredients
 
-    def read(self, ingredients):
-        ingredients = getattr(self, '_read_' + self.technique)(ingredients)
+    def implement(self, ingredients):
+        ingredients = getattr(self, '_implement_' + self.technique)(ingredients)
         return ingredients

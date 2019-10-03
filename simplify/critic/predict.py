@@ -24,13 +24,13 @@ class Predict(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_read (bool): whether to call the 'read' method when the class
+        auto_implement (bool): whether to call the 'implement' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'predictor'
     auto_publish: bool = True
-    auto_read: bool = False
+    auto_implement: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -47,9 +47,9 @@ class Predict(SimplePlan):
                 'shap': PredictShapProbabilities}
         return self
 
-    def read(self, recipe):
+    def implement(self, recipe):
         for step_name, step_instance in self.steps.items():
-            setattr(self, step_name, step_instance.read(recipe = recipe))
+            setattr(self, step_name, step_instance.implement(recipe = recipe))
         return self
 
 
@@ -82,7 +82,7 @@ class PredictOutcomes(SimpleStep):
         pass
         return self
 
-    def read(self, recipe):
+    def implement(self, recipe):
         """Makes predictions from fitted model.
 
         Args:
@@ -130,7 +130,7 @@ class PredictProbabilities(SimpleStep):
         pass
         return self
 
-    def read(self, recipe):
+    def implement(self, recipe):
         """Makes predictions from fitted model.
 
         Args:
@@ -178,7 +178,7 @@ class PredictLogProbabilities(SimpleStep):
         pass
         return self
 
-    def read(self, recipe):
+    def implement(self, recipe):
         """Makes predictions from fitted model.
 
         Args:
@@ -226,7 +226,7 @@ class PredictShapProbabilities(SimpleStep):
         pass
         return self
 
-    def read(self, recipe):
+    def implement(self, recipe):
         """Makes predictions from fitted model.
 
         Args:

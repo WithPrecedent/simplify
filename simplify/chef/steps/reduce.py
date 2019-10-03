@@ -29,7 +29,7 @@ class Reduce(SimpleStep):
 
     technique: str = ''
     parameters: object = None
-    name: str = 'reducer'
+    name: str = 'reduce'
     auto_publish: bool = True
 
     def __post_init__(self):
@@ -85,7 +85,7 @@ class Reduce(SimpleStep):
         return self
 
     @numpy_shield
-    def read(self, ingredients, plan = None, estimator = None):
+    def implement(self, ingredients, plan = None, estimator = None):
         if not estimator:
             estimator = plan.model.algorithm
         self._set_parameters(estimator)

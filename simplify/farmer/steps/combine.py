@@ -64,6 +64,6 @@ class Combine(SimpleStep):
             self.algorithm = self._dict
         return self
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         self.ingredients = self.algorithm(ingredients)
         return ingredients

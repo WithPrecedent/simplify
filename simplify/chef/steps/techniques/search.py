@@ -62,7 +62,7 @@ class Search(SimpleTechnique):
                 'grid': ['sklearn.model_selection', 'GridSearchCV'],
                 'random': ['sklearn.model_selection', 'RandomizedSearchCV']}
 
-    def read(self, ingredients):
+    def implement(self, ingredients):
         self.algorithm.fit(ingredients.x_train, ingredients.y_train)
         self.best_estimator = self.algorithm.best_estimator_
         return self.best_estimator
