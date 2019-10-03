@@ -18,21 +18,21 @@ class Canvas(SimpleManager):
     Args:
         ingredients(Ingredients): an instance of Ingredients. This argument need
             not be passed when the class is instanced. It can be passed directly
-            to the 'produce' method as well.
+            to the 'read' method as well.
         steps(dict(str: SimpleStep)): names and related SimpleStep classes for
             analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It
-            can be passed directly to the 'produce' method as well.
+            can be passed directly to the 'read' method as well.
         reviews(Review): an instance of Review containing all metrics and 
             evaluation results.This argument need not be passed when the class 
-            is instanced. It can be passed directly to the 'produce' method as 
+            is instanced. It can be passed directly to the 'read' method as 
             well.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_produce (bool): whether to call the 'produce' method when the class
+        auto_read (bool): whether to call the 'read' method when the class
             is instanced.
             
     Since this class is a subclass to SimpleManager and SimpleClass, all
@@ -46,7 +46,7 @@ class Canvas(SimpleManager):
     reviews: object = None
     name: str = 'canvas'
     auto_publish: bool = True
-    auto_produce: bool = True
+    auto_read: bool = True
 
     def __post_init__(self):
         self.styler = []
@@ -98,7 +98,7 @@ class Canvas(SimpleManager):
         elif self.ingredients is not None:
             return self.ingredients
         else:
-            error = 'produce method requires Ingredients or Recipe instance'
+            error = 'read method requires Ingredients or Recipe instance'
             raise TypeError(error)
 
     def _set_styler(self):
@@ -130,7 +130,7 @@ class Canvas(SimpleManager):
         return self
 
     @localize
-    def produce(self, recipes = None, reviews = None, ingredients = None):
+    def read(self, recipes = None, reviews = None, ingredients = None):
         if self.ingredients is None:
             self.ingredients = self.recipes.ingredients
         for name, step  in self.steps:
@@ -138,5 +138,5 @@ class Canvas(SimpleManager):
                 if self.verbose:
                     print('Visualizing', recipe.name + recipe.number)
                 for step, technique in getattr(self, self.plan_iterable).items():
-                    technique.produce(recipe = recipe, review = reviews)
+                    technique.read(recipe = recipe, review = reviews)
         return self

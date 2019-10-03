@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimplePlan
+from simplify.core.plan import SimplePlan
 
 
 @dataclass
@@ -38,7 +38,7 @@ class Recipe(SimplePlan):
         super().__post_init__()
         return self
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         """Applies the Cookbook steps to the passed ingredients."""
         steps = self.steps.copy()
         self.ingredients = ingredients
@@ -51,7 +51,7 @@ class Recipe(SimplePlan):
             if step == 'splitter':
                 break
             else:
-                self.ingredients = self.steps[step].produce(
+                self.ingredients = self.steps[step].read(
                     ingredients = self.ingredients,
                     plan = self)
         split_algorithm = self.steps['splitter'].algorithm
@@ -64,7 +64,7 @@ class Recipe(SimplePlan):
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
             for step, technique in steps.items():
-                self.ingredients = technique.produce(
+                self.ingredients = technique.read(
                        ingredients = self.ingredients,
                        plan = self)
         return self

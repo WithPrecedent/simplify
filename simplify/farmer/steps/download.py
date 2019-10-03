@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import os
 import requests
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -39,7 +39,7 @@ class Download(SimpleStep):
     def publish(self):
         return self
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         """Downloads file from a URL if the file is available."""
         file_path = os.path.join(self.depot.external,
                                  self.file_name)

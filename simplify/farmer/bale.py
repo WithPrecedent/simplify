@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimplePlan
+from simplify.core.plan import SimplePlan
 
 
 @dataclass
@@ -34,6 +34,6 @@ class Bale(SimplePlan):
         self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def produce(self, ingredients):
-        ingredients = self.algorithm.produce(ingredients)
+    def read(self, ingredients):
+        ingredients = self.algorithm.read(ingredients)
         return ingredients

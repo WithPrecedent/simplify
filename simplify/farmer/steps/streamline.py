@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -35,6 +35,6 @@ class Streamline(SimpleStep):
     def __post_init__(self):
         return self
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         ingredients = self.method(ingredients)
         return ingredients

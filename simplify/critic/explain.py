@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimplePlan, SimpleStep
+from simplify.core.plan import SimplePlan, SimpleStep
 
 
 @dataclass
@@ -25,13 +25,13 @@ class Explain(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_produce (bool): whether to call the 'produce' method when the class
+        auto_read (bool): whether to call the 'read' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'explainer'
     auto_publish: bool = True
-    auto_produce: bool = False
+    auto_read: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -40,10 +40,10 @@ class Explain(SimplePlan):
     """ Private Methods """
 
     def _get_importances(self, step_instance, recipe):
-        return step_instance._produce_importances(recipe = recipe)
+        return step_instance._read_importances(recipe = recipe)
 
     def _get_reports(self, step_instance, recipe):
-        return step_instance._produce_reports(recipe = recipe)
+        return step_instance._read_reports(recipe = recipe)
 
     """ Core siMpLify Methods """
 
@@ -58,7 +58,7 @@ class Explain(SimplePlan):
         self.reports_options = ['eli5', 'shap']
         return self
 
-    def produce(self, recipe):
+    def read(self, recipe):
         """Creates a dictionary of 'reports' from explainer techniques.
 
         Args:
@@ -70,11 +70,11 @@ class Explain(SimplePlan):
             if step_name in self.steps:
                 for return_value in ('importances', 'reports'):
                     if step_name in getattr(self, return_value + '_options'):
-                        produced = getattr(self, '_get_' + return_value)(
+                        readd = getattr(self, '_get_' + return_value)(
                                 step_instance = step_instance,
                                 recipe = recipe)
                         getattr(self, return_value).update({
-                                step_name: produced})
+                                step_name: readd})
         return self
 
 @dataclass
@@ -103,7 +103,7 @@ class Eli5Explain(SimpleStep):
 
     """ Private Methods """
 
-    def _produce_specific(self, recipe):
+    def _read_specific(self, recipe):
         return self
 
 
@@ -133,7 +133,7 @@ class Eli5Explain(SimpleStep):
                        'xgboost': 'specific'}
         return self
 
-    def produce(self):
+    def read(self):
 
         self.permutation_weights = show_weights(
                 self.permutation_importances,
@@ -189,7 +189,7 @@ class ShapExplain(SimpleStep):
                        'xgboost': 'tree'}
         return self
 
-    def produce(self, recipe):
+    def read(self, recipe):
         """Applies shap evaluator to data based upon type of model used."""
         if recipe.model.technique in self.shap_models:
             self.shap_method_type = self.shap_models[

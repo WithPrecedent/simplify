@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass

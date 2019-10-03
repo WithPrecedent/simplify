@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 from simplify.core.decorators import numpy_shield
 
 
@@ -67,11 +67,11 @@ class Scale(SimpleStep):
         return self
 
     @numpy_shield
-    def produce(self, ingredients, plan = None, columns = None):
+    def read(self, ingredients, plan = None, columns = None):
         if columns is None:
             columns = ingredients.scalers
         if self.technique in self.custom_options:
-            ingredients = self.algorithm.produce(ingredients = ingredients,
+            ingredients = self.algorithm.read(ingredients = ingredients,
                                                  columns = columns)
         else:
             ingredients.x[columns] = self.algorithm.fit_transform(

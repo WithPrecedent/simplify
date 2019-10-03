@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleTechnique
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
@@ -51,6 +51,6 @@ class Cluster(SimpleTechnique):
                 'svm_sigmoid': ['sklearn.cluster', 'OneClassSVM']}
         return self
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         self.algorithm.fit(ingredients.x_train, ingredients.y_train)
         return self.algorithm

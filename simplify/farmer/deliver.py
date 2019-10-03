@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.base import SimplePlan
+from simplify.core.plan import SimplePlan
 
 
 @dataclass
@@ -53,6 +53,6 @@ class Deliver(SimplePlan):
                                   'streamliners': ['method']}
         return self
 
-    def produce(self, ingredients):
-        ingredients = self.algorithm.produce(ingredients)
+    def read(self, ingredients):
+        ingredients = self.algorithm.read(ingredients)
         return ingredients

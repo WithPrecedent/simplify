@@ -783,7 +783,7 @@ class Ingredients(SimpleClass):
 
         This is used when the user wants the training and testing datasets to
         be the full dataset. This creates obvious data leakage problems, but
-        is sometimes used after the model is tested and validated to produce
+        is sometimes used after the model is tested and validated to read
         metrics and results based upon all of the data."""
         return (self.options['x'], self.options['y'],
                 self.options['x'], self.options['y'])

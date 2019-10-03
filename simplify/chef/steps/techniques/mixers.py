@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleTechnique
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass

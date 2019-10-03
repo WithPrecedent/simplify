@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.base import SimpleManager
+from simplify.core.manager import SimpleManager
 from simplify.core.decorators import localize
 
 
@@ -29,12 +29,12 @@ class Review(SimpleManager):
             analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It
-            can be passed directly to the 'produce' method as well.
+            can be passed directly to the 'read' method as well.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_produce(bool): whether to call the 'produce' method when the class
+        auto_read(bool): whether to call the 'read' method when the class
             is instanced.
             
     Since this class is a subclass to SimpleManager and SimpleClass, all
@@ -46,7 +46,7 @@ class Review(SimpleManager):
     recipes: object = None
     name: str = 'review'
     auto_publish: bool = True
-    auto_produce: bool = False
+    auto_read: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -92,8 +92,8 @@ class Review(SimpleManager):
             step_column = f'{technique}, parameters = {parameters}'
         return step_column
 
-    def _produce_summary(self):
-        self.options['summarize'].produce(df = ingredients.df)
+    def _read_summary(self):
+        self.options['summarize'].read(df = ingredients.df)
         self.summary = self.options['summarize'].report
         return self
     
@@ -149,7 +149,7 @@ class Review(SimpleManager):
         return self
 
     @localize
-    def produce(self, recipes = None, ingredients = None):
+    def read(self, recipes = None, ingredients = None):
         """Evaluates recipe with various tools and publishs report.
 
         Args:

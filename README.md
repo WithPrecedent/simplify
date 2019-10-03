@@ -163,7 +163,7 @@ The examples folder, from which the above settings are taken, currently shows ho
     cookbook = Cookbook(ingredients = ingredients)
     # Iterates through every recipe and exports plots, explainers, and other
     # metrics from each recipe.
-    cookbook.produce()
+    cookbook.read()
     # Saves the recipes, results, and cookbook.
     cookbook.save_everything()
     # Outputs information about the best recipe to the terminal.

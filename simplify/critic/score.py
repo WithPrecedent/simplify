@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import pandas as pd
 from sklearn import metrics
 
-from simplify.core.base import SimplePlan, SimpleStep
+from simplify.core.plan import SimplePlan, SimpleStep
 
 
 @dataclass
@@ -25,13 +25,13 @@ class Score(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_produce (bool): whether to call the 'produce' method when the class
+        auto_read (bool): whether to call the 'read' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'scorer'
     auto_publish: bool = True
-    auto_produce: bool = False
+    auto_read: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -72,7 +72,7 @@ class Score(SimplePlan):
         self._set_columns()
         return self
 
-    def produce(self, recipe):
+    def read(self, recipe):
         """Prepares the results of a single recipe application to be added to
         the .report dataframe.
         """

@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 from simplify.core.decorators import numpy_shield
 
 
@@ -85,7 +85,7 @@ class Reduce(SimpleStep):
         return self
 
     @numpy_shield
-    def produce(self, ingredients, plan = None, estimator = None):
+    def read(self, ingredients, plan = None, estimator = None):
         if not estimator:
             estimator = plan.model.algorithm
         self._set_parameters(estimator)

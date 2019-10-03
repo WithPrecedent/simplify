@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from math import ceil, sqrt
 import matplotlib.pyplot as plt
 
-from simplify.core.base import SimplePlan
+from simplify.core.plan import SimplePlan
 
 
 @dataclass
@@ -25,13 +25,13 @@ class Paint(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_produce (bool): whether to call the 'produce' method when the class
+        auto_read (bool): whether to call the 'read' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'painter'
     auto_publish: bool = True
-    auto_produce: bool = False
+    auto_read: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -256,7 +256,7 @@ class Paint(SimplePlan):
         self.save(file_name)
         return self
 
-    def produce(self, recipes, reviews):
+    def read(self, recipes, reviews):
         if ('shap' in self.explainers
             and self.presentation_options == 'default'):
             self.plots.extend(['shap_heat_map', 'shap_summary'])

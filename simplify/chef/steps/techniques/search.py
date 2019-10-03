@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from skopt import BayesSearchCV
 
-from simplify.core.base import SimpleTechnique
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
@@ -62,7 +62,7 @@ class Search(SimpleTechnique):
                 'grid': ['sklearn.model_selection', 'GridSearchCV'],
                 'random': ['sklearn.model_selection', 'RandomizedSearchCV']}
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         self.algorithm.fit(ingredients.x_train, ingredients.y_train)
         self.best_estimator = self.algorithm.best_estimator_
         return self.best_estimator

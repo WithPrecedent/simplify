@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from scipy.stats import randint, uniform
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -128,14 +128,14 @@ class Model(SimpleStep):
 
         return self
 
-    def produce(self, ingredients, plan = None):
+    def read(self, ingredients, plan = None):
         """Applies model from recipe to ingredients data."""
         if self.technique != 'none':
             if self.hyperparameter_search:
-                self.algorithm = self.search_algorithm.produce(
+                self.algorithm = self.search_algorithm.read(
                         ingredients = ingredients)
             else:
-                self.algorithm = self.algorithm.produce(
+                self.algorithm = self.algorithm.read(
                         ingredients = ingredients)
         return ingredients
 

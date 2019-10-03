@@ -1,5 +1,5 @@
 """
-.. module:: simplify __main__ file
+.. module:: siMpLify
 :synopsis: data science made simple
 :author: Corey Rayburn Yung
 :copyright: 2019

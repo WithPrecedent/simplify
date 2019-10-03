@@ -11,8 +11,10 @@ import datetime
 
 from simplify.chef.recipe import Recipe
 from simplify.core.decorators import local_backups
-from simplify.core.base import (SimpleManager, SimplePlan, SimpleStep,
-                                SimpleTechnique)
+from simplify.core.manager import SimpleManager
+from simplify.core.plan import SimplePlan
+from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
@@ -26,7 +28,7 @@ class Cookbook(SimpleManager):
             does not need to be passed when the class is instanced. However,
             failing to do so will prevent the use of the Cleave step and the
            '_calculate_hyperparameters' method. 'ingredients' will need to be
-            passed to the 'produce' method if it isn't when the class is
+            passed to the 'read' method if it isn't when the class is
             instanced. Consequently, it is recommended that 'ingredients' be
             passed when the class is instanced.
         steps(dict(str: SimpleStep)): steps to be completed in order. This
@@ -44,7 +46,7 @@ class Cookbook(SimpleManager):
             Idea configuration, this option should be set to True. If you plan
             to make such changes, 'publish' should be called when those
             changes are complete.
-        auto_produce(bool): whether to call the 'produce' method when the class
+        auto_read(bool): whether to call the 'read' method when the class
             is instanced.
             
     Since this class is a subclass to SimpleManager and SimpleClass, all
@@ -57,7 +59,7 @@ class Cookbook(SimpleManager):
     recipes: object = None
     name: str = 'cookbook'
     auto_publish: bool = True
-    auto_produce: bool = False
+    auto_read: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -85,17 +87,17 @@ class Cookbook(SimpleManager):
                     ((self.ingredients.y == 1).sum())) - 1
         return self
 
-    def _produce_recipes(self):
+    def _read_recipes(self):
         """Tests 'recipes' with all combinations of step techniques selected.
         """
         for recipe_number, recipe in getattr(self, self.plan_iterable).items():
             if self.verbose:
                 print('Testing', recipe.name, str(recipe_number))
-            recipe.produce(ingredients = self.ingredients)
+            recipe.read(ingredients = self.ingredients)
             if self.export_all_recipes:
                 self.save_recipe(recipe = recipe)
-            self.analysis.produce(recipes = recipe)
-#            self.canvas.produce(recipes = recipe,
+            self.analysis.read(recipes = recipe)
+#            self.canvas.read(recipes = recipe,
 #                                reviews = self.analysis.reviews)
         return self
 
@@ -244,7 +246,7 @@ class Cookbook(SimpleManager):
                 'sample': ['simplify.chef.steps.sample', 'Sample'],
                 'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
                 'model': ['simplify.chef.steps.model', 'Model']}
-        # Adds GPU check to other checks to be produceed.
+        # Adds GPU check to other checks to be readed.
         self.checks.extend(['gpu', 'ingredients'])
         # Locks 'step' attribute at 'cook' for conform methods in package.
         self.step = 'cook'
@@ -293,7 +295,7 @@ class Cookbook(SimpleManager):
         return self
 
     @local_backups
-    def produce(self, ingredients = None):
+    def read(self, ingredients = None):
         """Completes an iteration of a Cookbook.
 
         Args:
@@ -305,10 +307,10 @@ class Cookbook(SimpleManager):
             self.ingredients = ingredients
         if 'train_test_val' in self.data_to_use:
             self.ingredients._remap_dataframes(data_to_use = 'train_test')
-            self._produce_recipes()
+            self._read_recipes()
             self.ingredients._remap_dataframes(data_to_use = 'train_val')
-            self._produce_recipes()
+            self._read_recipes()
         else:
             self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
-            self._produce_recipes()
+            self._read_recipes()
         return self

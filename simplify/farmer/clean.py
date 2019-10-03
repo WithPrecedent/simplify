@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimplePlan
+from simplify.core.plan import SimplePlan
 
 
 @dataclass
@@ -38,14 +38,14 @@ class Clean(SimplePlan):
                 'combine': ['simplify.farmer.steps.combine', 'Combine']}
         return self
 
-    def _produce_combiner(self, ingredients):
-        ingredients = self.algorithm.produce(ingredients)
+    def _read_combiner(self, ingredients):
+        ingredients = self.algorithm.read(ingredients)
         return ingredients
 
-    def _produce_keyword(self, ingredients):
-        ingredients.df = self.algorithm.produce(ingredients.df)
+    def _read_keyword(self, ingredients):
+        ingredients.df = self.algorithm.read(ingredients.df)
         return ingredients
 
-    def produce(self, ingredients):
-        ingredients = getattr(self, '_produce_' + self.technique)(ingredients)
+    def read(self, ingredients):
+        ingredients = getattr(self, '_read_' + self.technique)(ingredients)
         return ingredients

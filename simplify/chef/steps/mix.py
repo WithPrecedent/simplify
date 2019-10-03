@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 from simplify.core.decorators import numpy_shield
 
 
@@ -64,7 +64,7 @@ class Mix(SimpleStep):
         return self
 
     @numpy_shield
-    def produce(self, ingredients, plan = None, columns = None):
+    def read(self, ingredients, plan = None, columns = None):
         if not columns:
             columns = ingredients.encoders
         if columns:

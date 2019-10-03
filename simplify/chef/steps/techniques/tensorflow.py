@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import tensorflow as tf
 
-from simplify.core.base import SimpleTechnique
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass

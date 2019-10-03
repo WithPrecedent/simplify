@@ -596,7 +596,7 @@ class Depot(SimpleClass):
             for file_path in self.batch:
                 ingredients.source = self.load(file_path = file_path)
                 for plan in plans:
-                    ingredients = plan.produce(ingredients = ingredients)
+                    ingredients = plan.read(ingredients = ingredients)
             if return_ingredients:
                 return ingredients
             else:
@@ -604,7 +604,7 @@ class Depot(SimpleClass):
         else:
             for file_path in self.batch:
                 for plan in plans:
-                    plan.produce()
+                    plan.read()
             return self
 
     """ Public Import/Export Methods """

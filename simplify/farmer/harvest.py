@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.base import SimplePlan
+from simplify.core.plan import SimplePlan
 
 
 @dataclass
@@ -65,13 +65,13 @@ class Harvest(SimplePlan):
         self.columns.extend(new_columns)
         return self
 
-    def _produce_organize(self, ingredients, algorithm):
-        ingredients.df, ingredients.source = algorithm.produce(
+    def _read_organize(self, ingredients, algorithm):
+        ingredients.df, ingredients.source = algorithm.read(
                 df = ingredients.df, source = ingredients.source)
         return ingredients
 
-    def _produce_parse(self, ingredients, algorithm):
-        ingredients.df = algorithm.produce(df = ingredients.df,
+    def _read_parse(self, ingredients, algorithm):
+        ingredients.df = algorithm.read(df = ingredients.df,
                                          source = ingredients.source)
         return ingredients
 

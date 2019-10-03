@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimplePlan, SimpleStep
+from simplify.core.plan import SimplePlan, SimpleStep
 
 
 @dataclass
@@ -25,13 +25,13 @@ class Rank(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_produce (bool): whether to call the 'produce' method when the class
+        auto_read (bool): whether to call the 'read' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'ranker'
     auto_publish: bool = True
-    auto_produce: bool = True
+    auto_read: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -45,7 +45,7 @@ class Rank(SimplePlan):
                 'builtin': BuiltinImportances}
         return self
 
-    def produce(self):
+    def read(self):
 
 
         return self
@@ -62,7 +62,7 @@ class GiniImportances(SimpleStep):
         self.options = {}
         return self
 
-    def produce(self, recipe):
+    def read(self, recipe):
         features = list(recipe.ingredients.x_test.columns)
         if hasattr(recipe.model.algorithm, 'feature_importances_'):
             importances = pd.Series(
@@ -85,7 +85,7 @@ class PermutationImportances(SimpleStep):
         return self
 
 
-    def produce(self, recipe):
+    def read(self, recipe):
         importance_instance = PermutationImportance(
                 estimator = recipe.model.algorithm,
                 random_state = self.seed)
@@ -116,11 +116,11 @@ class BuiltinImportances(SimpleStep):
         super().__post_init__()
         return self
 
-    def _produce_cover(self, recipe):
+    def _read_cover(self, recipe):
 
         return importances
 
-    def _produce_weight(self, recipe):
+    def _read_weight(self, recipe):
         return importances
 
     def draft(self):

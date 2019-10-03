@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -57,6 +57,6 @@ class Reshape(SimpleStep):
         return df
 
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         ingredients.df = getattr(self, '_' + self.shape_type)(ingredients.df)
         return ingredients

@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -35,5 +35,5 @@ class Divide(SimpleStep):
         super().__post_init__()
         return self
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         return self

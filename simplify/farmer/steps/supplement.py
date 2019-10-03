@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -37,5 +37,5 @@ class Supplement(SimpleStep):
         self.options = {}
         return self
 
-    def produce(self, ingredients, sources):
+    def read(self, ingredients, sources):
         return ingredients

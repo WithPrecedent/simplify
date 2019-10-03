@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -36,6 +36,6 @@ class Scrape(SimpleStep):
         return self
 
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         file_path = os.path.join(self.depot.external, self.file_name)
         return self

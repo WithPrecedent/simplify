@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimplePlan
+from simplify.core.plan import SimplePlan
 
 
 @dataclass
@@ -52,6 +52,6 @@ class Sow(SimplePlan):
             self.export_folder = 'external'
         return self
 
-    def produce(self, ingredients):
-        self.algorithm.produce(ingredients)
+    def read(self, ingredients):
+        self.algorithm.read(ingredients)
         return ingredients

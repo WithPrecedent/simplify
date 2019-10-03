@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -64,6 +64,6 @@ class Combine(SimpleStep):
             self.algorithm = self._dict
         return self
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         self.ingredients = self.algorithm(ingredients)
         return ingredients

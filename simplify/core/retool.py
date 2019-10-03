@@ -166,15 +166,15 @@ class ReTool(SimpleClass):
         self._set_matcher()
         return self
 
-    def produce(self, ingredients = None, df = None, source = None,
+    def read(self, ingredients = None, df = None, source = None,
               remove_from_source = True):
         df, source = self._check_ingredients(ingredients = ingredients,
                                              df = df,
                                              source = source)
         if remove_from_source:
-            df, source = self.matcher.produce(df = df, source = source)
+            df, source = self.matcher.read(df = df, source = source)
         else:
-            df = self.matcher.produce(df = df, source = source)
+            df = self.matcher.read(df = df, source = source)
         return ingredients
 
     def update(self, key, value):
@@ -276,7 +276,7 @@ class ReMatch(object):
             self.source = self.value
         return self
 
-    def produce(self, df):
+    def read(self, df):
         for self.key, self.value in self.expressions.items():
             self._set_source()
             self.section = self.sections[self.value]
@@ -452,7 +452,7 @@ class ReOrganize(ReMatch):
     def __post_init__(self):
         return self
 
-    def produce(self, df, source):
+    def read(self, df, source):
         for self.key, self.value in self.expressions.items():
             self._set_out_column()
             if re.search(self.key, source):

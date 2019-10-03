@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -44,7 +44,7 @@ class Convert(SimpleStep):
         self.file_path_out = self.make_path(self.file_out)
         return self
 
-    def produce(self, ingredients):
+    def read(self, ingredients):
         converted = self.method(file_path = self.file_path_in)
         self.depot.save_df(converted, file_path = self.file_path_out)
         return self

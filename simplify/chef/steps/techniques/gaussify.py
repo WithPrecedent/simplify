@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleTechnique
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
@@ -55,7 +55,7 @@ class Gaussify(SimpleTechnique):
                 method = 'yeo_johnson', **self.parameters)
         return self
 
-    def produce(self, ingredients, columns = None):
+    def read(self, ingredients, columns = None):
         if not columns:
             columns = ingredients.numerics
         for column in columns:

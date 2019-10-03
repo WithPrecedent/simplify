@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 
 
-from simplify.core.base import SimplePlan, SimpleStep
+from simplify.core.plan import SimplePlan, SimpleStep
 
 
 @dataclass
@@ -23,13 +23,13 @@ class Predict(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_produce (bool): whether to call the 'produce' method when the class
+        auto_read (bool): whether to call the 'read' method when the class
             is instanced.
     """
     steps: object = None
     name: str = 'predictor'
     auto_publish: bool = True
-    auto_produce: bool = False
+    auto_read: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -46,9 +46,9 @@ class Predict(SimplePlan):
                 'shap': PredictShapProbabilities}
         return self
 
-    def produce(self, recipe):
+    def read(self, recipe):
         for step_name, step_instance in self.steps.items():
-            setattr(self, step_name, step_instance.produce(recipe = recipe))
+            setattr(self, step_name, step_instance.read(recipe = recipe))
         return self
 
 
@@ -81,7 +81,7 @@ class PredictOutcomes(SimpleStep):
         pass
         return self
 
-    def produce(self, recipe):
+    def read(self, recipe):
         """Makes predictions from fitted model.
 
         Args:
@@ -129,7 +129,7 @@ class PredictProbabilities(SimpleStep):
         pass
         return self
 
-    def produce(self, recipe):
+    def read(self, recipe):
         """Makes predictions from fitted model.
 
         Args:
@@ -177,7 +177,7 @@ class PredictLogProbabilities(SimpleStep):
         pass
         return self
 
-    def produce(self, recipe):
+    def read(self, recipe):
         """Makes predictions from fitted model.
 
         Args:
@@ -225,7 +225,7 @@ class PredictShapProbabilities(SimpleStep):
         pass
         return self
 
-    def produce(self, recipe):
+    def read(self, recipe):
         """Makes predictions from fitted model.
 
         Args:

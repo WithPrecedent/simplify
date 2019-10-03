@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleStep
+from simplify.core.step import SimpleStep
 from simplify.core.decorators import numpy_shield
 
 
@@ -67,7 +67,7 @@ class Sample(SimpleStep):
         return self
 
     @numpy_shield
-    def produce(self, ingredients, plan = None, columns = None):
+    def read(self, ingredients, plan = None, columns = None):
         self._recheck_parameters(ingredients.x, columns)
         if plan.data_to_use in ['full']:
             resampled_x, resampled_y = self.algorithm.fit_resample(
