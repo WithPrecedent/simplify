@@ -11,13 +11,14 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from simplify.core.plan import SimplePlan, SimpleStep
+from simplify.core.plan import SimplePlan
+from simplify.core.step import SimpleStep
 
 
 @dataclass
 class Explain(SimplePlan):
     """Explains model results.
-    
+
     Args:
         steps(dict(str: SimpleStep)): names and related SimpleStep classes for
             explaining data analysis models.

@@ -53,3 +53,9 @@ class Split(SimpleStep):
         self.extra_parameters = {'train_test': {'n_splits': 1}}
         self.selected_parameters = True
         return self
+
+    def read(self, ingredients):
+        if self.algorithm != 'none':
+            self.algorithm.split(ingredients.x_train, ingredients.y_train)
+            ingredients.x_train = self.algorithm.transform(ingredients.x_train)
+        return ingredients

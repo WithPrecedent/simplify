@@ -60,8 +60,8 @@ class Scale(SimpleStep):
                                    'quantile': {'copy': False},
                                    'robust': {'copy': False},
                                    'standard': {'copy': False}}
-        self.extra_parameters = {
-                'gauss': {'rescaler': self.options['minmax']}}
+#        self.extra_parameters = {
+#                'gauss': {'rescaler': self.options['minmax']}}
         self.selected_parameters = True
         self.custom_options = ['gauss']
         return self

@@ -47,14 +47,15 @@ class SimpleManager(SimpleClass):
         self.all_steps = []
         for step in self.options.keys():
             # Stores each step attribute in a list.
-            if hasattr(self, step):
-                setattr(self, step, self.listify(getattr(self, step)))
+            if hasattr(self, step + '_technique'):
+                setattr(self, step + '_technique',
+                        self.listify(getattr(self, step + '_technique')))
             # Stores a list of 'none' if there is no corresponding local
             # attribute.
             else:
                 setattr(self, step, ['none'])
             # Adds step to a list of all steps.
-            self.all_steps.append(getattr(self, step))
+            self.all_steps.append(getattr(self, step + '_technique'))
         return self
 
     def _publish_plans_parallel(self):
@@ -62,12 +63,12 @@ class SimpleManager(SimpleClass):
         # Creates a list of all possible permutations of step lists.
         all_plans = list(map(list, product(*self.all_steps)))
         for i, plan in enumerate(all_plans):
-            publishd_steps = {}
+            published_steps = {}
             for j, (step_name, step_class) in enumerate(self.options.items()):
-                publishd_steps.update(
+                published_steps.update(
                         {step_name: step_class(technique = plan[j])})
             getattr(self, self.plan_iterable).update(
-                    {i + 1: self.plan_class(steps = publishd_steps,
+                    {i + 1: self.plan_class(steps = published_steps,
                                              number = i + 1)})
         return self
 

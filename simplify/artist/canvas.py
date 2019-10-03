@@ -8,8 +8,9 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleManager
+from simplify.core.manager import SimpleManager
 from simplify.core.decorators import localize
+
 
 @dataclass
 class Canvas(SimpleManager):
@@ -24,9 +25,9 @@ class Canvas(SimpleManager):
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It
             can be passed directly to the 'read' method as well.
-        reviews(Review): an instance of Review containing all metrics and 
-            evaluation results.This argument need not be passed when the class 
-            is instanced. It can be passed directly to the 'read' method as 
+        reviews(Review): an instance of Review containing all metrics and
+            evaluation results.This argument need not be passed when the class
+            is instanced. It can be passed directly to the 'read' method as
             well.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
@@ -34,12 +35,12 @@ class Canvas(SimpleManager):
             class is instanced.
         auto_read (bool): whether to call the 'read' method when the class
             is instanced.
-            
+
     Since this class is a subclass to SimpleManager and SimpleClass, all
     documentation for those classes applies as well.
-    
+
     """
-    
+
     ingredients: object = None
     steps: object = None
     recipes: object = None
@@ -130,7 +131,7 @@ class Canvas(SimpleManager):
         return self
 
     @localize
-    def read(self, recipes = None, reviews = None, ingredients = None):
+    def read(self, ingredients = None, recipes = None, reviews = None):
         if self.ingredients is None:
             self.ingredients = self.recipes.ingredients
         for name, step  in self.steps:

@@ -10,7 +10,7 @@ from sklearn.datasets import load_breast_cancer
 from simplify import Simplify, Idea
 
 # Sets path to settings file and root folder for file output.
-idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
+idea = Idea(configuration = os.path.join(os.getcwd(),
                                          'cancer_settings.ini'))
 root_folder = os.path.join('..', '..')
 
@@ -34,7 +34,7 @@ cancer_project.read()
 # Saves the recipes, results, and cookbook.
 cancer_project.chef.save_everything()
 # Outputs information about the best recipe to the terminal.
-cancer_project.critic.print_best()
+#cancer_project.critic.print_best()
 # Saves ingredients file with predictions or predicted probabilities added
 # (based on options in idea).
-cancer_project.ingredients.save(file_name = 'cancer_df')
+#cancer_project.ingredients.save(file_name = 'cancer_df')

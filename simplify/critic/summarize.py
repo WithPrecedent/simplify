@@ -10,13 +10,14 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.plan import SimplePlan, SimpleStep
+from simplify.core.plan import SimplePlan
+from simplify.core.step import SimpleStep
 
 
 @dataclass
 class Summarize(SimplePlan):
     """Summarizes data.
-    
+
     Args:
         steps(dict(str: SimpleStep)): names and related SimpleStep classes for
             explaining data analysis models.
@@ -75,7 +76,7 @@ class Summarize(SimplePlan):
     def _set_columns(self):
         self.columns = ['variable'] + (list(self.options.keys()))
         return self
-    
+
     """ Core siMpLify Methods """
 
     def draft(self):

@@ -122,7 +122,7 @@ class Model(SimpleStep):
                 parameters = self.parameters)
             if self.hyperparameter_search:
                 self._publish_search_parameters()
-                self.search_algorithm = Searcher(
+                self.search_algorithm = self.options['search'](
                         technique = self.search_technique,
                         parameters = self.search_parameters)
 

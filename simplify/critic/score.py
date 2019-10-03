@@ -11,13 +11,14 @@ from dataclasses import dataclass
 import pandas as pd
 from sklearn import metrics
 
-from simplify.core.plan import SimplePlan, SimpleStep
+from simplify.core.plan import SimplePlan
+from simplify.core.step import SimpleStep
 
 
 @dataclass
 class Score(SimplePlan):
     """Scores models and prepares reports based upon model type.
-    
+
     Args:
         steps(dict(str: SimpleStep)): names and related SimpleStep classes for
             explaining data analysis models.

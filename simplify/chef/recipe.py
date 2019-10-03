@@ -51,6 +51,7 @@ class Recipe(SimplePlan):
             if step == 'splitter':
                 break
             else:
+                print(step)
                 self.ingredients = self.steps[step].read(
                     ingredients = self.ingredients,
                     plan = self)

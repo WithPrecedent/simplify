@@ -142,7 +142,8 @@ class SimpleStep(SimpleClass):
                 in the nested 'extra_parameters' dictionary.
         """
         if self.exists('extra_parameters') and self.extra_parameters:
-            parameters.update(
+
+            self.parameters.update(
                     self._denestify(technique = technique,
                                     parameters = self.extra_parameters))
             return
@@ -155,7 +156,7 @@ class SimpleStep(SimpleClass):
                 sought.
         """
         if self.exists('runtime_parameters'):
-            parameters.update(
+            self.parameters.update(
                     self._denestify(technique = technique,
                                     parameters = self.runtime_parameters))
             return parameters

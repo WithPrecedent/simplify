@@ -9,13 +9,14 @@
 from dataclasses import dataclass
 
 
-from simplify.core.plan import SimplePlan, SimpleStep
+from simplify.core.plan import SimplePlan
+from simplify.core.step import SimpleStep
 
 
 @dataclass
 class Predict(SimplePlan):
     """Creates predictions from fitted models for out-of-sample data.
-    
+
     Args:
         steps(dict(str: SimpleStep)): names and related SimpleStep classes for
             explaining data analysis models.

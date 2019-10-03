@@ -36,10 +36,10 @@ class Review(SimpleManager):
             class is instanced.
         auto_read(bool): whether to call the 'read' method when the class
             is instanced.
-            
+
     Since this class is a subclass to SimpleManager and SimpleClass, all
     documentation for those classes applies as well.
-    
+
     """
     ingredients: object = None
     steps: object = None
@@ -93,10 +93,10 @@ class Review(SimpleManager):
         return step_column
 
     def _read_summary(self):
-        self.options['summarize'].read(df = ingredients.df)
+        self.options['summarize'].read(df = self.ingredients.df)
         self.summary = self.options['summarize'].report
         return self
-    
+
     def _set_columns(self):
         self.required_columns = {
             'recipe_number': 'number',
@@ -127,6 +127,23 @@ class Review(SimpleManager):
                 print(technique.capitalize(), ':',
                       getattr(getattr(self, self.plan_iterable).best_recipe,
                               technique).technique)
+        return
+
+    """ Public Import/Export Methods """
+
+    def save(self, report = None):
+        """Exports the review report to disc.
+
+        Args:
+            review(Review.report): 'report' from an instance of review
+        """
+        if not report:
+            report = self.report
+        self.depot.save(variable = report,
+                        folder = self.depot.experiment,
+                        file_name = self.model_type + '_review',
+                        file_format = 'csv',
+                        header = True)
         return
 
     """ Core siMpLify methods """
@@ -164,9 +181,9 @@ class Review(SimpleManager):
         for recipe in self.listify(recipes):
             if self.verbose:
                 print('Reviewing', recipe.name, str(recipe.number))
-            
+
             row = pd.Series(index = self.columns)
-            
+
             # self._check_best(recipe = recipe)
             # for column, value in self.columns.items():
             #     if isinstance(getattr(recipe, value), object):

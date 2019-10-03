@@ -43,7 +43,7 @@ class SimplePlan(SimpleClass):
 
     def draft(self):
         """SimplePlan's generic 'draft' method."""
-        pass
+        self.options = {}
         return self
 
     def publish(self):

@@ -35,7 +35,7 @@ class Cookbook(SimpleManager):
             argument should only be passed if the user wishes to override the
             steps listed in the Idea settings or if the user is not using the
             Idea class.
-        recipes(Recipe or list(Recipe)): Ordinarily, 'recipes' is not passed 
+        recipes(Recipe or list(Recipe)): Ordinarily, 'recipes' is not passed
             when Cookbook is instanced, but the argument is included if the user
             wishes to reexamine past recipes or manually create new recipes.
         name(str): designates the name of the class which should be identical
@@ -48,12 +48,12 @@ class Cookbook(SimpleManager):
             changes are complete.
         auto_read(bool): whether to call the 'read' method when the class
             is instanced.
-            
+
     Since this class is a subclass to SimpleManager and SimpleClass, all
     documentation for those classes applies as well.
-    
+
     """
-    
+
     ingredients: object = None
     steps: object = None
     recipes: object = None
@@ -194,7 +194,6 @@ class Cookbook(SimpleManager):
         """Automatically saves the recipes, results, dropped columns from
         ingredients, and the best recipe (if one has been stored)."""
         self.save()
-        self.save_review()
         self.save_best_recipe()
         self.ingredients.save_dropped()
         return
@@ -214,22 +213,6 @@ class Cookbook(SimpleManager):
                         folder = self.depot.recipe,
                         file_name = 'recipe',
                         file_format = 'pickle')
-        return
-
-    def save_review(self, review = None):
-        """Exports the Analysis review to disc.
-
-        Args:
-            review: the attribute review from an instance of Analysis. If none
-                is provided, self.analysis.review is saved.
-        """
-        if not review:
-            review = self.analysis.review.report
-        self.depot.save(variable = review,
-                        folder = self.depot.experiment,
-                        file_name = self.model_type + '_review',
-                        file_format = 'csv',
-                        header = True)
         return
 
     """ Core siMpLify Methods """
@@ -294,7 +277,7 @@ class Cookbook(SimpleManager):
         super().publish()
         return self
 
-    @local_backups
+#    @local_backups
     def read(self, ingredients = None):
         """Completes an iteration of a Cookbook.
 

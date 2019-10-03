@@ -88,11 +88,11 @@ class Idea(SimpleClass):
     accessed using dict keys or local attributes. For example:
 
         self.idea['general']['seed'] # typical dict access technique
-                                
+
         self.idea['seed'] # if no section or other key is named 'seed'
-        
+
         self.seed # exists because 'seed' is in the 'general' section
-        
+
                             all return 43.
 
     Because Idea uses ConfigParser, it only allows 2-level dictionaries. The
@@ -101,11 +101,11 @@ class Idea(SimpleClass):
     Args:
         configuration(str or dict): either a file path, file name, or two-level
             nested dictionary storing settings. If a file path is provided, a
-            nested dict will automatically be created from the file and stored 
-            in 'configuration'. If a file name is provided, Idea will look for 
+            nested dict will automatically be created from the file and stored
+            in 'configuration'. If a file name is provided, Idea will look for
             it in the current working directory and store its contents in
             'configuration'.
-        infer_types(bool): whether values in 'configuration' are converted to 
+        infer_types(bool): whether values in 'configuration' are converted to
             other types (True) or left as strings (False).
         auto_publish(bool): whether to automatically call the 'publish'
             method when the class is instanced. Unless adding a new source for
@@ -270,10 +270,11 @@ class Idea(SimpleClass):
         return self
 
     def _inject_base(self):
-        """Injects parent class, SimpleClass with this Idea so that it is 
+        """Injects parent class, SimpleClass with this Idea so that it is
         available to other modules in the siMpLify package.
         """
         setattr(SimpleClass, 'idea', self)
+        setattr(SimpleClass, 'step', self.step)
         return self
 
     def _load_from_ini(self):
@@ -300,10 +301,10 @@ class Idea(SimpleClass):
     @staticmethod
     def _numify(variable):
         """Attempts to convert 'variable' to a numeric type.
-        
+
         Args:
             variable(str): variable to be converted.
-            
+
         Returns
             variable(int, float, str) converted to numeric type, if possible.
         """
@@ -314,6 +315,19 @@ class Idea(SimpleClass):
                 return float(variable)
             except ValueError:
                 return variable
+
+    def _set_initial_state(self):
+        """Sets initial 'step' for state_depenent subclasses."""
+        if 'farmer' in self.configuration['general']['subpackages']:
+            self.step = self.listify(
+                    self.idea.configuration['almanac']['almanac_steps'])[0]
+        elif 'chef' in self.configuration['general']['subpackages']:
+            self.step = 'cook'
+        elif 'review' in self.configuration['general']['subpackages']:
+            self.step = 'review'
+        else:
+            self.step = 'canvas'
+        return self
 
     def _typify(self, variable):
         """Converts str to appropriate, supported datatype.
@@ -387,6 +401,8 @@ class Idea(SimpleClass):
         if self.options[self.technique]:
             self.options[self.technique]()
         self._infer_types()
+        # Sets 'step' to first step from Idea instance.
+        self._set_initial_state()
         self._inject_base()
         return self
 

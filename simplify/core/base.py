@@ -13,7 +13,6 @@ import os
 import warnings
 
 from more_itertools import unique_everseen
-import numpy as np
 import pandas as pd
 
 
@@ -72,9 +71,7 @@ class SimpleClass(ABC):
         # was instanced. Injects attributes from 'idea' to subclass.
         if self.__class__.__name__ != 'Idea':
             self._check_idea()
-            # Sets appropriate state of siMpLify package using 'state_machine' 
-            # created by Idea instance.    
-            self.state_machine.advance()
+
         # Calls draft method to set up class instance defaults.
         self.draft()
         # Runs attribute checks from list in 'checks' attribute (if it exists).
@@ -325,6 +322,8 @@ class SimpleClass(ABC):
             if hasattr(self, self.name + '_steps'):
                 self.steps = self._convert_wildcards(getattr(
                         self, self.name + '_steps'))
+            elif self.exists('options'):
+                self.steps = list(self.options.keys())
         else:
             self.steps = self.listify(self.steps)
         if not self.exists('step'):

@@ -8,9 +8,6 @@
 
 from dataclasses import dataclass
 
-import numpy as np
-import pandas as pd
-
 from simplify.core.base import SimpleClass
 from simplify.core.decorators import localize
 
@@ -36,8 +33,8 @@ class Simplify(SimpleClass):
             DataFrame is located.
         depot(Depot or str): an instance of Depot a string containing the full
             path of where the root folder should be located for file output.
-            Once a Depot instance is created by a subclass of SimpleClass, it is
-            automatically made available to all other SimpleClass subclasses
+            Once a Depot instance is created by a subclass of SimpleClass, it
+            is automatically made available to all other SimpleClass subclasses
             that are instanced in the future.
         name(str): name of class used to match settings sections in an Idea
             settings file and other portions of the siMpLify package. This is
@@ -77,32 +74,30 @@ class Simplify(SimpleClass):
                 be turned into localized attributes.
         """
         self.__post_init__()
-        self.publish()
         self.read(**kwargs)
         return self
 
     """ Private Methods """
 
     def _artist_read(self):
-        self.getattr(self, 'artist').read(
+        self.artist.read(
                 ingredients = self.ingredients,
-                recipes = self.recipes)
+                recipes = self.chef.recipes,
+                reviews = self.critic.reviews)
         return self
 
     def _chef_read(self):
-        self.ingredients, self.recipes = getattr(self, 'chef').read(
-                ingredients = self.ingredients)
+        self.chef.read(ingredients = self.ingredients)
         return self
 
     def _critic_read(self):
-        self.ingredients = getattr(self, 'critic').read(
+        self.critic.read(
                 ingredients = self.ingredients,
-                recipes = self.recipes)
+                recipes = self.chef.recipes)
         return self
 
     def _farmer_read(self):
-        self.ingredients = getattr(self, 'farmer').read(
-                ingredients = self.ingredients)
+        self.farmer.read(ingredients = self.ingredients)
         return self
 
     """ Core siMpLify Methods """
@@ -117,17 +112,15 @@ class Simplify(SimpleClass):
         return self
 
     def publish(self):
-        self.steps = {}
+        self.packages = {}
         for name, settings in self.options.items():
-            print(self.subpackages)
             if name in self.subpackages:
-                setattr(self, name, self.options[name]())
-                getattr(self, name).publish()
-                self.steps.update({name: getattr(self, name)})
+                self.packages.update({name: settings})
         return self
 
-    @localize
+#    @localize
     def read(self, **kwargs):
-        for step_name, step_instance in self.steps.items():
-            getattr(self, step_name + '_read_')()
+        for package_name, package_class in self.packages.items():
+            setattr(self, package_name, package_class())
+            getattr(self, '_' + package_name + '_read')()
         return self
