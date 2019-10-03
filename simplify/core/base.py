@@ -71,7 +71,6 @@ class SimpleClass(ABC):
         # was instanced. Injects attributes from 'idea' to subclass.
         if self.__class__.__name__ != 'Idea':
             self._check_idea()
-
         # Calls draft method to set up class instance defaults.
         self.draft()
         # Runs attribute checks from list in 'checks' attribute (if it exists).

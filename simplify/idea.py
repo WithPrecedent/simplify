@@ -13,6 +13,7 @@ import re
 
 from simplify.core.base import SimpleClass
 
+
 @dataclass
 class Idea(SimpleClass):
     """Loads and/or stores the user's data science idea.

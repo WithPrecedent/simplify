@@ -21,7 +21,6 @@ dependencies:
   - mlextend
   - xgboost
   - tensorflow==2.0.0-rc0
-  - treeinterpreter
 - pyqt
 - pystan
 - python-docx

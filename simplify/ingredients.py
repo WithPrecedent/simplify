@@ -93,7 +93,6 @@ class Ingredients(SimpleClass):
     datatypes: object = None
     prefixes: object = None
     auto_publish: bool = True
-    state_dependent: bool = True
 
     def __post_init__(self):
         super().__post_init__()
