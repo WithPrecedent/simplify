@@ -11,7 +11,6 @@ from dataclasses import dataclass
 import pandas as pd
 
 from simplify.core.plan import SimplePlan
-from simplify.core.step import SimpleStep
 
 
 @dataclass
@@ -28,8 +27,9 @@ class Summarize(SimplePlan):
         auto_implement (bool): whether to call the 'implement' method when the class
             is instanced.
     """
+
     steps: object = None
-    name: str = 'summarizer'
+    name: str = 'summarize'
     auto_publish: bool = True
     auto_implement: bool = False
     lazy_import: bool = False
@@ -107,8 +107,8 @@ class Summarize(SimplePlan):
         self.report = pd.DataFrame(columns = self.columns)
         return self
 
-    def implement(self, df = None, transpose = True, file_name = 'data_summary',
-                file_format = 'csv'):
+    def implement(self, df = None, transpose = True,
+                  file_name = 'data_summary', file_format = 'csv'):
         """Creates a DataFrame of common summary data.
 
         Args:
@@ -120,7 +120,6 @@ class Summarize(SimplePlan):
         """
         self._implement_report(df = df)
         self._implement_export_parameters(file_name = file_name,
-                                        file_format = file_format,
-                                        transpose = transpose)
-        return self.report
-
+                                          file_format = file_format,
+                                          transpose = transpose)
+        return self

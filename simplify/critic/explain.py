@@ -26,11 +26,12 @@ class Explain(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement (bool): whether to call the 'implement' method when the class
-            is instanced.
+        auto_implement (bool): whether to call the 'implement' method when the
+            class is instanced.
     """
+
     steps: object = None
-    name: str = 'explainer'
+    name: str = 'explain'
     auto_publish: bool = True
     auto_implement: bool = False
 
@@ -40,11 +41,6 @@ class Explain(SimplePlan):
 
     """ Private Methods """
 
-    def _get_importances(self, step_instance, recipe):
-        return step_instance._implement_importances(recipe = recipe)
-
-    def _get_reports(self, step_instance, recipe):
-        return step_instance._implement_reports(recipe = recipe)
 
     """ Core siMpLify Methods """
 
@@ -53,10 +49,6 @@ class Explain(SimplePlan):
                 'eli5': Eli5Explain,
                 'shap': ShapExplain,
                 'skater': SkaterExplain}
-        self.checks = ['steps']
-        self.custom_options = list(self.options.keys())
-        self.importances_options = list(self.options.keys())
-        self.reports_options = ['eli5', 'shap']
         return self
 
     def implement(self, recipe):
@@ -65,18 +57,11 @@ class Explain(SimplePlan):
         Args:
             recipe (Recipe): a Recipe with a fitted model.
         """
-        self.importances = {}
-        self.reports = {}
         for step_name, step_instance in self.options.items():
-            if step_name in self.steps:
-                for return_value in ('importances', 'reports'):
-                    if step_name in getattr(self, return_value + '_options'):
-                        implementd = getattr(self, '_get_' + return_value)(
-                                step_instance = step_instance,
-                                recipe = recipe)
-                        getattr(self, return_value).update({
-                                step_name: implementd})
+            if step_name in self.explainers:
+
         return self
+
 
 @dataclass
 class Eli5Explain(SimpleStep):
@@ -141,6 +126,7 @@ class Eli5Explain(SimpleStep):
                 feature_names = recipe.ingredients.columns.keys())
         return self
 
+
 @dataclass
 class ShapExplain(SimpleStep):
     """Explains fit model with shap package.
@@ -170,10 +156,10 @@ class ShapExplain(SimpleStep):
         from shap import (DeepExplainer, KernelExplainer, LinearExplainer,
                           TreeExplainer)
 
-        self.options = {'deep': DeepExplainer,
-                        'kernel': KernelExplainer,
-                        'linear': LinearExplainer,
-                        'tree': TreeExplainer}
+        self.options = {'deep': ['shap', 'DeepExplainer'],
+                        'kernel': ['shap', 'KernelExplainer'],
+                        'linear': ['shap', 'LinearExplainer'],
+                        'tree': ['shap', 'TreeExplainer']}
         self.models = {'baseline': 'none',
                        'catboost': 'tree',
                        'decision_tree': 'tree',

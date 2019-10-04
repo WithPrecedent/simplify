@@ -40,9 +40,46 @@ class Score(SimplePlan):
 
     """ Private Methods """
 
+    def _check_best(self, recipe):
+        """Checks if the current recipe is better than the current best recipe
+        based upon the primary scoring metric.
+
+        Args:
+            recipe: an instance of Recipe to be tested versus the current best
+                recipe stored in the 'best_recipe' attribute.
+        """
+        if not self.exists('best_recipe'):
+            self.best_recipe = recipe
+            self.best_recipe_score = self.report.loc[
+                    self.report.index[-1],
+                    self.listify(self.metrics)[0]]
+        elif (self.report.loc[
+                self.report.index[-1],
+                self.listify(self.metrics)[0]] > self.best_recipe_score):
+            self.best_recipe = recipe
+            self.best_recipe_score = self.report.loc[
+                    self.report.index[-1],
+                    self.listify(self.metrics)[0]]
+        return self
+
     def _set_columns(self):
         self.columns = list(self.options.keys())
         return self
+
+    """ Public Tool Methods """
+
+    def print_best(self):
+        """Prints output to the console about the best recipe."""
+        if self.verbose:
+            print('The best test recipe, based upon the',
+                  self.listify(self.metrics)[0], 'metric with a score of',
+                  f'{self.best_recipe_score: 4.4f}', 'is:')
+            for technique in getattr(self,
+                    self.plan_iterable).best_recipe.techniques:
+                print(technique.capitalize(), ':',
+                      getattr(getattr(self, self.plan_iterable).best_recipe,
+                              technique).technique)
+        return
 
     """ Core siMpLify Methods """
 

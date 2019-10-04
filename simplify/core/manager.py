@@ -56,28 +56,6 @@ class SimpleManager(SimpleClass):
             self.all_steps.append(getattr(self, step + '_technique'))
         return self
 
-    def _publish_plans_parallel(self):
-        """Creates plan iterable from list of lists in 'all_steps'."""
-        # Creates a list of all possible permutations of step lists.
-        all_plans = list(map(list, product(*self.all_steps)))
-        for i, plan in enumerate(all_plans):
-            published_steps = {}
-            for j, (step_name, step_class) in enumerate(self.options.items()):
-                published_steps.update(
-                        {step_name: step_class(technique = plan[j])})
-            getattr(self, self.plan_iterable).update(
-                    {i + 1: self.plan_class(steps = published_steps,
-                                             number = i + 1)})
-        return self
-
-    def _publish_plans_serial(self):
-        """Creates plan iterable from list of lists in 'all_steps'."""
-        for i, (plan_name, plan_class) in enumerate(self.options.items()):
-            for steps in self.all_steps[i]:
-                getattr(self, self.plan_iterable).update(
-                        {i + 1: plan_class(steps = steps)})
-        return self
-
     def _implement_parallel(self, variable = None, **kwargs):
         """Method that implements all of the publishd objects on the
         passed variable.
@@ -113,6 +91,29 @@ class SimpleManager(SimpleClass):
         for number, plan in getattr(self, self.plan_iterable).items():
             variable = plan.implement(variable, **kwargs)
         return variable
+
+    def _publish_plans_parallel(self):
+        """Creates plan iterable from list of lists in 'all_steps'."""
+        # Creates a list of all possible permutations of step lists.
+        all_plans = list(map(list, product(*self.all_steps)))
+        for i, plan in enumerate(all_plans):
+            published_steps = {}
+            for j, (step_name, step_class) in enumerate(self.options.items()):
+                published_steps.update(
+                        {step_name: step_class(technique = plan[j])})
+            getattr(self, self.plan_iterable).update(
+                    {i + 1: self.plan_class(steps = published_steps,
+                                             number = i + 1)})
+        return self
+
+    def _publish_plans_serial(self):
+        """Creates plan iterable from list of lists in 'all_steps'."""
+        for i, (plan_name, plan_class) in enumerate(self.options.items()):
+            for steps in self.all_steps[i]:
+                getattr(self, self.plan_iterable).update(
+                        {i + 1: plan_class(steps = steps)})
+        return self
+
 
     """ Core siMpLify methods """
 

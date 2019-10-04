@@ -8,6 +8,7 @@
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 
 from simplify.core.plan import SimplePlan
@@ -25,29 +26,34 @@ class Rank(SimplePlan):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement (bool): whether to call the 'implement' method when the class
-            is instanced.
     """
+
     steps: object = None
     name: str = 'ranker'
     auto_publish: bool = True
-    auto_implement: bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
     def draft(self):
+        super().draft()
         self.options = {
                 'gini': GiniImportances,
                 'permutation': PermutationImportances,
                 'shap': ShapImportances,
                 'builtin': BuiltinImportances}
+        self.step_iterable = 'feature_importances'
+        self.idea_setting = 'feature_importance_technique'
         return self
 
-    def implement(self):
-
-
+    def implement(self, recipe = None, explainer = None):
+        for name in self.options.keys():
+            if name in getattr(self, self.idea_setting):
+                importances = getattr(self, name).implement(
+                        recipe = recipe,
+                        explainer = explainer)
+                getattr(self, self.step_iterable).update({name: importances})
         return self
 
 
@@ -62,7 +68,7 @@ class GiniImportances(SimpleStep):
         self.options = {}
         return self
 
-    def implement(self, recipe):
+    def implement(self, recipe = None, explainer = None):
         features = list(recipe.ingredients.x_test.columns)
         if hasattr(recipe.model.algorithm, 'feature_importances_'):
             importances = pd.Series(
@@ -72,6 +78,7 @@ class GiniImportances(SimpleStep):
         else:
             importances = None
         return importances
+
 
 @dataclass
 class PermutationImportances(SimpleStep):
@@ -84,16 +91,18 @@ class PermutationImportances(SimpleStep):
         self.options = {'eli5': ['eli5.sklearn', 'PermutationImportance']}
         return self
 
+    def implement(self, recipe = None, explainer = None):
 
-    def implement(self, recipe):
-        importance_instance = PermutationImportance(
+        from eli5 import show_weights
+
+        importance_instance = self.options['eli5'](
                 estimator = recipe.model.algorithm,
                 random_state = self.seed)
         importance_instance.fit(
                 recipe.ingredients.x_test,
                 recipe.ingredients.y_test)
-        self.permutation_weights = show_weights(
-                self.permutation_importances,
+        importances = show_weights(
+                importance_instance,
                 feature_names = recipe.ingredients.columns.keys())
         return importances
 
@@ -108,6 +117,10 @@ class ShapImportances(SimpleStep):
         self.options = {}
         return self
 
+    def implement(self, recipe = None, explainer = None):
+        importances = np.abs(explainer.shap_values).mean(0)
+        return importances
+
 
 @dataclass
 class BuiltinImportances(SimpleStep):
@@ -116,16 +129,12 @@ class BuiltinImportances(SimpleStep):
         super().__post_init__()
         return self
 
-    def _implement_cover(self, recipe):
-
-        return importances
-
-    def _implement_weight(self, recipe):
-        return importances
-
     def draft(self):
         self.options = {}
         return self
+
+    def implement(self, recipe = None, explainer = None):
+        return importances
 
 @dataclass
 class RankSelect(SimpleStep):

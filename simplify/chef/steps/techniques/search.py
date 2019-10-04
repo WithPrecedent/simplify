@@ -31,7 +31,7 @@ class Search(SimpleTechnique):
     technique: object = None
     parameters: object = None
     auto_publish: bool = True
-    name: str = 'searcher'
+    name: str = 'search'
 
     def __post_init__(self):
         super().__post_init__()

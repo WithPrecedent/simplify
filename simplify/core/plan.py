@@ -41,16 +41,48 @@ class SimplePlan(SimpleClass):
         """
         return self.implement(*args, **kwargs)
 
+    """ Private Methods """
+
+    def _check_step_iterable(self):
+        """Creates step iterable attribute to be filled with concrete steps if
+        one does not exist."""
+        if not self.exists('step_iterable'):
+            self.step_iterable = 'steps'
+            self.steps = {}
+        elif not self.exists(self.step_iterable):
+            setattr(self, self.step_iterable, {})
+        return self
+
+    def _implement_serial(self, *args, **kwargs):
+        for step in self.listify(self.idea_setting):
+            result = getattr(self, step).implement(*args, **kwargs)
+            getattr(self, self.step_iterable).update({step: result})
+        return self
+
+    def _implement_parallel(self, variable = None):
+
+        return self
+
+    def _publish_parallel(self):
+        pass
+        return self
+
+    def _publish_serial(self):
+        for step_name, step_instance in self.options.items():
+            if step_name in getattr(self, self.idea_setting):
+                setattr(self, step_name, step_instance())
+        return self
+
+    """ Core siMpLify Methods """
+
     def draft(self):
-        """SimplePlan's generic 'draft' method."""
         self.options = {}
+        self.checks = ['step_iterable']
+        self.plan_type = 'serial'
         return self
 
     def publish(self):
-        """SimplePlan's generic 'publish' method requires no extra
-        preparation.
-        """
-        pass
+        getattr(self, '_publish_' + self.plan_type)()
         return self
 
     def implement(self, variable, **kwargs):
@@ -62,11 +94,7 @@ class SimplePlan(SimpleClass):
             **kwargs: other parameters can be added to method as needed or
                 **kwargs can be used.
         """
-        # If 'data_variable' is not set, attempts to infer its name from passed
-        # variable.
-        if not self.data_variable and hasattr(variable, 'name'):
-            self.data_variable = variable.name
         for step, technique in self.steps.items():
-            setattr(self, self.data_variable, technique.implement(
+            setattr(self, self.step_iterable, technique.implement(
                     getattr(self, self.data_variable), **kwargs))
         return self

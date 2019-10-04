@@ -10,11 +10,11 @@ from sklearn.datasets import load_breast_cancer
 from simplify import Simplify, Idea
 
 # Sets path to settings file and root folder for file output.
-idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
-                                         'cancer_settings.ini'))
+#idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
+#                                         'cancer_settings.ini'))
 # Depending upon your OS and python configuration, this path might work better.
-# idea = Idea(configuration = os.path.join(os.getcwd(),
-#                                          'cancer_settings.ini'))
+ idea = Idea(configuration = os.path.join(os.getcwd(),
+                                          'cancer_settings.ini'))
 root_folder = os.path.join('..', '..')
 
 # Loads cancer data and converts from numpy arrays to pandas dataframe.
