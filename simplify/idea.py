@@ -384,7 +384,7 @@ class Idea(SimpleClass):
                 attributes should be added.
             sections(str or list(str)): the sections of the configuration 
                 dictionary which should be added to the instance.
-            override (bool): if True, even existing attributes in instance will
+            override(bool): if True, even existing attributes in instance will
                 be replaced by configuration dictionary items. If False,
                 current values in those similarly-named attributes will be
                 maintained (unless they are None).

@@ -194,7 +194,7 @@ class SimpleStep(SimpleClass):
         manually add all options and parameters to the SimpleStep subclass.
         """
         self.options = {}
-        self.checks = ['idea', 'parameters']
+        self.checks = ['parameters']
         return self
 
     def edit_parameters(self, technique, parameters):

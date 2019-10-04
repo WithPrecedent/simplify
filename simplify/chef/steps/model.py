@@ -109,11 +109,11 @@ class Model(SimpleStep):
                 'regress': ['simplify.chef.steps.techniques.regress',
                             'Regress'],
                 'search': ['simplify.chef.steps.techniques.search', 'Search']}
-        self.runtime_parameters = {'random_state': self.seed}
         self.custom_options = ['classifier', 'clusterer', 'regressor']
         return self
 
     def publish(self):
+        self.runtime_parameters = {'random_state': self.seed}
         if self.technique != 'none':
             self._publish_parameters()
             self._parse_parameters()

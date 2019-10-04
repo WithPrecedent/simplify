@@ -48,8 +48,12 @@ class Split(SimpleStep):
                 'kfold': {'n_splits': 5, 'shuffle': False},
                 'stratified': {'n_splits': 5, 'shuffle': False},
                 'group_kfold': {'n_splits': 5},
-                'time': {'n_splits': 5}}
-        self.runtime_parameters = {'random_state': self.seed}
+                'time': {'n_splits': 5}}      
         self.extra_parameters = {'train_test': {'n_splits': 1}}
         self.selected_parameters = True
+        return self
+    
+    def publish(self):
+        self.runtime_parameters = {'random_state': self.seed}
+        super().publish()
         return self

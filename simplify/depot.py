@@ -17,15 +17,13 @@ import pandas as pd
 from simplify.core.base import SimpleClass
 from simplify.core.types import FileTypes
 
-
+    
 @dataclass
 class Depot(SimpleClass):
     """Manages files and folders for the siMpLify package.
-
     Creates and stores dynamic and static file paths, properly formats files
     for import and export, and allows loading and saving of siMpLify, pandas,
     and numpy objects in set folders.
-
     Args:
         root_folder(str): the complete path from which the other paths and
             folders used by Depot should be created.
@@ -62,7 +60,6 @@ class Depot(SimpleClass):
     def _add_branch(self, root_folder, subfolders):
         """Creates a branch of a folder tree and stores each folder name as
         a local variable containing the path to that folder.
-
         Args:
             root_folder(str): the folder from which the tree branch should be
                 created.
@@ -78,11 +75,9 @@ class Depot(SimpleClass):
     def _check_boolean_out(self, variable):
         """Either leaves boolean values as True/False or changes values to 1/0
         based on user settings.
-
         Args:
             variable(DataFrame or Series): pandas DataFrame or Series with some
                 boolean values.
-
         Returns:
             variable(DataFrame or Series): either the original pandas data or
                 the dataset with True/False converted to 1/0.
@@ -96,13 +91,11 @@ class Depot(SimpleClass):
     def _check_file_name(self, file_name, io_status = None):
         """Checks passed file_name to see if it exists. If not, depending
         upon the io_status, a default file_name is returned.
-
         Args:
             file_name(str): file name (without extension).
             io_status(str): either 'import' or 'export' based upon whether the
                 user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
-
         Returns:
             string containing file name.
         """
@@ -117,33 +110,29 @@ class Depot(SimpleClass):
         default from the Idea instance is used based upon whether import or
         export methods are being used. If the Idea options don't exist,
         '.csv' is returned.
-
         Args:
             file_format(str): one of the supported file types in 'extensions'.
             io_status(str): either 'import' or 'export' based upon whether the
             user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
-
         Returns:
             str containing file format.
         """
         if file_format:
             return file_format
         else:
-            return self.data_file_formats[self.step][
-                self.settings_index[io_status]]
+            return getattr(self, self.data_file_formats[self.step][
+                self.settings_index[io_status]])
 
     def _check_folder(self, folder, io_status = None):
         """Checks if folder is a full path or string matching an attribute.
         If no folder name is provided, a default value is used.
-
         Args:
             folder: a string either containing a folder path or the name of an
                 attribute containing a folder path.
             io_status(str): either 'import' or 'export' based upon whether the
             user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
-
         Returns:
             str containing file folder path.
         """
@@ -157,14 +146,11 @@ class Depot(SimpleClass):
     def _check_kwargs(self, variables_to_check, passed_kwargs):
         """Checks kwargs to see which ones are required for the particular
         method and/or substitutes default values if needed.
-
         Args:
             variables_to_check(list): variables to check for values.
             passed_kwargs(dict): kwargs passed to method.
-
         Returns:
             new_kwargs(dict): kwargs with only relevant parameters.
-
         """
         new_kwargs = passed_kwargs
         for variable in variables_to_check:
@@ -189,12 +175,10 @@ class Depot(SimpleClass):
 
     def _get_file_format(self, io_status):
         """Returns appropriate file format based on 'step' and 'io_status'.
-
         Args:
             io_status(str): either 'import' or 'export' based upon whether the
             user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
-
         Returns:
             str containing file format.
         """
@@ -212,10 +196,8 @@ class Depot(SimpleClass):
 
     def _load_csv(self, file_path, **kwargs):
         """Loads csv file into a pandas DataFrame.
-
         Args:
             file_path(str): complete file path of file.
-
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -225,15 +207,13 @@ class Depot(SimpleClass):
                                     passed_kwargs = kwargs)
         if self.test_data and not 'chunksize' in kwargs:
             kwargs.update({'nrows': self.test_chunk})
-        variable = pd.implement_csv(file_path, **kwargs)
+        variable = pd.read_csv(file_path, **kwargs)
         return variable
 
     def _load_excel(self, file_path, **kwargs):
         """Loads Excel file into a pandas DataFrame.
-
         Args:
             file_path(str): complete file path of file.
-
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -242,26 +222,22 @@ class Depot(SimpleClass):
                                     passed_kwargs = kwargs)
         if self.test_data and not 'chunksize' in kwargs:
             kwargs.update({'nrows': self.test_chunk})
-        variable = pd.implement_excel(file_path, **kwargs)
+        variable = pd.read_excel(file_path, **kwargs)
         return variable
 
     def _load_feather(self, file_path, **kwargs):
         """Loads feather file into pandas DataFrame.
-
         Args:
             file_path(str): complete file path of file.
-
         Returns:
             variable(DataFrame): data loaded from disc.
         """
-        return pd.implement_feather(file_path, nthimplements = -1, **kwargs)
+        return pd.read_feather(file_path, nthreads = -1, **kwargs)
 
     def _load_h5(self, file_path, **kwargs):
         """Loads hdf5 with '.h5' extension into pandas DataFrame.
-
         Args:
             file_path(str): complete file path of file.
-
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -269,10 +245,8 @@ class Depot(SimpleClass):
 
     def _load_hdf(self, file_path, **kwargs):
         """Loads hdf5 file into pandas DataFrame.
-
         Args:
             file_path(str): complete file path of file.
-
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -284,14 +258,12 @@ class Depot(SimpleClass):
         if 'usecols' in kwargs:
             kwargs.update({'columns': kwargs['usecols']})
             kwargs.pop('usecols')
-        return pd.implement_hdf(file_path, **kwargs)
+        return pd.read_hdf(file_path, **kwargs)
 
     def _load_json(self, file_path, **kwargs):
         """Loads json file into pandas DataFrame.
-
         Args:
             file_path(str): complete file path of file.
-
         Returns:
             variable(DataFrame): data loaded from disc.
         """
@@ -303,14 +275,12 @@ class Depot(SimpleClass):
         if 'usecols' in kwargs:
             kwargs.update({'columns': kwargs['usecols']})
             kwargs.pop('usecols')
-        return pd.implement_json(file_path = file_path, **kwargs)
+        return pd.read_json(file_path = file_path, **kwargs)
 
     def _load_pickle(self, file_path, **kwargs):
         """Returns an unpickled python object.
-
         Args:
             file_path: complete file path of file.
-
         Returns:
             variable(object): pickled object loaded from disc.
         """
@@ -318,7 +288,6 @@ class Depot(SimpleClass):
 
     def _load_png(self, file_path, **kwargs):
         """Although png files are saved by siMpLify, they cannot be loaded.
-
         Raises:
             NotImplementedError: if called.
         """
@@ -326,32 +295,27 @@ class Depot(SimpleClass):
         raise NotImplementedError(error)
 
     def _load_text(self, file_path, **kwargs):
-        """Loads text file with python implementer.
-
+        """Loads text file with python reader.
         Args:
             file_path(str): complete file path of file.
-
         Returns:
             variable(str): string loaded from disc.
         """
         return self._load_txt(file_path = file_path, **kwargs)
 
     def _load_txt(self, file_path, **kwargs):
-        """Loads text file with python implementer.
-
+        """Loads text file with python reader.
         Args:
             file_path(str): complete file path of file.
-
         Returns:
             variable(str): string loaded from disc.
         """
         with open(file_path, mode = 'r', errors = 'ignore',
                   encoding = self.file_encoding) as a_file:
-            return a_file.implement()
+            return a_file.read()
 
     def _make_folder(self, folder):
         """Creates folder if it doesn't already exist.
-
         Args:
             folder(str): the path of the folder.
         """
@@ -361,7 +325,6 @@ class Depot(SimpleClass):
 
     def _save_csv(self, variable, file_path, **kwargs):
         """Saves csv file to disc.
-
         Args:
             variable(Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -377,7 +340,6 @@ class Depot(SimpleClass):
 
     def _save_excel(self, variable, file_path, **kwargs):
         """Saves Excel file to disc.
-
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -393,7 +355,6 @@ class Depot(SimpleClass):
 
     def _save_feather(self, variable, file_path, **kwargs):
         """Saves feather file to disc.
-
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -404,7 +365,6 @@ class Depot(SimpleClass):
 
     def _save_h5(self, variable, file_path, **kwargs):
         """Saves hdf file with .h5 extension to disc.
-
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -414,7 +374,6 @@ class Depot(SimpleClass):
 
     def _save_hdf(self, variable, file_path, **kwargs):
         """Saves hdf file to disc.
-
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -424,7 +383,6 @@ class Depot(SimpleClass):
 
     def _save_json(self, variable, file_path, **kwargs):
         """Saves json file to disc.
-
         Args:
             variable(DataFrame or Series): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -434,7 +392,6 @@ class Depot(SimpleClass):
 
     def _save_pickle(self, variable, file_path, **kwargs):
         """Pickles file and saves it to disc.
-
         Args:
             variable(object): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -444,7 +401,6 @@ class Depot(SimpleClass):
 
     def _save_png(self, variable, file_path, **kwargs):
         """Saves png file to disc.
-
         Args:
             variable(matplotlib object): variable to be saved to disc.
             file_path(str): complete file path of file.
@@ -458,7 +414,6 @@ class Depot(SimpleClass):
     def add_tree(self, folder_tree):
         """Adds a folder tree to disc with corresponding attributes to the
         Depot instance.
-
         Args:
             folder_tree(dict): a folder tree to be created with corresponding
             attributes to the Depot instance.
@@ -470,10 +425,8 @@ class Depot(SimpleClass):
     def create_batch(self, folder = None, file_format = None,
                     include_subfolders = True):
         """Creates a list of paths in 'folder_in' based upon 'file_format'.
-
         If 'include_subfolders' is True, subfolders are searched as well for
         matching 'file_format' files.
-
         Args:
             folder(str): path of folder or string corresponding to class
                 attribute with path.
@@ -490,7 +443,6 @@ class Depot(SimpleClass):
 
     def create_folder(self, folder, subfolder = None):
         """Creates folder path from component parts.
-
         Args:
             folder(str): path of folder or string corresponding to class
                 attribute containing folder path.
@@ -507,7 +459,6 @@ class Depot(SimpleClass):
     def create_path(self, folder = None, file_name = None, file_format = None,
                     io_status = None):
         """Creates file path from component parts.
-
         Args:
             folder(str): path of folder or string corresponding to class
                 attribute containing folder path.
@@ -534,7 +485,6 @@ class Depot(SimpleClass):
     def initialize_writer(self, file_path, columns, encoding = None,
                           dialect = 'excel'):
         """Initializes writer object for line-by-line exporting to a .csv file.
-
         Args:
             file_path(str): a complete path to the file being written to.
             columns(list): column names to be added to the first row of the
@@ -553,7 +503,6 @@ class Depot(SimpleClass):
 
     def inject(self, instance, sections, override = True):
         """Stores the default paths in the passed instance.
-
         Args:
             instance(object): either a class instance or class to which
                 attributes should be added.
@@ -561,7 +510,6 @@ class Depot(SimpleClass):
                 and export paths are automatically added.
             override(bool): if True, existing attributes in instance will be
                 replaced by items from this class.
-
         Returns:
             No value is returned, but passed instance is now injected with
             selected attributes.
@@ -577,17 +525,15 @@ class Depot(SimpleClass):
             elif override:
                 setattr(instance, section, getattr(self, section))
         return
-
+    
     def iterate(self, plans, ingredients = None, return_ingredients = True):
         """Iterates through a list of files contained in self.batch and
         applies the plans created by a Planner method (or subclass).
-
         Args:
             plans(list): list of plan types (Recipe, Harvest, etc.)
             ingredients(Ingredients): an instance of Ingredients or subclass.
             return_ingredients(bool): whether ingredients should be returned by
             this method.
-
         Returns:
             If 'return_ingredients' is True: an in instance of Ingredients.
             If 'return_ingredients' is False, no value is returned.
@@ -596,7 +542,7 @@ class Depot(SimpleClass):
             for file_path in self.batch:
                 ingredients.source = self.load(file_path = file_path)
                 for plan in plans:
-                    ingredients = plan.implement(ingredients = ingredients)
+                    ingredients = plan.produce(ingredients = ingredients)
             if return_ingredients:
                 return ingredients
             else:
@@ -604,17 +550,16 @@ class Depot(SimpleClass):
         else:
             for file_path in self.batch:
                 for plan in plans:
-                    plan.implement()
+                    plan.produce()
             return self
 
     """ Public Import/Export Methods """
-
+    
     def load(self, file_path = None, folder = None, file_name = None,
              file_format = None, **kwargs):
         """Imports file by calling appropriate method based on file_format. If
         the various arguments are not passed, default values are used. If
         file_path is passed, folder and file_name are ignored.
-
         Args:
             file_path(str): a complete file path for the file to be loaded.
             folder(str): a path to the folder from where file is located
@@ -625,11 +570,9 @@ class Depot(SimpleClass):
                 'extensions'.
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
-
         Returns:
             Depending upon method used for appropriate file format, a new
                 variable of a supported type is returned.
-
         Raises:
             TypeError: if file_path is not a string (likely a glob list)
         """
@@ -654,7 +597,6 @@ class Depot(SimpleClass):
         """Exports file by calling appropriate method based on file_format. If
         the various arguments are not passed, default values are used. If
         file_path is passed, folder and file_name are ignored.
-
         Args:
             variable(any): the variable being exported.
             file_path(str): a complete file path for the file to be saved.
@@ -678,18 +620,18 @@ class Depot(SimpleClass):
                                          io_status = 'export')
         getattr(self, '_save_' + file_format)(variable, file_path, **kwargs)
         return
-
+    
     """ Core siMpLify Methods """
 
     def draft(self):
         """Creates default folder and file settings."""
-        self.options = {}
-
-        self.checks = ['root_folder']
+        # Calls SimpleClass draft for initial baseline settings.
+        super().draft()
+        self.checks.append('root_folder')
         # Creates dict with file format names and file extensions.
         self.extensions = FileTypes()
         # Creates list of default subfolders from 'data_folder' to create.
-        self.data_subfolders = ['raw', 'interim', 'processed', 'external']
+        self.data_subfolders = ['raw', 'interim', 'processed', 'external']    
         # Creates default parameters when they are not passed as kwargs to
         # methods in the class.
         self.default_kwargs = {
@@ -703,7 +645,7 @@ class Depot(SimpleClass):
             'index_col': False}
         # Creates default data folders, file names, and file formats linked to
         # the various stages of the siMpLify process. Each values includes a
-        # 2-item list with the first item being the default import option and
+        # 2-item list with the first item being the default import option and 
         # the second being the default export option.
         self.data_folders = {
             'sow': ['raw', 'raw'],
@@ -742,18 +684,17 @@ class Depot(SimpleClass):
     def edit_default_kwargs(self, kwargs, settings):
         """Adds or replaces default keys and values for kwargs for load/save
         methods.
-
+        
         Args:
             kwargs(str or list(str)): key(s) to change in 'default_kwargs'.
             settings(str or list(str)): values(s) to change in 'default_kwargs'.
         """
         self.default_kwargs(dict(zip(kwargs, settings)))
         return self
-
+    
     def edit_file_formats(self, file_format, extension, load_method,
                           save_method):
         """Adds or replaces a file extension option.
-
         Args:
             file_format(str): string name of the file_format.
             extension(str): file extension (without period) to be used.
@@ -775,18 +716,17 @@ class Depot(SimpleClass):
 
     def edit_file_names(self, steps, file_names):
         """Adds data file names for specific steps.
-
+        
         Args:
             steps(str or list(str)): step or step names
             file_names(str or list(str)): file name or file names (without
                 extension(s))
-        """
+        """      
         self.file_names.update(dict(zip(steps, file_names)))
         return self
-
+    
     def edit_folders(self, root_folder, subfolders):
         """Adds a list of subfolders to an existing root_folder.
-
         Args:
             root_folder(str): path of folder where subfolders should be created.
             subfolders(str or list): subfolder names to be created.

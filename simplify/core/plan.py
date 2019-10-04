@@ -28,11 +28,6 @@ class SimplePlan(SimpleClass):
     manager_name : object = None
 
     def __post_init__(self):
-        # Adds name of SimpleManager subclass to sections to inject from Idea
-        # so that all of those section entries are available as local
-        # attributes.
-        if self.exists('manager_name'):
-            self.idea_sections = [self.manager_name]
         super().__post_init__()
         return self
 

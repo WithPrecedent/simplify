@@ -63,9 +63,13 @@ class Sample(SimpleStep):
                 'smoteenn':  ['imblearn.combine', 'SMOTEENN'],
                 'smotetomek': ['imblearn.combine', 'SMOTETomek']}
         self.default_parameters = {'sampling_strategy': 'auto'}
-        self.runtime_parameters = {'random_state': self.seed}
         return self
-
+    
+    def publish(self):
+        self.runtime_parameters = {'random_state': self.seed}
+        super().publish()
+        return self
+    
     @numpy_shield
     def implement(self, ingredients, plan = None, columns = None):
         self._recheck_parameters(ingredients.x, columns)
