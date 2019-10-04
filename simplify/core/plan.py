@@ -18,13 +18,14 @@ class SimplePlan(SimpleClass):
 
     Args:
         steps(dict): dictionary containing keys of step names (strings) and
-            values of SimpleStep subclass instances.
+            values of SimpleStep subclasses.
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
     """
 
     steps: object = None
+    manager_name : object = None
 
     def __post_init__(self):
         # Adds name of SimpleManager subclass to sections to inject from Idea
@@ -43,20 +44,10 @@ class SimplePlan(SimpleClass):
 
     """ Private Methods """
 
-    def _check_step_iterable(self):
-        """Creates step iterable attribute to be filled with concrete steps if
-        one does not exist."""
-        if not self.exists('step_iterable'):
-            self.step_iterable = 'steps'
-            self.steps = {}
-        elif not self.exists(self.step_iterable):
-            setattr(self, self.step_iterable, {})
-        return self
-
     def _implement_serial(self, *args, **kwargs):
         for step in self.listify(self.idea_setting):
             result = getattr(self, step).implement(*args, **kwargs)
-            getattr(self, self.step_iterable).update({step: result})
+            getattr(self, self.iterable).update({step: result})
         return self
 
     def _implement_parallel(self, variable = None):
@@ -77,7 +68,7 @@ class SimplePlan(SimpleClass):
 
     def draft(self):
         self.options = {}
-        self.checks = ['step_iterable']
+        self.checks = ['iterable']
         self.plan_type = 'serial'
         return self
 
@@ -95,6 +86,6 @@ class SimplePlan(SimpleClass):
                 **kwargs can be used.
         """
         for step, technique in self.steps.items():
-            setattr(self, self.step_iterable, technique.implement(
+            setattr(self, self.iterable, technique.implement(
                     getattr(self, self.data_variable), **kwargs))
         return self

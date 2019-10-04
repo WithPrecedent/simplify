@@ -57,7 +57,7 @@ class Cookbook(SimpleManager):
     ingredients: object = None
     steps: object = None
     recipes: object = None
-    name: str = 'cookbook'
+    name: str = 'chef'
     auto_publish: bool = True
     auto_implement: bool = False
 
@@ -90,7 +90,7 @@ class Cookbook(SimpleManager):
     def _implement_recipes(self):
         """Tests 'recipes' with all combinations of step techniques selected.
         """
-        for recipe_number, recipe in getattr(self, self.plan_iterable).items():
+        for recipe_number, recipe in getattr(self, self.iterable).items():
             if self.verbose:
                 print('Testing', recipe.name, str(recipe_number))
             recipe.implement(ingredients = self.ingredients)
@@ -234,9 +234,11 @@ class Cookbook(SimpleManager):
         # Locks 'step' attribute at 'cook' for conform methods in package.
         self.step = 'cook'
         # Sets attributes to allow proper parent methods to be used.
-        self.manager_type = 'parallel'
-        self.plan_class = Recipe
-        self.plan_iterable = 'recipes'
+        self.iterable_type = 'parallel'
+        self.iterable = 'recipes'
+        self.iterable_class = Recipe
+        self.iterable_setting = 'cookbook_steps'
+        self.return_variable_names = None
         # Injects step class with name of SimpleManager subclass.
         SimpleTechnique.manager_name = self.name
         SimpleStep.manager_name = self.name

@@ -362,26 +362,54 @@ class Idea(SimpleClass):
 
     def inject(self, instance, sections, override = False):
         """Stores the section or sections of the 'configuration' dictionary in
-        the passed class instance as attributes to that class instance.
+        the passed class instance as attributes to that class instance. 
+        
+        If the sought section has the '_parameters' suffix, the section is 
+        returned as a single dictionary at instance.parameters (assuming that 
+        it does not exist or 'override' is True).
+        
+        If the sought key from a section has the '_steps' suffix, the value for
+        that key is stored at instance.steps (assuming that it does not exist or
+        'override' is True).
+        
+        If the sought key from a section has the '_techniques' suffix, the value 
+        for that key is stored either at the attribute named the prefix of the 
+        key (assuming that it does not exist or 'override' is True).
+        
+        Wildcard values of 'all', 'default', and 'none' are appropriately 
+        changed with the '_convert_wildcards' method.
 
         Args:
             instance(object): either a class instance or class to which
                 attributes should be added.
-            sections(str or list): the sections of the configuration dictionary
-                which should have key, value pairs added as attributes to
-                instance.
+            sections(str or list(str)): the sections of the configuration 
+                dictionary which should be added to the instance.
             override (bool): if True, even existing attributes in instance will
                 be replaced by configuration dictionary items. If False,
                 current values in those similarly-named attributes will be
-                maintained.
+                maintained (unless they are None).
 
         Returns:
-            instance with attributes added.
+            instance with attribute(s) added.
+            
         """
         for section in self.listify(sections):
-            for key, value in self.configuration[section].items():
-                if not hasattr(instance, key) or override:
-                    setattr(instance, key, value)
+            if (section.endswith('_parameters') 
+                    and (not instance.exists('parameters') or override)):
+                instance.parameters = self.configuration[section]
+            else:
+                for key, value in self.configuration[section].items():
+                    if (key.endswith('_steps') 
+                            and (not instance.exists('steps') or override)):
+                        instance.steps = instance._convert_wildcards(value)
+                    elif key.endswith('_technique'):
+                        attribute_name = key.replace('_technique', '')
+                        if not instance.exists(attribute_name) or override:
+                            setattr(instance, attribute_name, 
+                                    instance._convert_wildcards(value))    
+                    elif not instance.exists(key) or override:
+                        setattr(instance, key, 
+                                instance._convert_wildcards(value))
         return instance
 
     """ Core siMpLify Methods """

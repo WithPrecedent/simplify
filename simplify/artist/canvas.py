@@ -119,10 +119,10 @@ class Canvas(SimpleManager):
         self.checks = ['steps', 'model_type']
         # Locks 'step' attribute at 'artist' for conform methods in package.
         self.step = 'artist'
-        # Sets 'manager_type' so that proper parent methods are used.
-        self.manager_type = 'serial'
-        # Sets 'plan_class' to allow use of parent methods.
-        self.plan_iterable = 'depictions'
+        # Sets 'iterable_type' so that proper parent methods are used.
+        self.iterable_type = 'serial'
+        # Sets 'iterable_class' to allow use of parent methods.
+        self.iterable = 'depictions'
         return self
 
     def publish(self):
@@ -138,6 +138,6 @@ class Canvas(SimpleManager):
             for recipe in self.listify(self.recipes):
                 if self.verbose:
                     print('Visualizing', recipe.name + recipe.number)
-                for step, technique in getattr(self, self.plan_iterable).items():
+                for step, technique in getattr(self, self.iterable).items():
                     technique.implement(recipe = recipe, review = reviews)
         return self

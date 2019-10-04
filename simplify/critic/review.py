@@ -74,7 +74,7 @@ class Review(SimpleManager):
     def _implement_explain(self, recipe):
         self.options['explain'].implement(recipe = recipe)
         self.summary = self.options['summarize'].report
-        getattr(self, self.plan_iterable).update(
+        getattr(self, self.iterable).update(
                 self.options['summarize'].report,
                 self.options['summarize'].export_parameters)
         return self
@@ -82,7 +82,7 @@ class Review(SimpleManager):
     def _implement_summary(self):
         self.options['summarize'].implement(df = self.ingredients.df)
         self.summary = self.options['summarize'].report
-        getattr(self, self.plan_iterable).update(
+        getattr(self, self.iterable).update(
                 self.options['summarize'].report,
                 self.options['summarize'].export_parameters)
         return self
@@ -95,7 +95,7 @@ class Review(SimpleManager):
             'validation_set': 'val_set'}
         self.columns = list(self.required_columns.keys())
         self.columns.extend(list(recipe.steps.keys()))
-        for number, instance in getattr(self, self.plan_iterable).items():
+        for number, instance in getattr(self, self.iterable).items():
             if hasattr(instance, 'columns') and instance.name != 'summarizer':
                 self.columns.extend(instance.columns)
         return self
@@ -133,10 +133,13 @@ class Review(SimpleManager):
                 'score': ['simplify.critic.score', 'Score']}
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.step = 'critic'
-        # Sets 'manager_type' so that proper parent methods are used.
-        self.manager_type = 'serial'
+        # Sets 'iterable_type' so that proper parent methods are used.
+        self.iterable_type = 'serial'
         # Sets plan-related attributes to allow use of parent methods.
-        self.plan_iterable = 'reviews'
+        self.iterable = 'reviews'
+        self.iterable_class = None
+        self.iterable_setting = 'review_steps'
+        self.return_variable_names = None
         return self
 
     #@localize

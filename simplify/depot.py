@@ -722,13 +722,13 @@ class Depot(SimpleClass):
             'cook': ['final_data', 'final_data'],
             'critic': ['final_data', 'predicted_data']}
         self.data_file_formats = {
-            'sow' : [self.source_format, self.source_format],
-            'harvest' : [self.source_format, self.interim_format],
-            'clean' : [self.interim_format, self.interim_format],
-            'bale' : [self.interim_format, self.interim_format],
-            'deliver' : [self.interim_format, self.final_format],
-            'cook' : [self.final_format, self.final_format],
-            'critic' : [self.final_format, self.final_format]}
+            'sow' : ['source_format', 'source_format'],
+            'harvest' : ['source_format', 'interim_format'],
+            'clean' : ['interim_format', 'interim_format'],
+            'bale' : ['interim_format', 'interim_format'],
+            'deliver' : ['interim_format', 'final_format'],
+            'cook' : ['final_format', 'final_format'],
+            'critic' : ['final_format', 'final_format']}
         # Sets dict to translate 'import'/'export' strings to index of lists in
         # the data settings above.
         self.settings_index = {'import': 0, 'export': 1}

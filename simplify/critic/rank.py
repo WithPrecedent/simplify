@@ -43,7 +43,7 @@ class Rank(SimplePlan):
                 'permutation': PermutationImportances,
                 'shap': ShapImportances,
                 'builtin': BuiltinImportances}
-        self.step_iterable = 'feature_importances'
+        self.iterable = 'feature_importances'
         self.idea_setting = 'feature_importance_technique'
         return self
 
@@ -53,7 +53,7 @@ class Rank(SimplePlan):
                 importances = getattr(self, name).implement(
                         recipe = recipe,
                         explainer = explainer)
-                getattr(self, self.step_iterable).update({name: importances})
+                getattr(self, self.iterable).update({name: importances})
         return self
 
 

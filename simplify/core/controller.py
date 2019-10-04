@@ -58,7 +58,7 @@ class Simplify(SimpleClass):
     auto_implement: bool = False
 
     def __post_init__(self):
-        self.idea_sections = 'cookbook'
+        self.idea_sections = 'chef'
         super().__post_init__()
         return self
 
@@ -84,7 +84,7 @@ class Simplify(SimpleClass):
         """Tests 'recipes' with all combinations of step techniques selected.
         """
         for recipe_number, recipe in getattr(
-            self.chef, self.chef.plan_iterable).items():
+            self.chef, self.chef.iterable).items():
             if self.verbose:
                 print('Testing', recipe.name, str(recipe_number))
             recipe.implement(ingredients = self.ingredients)

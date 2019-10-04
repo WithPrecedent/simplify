@@ -68,14 +68,16 @@ class SimpleClass(ABC):
         """Calls selected initialization methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Creates 'idea' attribute if a string is passed to Idea when subclass
-        # was instanced. Injects attributes from 'idea' to subclass.
-        if self.__class__.__name__ != 'Idea':
-            self._check_idea()
         # Calls draft method to set up class instance defaults.
         self.draft()
+        # Creates 'idea' attribute if a string is passed to Idea when subclass
+        # was instanced.
+        if self.__class__.__name__ != 'Idea':
+            self._check_idea()
+            # Injects parameters and attributes from shared Idea instance.
+            self._inject_idea()
         # Runs attribute checks from list in 'checks' attribute (if it exists).
-        self._run_checks()
+        self._run_checks()      
         # Converts values in 'options' to classes by lazily importing them.
         self._lazily_import_options()
         # Calls 'publish' method if 'auto_publish' is True.
@@ -96,7 +98,7 @@ class SimpleClass(ABC):
             idea(Idea or str): an instance of Idea or path where an Idea
                 configuration file is located. This argument must be passed when
                 a subclass is called as a function.
-            *args and **kwargs (any): passed to the 'implement' method.
+            *args and **kwargs(any): passed to the 'implement' method.
 
         Returns:
             return value of 'implement' method.
@@ -251,18 +253,7 @@ class SimpleClass(ABC):
         from simplify import Idea
         if self.exists('idea') and isinstance(self.idea, str):
             self.idea = Idea(configuration = self.idea)
-        # Adds attributes to class from appropriate sections of the idea.
-        sections = ['general']
-        if self.exists('idea_sections'):
-            if isinstance(self.idea_sections, str):
-                sections.append(self.idea_sections)
-            elif isinstance(self.idea_sections, list):
-                sections.extend(self.idea_sections)
-        if (hasattr(self, 'name')
-                and self.name in self.idea.configuration
-                and not self.name in sections):
-            sections.append(self.name)
-        self = self.idea.inject(instance = self, sections = sections)
+
         return self
 
     def _check_ingredients(self, ingredients = None):
@@ -301,27 +292,35 @@ class SimpleClass(ABC):
             self.ingredients = Ingredients()
         return self
 
-    def _check_steps(self):
-        """Creates 'steps' attribute from one of several sources.
+    def _check_iterable(self):
+        """Creates class iterable attribute to be filled with concrete steps if
+        one does not exist."""
+        if not self.exists('iterable'):
+            self.iterable = 'steps'
+            setattr(self, self.iterable, {})
+        elif not self.exists(self.iterable):
+            setattr(self, self.iterable, {})
+        return self
 
-        Initially, the method checks for 'steps' attribute. If that doesn't
-        exist, it searches for an attribute with the class 'name' prefix
-        followed by 'steps' (e.g. 'cookbook_steps'). This latter attribute is
-        often created from the Idea instance.
-
-        If the value stored in the 'steps' attribute is 'all', 'none', or
-        'default', the steps value is changed using the '_convert_wildcards'
-        method.
-
-        Also, a 'step' attribute is created from the first item in the 'steps'
-        attribute.
+    def _check_name(self):
+        """Sets 'name' attribute if one does not exist in subclass.
+        
+        A separate 'name' attribute is used throughout the package so that users
+        can set their own naming conventions or use the names of parent classes
+        when subclassing without being dependent upon __class__.__name__.
+        
+        If no 'name' attribute exists (usually defined in the 'draft' method),
+        then __class__.__name__ is used as the default backup.
+        
         """
+        if not self.exists('name'):
+            self.name = self.__class__.__name__
+        return self
+            
+    def _check_steps(self):
+        """Creates 'steps' and 'step' attributes if they do not exist."""
         if not self.exists('steps'):
-            if hasattr(self, self.name + '_steps'):
-                self.steps = self._convert_wildcards(getattr(
-                        self, self.name + '_steps'))
-            elif self.exists('options'):
-                self.steps = list(self.options.keys())
+            self.steps = list(self.options.keys())
         else:
             self.steps = self.listify(self.steps)
         if not self.exists('step'):
@@ -332,7 +331,7 @@ class SimpleClass(ABC):
         """Converts 'all', 'default', or 'none' values to a list of items.
 
         Args:
-            value (list or str): name(s) of techniques, steps, or managers.
+            value(list or str): name(s) of techniques, steps, or managers.
 
         Returns:
             If 'all', all keys listed in 'options' dictionary are returned.
@@ -353,6 +352,25 @@ class SimpleClass(ABC):
         else:
             return value
 
+    def _inject_idea(self):
+        """Injects portions of Idea instance 'configuration' to subclass.
+        
+        Every siMpLify class gets the 'general' section of the Idea settings.
+        Other sections are added according to the 'name' attribute of the
+        subclass and the local 'idea_sections' attribute. How the settings are
+        injected is dependent on the 'inject' method in an Idea instance.
+        """
+        # Adds attributes to class from appropriate sections of the idea.
+        sections = ['general']
+        if self.exists('idea_sections'):
+            sections.extend(self.listify(self.idea_sections))
+        if (hasattr(self, 'name')
+                and self.name in self.idea.configuration
+                and not self.name in sections):
+            sections.append(self.name)
+        self = self.idea.inject(instance = self, sections = sections)
+        return self
+    
     def _lazily_import_options(self):
         """Limits module imports to only needed package dependencies.
 
@@ -396,7 +414,7 @@ class SimpleClass(ABC):
         """Deduplicates list, pandas DataFrame, or pandas Series.
 
         Args:
-            iterable (list, DataFrame, or Series): iterable to have duplicate
+            iterable(list, DataFrame, or Series): iterable to have duplicate
                 entries removed.
 
         Returns:
@@ -415,10 +433,10 @@ class SimpleClass(ABC):
         """Creates dict from list of keys and same value or zips two lists.
 
         Args:
-            keys (list): keys for new dict.
-            values (any): valuse for all keys in the new dict or list of values
+            keys(list): keys for new dict.
+            values(any): valuse for all keys in the new dict or list of values
                 corresponding to list of keys.
-            ignore_values_list (bool): if value is a list, but the list should
+            ignore_values_list(bool): if value is a list, but the list should
                 be the value for all keys, set to True.
 
         Returns:
@@ -434,7 +452,7 @@ class SimpleClass(ABC):
         """Returns if attribute exists in subclass and is not None.
 
         Args:
-            attribute (str): name of attribute to be evaluated.
+            attribute(str): name of attribute to be evaluated.
 
         Returns:
             boolean value indicating whether the attribute exists and is not
@@ -448,7 +466,7 @@ class SimpleClass(ABC):
         """Returns if passed 'dictionary' has lists for values.
 
         Args:
-            dictionary (dict): dict to be tested.
+            dictionary(dict): dict to be tested.
 
         Returns:
             boolean value indicating whether any value in the 'dictionary' has
@@ -461,7 +479,7 @@ class SimpleClass(ABC):
         """Returns if passed 'dictionary' is nested at least one-level.
 
         Args:
-            dictionary (dict): dict to be tested.
+            dictionary(dict): dict to be tested.
 
         Returns:
             boolean value indicating whether any value in the 'dictionary' is
@@ -474,11 +492,11 @@ class SimpleClass(ABC):
         """Stores passed variable as a list (if not already a list).
 
         Args:
-            variable (str or list): variable to be transformed into a list to
+            variable(str or list): variable to be transformed into a list to
                 allow iteration.
 
         Returns:
-            variable (list): either the original list, a string converted to a
+            variable(list): either the original list, a string converted to a
                 list, or a list containing 'none' as its only item.
         """
         if not variable:
@@ -493,10 +511,10 @@ class SimpleClass(ABC):
         """Converts one item list to a string (if not already a string).
 
         Args:
-            variable (list): variable to be transformed into a string.
+            variable(list): variable to be transformed into a string.
 
         Returns:
-            variable (str): either the original str, a string pulled from a
+            variable(str): either the original str, a string pulled from a
                 one-item list, or the original list.
         """
         if variable is None:
@@ -516,14 +534,14 @@ class SimpleClass(ABC):
         """Loads object from file into subclass attribute.
 
         Args:
-            name: name of attribute for the file contents to be stored.
-            file_path: a complete file path for the file to be loaded.
-            folder: a path to the folder where the file should be loaded from
-                (not used if file_path is passed).
-            file_name: a string containing the name of the file to be loaded
-                without the file extension (not used if file_path is passed).
-            file_format: a string matching one the file formats in
-                Depot.extensions.
+            name(str): name of attribute for the file contents to be stored.
+            file_path(str): a complete file path for the file to be loaded.
+            folder(str): a path to the folder where the file should be loaded 
+                from (not used if file_path is passed).
+            file_name(str): contains the name of the file to be loaded without '
+                the file extension (not used if file_path is passed).
+            file_format(str): name of file format in Depot.extensions.
+            
         """
         setattr(self, name, self.depot.load(file_path = file_path,
                                             folder = folder,
@@ -536,15 +554,14 @@ class SimpleClass(ABC):
         """Exports a variable or attribute to disc.
 
         Args:
-            variable: a python object or a string corresponding to a subclass
-                attribute which should be saved to disc.
-            file_path: a complete file path for the file to be saved.
-            folder: a path to the folder where the file should be saved (not
-                used if file_path is passed).
-            file_name: a string containing the name of the file to be saved
-                without the file extension (not used if file_path is passed).
-            file_format: a string matching one the file formats in
-                Depot.extensions.
+            variable(any): a python object or a string corresponding to a 
+                subclass attribute which should be saved to disc.
+            file_path(str): a complete file path for the file to be saved.
+            folder(str): a path to the folder where the file should be saved 
+                (not used if file_path is passed).
+            file_name(str): contains the name of the file to be saved without 
+                the file extension (not used if file_path is passed).
+            file_format(str): name of file format in Depot.extensions.
         """
         if isinstance(variable, str):
             variable = getattr(self, variable)
@@ -567,29 +584,31 @@ class SimpleClass(ABC):
         Generally, the 'checks' attribute should be set here if the subclass
         wants to make use of related methods.
         """
-        pass
+        self.options = {}
+        self.checks = ['name']
         return self
 
-    def edit(self, techniques = None, algorithms = None, options = None):
+    def edit(self, keys = None, values = None, options = None):
         """Updates 'options' dictionary with passed arguments.
 
         Args:
-            techniques (str or list): a string name or list of names for keys
-                in the 'options' dict.
-            algorithms (object or list(object)): siMpLify compatible objects
-                which can be integrated in the package framework. If they are
-                custom algorithms, they should be subclassed from SimpleStep to
-                ensure compatibility.
-            options (dict): a dictionary with keys of techniques and values of
+            keys(str or list): a string name or list of names for keys in the 
+                'options' dict.
+            values(object or list(object)): siMpLify compatible objects which 
+                can be integrated in the package framework. If they are custom 
+                algorithms, they should be subclassed from SimpleStep to ensure 
+                compatibility.
+            options(dict): a dictionary with keys of techniques and values of
                 algorithms. This should be passed if the user has already
                 combined some or all 'techniques' and 'algorithms' into a dict.
         """
+        
         if not self.exists('options'):
             self.options = {}
         if options:
             self.options.update(options)
-        if techniques and algorithms:
-            self.options.update(dict(zip(techniques, algorithms)))
+        if keys and values:
+            self.options.update(dict(zip(keys, values)))
         return self
 
     @abstractmethod
