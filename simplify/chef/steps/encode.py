@@ -8,12 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
 @dataclass
-class Encode(SimpleStep):
+class Encode(SimpleTechnique):
     """Encodes categorical variables according to a selected algorithm.
 
     Args:
@@ -26,7 +26,7 @@ class Encode(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'encode'
     auto_publish: bool = True
@@ -52,8 +52,7 @@ class Encode(SimpleStep):
 
     def publish(self):
         pass
-        return self
-
+    
     @numpy_shield
     def implement(self, ingredients, plan = None, columns = None):
         if columns is None:

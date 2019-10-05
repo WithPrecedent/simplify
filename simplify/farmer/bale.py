@@ -8,13 +8,13 @@
 
 from dataclasses import dataclass
 
-from simplify.core.plan import SimplePlan
+from simplify.core.iterables import SimplePlan
 
 
 @dataclass
 class Bale(SimplePlan):
     """Class for combining different datasets."""
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     auto_publish: bool = True
 

@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.plan import SimplePlan
+from simplify.core.iterables import SimplePlan
 
 
 @dataclass
@@ -38,6 +38,11 @@ class Recipe(SimplePlan):
         super().__post_init__()
         return self
 
+    def draft(self):
+        super().draft()
+        self.iterable = 'steps'
+        return self
+    
     def implement(self, ingredients):
         """Applies the Cookbook steps to the passed ingredients."""
         steps = self.steps.copy()

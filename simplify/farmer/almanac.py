@@ -9,14 +9,14 @@
 from dataclasses import dataclass
 
 from simplify.core.decorators import local_backups
-from simplify.core.manager import SimpleManager
-from simplify.core.plan import SimplePlan
-from simplify.core.step import SimpleStep
+from simplify.core.iterables import SimpleBuilder
+from simplify.core.iterables import SimplePlan
+from simplify.core.technique import SimpleTechnique
 from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Almanac(SimpleManager):
+class Almanac(SimpleBuilder):
     """Implements data parsing, wrangling, munging, merging, engineering, and
     cleaning methods for the siMpLify package.
 
@@ -45,7 +45,7 @@ class Almanac(SimpleManager):
         auto_implement(bool): whether to call the 'implement' method when the class
             is instanced.
             
-    Since this class is a subclass to SimpleManager and SimpleClass, all
+    Since this class is a subclass to SimpleBuilder and SimpleClass, all
     documentation for those classes applies as well.
 
     """
@@ -54,7 +54,7 @@ class Almanac(SimpleManager):
     ingredients: object = None
     steps: object = None
     plans: object = None
-    name: str = 'cookbook'
+    name: str = 'chef'
     auto_publish: bool = True
     auto_implement: bool = True
 

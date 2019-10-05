@@ -11,9 +11,11 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from simplify.core.technique import SimpleTechnique
+
 
 @dataclass
-class Eli5Explain(SimpleStep):
+class Eli5Explain(SimpleTechnique):
     """Explains fit model with eli5 package.
 
     Args:
@@ -69,7 +71,7 @@ class Eli5Explain(SimpleStep):
 
 
 @dataclass
-class ShapExplain(SimpleStep):
+class ShapExplain(SimpleTechnique):
     """Explains fit model with shap package.
 
     Args:
@@ -140,7 +142,7 @@ class ShapExplain(SimpleStep):
 
 
 @dataclass
-class SkaterExplain(SimpleStep):
+class SkaterExplain(SimpleTechnique):
     """Explains fit model with skater package.
 
     Args:

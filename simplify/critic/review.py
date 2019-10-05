@@ -10,12 +10,13 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.manager import SimpleManager
-from simplify.core.decorators import localize
+#from simplify.core.decorators import localize
+from simplify.core.iterables import SimpleBuilder
+
 
 
 @dataclass
-class Review(SimpleManager):
+class Review(SimpleBuilder):
     """Builds tools for evaluating, explaining, and creating predictions from
     data and machine learning models.
 
@@ -37,7 +38,7 @@ class Review(SimpleManager):
         auto_implement(bool): whether to call the 'implement' method when the class
             is instanced.
 
-    Since this class is a subclass to SimpleManager and SimpleClass, all
+    Since this class is a subclass to SimpleBuilder and SimpleClass, all
     documentation for those classes applies as well.
 
     """
@@ -45,7 +46,7 @@ class Review(SimpleManager):
     ingredients: object = None
     steps: object = None
     recipes: object = None
-    name: str = 'review'
+    name: str = 'critic'
     auto_publish: bool = True
     auto_implement: bool = False
 
@@ -70,22 +71,6 @@ class Review(SimpleManager):
             return step.technique
         else:
             return step.algorithm
-
-    def _implement_explain(self, recipe):
-        self.options['explain'].implement(recipe = recipe)
-        self.summary = self.options['summarize'].report
-        getattr(self, self.iterable).update(
-                self.options['summarize'].report,
-                self.options['summarize'].export_parameters)
-        return self
-
-    def _implement_summary(self):
-        self.options['summarize'].implement(df = self.ingredients.df)
-        self.summary = self.options['summarize'].report
-        getattr(self, self.iterable).update(
-                self.options['summarize'].report,
-                self.options['summarize'].export_parameters)
-        return self
 
     def _set_columns(self, recipe):
         self.required_columns = {
@@ -139,11 +124,14 @@ class Review(SimpleManager):
         self.iterable = 'reviews'
         self.iterable_class = None
         self.iterable_setting = 'review_steps'
-        self.return_variable_names = None
+        self.return_variables = None
         return self
-
-    #@localize
-    def implement(self, recipes = None, ingredients = None):
+ 
+    def publish(self):
+        super().publish()
+        return self
+    
+    def implement(self, ingredients = None, recipes = None):
         """Evaluates recipe with various tools and publishs report.
 
         Args:
@@ -155,12 +143,14 @@ class Review(SimpleManager):
             self.ingredients = recipes.ingredients
         if not self.exists('report'):
             self._start_report(recipe = self.listify(recipes)[0])
-        for recipe in self.listify(recipes):
+        for self.recipe in self.listify(recipes):
             if self.verbose:
-                print('Reviewing', recipe.name, str(recipe.number))
-            for name, option_class in self.options.items():
-                getattr(self, '_implement_' + name)()
-
+                print('Reviewing', self.recipe.name, str(self.recipe.number))
+            for number, review in getattr(self, self.iterable).items():
+                review.implement(ingredients = ingredients,
+                                 recipes = recipes)
+                if self.exists('return_variables'):
+                    self._get_return_variables(instance = review)
 #                if isinstance(getattr(recipe, value), object):
 #                    row[column] = self._format_step(value)
 #                else:

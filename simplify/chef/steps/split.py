@@ -8,11 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Split(SimpleStep):
+class Split(SimpleTechnique):
     """Splits data into training, testing, and/or validation sets, uses time
     series splits, or applies k-folds cross-validation.
 
@@ -26,7 +26,7 @@ class Split(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'split'
     auto_publish: bool = True

@@ -8,11 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Supplement(SimpleStep):
+class Supplement(SimpleTechnique):
     """Adds new data to similarly structured DataFrame.
 
     Args:

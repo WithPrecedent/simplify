@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from math import ceil, sqrt
 import matplotlib.pyplot as plt
 
-from simplify.core.plan import SimplePlan
+from simplify.core.iterables import SimplePlan
 
 
 @dataclass
@@ -23,15 +23,13 @@ class Paint(SimplePlan):
             creating data visualizations.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_publish (bool): whether to call the 'publish' method when the
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement (bool): whether to call the 'implement' method when the class
-            is instanced.
     """
+    
     steps: object = None
-    name: str = 'painter'
+    name: str = 'paint'
     auto_publish: bool = True
-    auto_implement: bool = False
 
     def __post_init__(self):
         super().__post_init__()

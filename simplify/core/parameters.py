@@ -14,6 +14,7 @@ from simplify.core.base import SimpleClass
 @dataclass
 class SimpleParameters(SimpleClass):
 
+    name: str = 'parameters_factory'
     auto_publish : bool = True
 
     def __post_init__(self):
@@ -42,7 +43,7 @@ class SimpleParameters(SimpleClass):
                 nested, 'parameters' is returned unaltered.
 
         """
-        if self.is_nested(parameters) and outer_key in parameters:
+        if outer_key in parameters and self.is_nested(parameters):
             return parameters[outer_key]
         else:
             return parameters
@@ -74,7 +75,7 @@ class SimpleParameters(SimpleClass):
                 parameters = instance.parameters
         return parameters
 
-    def _get_parameters_selected(self, instance, parameters):
+    def _get_selected_parameters(self, instance, parameters):
         """For subclasses that only need a subset of the parameters stored in
         idea, this function selects that subset.
 
@@ -139,6 +140,7 @@ class SimpleParameters(SimpleClass):
             parameters(dict): a finalized dictionary of parameters.
 
         """
+        print('adding parameters', instance.name)
         parameters = {}
         # Sets which groupings of parameters to use.
         if parameter_types:
@@ -148,13 +150,13 @@ class SimpleParameters(SimpleClass):
         # Iterates through possible parameter groups and adjusts 'parameters'
         for key, value in self.options.items():
             if key in parameter_types:
-                if ('key' in ['conditional']
+                if (key in ['conditional']
                         and hasattr(instance, '_get_parameters_conditional')):
                     parameters = instance._get_parameters_conditional(
                             parameters = parameters)
                 else:
                     if hasattr(self, '_get_' + value):
-                        parameters = getattr('_get_' + value)(
+                        parameters = getattr(self, '_get_' + value)(
                                 instance = instance, parameters = parameters)
                     elif instance.exists(value):
                         if instance.exists('technique'):

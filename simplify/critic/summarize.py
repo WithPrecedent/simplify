@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.plan import SimplePlan
+from simplify.core.iterables import SimplePlan
 
 
 @dataclass
@@ -107,7 +107,7 @@ class Summarize(SimplePlan):
         self.report = pd.DataFrame(columns = self.columns)
         return self
 
-    def implement(self, df = None, transpose = True,
+    def implement(self, ingredients = None, recipes = None, transpose = True,
                   file_name = 'data_summary', file_format = 'csv'):
         """Creates a DataFrame of common summary data.
 
@@ -118,7 +118,7 @@ class Summarize(SimplePlan):
             file_name(str): name of file to be exported (without extension).
             file_format(str): exported file format.
         """
-        self._implement_report(df = df)
+        self._implement_report(df = ingredients.df)
         self._implement_export_parameters(file_name = file_name,
                                           file_format = file_format,
                                           transpose = transpose)

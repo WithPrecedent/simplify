@@ -46,6 +46,7 @@ class Depot(SimpleClass):
     data_folder: str = 'data'
     results_folder: str = 'results'
     datetime_naming: bool = True
+    name: str = 'depot'
     auto_publish: bool = True
     lazy_import: bool = False
 

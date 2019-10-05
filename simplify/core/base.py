@@ -253,7 +253,6 @@ class SimpleClass(ABC):
         from simplify import Idea
         if self.exists('idea') and isinstance(self.idea, str):
             self.idea = Idea(configuration = self.idea)
-
         return self
 
     def _check_ingredients(self, ingredients = None):
@@ -288,7 +287,7 @@ class SimpleClass(ABC):
             elif os.path.isdir(self.ingredients):
                 self.depot.create_glob(folder = self.ingredients)
                 self.ingredients = Ingredients()
-        elif not self.ingredients:
+        elif self.ingredients is None:
             self.ingredients = Ingredients()
         return self
 
@@ -315,16 +314,6 @@ class SimpleClass(ABC):
         """
         if not self.exists('name'):
             self.name = self.__class__.__name__
-        return self
-
-    def _check_steps(self):
-        """Creates 'steps' and 'step' attributes if they do not exist."""
-        if not self.exists('steps'):
-            self.steps = list(self.options.keys())
-        else:
-            self.steps = self.listify(self.steps)
-        if not self.exists('step'):
-            self.step = self.steps[0]
         return self
 
     def _convert_wildcards(self, value):
@@ -390,7 +379,7 @@ class SimpleClass(ABC):
                 if self.has_list_values(self.options):
                     for name, settings in self.options.items():
                         if 'simplify' in settings[0]:
-                            self.simplifiy_options.append(name)
+                            self.simplify_options.append(name)
                         imported_options.update(
                             {name: getattr(import_module(settings[0]),
                                            settings[1])})

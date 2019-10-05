@@ -8,11 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Merge(SimpleStep):
+class Merge(SimpleTechnique):
     """Merges data sources together.
 
     Args:
@@ -25,7 +25,7 @@ class Merge(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'encoder'
     auto_publish: bool = True

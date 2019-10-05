@@ -8,12 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
 @dataclass
-class Sample(SimpleStep):
+class Sample(SimpleTechnique):
     """Synthetically resamples data according to selected algorithm.
 
     Args:
@@ -26,7 +26,7 @@ class Sample(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'sample'
     auto_publish: bool = True

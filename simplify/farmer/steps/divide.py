@@ -9,11 +9,11 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Divide(SimpleStep):
+class Divide(SimpleTechnique):
     """Divides data source files so that they can be loaded in memory.
 
     Args:
@@ -26,7 +26,7 @@ class Divide(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'converter'
     auto_publish: bool = True

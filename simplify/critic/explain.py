@@ -8,11 +8,7 @@
 
 from dataclasses import dataclass
 
-import numpy as np
-import pandas as pd
-
-from simplify.core.plan import SimplePlan
-from simplify.core.step import SimpleStep
+from simplify.core.iterables import SimplePlan
 
 
 @dataclass
@@ -39,19 +35,13 @@ class Explain(SimplePlan):
     """ Core siMpLify Methods """
 
     def draft(self):
+        super().draft()
         self.options = {
-                'eli5': ['simplify.critic.steps.explianers', 'Eli5Explain'],
-                'shap': ['simplify.critic.steps.explianers', 'ShapExplain'],
-                'skater': ['simplify.critic.steps.explianers', 'SkaterExplain']}
-        return self
-
-    def implement(self, recipe):
-        """Creates a dictionary of 'reports' from explainer techniques.
-
-        Args:
-            recipe (Recipe): a Recipe with a fitted model.
-        """
-        for step_name, step_instance in self.options.items():
-            if step_name in self.explainers:
-
+                'eli5': ['simplify.critic.steps.explainers', 'Eli5Explain'],
+                'shap': ['simplify.critic.steps.explainers', 'ShapExplain'],
+                'skater': ['simplify.critic.steps.explainers', 'SkaterExplain']}
+        self.return_variables = {
+            'eli5': ['feature_importances'],
+            'shap': ['feature_importances', 'values', 'interaction_values'],
+            'skater': ['feature_importances']}
         return self

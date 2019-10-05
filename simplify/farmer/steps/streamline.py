@@ -10,11 +10,11 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Streamline(SimpleStep):
+class Streamline(SimpleTechnique):
     """Combines, divides, and otherwise prepares features for analysis.
 
     Args:
@@ -27,7 +27,7 @@ class Streamline(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'scaler'
     auto_publish: bool = True

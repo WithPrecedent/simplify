@@ -10,11 +10,11 @@ from dataclasses import dataclass
 import os
 import requests
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Download(SimpleStep):
+class Download(SimpleTechnique):
     """Acquires data from an online source.
 
     Args:
@@ -27,7 +27,7 @@ class Download(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'downloader'
     auto_publish: bool = True

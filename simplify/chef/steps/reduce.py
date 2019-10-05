@@ -8,12 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
 @dataclass
-class Reduce(SimpleStep):
+class Reduce(SimpleTechnique):
     """Reduces features using different algorithms, including the model
     algorithm.
 
@@ -27,7 +27,7 @@ class Reduce(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'reduce'
     auto_publish: bool = True
@@ -79,9 +79,7 @@ class Reduce(SimpleStep):
         return self
 
     def publish(self):
-        """All preparation has to be at runtime for reduce because of the
-        possible inclusion of a fit estimator."""
-        pass
+        super().publish()
         return self
 
     @numpy_shield

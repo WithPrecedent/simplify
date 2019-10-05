@@ -68,7 +68,7 @@ class Idea(SimpleClass):
 
     If the subclass wants the cookbook settings as well, then the code should
     be:
-        self.idea_sections = ['files', 'cookbook']
+        self.idea_sections = ['files', 'chef']
 
     If that latter code is included, an equivalent to this class will be
     created:
@@ -114,6 +114,7 @@ class Idea(SimpleClass):
     """
     configuration: object = None
     infer_types: bool = True
+    name: str = 'idea'
     auto_publish: bool = True
 
     def __post_init__(self):
@@ -393,23 +394,27 @@ class Idea(SimpleClass):
             instance with attribute(s) added.
             
         """
-        for section in self.listify(sections):
+        for section in self.configuration.keys():
             if (section.endswith('_parameters') 
                     and (not instance.exists('parameters') or override)):
-                instance.parameters = self.configuration[section]
-            else:
-                for key, value in self.configuration[section].items():
-                    if (key.endswith('_steps') 
-                            and (not instance.exists('steps') or override)):
-                        instance.steps = instance._convert_wildcards(value)
-                    elif key.endswith('_technique'):
-                        attribute_name = key.replace('_technique', '')
-                        if not instance.exists(attribute_name) or override:
-                            setattr(instance, attribute_name, 
-                                    instance._convert_wildcards(value))    
-                    elif not instance.exists(key) or override:
-                        setattr(instance, key, 
+                options_name = section.replace('_parameters', '')
+                if ((instance.exists('technique') 
+                        and options_name == instance.technique)
+                        or options_name in instance.name):
+                    instance.parameters = self.configuration[section]
+        for section in self.listify(sections):
+            for key, value in self.configuration[section].items():
+                if (instance.exists('iterable_setting') 
+                        and key == instance.iterable_setting):
+                    instance.sequence = value
+                elif key.endswith('_techniques'):
+                    attribute_name = key.replace('_techniques', '')
+                    if ((not instance.exists(attribute_name) or override)
+                            and attribute_name in instance.options):
+                        setattr(instance, attribute_name, 
                                 instance._convert_wildcards(value))
+                elif not instance.exists(key) or override:
+                    setattr(instance, key, instance._convert_wildcards(value))
         return instance
 
     """ Core siMpLify Methods """

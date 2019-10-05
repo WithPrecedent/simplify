@@ -8,12 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
 @dataclass
-class Cleave(SimpleStep):
+class Cleave(SimpleTechnique):
     """Stores different groups of features (to allow comparison among those
     groups).
 
@@ -27,7 +27,7 @@ class Cleave(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'cleave'
     auto_publish: bool = True
@@ -72,6 +72,7 @@ class Cleave(SimpleStep):
         return self
 
     def publish(self):
+        super().publish()
         self.algorithm = self._cleave
         return self
 

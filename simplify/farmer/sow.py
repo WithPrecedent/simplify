@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.plan import SimplePlan
+from simplify.core.iterables import SimplePlan
 
 
 @dataclass

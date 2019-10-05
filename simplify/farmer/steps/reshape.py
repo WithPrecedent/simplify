@@ -11,11 +11,11 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Reshape(SimpleStep):
+class Reshape(SimpleTechnique):
     """Reshapes a DataFrame to wide or long form.
 
     Args:
@@ -28,7 +28,7 @@ class Reshape(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'scaler'
     auto_publish: bool = True

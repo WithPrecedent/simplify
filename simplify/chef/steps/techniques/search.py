@@ -30,8 +30,8 @@ class Search(SimpleTechnique):
 
     technique: object = None
     parameters: object = None
-    auto_publish: bool = True
     name: str = 'search'
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -39,11 +39,11 @@ class Search(SimpleTechnique):
 
     """ Private Methods """
 
-    def _get_parameters_conditional(self, technique, parameters):
-        if 'refit' in self.parameters:
-            self.parameters['scoring'] = self.listify(
-                    self.parameters['scoring'])[0]
-        return self
+    def _get_parameters_conditional(self, parameters):
+        print('search working', self.parameters, 'parameters passed', parameters)
+        if 'refit' in parameters:
+            parameters['scoring'] = self.listify(parameters['scoring'])[0]
+        return parameters
 
     def _print_best_estimator(self):
         if self.verbose:

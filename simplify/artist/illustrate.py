@@ -10,8 +10,8 @@ from dataclasses import dataclass
 
 import matplotlib.pyplot as plt
 
-from simplify.core.plan import SimplePlan
-from simplify.core.decorators import localize
+#from simplify.core.decorators import localize
+from simplify.core.iterables import SimplePlan
 
 
 @dataclass
@@ -66,7 +66,7 @@ class Illustrate(SimplePlan):
     def publish(self):
         return self
 
-    @localize
+    #@localize
     def implement(self, recipes = None, reviews = None):
         for step in self.steps:
             getattr(self, step)()

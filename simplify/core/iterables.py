@@ -1,6 +1,6 @@
 """
-.. module:: plan
-:synopsis: container for siMpLify iterable
+.. module:: iterables
+:synopsis: iterable builder and container
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -13,8 +13,8 @@ from simplify.core.base import SimpleClass
 
 
 @dataclass
-class SimpleManager(SimpleClass):
-    """Parent class for siMpLify planners like Cookbook, Almanac, Analysis,
+class SimpleBuilder(SimpleClass):
+    """Parent class for siMpLify planners like Cookbook, Almanac, Review,
     and Canvas.
 
     This class adds methods useful to create iterators, iterate over user
@@ -57,7 +57,10 @@ class SimpleManager(SimpleClass):
 
         """
         if return_variables is None and self.exists('return_variables'):
-            return_variables = self.return_variables
+            if isinstance(self.return_variables, dict):
+                return_variables = self.return_variables[instance.name]
+            else:
+                return_variables = self.return_variables
         if return_variables is not None:
             for variable in self.listify(return_variables):
                 if hasattr(instance, variable):
@@ -74,8 +77,8 @@ class SimpleManager(SimpleClass):
                 published_steps.update(
                         {step_name: step_class(technique = plan[j])})
             getattr(self, self.iterable).update(
-                    {i + 1: self.iterable_class(steps = published_steps,
-                                                number = i + 1)})
+                {i + 1: self.iterable_class(number = i + 1, 
+                                            steps = published_steps)})
         return self
 
     def _publish_serial(self):
@@ -91,13 +94,13 @@ class SimpleManager(SimpleClass):
     def draft(self):
         """ Declares defaults for class."""
         super().draft()
-        self.checks.extend(['steps', 'depot', 'iterable'])
-        self.state_attributes = ['depot', 'ingredients']
+        self.checks.extend(['depot', 'iterable'])
         return self
 
     def publish(self):
         """Finalizes iterable dictionary of steps with instanced step
         classes."""
+        super().publish()
         self._create_steps_lists()
         getattr(self, '_publish_' + self.iterable_type)()
         return self
@@ -113,14 +116,14 @@ class SimpleManager(SimpleClass):
             *args, **kwargs: other parameters can be added to method as needed.
 
         """
-        for number, step in getattr(self, self.iterable).items():
+        for number, plan in getattr(self, self.iterable).items():
             if self.verbose and self.iterable_type in ['parallel']:
                 print('Testing', self.name, str(number))
             elif self.verbose and self.iterable_type in ['serial']:
                 print('Applying', self.name, 'methods')
-            step.implement(*args, **kwargs)
+            plan.implement(*args, **kwargs)
             if self.exists('return_variables'):
-                self._get_return_variables(instance = step)
+                self._get_return_variables(instance = plan)
         return self
 
 
@@ -138,7 +141,6 @@ class SimplePlan(SimpleClass):
     """
 
     steps: object = None
-    manager_name : object = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -148,52 +150,30 @@ class SimplePlan(SimpleClass):
         """When called as a function, a SimplePlan class or subclass instance
         will return the 'implement' method.
         """
+        self.__post_init__()
         return self.implement(*args, **kwargs)
-
-    """ Private Methods """
-
-    def _implement_serial(self, *args, **kwargs):
-        for step in self.listify(self.idea_setting):
-            result = getattr(self, step).implement(*args, **kwargs)
-            getattr(self, self.iterable).update({step: result})
-        return self
-
-    def _implement_parallel(self, variable = None):
-
-        return self
-
-    def _publish_parallel(self):
-        pass
-        return self
-
-    def _publish_serial(self):
-        for step_name, step_instance in self.options.items():
-            if step_name in getattr(self, self.idea_setting):
-                setattr(self, step_name, step_instance())
-        return self
 
     """ Core siMpLify Methods """
 
     def draft(self):
+        super().draft()
         self.options = {}
-        self.checks = ['iterable']
+        self.checks.append('iterable')
         self.plan_type = 'serial'
         return self
 
     def publish(self):
-        getattr(self, '_publish_' + self.plan_type)()
+        super().publish()
+        pass
         return self
 
-    def implement(self, variable, **kwargs):
-        """Iterates through SimpleStep techniques 'implement' methods.
+    def implement(self, *args, **kwargs):
+        """Iterates through techniques 'implement' methods.
 
         Args:
-            variable(any): variable to be changed by serial SimpleManager
-                subclass.
-            **kwargs: other parameters can be added to method as needed or
-                **kwargs can be used.
+            *args, **kwargs: parameters to be passed to techniques.
+            
         """
-        for step, technique in self.steps.items():
-            setattr(self, self.iterable, technique.implement(
-                    getattr(self, self.data_variable), **kwargs))
+        for name, technique in getattr(self, self.iterable).items():
+            technique.implement(*args, **kwargs)
         return self

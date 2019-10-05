@@ -10,11 +10,12 @@ from dataclasses import dataclass
 
 from scipy.stats import randint, uniform
 
-from simplify.core.step import SimpleStep
+from simplify.core.parameters import SimpleParameters
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Model(SimpleStep):
+class Model(SimpleTechnique):
     """Applies machine learning algorithms based upon user selections.
 
     Args:
@@ -33,7 +34,7 @@ class Model(SimpleStep):
     auto_publish: bool = True
 
     def __post_init__(self):
-        self.idea_sections = ['cookbook']
+        self.idea_sections = ['chef']
         super().__post_init__()
         return self
 
@@ -64,8 +65,8 @@ class Model(SimpleStep):
                                        'random_state': self.seed})
         return self
 
-    def _get_parameters_conditional(self, technique, parameters):
-        if (technique in ['xgboost']
+    def _get_parameters_conditional(self, parameters):
+        if (self.technique in ['xgboost']
                 and not 'scale_pos_weight' in parameters
                 and hasattr(self, 'scale_pos_weight')):
             self.parameters.update(
@@ -114,8 +115,9 @@ class Model(SimpleStep):
 
     def publish(self):
         self.runtime_parameters = {'random_state': self.seed}
+        self.parameters_factory = SimpleParameters()
+        self.parameters = self.parameters_factory.implement(instance = self)
         if self.technique != 'none':
-            self._publish_parameters()
             self._parse_parameters()
             self.algorithm = self.options[self.model_type](
                 technique = self.technique,
@@ -125,7 +127,6 @@ class Model(SimpleStep):
                 self.search_algorithm = self.options['search'](
                         technique = self.search_technique,
                         parameters = self.search_parameters)
-
         return self
 
     def implement(self, ingredients, plan = None):

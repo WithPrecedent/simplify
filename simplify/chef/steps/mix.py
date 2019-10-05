@@ -8,12 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
 @dataclass
-class Mix(SimpleStep):
+class Mix(SimpleTechnique):
     """Computes new features using different algorithms selected.
 
     Args:
@@ -26,7 +26,7 @@ class Mix(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'mix'
     auto_publish: bool = True
@@ -61,7 +61,6 @@ class Mix(SimpleStep):
 
     def publish(self):
         pass
-        return self
 
     @numpy_shield
     def implement(self, ingredients, plan = None, columns = None):

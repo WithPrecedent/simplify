@@ -1,6 +1,6 @@
 """
-.. module:: main
-:synopsis: controls all siMpLify packages
+.. module:: simplify
+:synopsis: controls projects involving multiple siMpLify packages
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -58,7 +58,6 @@ class Simplify(SimpleClass):
     auto_implement: bool = False
 
     def __post_init__(self):
-        self.idea_sections = 'chef'
         super().__post_init__()
         return self
 
@@ -76,27 +75,6 @@ class Simplify(SimpleClass):
         """
         self.__post_init__()
         self.implement(**kwargs)
-        return self
-
-    """ Private Methods """
-
-    def _implement_recipes(self):
-        """Tests 'recipes' with all combinations of step techniques selected.
-        """
-        for recipe_number, recipe in getattr(
-            self.chef, self.chef.iterable).items():
-            if self.verbose:
-                print('Testing', recipe.name, str(recipe_number))
-            recipe.implement(ingredients = self.ingredients)
-            if self.export_all_recipes:
-                self.chef.save_recipe(recipe = recipe)
-            if 'critic' in self.packages:
-                self.critic.implement(ingredients = recipe.ingredients,
-                                      recipes = recipe)
-            if 'artist' in self.packages:
-                self.artist.implement(ingredients = self.critic.ingredients,
-                                      recipes = recipe,
-                                      reviews = self.critic)
         return self
     
     """ Core siMpLify Methods """
@@ -117,16 +95,10 @@ class Simplify(SimpleClass):
         return self
 
     #@localize
-    def implement(self, **kwargs):
+    def implement(self, *args, **kwargs):
         if 'farmer' in self.packages:
-            self.farmer.implement(ingredients = self.ingredients)
+            self.farmer.implement(ingredients = self.ingredients, **kwargs)
             self.ingredients = self.farmer.ingredients
-        if 'train_test_val' in self.data_to_use:
-            self.ingredients._remap_dataframes(data_to_use = 'train_test')
-            self._implement_recipes()
-            self.ingredients._remap_dataframes(data_to_use = 'train_val')
-            self._implement_recipes()
-        else:
-            self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
-            self._implement_recipes()
+        if 'chef' in self.packages:
+            self.chef.implement(ingredients = self.ingredients, **kwargs)            
         return self

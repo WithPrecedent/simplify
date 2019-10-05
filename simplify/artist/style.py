@@ -11,17 +11,16 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from simplify.core.step import SimpleStep
+from simplify.core.iterables import SimplePlan
 
 
 @dataclass
-class Style(SimpleStep):
+class Style(SimplePlan):
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
+    name: str = 'style'
     auto_publish: bool = True
-    auto_implement: bool = True
-    name: str = 'styler'
 
     def __post_init__(self):
         super().__post_init__()

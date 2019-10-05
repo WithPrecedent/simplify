@@ -11,14 +11,12 @@ import datetime
 
 from simplify.chef.recipe import Recipe
 from simplify.core.decorators import local_backups
-from simplify.core.manager import SimpleManager
-from simplify.core.plan import SimplePlan
-from simplify.core.step import SimpleStep
+from simplify.core.iterables import SimpleBuilder
 from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Cookbook(SimpleManager):
+class Cookbook(SimpleBuilder):
     """Dynamically creates recipes for staging, machine learning, and data
     analysis using a unified interface and architecture.
 
@@ -46,10 +44,10 @@ class Cookbook(SimpleManager):
             Idea configuration, this option should be set to True. If you plan
             to make such changes, 'publish' should be called when those
             changes are complete.
-        auto_implement(bool): whether to call the 'implement' method when the class
-            is instanced.
+        auto_implement(bool): whether to call the 'implement' method when the 
+            class is instanced.
 
-    Since this class is a subclass to SimpleManager and SimpleClass, all
+    Since this class is a subclass to SimpleBuilder and SimpleClass, all
     documentation for those classes applies as well.
 
     """
@@ -86,7 +84,7 @@ class Cookbook(SimpleManager):
                     len(self.ingredients.y.index) /
                     ((self.ingredients.y == 1).sum())) - 1
         return self
-
+    
     def _implement_recipes(self):
         """Tests 'recipes' with all combinations of step techniques selected.
         """
@@ -96,11 +94,15 @@ class Cookbook(SimpleManager):
             recipe.implement(ingredients = self.ingredients)
             if self.export_all_recipes:
                 self.save_recipe(recipe = recipe)
-            # self.analysis.implement(recipes = recipe)
-#            self.canvas.implement(recipes = recipe,
-#                                reviews = self.analysis.reviews)
+            if 'critic' in self.packages:
+                self.critic.implement(ingredients = recipe.ingredients,
+                                      recipes = recipe)
+            if 'artist' in self.packages:
+                self.artist.implement(ingredients = self.critic.ingredients,
+                                      recipes = recipe,
+                                      reviews = self.critic.reviews)
         return self
-
+    
     def _set_experiment_folder(self):
         """Sets the experiment folder and corresponding attributes in this
         class's Depot instance based upon user settings.
@@ -238,11 +240,7 @@ class Cookbook(SimpleManager):
         self.iterable = 'recipes'
         self.iterable_class = Recipe
         self.iterable_setting = 'cookbook_steps'
-        self.return_variable_names = None
-        # Injects step class with name of SimpleManager subclass.
-        SimpleTechnique.manager_name = self.name
-        SimpleStep.manager_name = self.name
-        SimplePlan.manager_name = self.name
+        self.return_variables = None
         return self
 
     def edit_recipes(self, recipes):
@@ -277,6 +275,13 @@ class Cookbook(SimpleManager):
         # Creates all recipe combinations and store Recipe instances in
         # 'recipes'.
         super().publish()
+        if 'critic' in self.packages:
+            from simplify.critic.review import Review
+            print('instancing critic')
+            self.critic = Review()
+        if 'artist' in self.packages:
+            from simplify.artist.canvas import Canvas
+            self.artist = Canvas()
         return self
 
 #    @local_backups

@@ -8,12 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
 @dataclass
-class Scale(SimpleStep):
+class Scale(SimpleTechnique):
     """Scales numerical data according to selected algorithm.
 
     Args:
@@ -26,7 +26,7 @@ class Scale(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'scale'
     auto_publish: bool = True
@@ -65,7 +65,11 @@ class Scale(SimpleStep):
         self.selected_parameters = True
         self.custom_options = ['gauss']
         return self
-
+    
+    def publish(self):
+        super().publish()
+        return self
+    
     @numpy_shield
     def implement(self, ingredients, plan = None, columns = None):
         if columns is None:

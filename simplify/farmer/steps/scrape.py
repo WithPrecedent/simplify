@@ -9,11 +9,11 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Scrape(SimpleStep):
+class Scrape(SimpleTechnique):
     """Scrapes data from a website.
 
     Args:
@@ -26,7 +26,7 @@ class Scrape(SimpleStep):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: str = ''
+    technique: object = None
     parameters: object = None
     name: str = 'converter'
     auto_publish: bool = True

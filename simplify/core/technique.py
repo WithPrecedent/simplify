@@ -36,7 +36,7 @@ class SimpleTechnique(SimpleClass):
     parameter as an attribute to the class instance for the included methods to
     work properly. Otherwise, 'parameters' will be set to an empty dict.
 
-    Unlike SimpleManager, SimplePlan, and SimpleStep, SimpleTechnique only
+    Unlike SimpleBuilder, SimplePlan, and SimpleStep, SimpleTechnique only
     supports a single 'technique'. This is to maximize compatibility to scikit-
     learn and other pipeline scripts.
 
@@ -56,18 +56,14 @@ class SimpleTechnique(SimpleClass):
     auto_publish: bool = True
 
     def __post_init__(self):
-        # Adds name of SimpleStep subclass to sections to inject from Idea
-        # so that all of those section entries are available as local
-        # attributes.
-        if self.exists('step_name'):
-            self.idea_sections = [self.step_name]
         super().__post_init__()
         return self
 
     """ Core siMpLify Public Methods """
 
     def publish(self):
-        self.parameters = SimpleParameters().produce(instance = self)
+        self.parameters_factory = SimpleParameters()
+        self.parameters = self.parameters_factory.implement(instance = self)
         if self.exists('technique'):
             if self.technique in ['none', 'None', None]:
                 self.technique = 'none'

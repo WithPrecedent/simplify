@@ -8,12 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.manager import SimpleManager
 from simplify.core.decorators import localize
+from simplify.core.iterables import SimpleBuilder
 
 
 @dataclass
-class Canvas(SimpleManager):
+class Canvas(SimpleBuilder):
     """Builds tools for data visualization.
 
     Args:
@@ -36,7 +36,7 @@ class Canvas(SimpleManager):
         auto_implement (bool): whether to call the 'implement' method when the class
             is instanced.
 
-    Since this class is a subclass to SimpleManager and SimpleClass, all
+    Since this class is a subclass to SimpleBuilder and SimpleClass, all
     documentation for those classes applies as well.
 
     """
@@ -116,7 +116,7 @@ class Canvas(SimpleManager):
                 'illustrate': ['simplify.artist.illustrate', 'Illustrate'],
                 'paint': ['simplify.artist.paint', 'Paint'],
                 'animate': ['simplify.artist.animate', 'Animate']}
-        self.checks = ['steps', 'model_type']
+        self.checks = ['model_type']
         # Locks 'step' attribute at 'artist' for conform methods in package.
         self.step = 'artist'
         # Sets 'iterable_type' so that proper parent methods are used.

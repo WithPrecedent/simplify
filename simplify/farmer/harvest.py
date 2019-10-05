@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.plan import SimplePlan
+from simplify.core.iterables import SimplePlan
 
 
 @dataclass
