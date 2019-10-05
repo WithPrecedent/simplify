@@ -77,7 +77,7 @@ class SimpleClass(ABC):
             # Injects parameters and attributes from shared Idea instance.
             self._inject_idea()
         # Runs attribute checks from list in 'checks' attribute (if it exists).
-        self._run_checks()      
+        self._run_checks()
         # Converts values in 'options' to classes by lazily importing them.
         self._lazily_import_options()
         # Calls 'publish' method if 'auto_publish' is True.
@@ -304,19 +304,19 @@ class SimpleClass(ABC):
 
     def _check_name(self):
         """Sets 'name' attribute if one does not exist in subclass.
-        
+
         A separate 'name' attribute is used throughout the package so that users
         can set their own naming conventions or use the names of parent classes
         when subclassing without being dependent upon __class__.__name__.
-        
+
         If no 'name' attribute exists (usually defined in the 'draft' method),
         then __class__.__name__ is used as the default backup.
-        
+
         """
         if not self.exists('name'):
             self.name = self.__class__.__name__
         return self
-            
+
     def _check_steps(self):
         """Creates 'steps' and 'step' attributes if they do not exist."""
         if not self.exists('steps'):
@@ -354,7 +354,7 @@ class SimpleClass(ABC):
 
     def _inject_idea(self):
         """Injects portions of Idea instance 'configuration' to subclass.
-        
+
         Every siMpLify class gets the 'general' section of the Idea settings.
         Other sections are added according to the 'name' attribute of the
         subclass and the local 'idea_sections' attribute. How the settings are
@@ -370,7 +370,7 @@ class SimpleClass(ABC):
             sections.append(self.name)
         self = self.idea.inject(instance = self, sections = sections)
         return self
-    
+
     def _lazily_import_options(self):
         """Limits module imports to only needed package dependencies.
 
@@ -383,10 +383,14 @@ class SimpleClass(ABC):
 
         """
         imported_options = {}
+        if not self.exists('simplify_options'):
+            self.simplify_options = []
         if self.exists('options'):
             if not hasattr(self, 'lazy_import') or self.lazy_import:
                 if self.has_list_values(self.options):
                     for name, settings in self.options.items():
+                        if 'simplify' in settings[0]:
+                            self.simplifiy_options.append(name)
                         imported_options.update(
                             {name: getattr(import_module(settings[0]),
                                            settings[1])})
@@ -536,12 +540,12 @@ class SimpleClass(ABC):
         Args:
             name(str): name of attribute for the file contents to be stored.
             file_path(str): a complete file path for the file to be loaded.
-            folder(str): a path to the folder where the file should be loaded 
+            folder(str): a path to the folder where the file should be loaded
                 from (not used if file_path is passed).
             file_name(str): contains the name of the file to be loaded without '
                 the file extension (not used if file_path is passed).
             file_format(str): name of file format in Depot.extensions.
-            
+
         """
         setattr(self, name, self.depot.load(file_path = file_path,
                                             folder = folder,
@@ -554,12 +558,12 @@ class SimpleClass(ABC):
         """Exports a variable or attribute to disc.
 
         Args:
-            variable(any): a python object or a string corresponding to a 
+            variable(any): a python object or a string corresponding to a
                 subclass attribute which should be saved to disc.
             file_path(str): a complete file path for the file to be saved.
-            folder(str): a path to the folder where the file should be saved 
+            folder(str): a path to the folder where the file should be saved
                 (not used if file_path is passed).
-            file_name(str): contains the name of the file to be saved without 
+            file_name(str): contains the name of the file to be saved without
                 the file extension (not used if file_path is passed).
             file_format(str): name of file format in Depot.extensions.
         """
@@ -592,17 +596,17 @@ class SimpleClass(ABC):
         """Updates 'options' dictionary with passed arguments.
 
         Args:
-            keys(str or list): a string name or list of names for keys in the 
+            keys(str or list): a string name or list of names for keys in the
                 'options' dict.
-            values(object or list(object)): siMpLify compatible objects which 
-                can be integrated in the package framework. If they are custom 
-                algorithms, they should be subclassed from SimpleStep to ensure 
+            values(object or list(object)): siMpLify compatible objects which
+                can be integrated in the package framework. If they are custom
+                algorithms, they should be subclassed from SimpleStep to ensure
                 compatibility.
             options(dict): a dictionary with keys of techniques and values of
                 algorithms. This should be passed if the user has already
                 combined some or all 'techniques' and 'algorithms' into a dict.
         """
-        
+
         if not self.exists('options'):
             self.options = {}
         if options:
