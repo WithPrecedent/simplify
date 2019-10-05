@@ -28,7 +28,7 @@ class Almanac(SimpleBuilder):
         ingredients(Ingredients or str): an instance of Ingredients or a string
             with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced. 
-        steps(dict(str: SimpleStep)): steps to be completed in order. This
+        steps(dict(str: SimpleTechnique)): steps to be completed in order. This
             argument should only be passed if the user wishes to override the
             steps listed in the Idea settings or if the user is not using the
             Idea class.

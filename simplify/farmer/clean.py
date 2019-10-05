@@ -16,8 +16,8 @@ class Clean(SimplePlan):
     """Cleans, munges, and parsers data using fast, vectorized methods.
 
     Args:
-        steps(dict): dictionary containing keys of SimpleStep names (strings)
-            and values of SimpleStep class instances.
+        steps(dict): dictionary containing keys of SimpleTechnique names (strings)
+            and values of SimpleTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
         auto_publish(bool): whether 'publish' method should be called when

@@ -20,7 +20,7 @@ class Rank(SimplePlan):
     """Determines feature importances through a variety of techniques.
 
     Args:
-        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
+        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique classes for
             explaining data analysis models.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.

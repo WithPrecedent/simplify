@@ -16,7 +16,7 @@ class Explain(SimplePlan):
     """Explains model results.
 
     Args:
-        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
+        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique classes for
             explaining data analysis models.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.

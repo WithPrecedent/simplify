@@ -26,8 +26,8 @@ class Review(SimpleBuilder):
             can be loaded into a pandas DataFrame is located. If it is a string,
             the loaded DataFrame will be bound to a new ingredients instance as
             the 'df' attribute.
-        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
-            analyzing fitted models.
+        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique 
+            classes for analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It
             can be passed directly to the 'implement' method as well.
@@ -35,8 +35,8 @@ class Review(SimpleBuilder):
             to the section of the idea configuration with relevant settings.
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement(bool): whether to call the 'implement' method when the class
-            is instanced.
+        auto_implement(bool): whether to call the 'implement' method when the 
+            class is instanced.
 
     Since this class is a subclass to SimpleBuilder and SimpleClass, all
     documentation for those classes applies as well.
@@ -71,7 +71,7 @@ class Review(SimpleBuilder):
             return step.technique
         else:
             return step.algorithm
-
+              
     def _set_columns(self, recipe):
         self.required_columns = {
             'recipe_number': 'number',
@@ -81,7 +81,7 @@ class Review(SimpleBuilder):
         self.columns = list(self.required_columns.keys())
         self.columns.extend(list(recipe.steps.keys()))
         for number, instance in getattr(self, self.iterable).items():
-            if hasattr(instance, 'columns') and instance.name != 'summarizer':
+            if hasattr(instance, 'columns') and instance.name != 'summarize':
                 self.columns.extend(instance.columns)
         return self
 
@@ -111,20 +111,23 @@ class Review(SimpleBuilder):
         """Sets default options for the Critic's analysis."""
         super().draft()
         self.options = {
-                'summarize': ['simplify.critic.summarize', 'Summarize'],
-                'explain': ['simplify.critic.explain', 'Explain'],
-                'rank': ['simplify.critic.rank', 'Rank'],
-                'predict': ['simplify.critic.predict', 'Predict'],
-                'score': ['simplify.critic.score', 'Score']}
+            'summarize': ['simplify.critic.summarize', 'Summarize'],
+            'explain': ['simplify.critic.explain', 'Explain'],
+            'rank': ['simplify.critic.rank', 'Rank'],
+            'predict': ['simplify.critic.predict', 'Predict'],
+            'score': ['simplify.critic.score', 'Score']}
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.step = 'critic'
-        # Sets 'iterable_type' so that proper parent methods are used.
-        self.iterable_type = 'serial'
-        # Sets plan-related attributes to allow use of parent methods.
+        # Sets iterable-related attributes.
         self.iterable = 'reviews'
-        self.iterable_class = None
         self.iterable_setting = 'review_steps'
-        self.return_variables = None
+        self.iterable_type = 'serial'
+        self.return_variables = {
+            'summarize': ['summary'],
+            'explain': ['values'],
+            'rank': ['importances'], 
+            'predict': ['predictions, probabilities'],
+            'score' : ['report']}
         return self
  
     def publish(self):
@@ -139,21 +142,19 @@ class Review(SimpleBuilder):
                 Ingredients.
             recipes (list or Recipe): a Recipe or a list of Recipes.
         """
+        # Sets local 'ingredients' attribute.
         if self.ingredients is None and hasattr(recipes, 'ingredients'):
             self.ingredients = recipes.ingredients
+        # Initializes comparative model report with set columns.
         if not self.exists('report'):
             self._start_report(recipe = self.listify(recipes)[0])
+        # Iterates through 'recipes' to gather review information.
         for self.recipe in self.listify(recipes):
             if self.verbose:
                 print('Reviewing', self.recipe.name, str(self.recipe.number))
-            for number, review in getattr(self, self.iterable).items():
-                review.implement(ingredients = ingredients,
-                                 recipes = recipes)
+            for name, technique in getattr(self, self.iterable).items():
+                technique.implement(ingredients = ingredients,
+                                    recipes = recipes)
                 if self.exists('return_variables'):
-                    self._get_return_variables(instance = review)
-#                if isinstance(getattr(recipe, value), object):
-#                    row[column] = self._format_step(value)
-#                else:
-#                    row[column] = getattr(self.recipe, value)
-#            self.report.loc[len(self.report)] = row
+                    self._get_return_variables(instance = technique)
         return self

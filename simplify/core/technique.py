@@ -32,23 +32,23 @@ class SimpleTechnique(SimpleClass):
     subclass. SimpleTechnique is used for custom techniques and for
     dependencies that require a substantial adapter to integrate into siMpLify.
 
-    SimpleTechnique, similar to SimpleStep, should have a 'parameters'
+    SimpleTechnique, similar to SimpleTechnique, should have a 'parameters'
     parameter as an attribute to the class instance for the included methods to
     work properly. Otherwise, 'parameters' will be set to an empty dict.
 
-    Unlike SimpleBuilder, SimplePlan, and SimpleStep, SimpleTechnique only
+    Unlike SimpleBuilder, SimplePlan, and SimpleTechnique, SimpleTechnique only
     supports a single 'technique'. This is to maximize compatibility to scikit-
     learn and other pipeline scripts.
 
     Args:
         parameters (dict): parameters to be attached to algorithm in 'options'
             corresponding to 'technique'. This parameter need not be passed to
-            the SimpleStep subclass if the parameters are in the accessible
+            the SimpleTechnique subclass if the parameters are in the accessible
             Idea instance or if the user wishes to use default parameters.
         auto_publish (bool): whether 'publish' method should be called when
             the  class is instanced. This should generally be set to True.
 
-    It is also a child class of SimpleStep. So, its documentation applies as
+    It is also a child class of SimpleTechnique. So, its documentation applies as
     well.
     """
     technique: object = None
@@ -86,7 +86,7 @@ class SimpleTechnique(SimpleClass):
                 method but is made available as an optional keyword for
                 compatibility with other 'implement'  methods. This parameter is
                 used when the current SimpleTechnique subclass needs to look
-                back at previous SimpleSteps.
+                back at previous SimpleTechniques.
         """
         if self.algorithm:
             self.algorithm.fit(ingredients.x_train, ingredients.y_train)

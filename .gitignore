@@ -2,6 +2,7 @@ __pycache__/
 */__pycache__/
 */*.pyc
 *.pyc
+*.code_workspace
 .*
 *.py[cod]
 *$py.class

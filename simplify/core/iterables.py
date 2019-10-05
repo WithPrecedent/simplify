@@ -95,6 +95,10 @@ class SimpleBuilder(SimpleClass):
         """ Declares defaults for class."""
         super().draft()
         self.checks.extend(['depot', 'iterable'])
+        self.iterable = 'steps'
+        self.iterable_setting = self.name + '_steps'
+        self.iterable_type = 'serial'
+        self.return_variables = {}
         return self
 
     def publish(self):
@@ -133,8 +137,8 @@ class SimplePlan(SimpleClass):
     Illustration.
 
     Args:
-        steps(dict): dictionary containing keys of step names (strings) and
-            values of SimpleStep subclasses.
+        steps(dict(str: SimpleTechnique)): dictionary containing keys of step 
+            names (strings) and values of SimpleTechnique subclasses.
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
@@ -147,11 +151,18 @@ class SimplePlan(SimpleClass):
         return self
 
     def __call__(self, *args, **kwargs):
-        """When called as a function, a SimplePlan class or subclass instance
-        will return the 'implement' method.
-        """
+        """Calls '__post_init__ and then 'implement' with args and kwargs."""
         self.__post_init__()
         return self.implement(*args, **kwargs)
+
+    """ Private Methods """
+    
+    def _publish_iterable(self):
+        if self.exists('iterable_setting'):
+            for name, technique in self.options.items():
+                if name in getattr(self, self.iterable_setting):
+                    getattr(self, self.iterable).update({name: technique()})
+        return self
 
     """ Core siMpLify Methods """
 
@@ -159,12 +170,11 @@ class SimplePlan(SimpleClass):
         super().draft()
         self.options = {}
         self.checks.append('iterable')
-        self.plan_type = 'serial'
         return self
 
     def publish(self):
         super().publish()
-        pass
+        self._publish_iterable()
         return self
 
     def implement(self, *args, **kwargs):

@@ -20,7 +20,7 @@ class Canvas(SimpleBuilder):
         ingredients(Ingredients): an instance of Ingredients. This argument need
             not be passed when the class is instanced. It can be passed directly
             to the 'implement' method as well.
-        steps(dict(str: SimpleStep)): names and related SimpleStep classes for
+        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique classes for
             analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It

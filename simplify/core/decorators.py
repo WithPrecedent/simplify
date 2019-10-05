@@ -154,7 +154,7 @@ def numpy_shield(method):
     """Checks conditions of Cookbook step and adjusts arguments and return
     value accordingly.
 
-    If the SimpleStep subclass 'technique' attribute is 'none', the Ingredients
+    If the SimpleTechnique subclass 'technique' attribute is 'none', the Ingredients
     instance is returned unaltered.
 
     If, however, there is a technique other than 'none', the decorator allows

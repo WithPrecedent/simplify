@@ -296,8 +296,7 @@ class SimpleClass(ABC):
         one does not exist."""
         if not self.exists('iterable'):
             self.iterable = 'steps'
-            setattr(self, self.iterable, {})
-        elif not self.exists(self.iterable):
+        if not self.exists(self.iterable):
             setattr(self, self.iterable, {})
         return self
 
@@ -589,7 +588,7 @@ class SimpleClass(ABC):
                 'options' dict.
             values(object or list(object)): siMpLify compatible objects which
                 can be integrated in the package framework. If they are custom
-                algorithms, they should be subclassed from SimpleStep to ensure
+                algorithms, they should be subclassed from SimpleTechnique to ensure
                 compatibility.
             options(dict): a dictionary with keys of techniques and values of
                 algorithms. This should be passed if the user has already
