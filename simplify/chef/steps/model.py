@@ -53,11 +53,11 @@ class Model(SimpleTechnique):
         if (self.technique in ['xgboost']
                 and not 'scale_pos_weight' in parameters
                 and hasattr(self, 'scale_pos_weight')):
-            self.parameters.update(
+            parameters.update(
                     {'scale_pos_weight': self.scale_pos_weight})
             if self.gpu:
-                self.parameters.update({'tree_method': 'gpu_exact'})
-        return self
+                parameters.update({'tree_method': 'gpu_exact'})
+        return parameters
 
     def _parse_parameters(self):
         """Parses parameters to determine if the user has created ranges of
@@ -83,14 +83,15 @@ class Model(SimpleTechnique):
         return self   
 
     def _set_estimator(self):
-        self.estimator = self.options[self.model_type]
+        self.estimator = self.options[self.model_type](
+            technique = self.technique)
         return self
         
     def _set_parameters(self):
         self.runtime_parameters = {'random_state': self.seed}
         self.parameters_factory = SimpleParameters()
         self.parameters = self.parameters_factory.implement(
-            instance = self.options[self.model_type])
+            instance = self.estimator)
         self._parse_parameters()
         return self
 
@@ -99,7 +100,7 @@ class Model(SimpleTechnique):
             technique = self.search_technique,
             parameters = self.idea['search_parameters'])
         self.search.space = self.space
-        self.search.estimator = self.algorithm
+        self.search.estimator = self.estimator.algorithm
         self.search.publish()
         return self    
         
@@ -122,9 +123,6 @@ class Model(SimpleTechnique):
         if self.technique != 'none':
             self._set_estimator()
             self._set_parameters()
-            self.algorithm = self.options[self.technique](
-                technique = self.technique,
-                parameters = self.parameters)
             if self.hyperparameter_search:
                 self._set_search()             
         return self
@@ -136,7 +134,7 @@ class Model(SimpleTechnique):
                 self.algorithm = self.search.implement(
                     ingredients = ingredients)
             else:
-                self.algorithm = self.algorithm.implement(
+                self.algorithm = self.estimator.implement(
                         ingredients = ingredients)
         return ingredients
 

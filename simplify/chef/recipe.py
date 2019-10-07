@@ -94,7 +94,7 @@ class Recipe(SimpleIterable):
         # If using cross-validation or other data splitting technique, the
         # pre-split methods apply to the 'x' data. After the split, steps
         # must incorporate the split into 'x_train' and 'x_test'.
-        for step in list(steps.keys()):
+        for step, technique in self.steps:
             steps.pop(step)
             if step == 'split':
                 break

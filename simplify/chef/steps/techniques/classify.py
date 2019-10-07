@@ -27,7 +27,7 @@ class Classify(SimpleTechnique):
 
     technique: object = None
     parameters: object = None
-    name: str = 'classifier'
+    name: str = 'classify'
     auto_publish: bool = True
 
     def __post_init__(self):
@@ -37,7 +37,7 @@ class Classify(SimpleTechnique):
     """ Private Methods """
     
     def _get_conditional_options(self):
-        if self.gpu:
+        if self.idea['general']['gpu']:
             self.options.update({
                     'forest_inference': ['cuml', 'ForestInference'],
                     'random_forest': ['cuml', 'RandomForestClassifier'],

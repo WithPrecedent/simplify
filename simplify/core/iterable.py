@@ -45,7 +45,6 @@ class SimpleIterable(SimpleClass):
     well.
 
     """
-
     steps: object = None
     number: int = 0
     name: str = 'simple_iterable'
@@ -69,6 +68,21 @@ class SimpleIterable(SimpleClass):
 
     """ Private Methods """
 
+    def _add_parallel(self, number, step, suffix):
+        setattr(self, step, {})
+        plans = self._create_plans(step = step, suffix = suffix)
+        for plan in plans:
+            final_plan = dict(zip(self.sequence, plan))
+            getattr(self, step).update(
+                {number + 1: self.options[step](number = number + 1, 
+                                                steps = final_plan)})   
+        return getattr(self, step) 
+     
+    def _add_serial(self, number, step):
+        setattr(self, step, self.options[step](
+            technique = getattr(self, self.iterable)[number]))
+        return getattr(self, step)    
+    
     def _check_iterable(self):
         """Creates class iterable attribute to be filled with concrete steps if
         one does not exist.
@@ -80,7 +94,7 @@ class SimpleIterable(SimpleClass):
         if not self.exists('iterable_setting'):
             self.iterable_setting = self.name + '_' + self.iterable
         if self.exists(self.iterable_setting) and not self.exists('sequence'):
-            self.sequence = getattr(self, self.iterable_setting)
+            self.sequence = self.listify(getattr(self, self.iterable_setting))
         elif not self.exists('sequence'):
             self.sequence = list(self.options.keys())
         return self
@@ -118,14 +132,11 @@ class SimpleIterable(SimpleClass):
         for i, step in enumerate(self.sequence):
             if (self.exists('parallel_options')
                     and step in self.parallel_options):
-                setattr(self, step, [])
-
-                plans = self._create_plans(step = step, suffix = suffix)
-                for plan in plans:
-                    getattr(self, step).append(
-                            self.options[step](number = i + 1, steps = plan))
+                completed_step = self._add_parallel(
+                    number = i, step = step, suffix = suffix)
             else:
-                setattr(self, step, self.options[step]())
+                completed_step = self._add_serial(number = i, step = step)
+            getattr(self, self.iterable).update(step, completed_step)
         return self
 
     def _infuse_attributes(self, instance, return_variables = None):
@@ -160,7 +171,7 @@ class SimpleIterable(SimpleClass):
         super().draft()
         self.options = {}
         self.parallel_options = {}
-        self.checks.extend(['depot', 'iterable'])
+        self.checks.extend(['iterable'])
         self.return_variables = []
         return self
 

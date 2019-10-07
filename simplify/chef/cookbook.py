@@ -57,12 +57,26 @@ class Cookbook(SimpleIterable):
         return self
 
     """ Private Methods """
-
+    
+    def _check_iterable(self):
+        """Creates class iterable attribute to be filled with concrete steps if
+        one does not exist.
+        """
+        super()._check_iterable()
+        if 'chef' in self.sequence:
+            new_sequence = ['recipes']
+            if 'critic' in self.sequence:
+                new_sequence.append('critic')
+            if 'artist' in self.sequence:
+                new_sequence.append('artist')
+            self.sequence = new_sequence            
+        return self
+    
     def _implement_recipes(self):
         """Tests all 'recipes'."""
-        for recipe_number, recipe in getattr(self, self.iterable).items():
+        for recipe in getattr(self, self.iterable):
             if self.verbose:
-                print('Testing', recipe.name, str(recipe_number))
+                print('Testing', recipe.name, str(recipe.number))
             recipe.implement(ingredients = self.ingredients)
             if self.export_results:
                 self.depot._set_experiment_folder()
@@ -136,11 +150,11 @@ class Cookbook(SimpleIterable):
             for recipe in recipes:
                 self.depot._set_recipe_folder(recipe = recipe)
                 recipe.save(folder = self.depot.recipe)
-        elif recipes in ['best']:
+        elif recipes in ['best'] and hasattr(self, 'critic'):
             self.critic.best_recipe.save(file_path = file_path,
                                          folder = self.depot.experiment,
                                          file_name = 'best_recipe')
-        else:
+        elif not isinstance(recipes, str):
             recipes.save(file_path = file_path, folder = self.depot.recipe)
         return
 
@@ -150,11 +164,11 @@ class Cookbook(SimpleIterable):
         """Sets default options for the Chef's cookbook."""
         super().draft()
         self.options = {
-            'chef': ['simplify.chef.recipe', 'Recipe'],
+            'recipes': ['simplify.chef.recipe', 'Recipe'],
             'critic' : ['simplify.critic.review', 'Review'],
             'artist': ['simplify.artist.canvas', 'Canvas']}
         self.parallel_options = {
-                'chef': ['scale', 'split', 'encode', 'mix', 'cleave',
+                'recipes': ['scale', 'split', 'encode', 'mix', 'cleave',
                             'sample', 'reduce', 'model']}
         self.checks.extend(['ingredients'])
         # Locks 'step' attribute at 'cook' for conform methods in package.
@@ -199,6 +213,7 @@ class Cookbook(SimpleIterable):
         """
         if ingredients:
             self.ingredients = ingredients
+        print('recipes', self.recipes)
         if 'train_test_val' in self.data_to_use:
             self.ingredients._remap_dataframes(data_to_use = 'train_test')
             self._implement_recipes()
