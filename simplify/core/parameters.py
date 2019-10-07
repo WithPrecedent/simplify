@@ -25,7 +25,7 @@ class SimpleParameters(SimpleClass):
 
     def __call__(self, instance):
         self.__post_init__()
-        return self.produce(instance = instance)
+        return self.implement(instance = instance)
 
     """ Private Methods """
 
@@ -140,7 +140,6 @@ class SimpleParameters(SimpleClass):
             parameters(dict): a finalized dictionary of parameters.
 
         """
-        print('adding parameters', instance.name)
         parameters = {}
         # Sets which groupings of parameters to use.
         if parameter_types:

@@ -35,8 +35,6 @@ cancer_project.ingredients.smart_fill()
 # Iterates through every recipe and exports plots, explainers, and other
 # metrics from each recipe.
 cancer_project.implement()
-# Saves the recipes, results, and cookbook.
-cancer_project.chef.save_everything()
 # Outputs information about the best recipe to the terminal.
 #cancer_project.critic.print_best()
 # Saves ingredients file with predictions or predicted probabilities added

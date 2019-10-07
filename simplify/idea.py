@@ -111,6 +111,7 @@ class Idea(SimpleClass):
         auto_publish(bool): whether to automatically call the 'publish'
             method when the class is instanced. Unless adding a new source for
             'configuration' settings, this should be set to True.
+
     """
     configuration: object = None
     infer_types: bool = True
@@ -276,7 +277,6 @@ class Idea(SimpleClass):
         available to other modules in the siMpLify package.
         """
         setattr(SimpleClass, 'idea', self)
-        setattr(SimpleClass, 'step', self.step)
         return self
 
     def _load_from_ini(self):
@@ -363,27 +363,27 @@ class Idea(SimpleClass):
 
     def inject(self, instance, sections, override = False):
         """Stores the section or sections of the 'configuration' dictionary in
-        the passed class instance as attributes to that class instance. 
-        
-        If the sought section has the '_parameters' suffix, the section is 
-        returned as a single dictionary at instance.parameters (assuming that 
+        the passed class instance as attributes to that class instance.
+
+        If the sought section has the '_parameters' suffix, the section is
+        returned as a single dictionary at instance.parameters (assuming that
         it does not exist or 'override' is True).
-        
+
         If the sought key from a section has the '_steps' suffix, the value for
         that key is stored at instance.steps (assuming that it does not exist or
         'override' is True).
-        
-        If the sought key from a section has the '_techniques' suffix, the value 
-        for that key is stored either at the attribute named the prefix of the 
+
+        If the sought key from a section has the '_techniques' suffix, the value
+        for that key is stored either at the attribute named the prefix of the
         key (assuming that it does not exist or 'override' is True).
-        
-        Wildcard values of 'all', 'default', and 'none' are appropriately 
+
+        Wildcard values of 'all', 'default', and 'none' are appropriately
         changed with the '_convert_wildcards' method.
 
         Args:
             instance(object): either a class instance or class to which
                 attributes should be added.
-            sections(str or list(str)): the sections of the configuration 
+            sections(str or list(str)): the sections of the configuration
                 dictionary which should be added to the instance.
             override(bool): if True, even existing attributes in instance will
                 be replaced by configuration dictionary items. If False,
@@ -392,26 +392,26 @@ class Idea(SimpleClass):
 
         Returns:
             instance with attribute(s) added.
-            
+
         """
         for section in self.configuration.keys():
-            if (section.endswith('_parameters') 
+            if (section.endswith('_parameters')
                     and (not instance.exists('parameters') or override)):
                 options_name = section.replace('_parameters', '')
-                if ((instance.exists('technique') 
+                if ((instance.exists('technique')
                         and options_name == instance.technique)
                         or options_name in instance.name):
                     instance.parameters = self.configuration[section]
         for section in self.listify(sections):
             for key, value in self.configuration[section].items():
-                if (instance.exists('iterable_setting') 
+                if (instance.exists('iterable_setting')
                         and key == instance.iterable_setting):
                     instance.sequence = value
                 elif key.endswith('_techniques'):
                     attribute_name = key.replace('_techniques', '')
                     if ((not instance.exists(attribute_name) or override)
                             and attribute_name in instance.options):
-                        setattr(instance, attribute_name, 
+                        setattr(instance, attribute_name,
                                 instance._convert_wildcards(value))
                 elif not instance.exists(key) or override:
                     setattr(instance, key, instance._convert_wildcards(value))

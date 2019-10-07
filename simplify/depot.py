@@ -8,6 +8,7 @@
 
 import csv
 from dataclasses import dataclass
+import datetime
 import glob
 import os
 import pickle
@@ -17,7 +18,7 @@ import pandas as pd
 from simplify.core.base import SimpleClass
 from simplify.core.types import FileTypes
 
-    
+
 @dataclass
 class Depot(SimpleClass):
     """Manages files and folders for the siMpLify package.
@@ -410,6 +411,36 @@ class Depot(SimpleClass):
         variable.close()
         return
 
+    def _set_experiment_folder(self):
+        """Sets the experiment folder and corresponding attributes based upon
+        user settings.
+        """
+        if self.datetime_naming:
+            subfolder = ('experiment_'
+                         + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
+        else:
+            subfolder = 'experiment'
+        self.experiment = self.create_folder(folder = self.results,
+                                             subfolder = subfolder)
+        return self
+
+    def _set_iterable_folder(self, iterable, name = 'iterable'):
+        """Creates folder path for iterable-specific exports.
+
+        Args:
+            iterable(SimpleIterable): an instance of SimpleIterable.
+            name(string): name of attribute for the folder path to be stored
+                and the prefix of the folder to be created on disc.
+        """
+        subfolder = name + '_'
+        if self.exists('naming_classes'):
+            for step in self.listify(self.naming_classes):
+                subfolder += iterable.steps[step].technique + '_'
+        subfolder += str(iterable.number)
+        setattr(self, name, self.create_folder(folder = self.experiment,
+                                               subfolder = subfolder))
+        return self
+
     """ Public Tool Methods """
 
     def add_tree(self, folder_tree):
@@ -526,7 +557,7 @@ class Depot(SimpleClass):
             elif override:
                 setattr(instance, section, getattr(self, section))
         return
-    
+
     def iterate(self, plans, ingredients = None, return_ingredients = True):
         """Iterates through a list of files contained in self.batch and
         applies the plans created by a Planner method (or subclass).
@@ -555,7 +586,7 @@ class Depot(SimpleClass):
             return self
 
     """ Public Import/Export Methods """
-    
+
     def load(self, file_path = None, folder = None, file_name = None,
              file_format = None, **kwargs):
         """Imports file by calling appropriate method based on file_format. If
@@ -621,7 +652,7 @@ class Depot(SimpleClass):
                                          io_status = 'export')
         getattr(self, '_save_' + file_format)(variable, file_path, **kwargs)
         return
-    
+
     """ Core siMpLify Methods """
 
     def draft(self):
@@ -632,7 +663,7 @@ class Depot(SimpleClass):
         # Creates dict with file format names and file extensions.
         self.extensions = FileTypes()
         # Creates list of default subfolders from 'data_folder' to create.
-        self.data_subfolders = ['raw', 'interim', 'processed', 'external']    
+        self.data_subfolders = ['raw', 'interim', 'processed', 'external']
         # Creates default parameters when they are not passed as kwargs to
         # methods in the class.
         self.default_kwargs = {
@@ -646,7 +677,7 @@ class Depot(SimpleClass):
             'index_col': False}
         # Creates default data folders, file names, and file formats linked to
         # the various stages of the siMpLify process. Each values includes a
-        # 2-item list with the first item being the default import option and 
+        # 2-item list with the first item being the default import option and
         # the second being the default export option.
         self.data_folders = {
             'sow': ['raw', 'raw'],
@@ -685,14 +716,14 @@ class Depot(SimpleClass):
     def edit_default_kwargs(self, kwargs, settings):
         """Adds or replaces default keys and values for kwargs for load/save
         methods.
-        
+
         Args:
             kwargs(str or list(str)): key(s) to change in 'default_kwargs'.
             settings(str or list(str)): values(s) to change in 'default_kwargs'.
         """
         self.default_kwargs(dict(zip(kwargs, settings)))
         return self
-    
+
     def edit_file_formats(self, file_format, extension, load_method,
                           save_method):
         """Adds or replaces a file extension option.
@@ -717,15 +748,15 @@ class Depot(SimpleClass):
 
     def edit_file_names(self, steps, file_names):
         """Adds data file names for specific steps.
-        
+
         Args:
             steps(str or list(str)): step or step names
             file_names(str or list(str)): file name or file names (without
                 extension(s))
-        """      
+        """
         self.file_names.update(dict(zip(steps, file_names)))
         return self
-    
+
     def edit_folders(self, root_folder, subfolders):
         """Adds a list of subfolders to an existing root_folder.
         Args:

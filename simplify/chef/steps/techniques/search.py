@@ -39,7 +39,7 @@ class Search(SimpleTechnique):
 
     """ Private Methods """
 
-    def _get_parameters_conditional(self, parameters):
+    def _get_conditional_parameters(self, parameters):
         print('search working', self.parameters, 'parameters passed', parameters)
         if 'refit' in parameters:
             parameters['scoring'] = self.listify(parameters['scoring'])[0]

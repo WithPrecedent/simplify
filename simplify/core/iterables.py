@@ -13,47 +13,129 @@ from simplify.core.base import SimpleClass
 
 
 @dataclass
-class SimpleBuilder(SimpleClass):
-    """Parent class for siMpLify planners like Cookbook, Almanac, Review,
-    and Canvas.
+class SimpleIterable(SimpleClass):
+    """Parent class for building and storing iterable steps.
 
     This class adds methods useful to create iterators, iterate over user
-    options, and transform data or fit models.
+    options, and transform data or fit models. SimpleIterable classes define
+    the bulk of the siMpLify processing packages (Farmer, Chef, Critic, Artist)
+    with only the lowest layer of the class hierarchy in a project being
+    SimpleTechnique subclasses.
+
+    To take maximum advantage of this class's functionality, a subclass should
+    either, in its draft method, call super().draft() and/or define the
+    following attributes there:
+        iterable(str): name of attribute for the class's main iterable to be
+            stored. If 'iterable' does not exist, but 'iterable' is added to
+            'checks', the default iterable name will be set to 'steps'.
+        iterable_setting(str): name of key in an Idea instance where the
+            options for the iterable are listed. The names of the values
+            corresponding to that key should be keys in the local 'options'
+            dictionary.
+        return_variables(dict(str: list) or list)): indicates which, if any,
+            attributes should be incorporated into the local class from one or
+            more of the classes stored in the class's iterable values. If the
+            'return_variables' is a list, then the same attributes will be
+            incorporated for each class instance in the iterable. If it is a
+            nested dictionary, the outer_keys should correspond to keys in the
+            local 'options' dictionary and the values should be lists of
+            variables to return specific to option.
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
+
     """
+
+    steps: object = None
+    number: int = 0
+    name: str = 'simple_iterable'
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
+    """ Magic Methods """
+
+    def __call__(self, *args, **kwargs):
+        """Calls '__post_init__ and then 'implement' with args and kwargs."""
+        self.__post_init__()
+        return self.implement(*args, **kwargs)
+
+    def __iter__(self):
+        """Allows class instance to be directly iterated by returning the
+        primary iterable contained within the class instance.
+        """
+        return getattr(self, self.iterable)
+
     """ Private Methods """
 
-    def _create_steps_lists(self):
-        """Creates list of lists of all possible step lists corresponding to the
-        keys in 'options'."""
-        self.all_steps = []
-        for step in self.options.keys():
-            # Stores each step attribute in a list.
-            if hasattr(self, step):
-                setattr(self, step, self.listify(getattr(self, step)))
-            # Stores a list of 'none' if there is no corresponding local
-            # attribute.
-            else:
-                setattr(self, step, ['none'])
-            # Adds step to a list of all steps.
-            self.all_steps.append(getattr(self, step))
+    def _check_iterable(self):
+        """Creates class iterable attribute to be filled with concrete steps if
+        one does not exist.
+        """
+        if not self.exists('iterable'):
+            self.iterable = 'steps'
+        if not self.exists(self.iterable):
+            setattr(self, self.iterable, {})
+        if not self.exists('iterable_setting'):
+            self.iterable_setting = self.name + '_' + self.iterable
+        if self.exists(self.iterable_setting):
+            self.sequence = getattr(self, self.iterable_setting)
+        else:
+            self.sequence = list(self.options.keys())
         return self
 
-    def _get_return_variables(self, instance, return_variables = None):
+    def _create_plans(self, step, suffix = 'techniques'):
+        """Creates cartesian product of all parallel plans.
+
+        Args:
+            step(str): name of step in 'sequence'.
+            suffix(str): string at end of Idea setting keys.
+
+        Returns
+            all_plans(list of class iterable subclass): all possible plans
+                from user settings in an Idea instance.
+
+        """
+        plans = []
+        for substep in self.parallel_options[step]:
+            key = substep + '_' + suffix
+            if key in self.idea.configuration[self.name]:
+                plans.append(self.idea.configuration[self.name][key])
+            else:
+                plans.append(['none'])
+        all_plans = list(map(list, product(*plans)))
+        return all_plans
+
+    def _create_steps(self, suffix = 'techniques'):
+        """Creates complete list of steps from Idea settings.
+
+        Args:
+            suffix(str): string at end of Idea setting keys.
+
+        """
+        for i, step in enumerate(self.sequence):
+            if (self.exists('parallel_options')
+                    and step in self.parallel_options):
+                setattr(self, step, [])
+                plans = self._create_plans(step, suffix)
+                for plan in plans:
+                    getattr(self, step).append(
+                            self.options[step](number = i + 1, steps = plan))
+            else:
+                setattr(self, step, self.options[step]())
+        return self
+
+    def _infuse_attributes(self, instance, return_variables = None):
         """Adds 'return_variables' attributes from instance class to present
         class.
 
         Args:
             instance(object): class instance with attributes to be added to the
-                present subclass.
-            return_variables(list(str) or str): names of attributes sought.
+                present subclass instance.
+            return_variables(list(str) or dict(str: list(str))): names of
+                attributes sought. If stored in a dict, the outer key
+                corresponds to particular keys stored in 'options'.
 
         """
         if return_variables is None and self.exists('return_variables'):
@@ -65,28 +147,8 @@ class SimpleBuilder(SimpleClass):
             for variable in self.listify(return_variables):
                 if hasattr(instance, variable):
                     setattr(self, variable, getattr(instance, variable))
-        return self
-
-    def _publish_parallel(self):
-        """Creates iterable from list of lists in 'all_steps'."""
-        # Creates a list of all possible permutations of step lists.
-        all_plans = list(map(list, product(*self.all_steps)))
-        for i, plan in enumerate(all_plans):
-            published_steps = {}
-            for j, (step_name, step_class) in enumerate(self.options.items()):
-                published_steps.update(
-                        {step_name: step_class(technique = plan[j])})
-            getattr(self, self.iterable).update(
-                {i + 1: self.iterable_class(number = i + 1, 
-                                            steps = published_steps)})
-        return self
-
-    def _publish_serial(self):
-        """Creates iterable from list of lists in 'all_steps'."""
-        for i, (name, iterable_class) in enumerate(self.options.items()):
-            for steps in self.all_steps[i]:
-                getattr(self, self.iterable).update(
-                        {i + 1: iterable_class(steps = steps)})
+                elif self.verbose:
+                    print(variable, 'not found in', instance.name)
         return self
 
     """ Core siMpLify methods """
@@ -94,19 +156,26 @@ class SimpleBuilder(SimpleClass):
     def draft(self):
         """ Declares defaults for class."""
         super().draft()
+        self.options = {}
+        self.parallel_options = {}
         self.checks.extend(['depot', 'iterable'])
-        self.iterable = 'steps'
-        self.iterable_setting = self.name + '_steps'
-        self.iterable_type = 'serial'
-        self.return_variables = {}
+        self.return_variables = []
+        return self
+
+    def edit_iterable(self, iterables):
+        """Adds a single iterable or list of iterables to the iterables
+        attribute.
+
+        Args:
+            iterables(SimpleIterable, list(SimpleIterable)): iterables to be
+                added into 'iterables' attribute.
+        """
+        getattr(self, 'iterable').extend(self.listify(iterables))
         return self
 
     def publish(self):
-        """Finalizes iterable dictionary of steps with instanced step
-        classes."""
         super().publish()
-        self._create_steps_lists()
-        getattr(self, '_publish_' + self.iterable_type)()
+        self._create_steps()
         return self
 
     def implement(self, *args, **kwargs):
@@ -120,70 +189,12 @@ class SimpleBuilder(SimpleClass):
             *args, **kwargs: other parameters can be added to method as needed.
 
         """
-        for number, plan in getattr(self, self.iterable).items():
-            if self.verbose and self.iterable_type in ['parallel']:
-                print('Testing', self.name, str(number))
-            elif self.verbose and self.iterable_type in ['serial']:
-                print('Applying', self.name, 'methods')
-            plan.implement(*args, **kwargs)
+        for step in getattr(self, self.iterable):
+            if isinstance(step, list):
+                for substep in step:
+                    substep.implement(*args, **kwargs)
+            else:
+                step.implement(*args, **kwargs)
             if self.exists('return_variables'):
-                self._get_return_variables(instance = plan)
-        return self
-
-
-@dataclass
-class SimplePlan(SimpleClass):
-    """Class for containing plan classes like Recipe, Harvest, Review, and
-    Illustration.
-
-    Args:
-        steps(dict(str: SimpleTechnique)): dictionary containing keys of step 
-            names (strings) and values of SimpleTechnique subclasses.
-
-    It is also a child class of SimpleClass. So, its documentation applies as
-    well.
-    """
-
-    steps: object = None
-
-    def __post_init__(self):
-        super().__post_init__()
-        return self
-
-    def __call__(self, *args, **kwargs):
-        """Calls '__post_init__ and then 'implement' with args and kwargs."""
-        self.__post_init__()
-        return self.implement(*args, **kwargs)
-
-    """ Private Methods """
-    
-    def _publish_iterable(self):
-        if self.exists('iterable_setting'):
-            for name, technique in self.options.items():
-                if name in getattr(self, self.iterable_setting):
-                    getattr(self, self.iterable).update({name: technique()})
-        return self
-
-    """ Core siMpLify Methods """
-
-    def draft(self):
-        super().draft()
-        self.options = {}
-        self.checks.append('iterable')
-        return self
-
-    def publish(self):
-        super().publish()
-        self._publish_iterable()
-        return self
-
-    def implement(self, *args, **kwargs):
-        """Iterates through techniques 'implement' methods.
-
-        Args:
-            *args, **kwargs: parameters to be passed to techniques.
-            
-        """
-        for name, technique in getattr(self, self.iterable).items():
-            technique.implement(*args, **kwargs)
+                self._infuse_attributes(instance = step)
         return self

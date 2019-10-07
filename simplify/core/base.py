@@ -291,15 +291,6 @@ class SimpleClass(ABC):
             self.ingredients = Ingredients()
         return self
 
-    def _check_iterable(self):
-        """Creates class iterable attribute to be filled with concrete steps if
-        one does not exist."""
-        if not self.exists('iterable'):
-            self.iterable = 'steps'
-        if not self.exists(self.iterable):
-            setattr(self, self.iterable, {})
-        return self
-
     def _check_name(self):
         """Sets 'name' attribute if one does not exist in subclass.
 

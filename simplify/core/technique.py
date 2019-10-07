@@ -9,10 +9,12 @@
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 
 from simplify.core.base import SimpleClass
 from simplify.core.parameters import SimpleParameters
+from simplify.core.decorators import numpy_shield
 
 
 @dataclass
@@ -32,65 +34,78 @@ class SimpleTechnique(SimpleClass):
     subclass. SimpleTechnique is used for custom techniques and for
     dependencies that require a substantial adapter to integrate into siMpLify.
 
-    SimpleTechnique, similar to SimpleTechnique, should have a 'parameters'
-    parameter as an attribute to the class instance for the included methods to
-    work properly. Otherwise, 'parameters' will be set to an empty dict.
-
-    Unlike SimpleBuilder, SimplePlan, and SimpleTechnique, SimpleTechnique only
-    supports a single 'technique'. This is to maximize compatibility to scikit-
-    learn and other pipeline scripts.
-
     Args:
-        parameters (dict): parameters to be attached to algorithm in 'options'
+        technique(str): name of technique that matches key in 'options'.
+        parameters(dict): parameters to be attached to algorithm in 'options'
             corresponding to 'technique'. This parameter need not be passed to
-            the SimpleTechnique subclass if the parameters are in the accessible
-            Idea instance or if the user wishes to use default parameters.
-        auto_publish (bool): whether 'publish' method should be called when
-            the  class is instanced. This should generally be set to True.
+            the SimpleTechnique subclass if the parameters are in the Idea
+            instance or if the user wishes to use default parameters.
+        auto_publish(bool): whether 'publish' method should be called when
+            the class is instanced. This should generally be set to True.
 
-    It is also a child class of SimpleTechnique. So, its documentation applies as
+    It is also a child class of SimpleClass. So, its documentation applies as
     well.
+
     """
     technique: object = None
     parameters: object = None
+    name: str = 'generic_technique'
     auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
-    """ Core siMpLify Public Methods """
+    """ Private Methods """
 
-    def publish(self):
-        self.parameters_factory = SimpleParameters()
-        self.parameters = self.parameters_factory.implement(instance = self)
-        if self.exists('technique'):
-            if self.technique in ['none', 'None', None]:
-                self.technique = 'none'
-                self.algorithm = None
-            elif (self.exists('simplify_options')
-                    and self.technique in self.simplify_options):
-                self.algorithm = self.options[self.technique](
-                        parameters = self.parameters)
-            else:
-                self.algorithm = self.options[self.technique](
-                        **self.parameters)
+    def _set_algorithm(self):
+        """Creates 'algorithm' attribute and adds parameters."""
+        if self.technique in ['none', 'None', None]:
+            self.technique = 'none'
+            self.algorithm = None
+        elif (self.exists('simplify_options')
+                and self.technique in self.simplify_options):
+            self.algorithm = self.options[self.technique](
+                    parameters = self.parameters)
+        else:
+            self.algorithm = self.options[self.technique](**self.parameters)
         return self
 
-    def implement(self, ingredients, plan = None):
+    def _set_parameters(self):
+        """Creates final parameters for this instance's 'algorithm'."""
+        self.parameters_factory = SimpleParameters()
+        self.parameters = self.parameters_factory.implement(instance = self)
+        return self
+
+    """ Core siMpLify Public Methods """
+
+    def draft(self):
+        """ Declares defaults for class."""
+        super().draft()
+        self.options = {}
+        return self
+
+    def publish(self):
+        super().publish()
+        self._set_parameters()
+        self._set_algorithm()
+        return self
+
+    @numpy_shield
+    def implement(self, ingredients, **kwargs):
         """Generic implementation method for SimpleTechnique subclass.
 
         Args:
             ingredients(Ingredients): an instance of Ingredients or subclass.
-            plan(SimplePlan subclass or instance): is not used by the generic
-                method but is made available as an optional keyword for
-                compatibility with other 'implement'  methods. This parameter is
-                used when the current SimpleTechnique subclass needs to look
-                back at previous SimpleTechniques.
+
         """
         if self.algorithm:
-            self.algorithm.fit(ingredients.x_train, ingredients.y_train)
-            ingredients.x_train = self.algorithm.transform(ingredients.x_train)
+            if self.technique in self.simplify_options:
+                ingredients = self.algorithm.implement(ingredients, **kwargs)
+            else:
+                self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+                ingredients.x_train = self.algorithm.transform(
+                        ingredients.x_train)
         return ingredients
 
     """ Scikit-Learn Compatibility Methods """

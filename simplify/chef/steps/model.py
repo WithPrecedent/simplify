@@ -44,6 +44,16 @@ class Model(SimpleTechnique):
         """Tests whether any item in a list is of the passed data type."""
         return any(isinstance(i, data_type) for i in test_list)
 
+    def _get_conditional_parameters(self, parameters):
+        if (self.technique in ['xgboost']
+                and not 'scale_pos_weight' in parameters
+                and hasattr(self, 'scale_pos_weight')):
+            self.parameters.update(
+                    {'scale_pos_weight': self.scale_pos_weight})
+            if self.gpu:
+                self.parameters.update({'tree_method': 'gpu_exact'})
+        return self
+
     def _publish_options_gpu(self):
         self.classifier_algorithms.update({
                 'forest_inference': ['cuml', 'ForestInference'],
@@ -63,16 +73,6 @@ class Model(SimpleTechnique):
         self.search_parameters.update({'estimator': self.algorithm.algorithm,
                                        'param_distributions': self.space,
                                        'random_state': self.seed})
-        return self
-
-    def _get_parameters_conditional(self, parameters):
-        if (self.technique in ['xgboost']
-                and not 'scale_pos_weight' in parameters
-                and hasattr(self, 'scale_pos_weight')):
-            self.parameters.update(
-                    {'scale_pos_weight': self.scale_pos_weight})
-            if self.gpu:
-                self.parameters.update({'tree_method': 'gpu_exact'})
         return self
 
     def _parse_parameters(self):
@@ -110,7 +110,7 @@ class Model(SimpleTechnique):
                 'regress': ['simplify.chef.steps.techniques.regress',
                             'Regress'],
                 'search': ['simplify.chef.steps.techniques.search', 'Search']}
-        self.custom_options = ['classifier', 'clusterer', 'regressor']
+        self.checks.extend(['gpu'])
         return self
 
     def publish(self):

@@ -8,23 +8,22 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterables import SimpleIterable
 
 
 @dataclass
-class Recipe(SimplePlan):
+class Recipe(SimpleIterable):
     """Contains steps for analyzing data in the siMpLify Cookbook subpackage.
 
     Args:
         number(int): number of recipe in a sequence - used for recordkeeping
             purposes.
-        steps(dict): dictionary containing keys of SimpleTechnique names (strings)
-            and values of SimpleTechnique class instances.
+        steps(dict): dictionary containing keys of SimpleTechnique names
+            (strings) and values of SimpleIterable subclass instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
         auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
-        auto_publish: bool = True
 
     """
 
@@ -38,14 +37,60 @@ class Recipe(SimplePlan):
         super().__post_init__()
         return self
 
+    """ Private Methods """
+
+    def _calculate_hyperparameters(self):
+        """Computes hyperparameters that can be determined by the source data
+        (without creating data leakage problems).
+
+        This method currently only support xgboost's scale_pos_weight
+        parameter. Future hyperparameter computations will be added as they
+        are discovered.
+        """
+        # 'ingredients' attribute is required before method can be called.
+        if self.ingredients is not None:
+            # Data is split in oder for certain values to be computed that
+            # require features and the label to be split.
+            self.ingredients.split_xy(label = self.label)
+            # Model class is injected with scale_pos_weight for algorithms that
+            # use that parameter.
+            self.options['model'].scale_pos_weight = (
+                    len(self.ingredients.y.index) /
+                    ((self.ingredients.y == 1).sum())) - 1
+        return self
+
+    """ Public Import/Export Methods """
+
+    def save(self, file_path = None, folder = None, file_name = None):
+        self.depot.save(variable = self,
+                        file_path = file_path,
+                        folder = folder,
+                        file_name = file_name,
+                        file_format = 'pickle')
+        return
+
+    """ Core siMpLify Methods """
+
     def draft(self):
         super().draft()
+        self.options = {
+                'scale': ['simplify.chef.steps.scale', 'Scale'],
+                'split': ['simplify.chef.steps.split', 'Split'],
+                'encode': ['simplify.chef.steps.encode', 'Encode'],
+                'mix': ['simplify.chef.steps.mix', 'Mix'],
+                'cleave': ['simplify.chef.steps.cleave', 'Cleave'],
+                'sample': ['simplify.chef.steps.sample', 'Sample'],
+                'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
+                'model': ['simplify.chef.steps.model', 'Model']}
+        self.iterable_type = 'serial'
         self.iterable = 'steps'
+        self.iterable_class = None
+        self.iterable_setting = 'recipe_steps'
         return self
-    
+
     def implement(self, ingredients):
-        """Applies the Cookbook steps to the passed ingredients."""
-        steps = self.steps.copy()
+        """Applies the recipe steps to the passed ingredients."""
+        steps = getattr(self, 'iterable').copy()
         self.ingredients = ingredients
         self.ingredients.split_xy(label = self.label)
         # If using cross-validation or other data splitting technique, the
