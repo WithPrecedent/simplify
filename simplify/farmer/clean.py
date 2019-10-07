@@ -8,11 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Clean(SimplePlan):
+class Clean(SimpleIterable):
     """Cleans, munges, and parsers data using fast, vectorized methods.
 
     Args:

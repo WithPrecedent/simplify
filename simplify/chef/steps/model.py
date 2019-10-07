@@ -19,25 +19,30 @@ class Model(SimpleTechnique):
     """Applies machine learning algorithms based upon user selections.
 
     Args:
-        technique(str): name of technique.
-        parameters(dict): dictionary of parameters to pass to selected
-            algorithm.
-        name(str): name of class for matching settings in the Idea instance
-            and elsewhere in the siMpLify package.
+        technique(str): name of technique that matches key in 'options'.
+        parameters(dict): parameters to be attached to algorithm in 'options'
+            corresponding to 'technique'. This parameter need not be passed to
+            the SimpleTechnique subclass if the parameters are in the Idea
+            instance or if the user wishes to use default parameters.
+        name(str): designates the name of the class which should be identical
+            to the section of the Idea instance with relevant settings.
         auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
-    """
 
+    It is also a child class of SimpleClass. So, its documentation applies as
+    well.
+
+    """
     technique: object = None
     parameters: object = None
-    name: str = 'model'
+    name: str = 'generic_technique'
     auto_publish: bool = True
 
     def __post_init__(self):
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
-
+    
     """ Private Methods """
 
     def _datatype_in_list(self, test_list, data_type):
@@ -52,27 +57,6 @@ class Model(SimpleTechnique):
                     {'scale_pos_weight': self.scale_pos_weight})
             if self.gpu:
                 self.parameters.update({'tree_method': 'gpu_exact'})
-        return self
-
-    def _publish_options_gpu(self):
-        self.classifier_algorithms.update({
-                'forest_inference': ['cuml', 'ForestInference'],
-                'random_forest': ['cuml', 'RandomForestClassifier'],
-                'logit': ['cuml', 'LogisticRegression']})
-        self.clusterer_algorithms.update({
-                'dbscan': ['cuml', 'DBScan'],
-                'kmeans': ['cuml', 'KMeans']})
-        self.regressor_algorithms.update({
-                'lasso': ['cuml', 'Lasso'],
-                'ols': ['cuml', 'LinearRegression'],
-                'ridge': ['cuml', 'RidgeRegression']})
-        return self
-
-    def _publish_search_parameters(self):
-        self.search_parameters = self.idea['search_parameters']
-        self.search_parameters.update({'estimator': self.algorithm.algorithm,
-                                       'param_distributions': self.space,
-                                       'random_state': self.seed})
         return self
 
     def _parse_parameters(self):
@@ -96,45 +80,61 @@ class Model(SimpleTechnique):
             else:
                 new_parameters.update({param: values})
         self.parameters = new_parameters
+        return self   
+
+    def _set_estimator(self):
+        self.estimator = self.options[self.model_type]
+        return self
+        
+    def _set_parameters(self):
+        self.runtime_parameters = {'random_state': self.seed}
+        self.parameters_factory = SimpleParameters()
+        self.parameters = self.parameters_factory.implement(
+            instance = self.options[self.model_type])
+        self._parse_parameters()
         return self
 
+    def _set_search(self):
+        self.search = self.options['search'](
+            technique = self.search_technique,
+            parameters = self.idea['search_parameters'])
+        self.search.space = self.space
+        self.search.estimator = self.algorithm
+        self.search.publish()
+        return self    
+        
     """ Core siMpLify Methods """
 
     def draft(self):
         super().draft()
         self.options = {
+                'search': ['simplify.chef.steps.techniques.search', 'Search'],
                 'classify': ['simplify.chef.steps.techniques.classify',
                              'Classify'],
                 'cluster': ['simplify.chef.steps.techniques.cluster',
                             'Cluster'],
                 'regress': ['simplify.chef.steps.techniques.regress',
-                            'Regress'],
-                'search': ['simplify.chef.steps.techniques.search', 'Search']}
+                            'Regress']}
         self.checks.extend(['gpu'])
         return self
 
     def publish(self):
-        self.runtime_parameters = {'random_state': self.seed}
-        self.parameters_factory = SimpleParameters()
-        self.parameters = self.parameters_factory.implement(instance = self)
         if self.technique != 'none':
-            self._parse_parameters()
-            self.algorithm = self.options[self.model_type](
+            self._set_estimator()
+            self._set_parameters()
+            self.algorithm = self.options[self.technique](
                 technique = self.technique,
                 parameters = self.parameters)
             if self.hyperparameter_search:
-                self._publish_search_parameters()
-                self.search_algorithm = self.options['search'](
-                        technique = self.search_technique,
-                        parameters = self.search_parameters)
+                self._set_search()             
         return self
 
     def implement(self, ingredients, plan = None):
         """Applies model from recipe to ingredients data."""
         if self.technique != 'none':
             if self.hyperparameter_search:
-                self.algorithm = self.search_algorithm.implement(
-                        ingredients = ingredients)
+                self.algorithm = self.search.implement(
+                    ingredients = ingredients)
             else:
                 self.algorithm = self.algorithm.implement(
                         ingredients = ingredients)
@@ -148,4 +148,4 @@ class Model(SimpleTechnique):
 
     def transform(self, x, y = None):
         error = 'transform is not implemented for machine learning models'
-        raise NotImplementedError(error)
+        raise NotImplementedError(error)  

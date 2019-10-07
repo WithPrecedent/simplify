@@ -58,7 +58,7 @@ class SimpleParameters(SimpleClass):
             parameters(dict): an initialized dictionary of parameters.
 
         """
-        if not (instance.exists('parameters') or instance.parameters):
+        if not (hasattr(instance,'parameters') or instance.parameters):
             if instance.exists('default_parameters'):
                 if instance.exists('technique'):
                     parameters = self._denestify(
@@ -67,7 +67,9 @@ class SimpleParameters(SimpleClass):
                 else:
                     parameters = instance.default_parameters
         else:
-            if instance.exists('technique'):
+            if (hasattr(instance, 'technique') 
+                    and instance.technique != 'none'
+                    and instance.parameters):
                 parameters = self._denestify(
                     outer_key = instance.technique,
                     parameters = instance.parameters)
@@ -83,9 +85,10 @@ class SimpleParameters(SimpleClass):
             parameters_to_use(list or str): list or string containing names of
                 parameters to include in final parameters dict.
         """
-        if (instance.exists('selected_parameters')
+        if (hasattr(instance, 'selected_parameters')
                 and instance.selected_parameters
-                and instance.exists('default_parameters')):
+                and instance.exists('default_parameters')
+                and parameters):
             if instance.exists('technique'):
                 parameters_to_use = list(self._denestify(
                         instance.technique,
@@ -157,7 +160,9 @@ class SimpleParameters(SimpleClass):
                     if hasattr(self, '_get_' + value):
                         parameters = getattr(self, '_get_' + value)(
                                 instance = instance, parameters = parameters)
-                    elif instance.exists(value):
+                    elif (hasattr(instance, value) 
+                            and getattr(instance, value) 
+                            and parameters):
                         if instance.exists('technique'):
                             parameters.update(self._denestify(
                                     outer_key = instance.technique,

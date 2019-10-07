@@ -11,12 +11,12 @@ from dataclasses import dataclass
 import pandas as pd
 from sklearn import metrics
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Score(SimplePlan):
+class Score(SimpleIterable):
     """Scores models and prepares reports based upon model type.
 
     Args:

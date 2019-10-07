@@ -11,11 +11,11 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 
 #from simplify.core.decorators import localize
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Illustrate(SimplePlan):
+class Illustrate(SimpleIterable):
     """Creates data summary visualizations.
 
     Args:

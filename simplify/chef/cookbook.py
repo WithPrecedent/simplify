@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterables import SimpleIterable
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
@@ -69,7 +69,7 @@ class Cookbook(SimpleIterable):
                 self.depot._set_recipe_folder()
                 if self.export_all_recipes:
                     self.save_recipes(recipes = recipe)
-                if 'reduce' in self.steps and self.reduce != ['none']:
+                if 'reduce' in self.steps and self.reduce != 'none':
                     self.ingredients.save_dropped(folder = self.depot.recipe)
             if 'critic' in self.packages:
                 self.critic.implement(ingredients = recipe.ingredients,
@@ -150,11 +150,11 @@ class Cookbook(SimpleIterable):
         """Sets default options for the Chef's cookbook."""
         super().draft()
         self.options = {
-            'recipes': ['simplify.chef.recipe', 'Recipe'],
+            'chef': ['simplify.chef.recipe', 'Recipe'],
             'critic' : ['simplify.critic.review', 'Review'],
-            'artist': ['simplify.critic.artist', 'Canvas']}
+            'artist': ['simplify.artist.canvas', 'Canvas']}
         self.parallel_options = {
-                'recipes': ['scale', 'split', 'encode', 'mix', 'cleave',
+                'chef': ['scale', 'split', 'encode', 'mix', 'cleave',
                             'sample', 'reduce', 'model']}
         self.checks.extend(['ingredients'])
         # Locks 'step' attribute at 'cook' for conform methods in package.

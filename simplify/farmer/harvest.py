@@ -9,11 +9,11 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Harvest(SimplePlan):
+class Harvest(SimpleIterable):
     """Extracts data from text or other sources.
 
     Args:

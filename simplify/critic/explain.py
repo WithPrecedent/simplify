@@ -8,11 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Explain(SimplePlan):
+class Explain(SimpleIterable):
     """Explains model results.
 
     Args:

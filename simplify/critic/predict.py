@@ -9,11 +9,11 @@
 from dataclasses import dataclass
 
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Predict(SimplePlan):
+class Predict(SimpleIterable):
     """Creates predictions from fitted models for out-of-sample data.
 
     Args:

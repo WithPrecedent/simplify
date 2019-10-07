@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 from simplify.core.technique import SimpleTechnique
 
-
 @dataclass
 class Classify(SimpleTechnique):
     """Applies machine learning classifier algorithms based upon user
@@ -34,7 +33,19 @@ class Classify(SimpleTechnique):
     def __post_init__(self):
         super().__post_init__()
         return self
-
+    
+    """ Private Methods """
+    
+    def _get_conditional_options(self):
+        if self.gpu:
+            self.options.update({
+                    'forest_inference': ['cuml', 'ForestInference'],
+                    'random_forest': ['cuml', 'RandomForestClassifier'],
+                    'logit': ['cuml', 'LogisticRegression']})
+        return self
+ 
+    """ Core siMpLify Methods """
+        
     def draft(self):
         super().draft()
         self.options = {
@@ -57,15 +68,7 @@ class Classify(SimpleTechnique):
                                               'probability': True},
                                  'svm_sigmoid': {'kernel': 'sigmoid',
                                                   'probability': True}}
-        return self
-
-    def publish(self):
-        if self.technique in self.extra_parameters:
-            self.parameters.update(self.extra_parameters[self.technique])
-        if self.technique != ['none']:
-            self.algorithm = self.options[self.technique](**self.parameters)
-        else:
-            self.algorithm = None
+        self._get_conditional_options()
         return self
 
     def implement(self, ingredients):

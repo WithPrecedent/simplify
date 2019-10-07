@@ -33,7 +33,19 @@ class Regress(SimpleTechnique):
     def __post_init__(self):
         super().__post_init__()
         return self
-
+    
+    """ Private Methods """
+    
+    def _get_conditional_options(self):
+        if self.gpu:
+            self.options.update({
+                'lasso': ['cuml', 'Lasso'],
+                'ols': ['cuml', 'LinearRegression'],
+                'ridge': ['cuml', 'RidgeRegression']})
+        return self    
+ 
+    """ Core siMpLify Methods """
+       
     def draft(self):
         super().draft()
         self.options = {
@@ -59,6 +71,7 @@ class Regress(SimpleTechnique):
                                                'probability': True},
                                   'svm_sigmoid': {'kernel': 'sigmoid',
                                                    'probability': True}}
+        self._get_conditional_options()
         return self
 
     def implement(self, ingredients):

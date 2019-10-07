@@ -40,6 +40,8 @@ class SimpleTechnique(SimpleClass):
             corresponding to 'technique'. This parameter need not be passed to
             the SimpleTechnique subclass if the parameters are in the Idea
             instance or if the user wishes to use default parameters.
+        name(str): designates the name of the class which should be identical
+            to the section of the Idea instance with relevant settings.
         auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 

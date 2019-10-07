@@ -394,14 +394,14 @@ class Idea(SimpleClass):
             instance with attribute(s) added.
 
         """
-        for section in self.configuration.keys():
-            if (section.endswith('_parameters')
-                    and (not instance.exists('parameters') or override)):
-                options_name = section.replace('_parameters', '')
-                if ((instance.exists('technique')
-                        and options_name == instance.technique)
-                        or options_name in instance.name):
-                    instance.parameters = self.configuration[section]
+        # for section in self.configuration.keys():
+        #     if (section.endswith('_parameters')
+        #             and (not instance.exists('parameters') or override)):
+        #         options_name = section.replace('_parameters', '')
+        #         if ((instance.exists('technique')
+        #                 and options_name == instance.technique)
+        #                 or options_name in instance.name):
+        #             instance.parameters = self.configuration[section]
         for section in self.listify(sections):
             for key, value in self.configuration[section].items():
                 if (instance.exists('iterable_setting')

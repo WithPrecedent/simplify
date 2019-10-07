@@ -9,14 +9,14 @@
 from dataclasses import dataclass
 
 from simplify.core.decorators import local_backups
-from simplify.core.iterables import SimpleBuilder
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
+from simplify.core.iterable import SimpleIterable
 from simplify.core.technique import SimpleTechnique
 from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Almanac(SimpleBuilder):
+class Almanac(SimpleIterable):
     """Implements data parsing, wrangling, munging, merging, engineering, and
     cleaning methods for the siMpLify package.
 
@@ -32,7 +32,7 @@ class Almanac(SimpleBuilder):
             argument should only be passed if the user wishes to override the
             steps listed in the Idea settings or if the user is not using the
             Idea class.
-        plans(SimplePlan): instanced subclasses of SimplePlan for prepared tools
+        plans(SimpleIterable): instanced subclasses of SimpleIterable for prepared tools
             for the Almanac.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
@@ -45,7 +45,7 @@ class Almanac(SimpleBuilder):
         auto_implement(bool): whether to call the 'implement' method when the class
             is instanced.
             
-    Since this class is a subclass to SimpleBuilder and SimpleClass, all
+    Since this class is a subclass to SimpleIterable and SimpleClass, all
     documentation for those classes applies as well.
 
     """

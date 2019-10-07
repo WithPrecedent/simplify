@@ -11,12 +11,12 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
-class Rank(SimplePlan):
+class Rank(SimpleIterable):
     """Determines feature importances through a variety of techniques.
 
     Args:

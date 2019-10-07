@@ -11,12 +11,12 @@ from dataclasses import dataclass
 import pandas as pd
 
 #from simplify.core.decorators import localize
-from simplify.core.iterables import SimpleBuilder
+from simplify.core.iterable import SimpleIterable
 
 
 
 @dataclass
-class Review(SimpleBuilder):
+class Review(SimpleIterable):
     """Builds tools for evaluating, explaining, and creating predictions from
     data and machine learning models.
 
@@ -38,7 +38,7 @@ class Review(SimpleBuilder):
         auto_implement(bool): whether to call the 'implement' method when the 
             class is instanced.
 
-    Since this class is a subclass to SimpleBuilder and SimpleClass, all
+    Since this class is a subclass to SimpleIterable and SimpleClass, all
     documentation for those classes applies as well.
 
     """

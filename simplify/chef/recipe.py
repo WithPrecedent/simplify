@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterables import SimpleIterable
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
@@ -82,10 +82,8 @@ class Recipe(SimpleIterable):
                 'sample': ['simplify.chef.steps.sample', 'Sample'],
                 'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
                 'model': ['simplify.chef.steps.model', 'Model']}
-        self.iterable_type = 'serial'
         self.iterable = 'steps'
-        self.iterable_class = None
-        self.iterable_setting = 'recipe_steps'
+        self.iterable_setting = 'chef_steps'
         return self
 
     def implement(self, ingredients):

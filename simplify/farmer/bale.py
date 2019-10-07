@@ -8,11 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Bale(SimplePlan):
+class Bale(SimpleIterable):
     """Class for combining different datasets."""
     technique: object = None
     parameters: object = None

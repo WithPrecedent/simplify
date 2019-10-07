@@ -25,25 +25,31 @@ class Search(SimpleTechnique):
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
         auto_publish (bool): whether 'publish' method should be called when
-            the class is instanced. This should generally be set to True.
+            the class is instanced. This should generally be set to False for
+            this class because of the complexity of adding a complete estimator
+            before finalizing the search algorithm.
     """
 
     technique: object = None
     parameters: object = None
     name: str = 'search'
-    auto_publish: bool = True
+    auto_publish: bool = False
 
     def __post_init__(self):
         super().__post_init__()
         return self
-
+    
     """ Private Methods """
-
-    def _get_conditional_parameters(self, parameters):
-        print('search working', self.parameters, 'parameters passed', parameters)
-        if 'refit' in parameters:
-            parameters['scoring'] = self.listify(parameters['scoring'])[0]
-        return parameters
+      
+    def _set_parameters(self):
+        self.parameters.update(
+            {'estimator': self.estimator,
+             'param_distributions': self.space,
+             'random_state': self.seed})
+        if 'refit' in self.parameters:
+            self.parameters['scoring'] = self.listify(
+                self.parameters['scoring'])[0]
+        return self
 
     def _print_best_estimator(self):
         if self.verbose:
@@ -61,8 +67,10 @@ class Search(SimpleTechnique):
                 'bayes': ['skopt', 'BayesSearchCV'],
                 'grid': ['sklearn.model_selection', 'GridSearchCV'],
                 'random': ['sklearn.model_selection', 'RandomizedSearchCV']}
+        return self
 
     def implement(self, ingredients):
         self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+        self._print_best_estimator()
         self.best_estimator = self.algorithm.best_estimator_
         return self.best_estimator

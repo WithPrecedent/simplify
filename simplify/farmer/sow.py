@@ -8,11 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Sow(SimplePlan):
+class Sow(SimpleIterable):
     """Acquires and performs basic preparation of data sources.
 
     Args:

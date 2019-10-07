@@ -33,7 +33,18 @@ class Cluster(SimpleTechnique):
     def __post_init__(self):
         super().__post_init__()
         return self
-
+    
+    """ Private Methods """
+    
+    def _get_conditional_options(self):
+        if self.gpu:
+            self.options.update({
+                'dbscan': ['cuml', 'DBScan'],
+                'kmeans': ['cuml', 'KMeans']})
+        return self
+ 
+    """ Core siMpLify Methods """
+       
     def draft(self):
         super().draft()
         self.options = {
@@ -49,6 +60,7 @@ class Cluster(SimpleTechnique):
                 'svm_poly': ['sklearn.cluster', 'OneClassSVM'],
                 'svm_rbf': ['sklearn.cluster', 'OneClassSVM,'],
                 'svm_sigmoid': ['sklearn.cluster', 'OneClassSVM']}
+        self._get_conditional_options()
         return self
 
     def implement(self, ingredients):

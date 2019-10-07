@@ -10,11 +10,11 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Summarize(SimplePlan):
+class Summarize(SimpleIterable):
     """Summarizes data.
 
     Args:

@@ -9,11 +9,11 @@
 from dataclasses import dataclass
 
 from simplify.core.decorators import localize
-from simplify.core.iterables import SimpleBuilder
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Canvas(SimpleBuilder):
+class Canvas(SimpleIterable):
     """Builds tools for data visualization.
 
     Args:
@@ -36,7 +36,7 @@ class Canvas(SimpleBuilder):
         auto_implement (bool): whether to call the 'implement' method when the class
             is instanced.
 
-    Since this class is a subclass to SimpleBuilder and SimpleClass, all
+    Since this class is a subclass to SimpleIterable and SimpleClass, all
     documentation for those classes applies as well.
 
     """

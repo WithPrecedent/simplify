@@ -11,11 +11,11 @@ from dataclasses import dataclass
 from math import ceil, sqrt
 import matplotlib.pyplot as plt
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Paint(SimplePlan):
+class Paint(SimpleIterable):
     """Creates data analysis visualizations.
 
     Args:

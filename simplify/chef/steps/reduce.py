@@ -53,7 +53,7 @@ class Reduce(SimpleTechnique):
         self.selected_parameters = True
         return self
 
-    def _set_parameters(self, estimator):
+    # def _set_parameters(self, estimator):
 #        if self.technique in ['rfe', 'rfecv']:
 #            self.default_parameters = {'n_features_to_select': 10,
 #                                       'step': 1}
@@ -76,7 +76,7 @@ class Reduce(SimpleTechnique):
 #            self.num_features = self.parameters['k']
 #        else:
 #            self.num_features = self.parameters['n_features_to_select']
-        return self
+        # return self
 
     def publish(self):
         super().publish()

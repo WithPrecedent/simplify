@@ -11,11 +11,11 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from simplify.core.iterables import SimplePlan
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Style(SimplePlan):
+class Style(SimpleIterable):
 
     technique: object = None
     parameters: object = None
