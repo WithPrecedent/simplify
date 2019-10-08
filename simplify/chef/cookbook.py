@@ -48,7 +48,8 @@ class Cookbook(SimpleIterable):
 
     ingredients: object = None
     recipes: object = None
-    name: str = 'chef'
+    steps: object = None
+    name: str = 'cookbook'
     auto_publish: bool = True
     auto_implement: bool = False
 
@@ -57,21 +58,7 @@ class Cookbook(SimpleIterable):
         return self
 
     """ Private Methods """
-    
-    def _check_iterable(self):
-        """Creates class iterable attribute to be filled with concrete steps if
-        one does not exist.
-        """
-        super()._check_iterable()
-        if 'chef' in self.sequence:
-            new_sequence = ['recipes']
-            if 'critic' in self.sequence:
-                new_sequence.append('critic')
-            if 'artist' in self.sequence:
-                new_sequence.append('artist')
-            self.sequence = new_sequence            
-        return self
-    
+
     def _implement_recipes(self):
         """Tests all 'recipes'."""
         for recipe in getattr(self, self.iterable):
@@ -174,9 +161,7 @@ class Cookbook(SimpleIterable):
         # Locks 'step' attribute at 'cook' for conform methods in package.
         self.step = 'cook'
         # Sets attributes to allow proper parent methods to be used.
-        self.iterable = 'steps'
         self.iterable_setting = 'packages'
-        self.return_variables = {'critic': ['best_recipe']}
         return self
 
     def edit_recipes(self, recipes):
@@ -202,18 +187,21 @@ class Cookbook(SimpleIterable):
                 self.recipes.update({i + 1: recipe})
         return self
 
-    def implement(self, ingredients = None):
+    def implement(self, ingredients = None, previous_package = None):
         """Completes an iteration of a Cookbook.
 
         Args:
-            ingredients: an Instance of Ingredients. If passsed, it will be
-                assigned to self.ingredients. If not passed, and if it already
-                exists, self.ingredients will be used.
+            ingredients(Ingredients): If passsed, it will be assigned to the
+                local 'ingredients' attribute. If not passed, and if it already
+                exists, the local 'ingredients' will be used.
+            previous_package(SimpleIterable): The previous subpackage, if one
+                was used
 
         """
         if ingredients:
             self.ingredients = ingredients
-        print('recipes', self.recipes)
+        if previous_package:
+            self.ingredients = previous_package.ingredients
         if 'train_test_val' in self.data_to_use:
             self.ingredients._remap_dataframes(data_to_use = 'train_test')
             self._implement_recipes()

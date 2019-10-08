@@ -1,6 +1,6 @@
 """
 .. module:: idea
-:synopsis: stores settings and configuration for siMpLify project
+:synopsis: configures a siMpLify project
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -16,35 +16,37 @@ from simplify.core.base import SimpleClass
 
 @dataclass
 class Idea(SimpleClass):
-    """Loads and/or stores the user's data science idea.
+    """Converts a data science idea into python.
 
     If configuration settings are imported from a file, Idea creates a nested
     dictionary, converting dictionary values to appropriate datatypes, and
     stores portions of the configuration dictionary as attributes in other
-    classes. Idea is based on for python's ConfigParser. It seeks to cure some
-    of the most significant shortcomings of the base ConfigParser package:
+    classes. Idea is based on python's ConfigParser. It seeks to cure some
+    of the shortcomings of the base ConfigParser package, including:
         1) All values in ConfigParser are strings by default.
         2) The nested structure for getting items creates verbose code.
-        3) It still uses OrderedDict (even though python 3.6+ has automatically
+        3) It still OrderedDict (even though python 3.6+ has automatically
              orders regular dictionaries).
 
-    To use the Idea class, the user can either:
-        1) Pass file path and the file will automatically be loaded,
-        2) Pass a file name which is located in the current working directory,
-            or;
-        3) Pass a prebuilt nested dictionary matching the specifications of
-        'configuration' for storage in the Idea class.
+    To use the Idea class, the user can either pass to 'configuration':
+        1) a file path, which will automatically be loaded into Idea;
+        2) a file name which is located in the current working directory,
+            which will automatically be loaded into Idea;
+            or,
+        3) a prebuilt nested dictionary matching the specifications of the
+        'configuration' attribute.
 
-    Whichever option is chosen, the nested idea dictionary is stored in the
-    attribute 'configuration'. Users can store any key/value pairs in a section
-    of the 'configuration' dictionary as attributes in a class instance by
-    using the 'inject' method.
+    Whichever option is chosen, the nested Idea dictionary is stored in the
+    attribute 'configuration'.
 
     If 'infer_types' is set to True (the default option), the dictionary values
     are automatically converted to appropriate datatypes (str, list, float,
     bool, and int are currently supported)
 
-    For example, if the idea file is as follows:
+    Users can add any key/value pairs in a section of the 'configuration'
+    dictionary as attributes to a class instance by using the 'inject' method.
+
+    For example, if the idea source file is as follows:
 
         [general]
         verbose = True
@@ -56,8 +58,8 @@ class Idea(SimpleClass):
         test_chunk = 500
         random_test_chunk = True
 
-        [cookbook]
-        cookbook_steps = split, reduce, model
+        [chef]
+        chef_steps = split, reduce, model
 
     'verbose' and 'file_type' will automatically be added to every siMpLify
     class because they are located in the 'general' section. If a subclass
@@ -99,18 +101,26 @@ class Idea(SimpleClass):
     Because Idea uses ConfigParser, it only allows 2-level dictionaries. The
     desire for accessibility and simplicity dictated this limitation.
 
+    Idea will also automatically inject any sections of the 'configuration'
+    as 'parameters' in a class instance if the section ends with '_parameters'
+    and the prefix matches either the 'name' or 'technique' attribute.
+
     Args:
         configuration(str or dict): either a file path, file name, or two-level
             nested dictionary storing settings. If a file path is provided, a
             nested dict will automatically be created from the file and stored
             in 'configuration'. If a file name is provided, Idea will look for
             it in the current working directory and store its contents in
-            'configuration'.
+            'configuration'. If a dict is provided, it should be nested into
+            sections with individual settings in key/value pairs.
         infer_types(bool): whether values in 'configuration' are converted to
             other types (True) or left as strings (False).
+        name(str): as with other classes in siMpLify, the name is used for
+            coordinating between classes. If Idea is subclassed, it is
+            generally a good idea to keep the 'name' attribute as 'idea'.
         auto_publish(bool): whether to automatically call the 'publish'
-            method when the class is instanced. Unless adding a new source for
-            'configuration' settings, this should be set to True.
+            method when the class is instanced. Unless adding an additional
+            source for 'configuration' settings, this should be set to True.
 
     """
     configuration: object = None
@@ -122,11 +132,18 @@ class Idea(SimpleClass):
         super().__post_init__()
         return self
 
-    """ Magic Methods """
+    """ Dunder Methods """
+
+    def __add__(self, other):
+        self.update(new_settings = other)
+        return self
+
+    def __contains__(self, item):
+        return item in self.configuration
 
     def __delitem__(self, key):
-        """Removes a dictionary section if name matches the name of a section.
-        Otherwise, it will remove all entries with name inside the various
+        """Removes a dictionary section if 'key' matches the name of a section.
+        Otherwise, it will remove all entries with 'key' inside the various
         sections of the 'configuration' dictionary.
 
         Args:
@@ -150,20 +167,19 @@ class Idea(SimpleClass):
         return self
 
     def __getattr__(self, attr):
-        """Returns dict methods applied to configuration attribute if those
-        methods are sought from the class instance.
+        """Intercepts dict method calls and applies them to 'configuration'.
 
         Args:
             attr (str): attribute sought.
 
         Returns:
-            attribute or None, if attribute does not exist.
+            The matching dict method, an attribute, or None, if a matching
+                attribute does not exist.
 
         Raises:
             AttributeError: if a dunder attribute is sought.
         """
-        # Intecepts common dict methods and applies them to 'configuration'
-        # dict.
+        # Intecepts common dict methods and applies them to 'configuration'.
         if attr in ['clear', 'items', 'pop', 'keys', 'values']:
             return getattr(self.configuration, attr)
         elif attr in self.__dict__:
@@ -176,7 +192,7 @@ class Idea(SimpleClass):
             raise AttributeError(error)
 
     def __getitem__(self, key):
-        """Returns a section of the configuration or key within a section.
+        """Returns a section of 'configuration' or key within a section.
 
         Args:
             key(str): the name of the dictionary key for which the value is
@@ -200,27 +216,40 @@ class Idea(SimpleClass):
         if not found_value:
             return {}
 
+    def __iadd__(self, other):
+        self.update(new_settings = other)
+        return self
+
     def __iter__(self):
         """Returns iterable configuration dict items()."""
         return self.configuration.items()
 
-    def __setitem__(self, section, nested_dict):
-        """Creates a new subsection in a specified section of the configuration
-        nested dictionary.
+    def __len__(self):
+        return len(self.configuration)
+
+    def __radd__(self, other):
+        self.update(new_settings = other)
+        return self
+
+    def __setitem__(self, section, dictionary):
+        """Creates new key/value pair(s) in a specified section of
+        'configuration'.
 
         Args:
-            section(str): a string naming the section of the configuration
-                dictionary.
-            nested_dict(dict): the dictionary to be placed in that section.
+            section(str): name of a section in 'configuration'.
+            dictionary(dict): the dictionary to be placed in that section.
 
         Raises:
-            TypeError if 'section' isn't a str or 'nested_dict' isn't a dict.
+            TypeError if 'section' isn't a str or 'dictionary' isn't a dict.
         """
         if isinstance(section, str):
-            if isinstance(nested_dict, dict):
-                self.configuration.update({section, nested_dict})
+            if isinstance(dictionary, dict):
+                if section in self.configuration:
+                    self.configuration[section].update(dictionary)
+                else:
+                    self.configuration[section] = dictionary
             else:
-                error_message = 'nested_dict must be dict type'
+                error_message = 'dictionary must be dict type'
                 raise TypeError(error_message)
         else:
             error_message = 'section must be str type'
@@ -234,19 +263,17 @@ class Idea(SimpleClass):
         properly publish 'configuration'.
 
         Raises:
-            AttributeError if 'configuration' attribute is neither a file path
-                dict, nor Idea instance.
-            TypeError if 'configuration' is a string path to a file that neither
-                has an 'ini' nor 'py' extension or if 'configuration' is neither
-                a string nor a dictionary.
-            FileNotFoundError if 'configuration' is a string path to a file that
-                does not exist.
+            AttributeError: if 'configuration' is None.
+            TypeError: if 'configuration' is a path to a file that neither
+                has an 'ini' nor 'py' extension or if 'configuration' is
+                neither a str nor a dict.
+
         """
         if self.configuration:
             if isinstance(self.configuration, str):
-                if '.ini' in self.configuration:
+                if '\.ini' in self.configuration:
                     self.technique = 'ini_file'
-                elif '.py' in self.configuration:
+                elif '\.py' in self.configuration:
                     self.technique = 'py_file'
                 else:
                     error = 'configuration file must be .py or .ini file'
@@ -267,8 +294,8 @@ class Idea(SimpleClass):
         are converted to the appropriate datatype.
         """
         if self.infer_types:
-            for section, nested_dict in self.configuration.items():
-                for key, value in nested_dict.items():
+            for section, dictionary in self.configuration.items():
+                for key, value in dictionary.items():
                     self.configuration[section][key] = self._typify(value)
         return self
 
@@ -279,15 +306,39 @@ class Idea(SimpleClass):
         setattr(SimpleClass, 'idea', self)
         return self
 
-    def _load_from_ini(self):
+    def _inject_steps(self, instance, key, value, override):
+        if not getattr(instance, 'steps') or override:
+            for item in self.listify(instance._convert_wildcards(value)):
+                getattr(instance, 'steps').update(
+                        {item: self.options[item]})
+        return instance
+
+    def _inject_parameters(self, instance, override):
+        if not instance.parameters or override:
+            key = instance.technique + '_parameters'
+            if key in self.idea.configuration:
+                instance.parameters = self.idea.configuration[key]
+        return instance
+
+    def _inject_techniques(self, instance, key, value, override):
+        if not hasattr(instance, key) or override:
+            setattr(instance, key,
+                    self.listify(instance._convert_wildcards(value)))
+        return instance
+
+    def _load_from_ini(self, file_path = None):
         """Creates a configuration dictionary from an .ini file."""
-        if os.path.isfile(self.configuration):
+        if file_path:
+            configuration_file = file_path
+        else:
+            configuration_file = self.configuration
+        if os.path.isfile(configuration_file):
             configuration = ConfigParser(dict_type = dict)
             configuration.optionxform = lambda option: option
-            configuration.read(self.configuration)
+            configuration.read(configuration_file)
             self.configuration = dict(configuration._sections)
         else:
-            error = 'configuration file ' + self.configuration + ' not found'
+            error = 'configuration file ' + configuration_file + ' not found'
             raise FileNotFoundError(error)
         return self
 
@@ -309,6 +360,7 @@ class Idea(SimpleClass):
 
         Returns
             variable(int, float, str) converted to numeric type, if possible.
+
         """
         try:
             return int(variable)
@@ -318,21 +370,8 @@ class Idea(SimpleClass):
             except ValueError:
                 return variable
 
-    def _set_initial_state(self):
-        """Sets initial 'step' for state_depenent subclasses."""
-        if 'farmer' in self.configuration['general']['packages']:
-            self.step = self.listify(
-                    self.idea.configuration['almanac']['almanac_steps'])[0]
-        elif 'chef' in self.configuration['general']['packages']:
-            self.step = 'cook'
-        elif 'review' in self.configuration['general']['packages']:
-            self.step = 'review'
-        else:
-            self.step = 'canvas'
-        return self
-
     def _typify(self, variable):
-        """Converts str to appropriate, supported datatype.
+        """Converts stingsr to appropriate, supported datatypes.
 
         The method converts strings to list (if ', ' is present), int, float,
         or bool datatypes based upon the content of the string. If no
@@ -370,23 +409,23 @@ class Idea(SimpleClass):
         it does not exist or 'override' is True).
 
         If the sought key from a section has the '_steps' suffix, the value for
-        that key is stored at instance.steps (assuming that it does not exist or
-        'override' is True).
+        that key is stored at instance.steps (assuming that it does not exist
+        or 'override' is True).
 
-        If the sought key from a section has the '_techniques' suffix, the value
-        for that key is stored either at the attribute named the prefix of the
-        key (assuming that it does not exist or 'override' is True).
+        If the sought key from a section has the '_techniques' suffix, the
+        value for that key is stored either at the attribute named the prefix
+        of the key (assuming that it does not exist or 'override' is True).
 
         Wildcard values of 'all', 'default', and 'none' are appropriately
         changed with the '_convert_wildcards' method.
 
         Args:
-            instance(object): either a class instance or class to which
-                attributes should be added.
-            sections(str or list(str)): the sections of the configuration
-                dictionary which should be added to the instance.
+            instance(object): a class instance to which attributes should be
+                added.
+            sections(str or list(str)): the sections of 'configuration' which
+                should be added to the instance.
             override(bool): if True, even existing attributes in instance will
-                be replaced by configuration dictionary items. If False,
+                be replaced by 'configuration' key/value pairs. If False,
                 current values in those similarly-named attributes will be
                 maintained (unless they are None).
 
@@ -394,26 +433,26 @@ class Idea(SimpleClass):
             instance with attribute(s) added.
 
         """
-        for section in self.configuration.keys():
-            if (section.endswith('_parameters')
-                    and (not instance.exists('parameters') or override)):
-                options_name = section.replace('_parameters', '')
-                if ((instance.exists('technique')
-                        and options_name == instance.technique)
-                        or options_name in instance.name):
-                    instance.parameters = self.configuration[section]
+        # Injects appropriate 'parameters' into SimpleTechnique instance.
+        if hasattr(instance, 'parameters') and hasattr(instance, 'technique'):
+            instance = self._inject_parameters(instance = instance,
+                                               override = override)
         for section in self.listify(sections):
             for key, value in self.configuration[section].items():
-                if (instance.exists('iterable_setting')
+                if (hasattr(instance, 'iterable_setting')
                         and key == instance.iterable_setting):
-                    instance.sequence = self.listify(value)
+                    self._inject_steps(
+                            instance = instance,
+                            key = key,
+                            value = value,
+                            override = override)
                 elif key.endswith('_techniques'):
-                    attribute_name = key.replace('_techniques', '')
-                    if ((not instance.exists(attribute_name) or override)
-                            and attribute_name in instance.options):
-                        setattr(instance, attribute_name,
-                                instance._convert_wildcards(value))
-                elif not instance.exists(key) or override:
+                    self._inject_techniques(
+                            instance = instance,
+                            key = key,
+                            value = value,
+                            override = override)
+                elif not hasattr(instance, key) or override:
                     setattr(instance, key, instance._convert_wildcards(value))
         return instance
 
@@ -422,9 +461,10 @@ class Idea(SimpleClass):
     def draft(self):
         """Sets options to create 'configuration' dict'."""
         # Sets options for creating 'configuration'.
-        self.options = {'py_file': self._load_from_py,
-                        'ini_file': self._load_from_ini,
-                        'dict': None}
+        self.options = {
+                'py_file': self._load_from_py,
+                'ini_file': self._load_from_ini,
+                'dict': None}
         return self
 
     def publish(self):
@@ -435,8 +475,6 @@ class Idea(SimpleClass):
         if self.options[self.technique]:
             self.options[self.technique]()
         self._infer_types()
-        # Sets 'step' to first step from Idea instance.
-        self._set_initial_state()
         self._inject_base()
         return self
 
@@ -446,10 +484,9 @@ class Idea(SimpleClass):
         """Adds new settings to the configuration dictionary.
 
         Args:
-           new_settings(dict, str, or Idea): can either be a dictionary or Idea
-               object containing new attribute, value pairs or a string
-               containing a file path from which new configuration options can
-               be found.
+           new_settings(dict, str, or Idea): can either be a dicti or Idea
+               object containing new key/value pairs, or a str containing a
+               file path from which new configuration options can be found.
 
         Raises:
             TypeError: if 'new_settings' is neither a dict, str, or Idea
@@ -458,8 +495,11 @@ class Idea(SimpleClass):
         if isinstance(new_settings, dict):
             self.configuration.update(new_settings)
         elif isinstance(new_settings, str):
-            self.configuration.update(
-                    self._create_configuration(file_path = new_settings))
+            if '\.ini' in self.configuration:
+                technique = self._load_ini_file
+            elif '\.py' in self.configuration:
+                technique = self._load_py_file
+            self.configuration.update(technique(file_path = new_settings))
         elif (hasattr(new_settings, 'configuration')
                 and isinstance(new_settings.configuration, dict)):
             self.configuration.update(new_settings.configuration)

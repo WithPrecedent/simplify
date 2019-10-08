@@ -26,7 +26,7 @@ class Review(SimpleIterable):
             can be loaded into a pandas DataFrame is located. If it is a string,
             the loaded DataFrame will be bound to a new ingredients instance as
             the 'df' attribute.
-        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique 
+        steps(dict(str: SimpleIterable)): names and related SimpleIterable
             classes for analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It
@@ -35,7 +35,7 @@ class Review(SimpleIterable):
             to the section of the idea configuration with relevant settings.
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement(bool): whether to call the 'implement' method when the 
+        auto_implement(bool): whether to call the 'implement' method when the
             class is instanced.
 
     Since this class is a subclass to SimpleIterable and SimpleClass, all
@@ -71,7 +71,7 @@ class Review(SimpleIterable):
             return step.technique
         else:
             return step.algorithm
-              
+
     def _set_columns(self, recipe):
         self.required_columns = {
             'recipe_number': 'number',
@@ -125,15 +125,15 @@ class Review(SimpleIterable):
         self.return_variables = {
             'summarize': ['summary'],
             'explain': ['values'],
-            'rank': ['importances'], 
+            'rank': ['importances'],
             'predict': ['predictions, probabilities'],
             'score' : ['report']}
         return self
- 
+
     def publish(self):
         super().publish()
         return self
-    
+
     def implement(self, ingredients = None, recipes = None):
         """Evaluates recipe with various tools and publishs report.
 

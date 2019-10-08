@@ -8,13 +8,13 @@
 
 from dataclasses import dataclass
 
-from simplify.core.base import SimpleClass
 from simplify.core.decorators import localize
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
-class Simplify(SimpleClass):
-    """Controller class for completely automated projects.
+class Simplify(SimpleIterable):
+    """Controller class for completely automated siMpLify projects.
 
     This class is provided for applications that rely exclusively on Idea
     settings and/or subclass attributes. For a more customized application,
@@ -53,6 +53,7 @@ class Simplify(SimpleClass):
     idea: object = None
     ingredients: object = None
     depot: object = None
+    steps: object = None
     name: str = 'simplify'
     auto_publish: bool = True
     auto_implement: bool = False
@@ -61,8 +62,7 @@ class Simplify(SimpleClass):
         super().__post_init__()
         return self
 
-    @localize
-    def __call__(self, **kwargs):
+    def __call__(self, ingredients = None):
         """Calls the class as a function.
 
         Only keyword arguments are accepted so that they can be properly
@@ -74,31 +74,60 @@ class Simplify(SimpleClass):
                 be turned into localized attributes.
         """
         self.__post_init__()
-        self.implement(**kwargs)
+        self.implement(ingredients = ingredients)
         return self
-    
+
+    def _implement_dangerous(self):
+        first_package = True
+        for name, package in self.steps.items():
+            if first_package:
+                first_package = False
+                package.implement(ingredients = self.ingredients)
+            else:
+                package.implement(previous_package = previous_package)
+            previous_package = package
+        return self
+
+    def _implement_safe(self):
+        for name, package in self.steps.items():
+            if name in ['farmer']:
+                package.implement(ingredients = self.ingredients)
+                self.ingredients = package.ingredients
+                del package
+            if name in ['chef']:
+                package.implement(ingredients = self.ingredients)
+                self.ingredients = package.ingredients
+                self.recipes = package.recipes
+                del package
+            if name in ['critic']:
+                package.implement(ingredients = self.ingredients,
+                                  recipes = self.recipes)
+                self.ingredients = package.ingredients
+                self.reviews = package.reviews
+            if name in ['artist']:
+                package.implement(ingredients = self.ingredients,
+                                  recipes = self.recipes,
+                                  reviews = self.reviews)
+        return self
+
     """ Core siMpLify Methods """
 
     def draft(self):
+        super().draft()
         self.options = {
                 'farmer': ['simplify.farmer', 'Almanac'],
                 'chef': ['simplify.chef', 'Cookbook'],
                 'critic': ['simplify.critic', 'Review'],
                 'artist': ['simplify.artist', 'Canvas']}
-        self.checks = ['depot', 'ingredients']
+        self.checks.extend(['ingredients'])
+        self.iterable_setting = 'packages'
         return self
 
-    def publish(self):
-        for package_name, package_class in self.options.items():
-            if package_name in self.packages:
-                setattr(self, package_name, package_class())
-        return self
-
-    #@localize
-    def implement(self, *args, **kwargs):
-        if 'farmer' in self.packages:
-            self.farmer.implement(ingredients = self.ingredients, **kwargs)
-            self.ingredients = self.farmer.ingredients
-        if 'chef' in self.packages:
-            self.chef.implement(ingredients = self.ingredients, **kwargs)            
+    def implement(self, ingredients = None):
+        if ingredients:
+            self.ingredients = ingredients
+        if self.conserve_memory:
+            self._implement_safe()
+        else:
+            self._implement_dangerous()
         return self

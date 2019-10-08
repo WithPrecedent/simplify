@@ -47,20 +47,20 @@ class SimpleClass(ABC):
             automatically made available to all other SimpleClass subclasses
             that are instanced in the future.
         depot(Depot): an instance of Depot. Once a Depot instance is created by
-            a subclass of SimpleClass, it is automatically made available to all
-            other SimpleClass subclasses that are instanced in the future.
+            a subclass of SimpleClass, it is automatically made available to
+            all other SimpleClass subclasses that are instanced in the future.
         ingredients(Ingredients or str): an instance of Ingredients of a string
             containing the full file path of where a supported file type that
-            can be loaded into a pandas DataFrame is located. If it is a string,
-            the loaded DataFrame will be bound to a new ingredients instance as
-            the 'df' attribute.
+            can be loaded into a pandas DataFrame is located. If it is a
+            string,  the loaded DataFrame will be bound to a new ingredients
+            instance as the 'df' attribute.
         name(str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
             throughout the siMpLify package.
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement(bool): whether to call the 'implement' method when the class
-            is instanced.
+        auto_implement(bool): whether to call the 'implement' method when the
+            class is instanced.
 
     """
 
@@ -91,13 +91,13 @@ class SimpleClass(ABC):
     """ Magic Methods """
 
     def __call__(self, idea, *args, **kwargs):
-        """When called as a function, a subclass will return the implement method
-        after running __post_init__.
+        """When called as a function, a subclass will return the implement
+        method after running __post_init__.
 
         Args:
             idea(Idea or str): an instance of Idea or path where an Idea
-                configuration file is located. This argument must be passed when
-                a subclass is called as a function.
+                configuration file is located. This argument must be passed
+                when  a subclass is called as a function.
             *args and **kwargs(any): passed to the 'implement' method.
 
         Returns:
@@ -174,7 +174,8 @@ class SimpleClass(ABC):
         """Returns item if 'item' is in 'options' or is an atttribute.
 
         Args:
-            item(str): item matching 'options' dictionary key or attribute name.
+            item(str): item matching 'options' dictionary key or attribute
+                name.
 
         Returns:
             Value for item in 'options', 'item' attribute value, or None if
@@ -294,16 +295,17 @@ class SimpleClass(ABC):
     def _check_name(self):
         """Sets 'name' attribute if one does not exist in subclass.
 
-        A separate 'name' attribute is used throughout the package so that users
-        can set their own naming conventions or use the names of parent classes
-        when subclassing without being dependent upon __class__.__name__.
+        A separate 'name' attribute is used throughout the package so that
+        users can set their own naming conventions or use the names of parent
+        classes when subclassing without being dependent upon
+        __class__.__name__.
 
         If no 'name' attribute exists (usually defined in the 'draft' method),
         then __class__.__name__ is used as the default backup.
 
         """
         if not self.exists('name'):
-            self.name = self.__class__.__name__
+            self.name = self.__class__.__name__.lower()
         return self
 
     def _convert_wildcards(self, value):
@@ -579,8 +581,8 @@ class SimpleClass(ABC):
                 'options' dict.
             values(object or list(object)): siMpLify compatible objects which
                 can be integrated in the package framework. If they are custom
-                algorithms, they should be subclassed from SimpleTechnique to ensure
-                compatibility.
+                algorithms, they should be subclassed from SimpleTechnique to
+                ensure compatibility.
             options(dict): a dictionary with keys of techniques and values of
                 algorithms. This should be passed if the user has already
                 combined some or all 'techniques' and 'algorithms' into a dict.

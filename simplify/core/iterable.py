@@ -25,9 +25,6 @@ class SimpleIterable(SimpleClass):
     To take maximum advantage of this class's functionality, a subclass should
     either, in its draft method, call super().draft() and/or define the
     following attributes there:
-        iterable(str): name of attribute for the class's main iterable to be
-            stored. If 'iterable' does not exist, but 'iterable' is added to
-            'checks', the default iterable name will be set to 'steps'.
         iterable_setting(str): name of key in an Idea instance where the
             options for the iterable are listed. The names of the values
             corresponding to that key should be keys in the local 'options'
@@ -72,27 +69,26 @@ class SimpleIterable(SimpleClass):
         setattr(self, step, {})
         plans = self._create_plans(step = step, suffix = suffix)
         for plan in plans:
+            key = step + '_' + str(number)
             final_plan = dict(zip(self.sequence, plan))
             getattr(self, step).update(
-                {number + 1: self.options[step](number = number + 1, 
-                                                steps = final_plan)})   
-        return getattr(self, step) 
-     
+                {key: self.options[step](number = number + 1,
+                                         steps = final_plan)})
+        return getattr(self, step)
+
     def _add_serial(self, number, step):
         setattr(self, step, self.options[step](
             technique = getattr(self, self.iterable)[number]))
-        return getattr(self, step)    
-    
+        return getattr(self, step)
+
     def _check_iterable(self):
         """Creates class iterable attribute to be filled with concrete steps if
         one does not exist.
         """
-        if not self.exists('iterable'):
-            self.iterable = 'steps'
-        if not self.exists(self.iterable):
-            setattr(self, self.iterable, {})
+        if not self.exists('steps'):
+            self.steps = {}
         if not self.exists('iterable_setting'):
-            self.iterable_setting = self.name + '_' + self.iterable
+            self.iterable_setting = self.name + '_steps'
         if self.exists(self.iterable_setting) and not self.exists('sequence'):
             self.sequence = self.listify(getattr(self, self.iterable_setting))
         elif not self.exists('sequence'):
