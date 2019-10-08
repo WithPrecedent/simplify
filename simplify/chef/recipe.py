@@ -82,7 +82,7 @@ class Recipe(SimpleIterable):
                 'sample': ['simplify.chef.steps.sample', 'Sample'],
                 'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
                 'model': ['simplify.chef.steps.model', 'Model']}
-        self.iterable = 'steps'
+        self.iterator = 'steps'
         self.iterable_setting = 'chef_steps'
         return self
 
@@ -94,15 +94,15 @@ class Recipe(SimpleIterable):
         # If using cross-validation or other data splitting technique, the
         # pre-split methods apply to the 'x' data. After the split, steps
         # must incorporate the split into 'x_train' and 'x_test'.
-        for step, technique in self.steps:
-            steps.pop(step)
+        for step, technique in getattr(self, 'iterable').items:
+            del getattr(self, 'iterable')[step]
             if step == 'split':
                 break
             else:
                 self.ingredients = self.steps[step].implement(
                     ingredients = self.ingredients,
                     plan = self)
-        split_algorithm = self.steps['split'].algorithm
+        split_algorithm = getattr(self, 'iterable')['split'].algorithm
         for train_index, test_index in split_algorithm.split(
                 self.ingredients.x, self.ingredients.y):
             self.ingredients.x_train, self.ingredients.x_test = (
@@ -111,7 +111,7 @@ class Recipe(SimpleIterable):
             self.ingredients.y_train, self.ingredients.y_test = (
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
-            for step, technique in steps.items():
+            for step, technique in getattr(self, 'iterable').items():
                 self.ingredients = technique.implement(
                        ingredients = self.ingredients,
                        plan = self)

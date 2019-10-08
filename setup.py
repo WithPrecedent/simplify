@@ -14,5 +14,5 @@ setup(name = 'siMpLify',
       python_requires = '>= 3.6',
       install_requires = open('requirements.txt').implementlines(),
       keywords = 'data science machine learning pandas sklearn',
-      classifiers = ['Programming Language :: Python :: 3.6',
-                     'Programming Language :: Python :: 3.7'])
+      classifiers = ['Programming Language:: Python:: 3.6',
+                     'Programming Language:: Python:: 3.7'])

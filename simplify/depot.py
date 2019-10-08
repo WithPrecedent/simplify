@@ -696,21 +696,21 @@ class Depot(SimpleClass):
             'cook': ['final_data', 'final_data'],
             'critic': ['final_data', 'predicted_data']}
         self.data_file_formats = {
-            'sow' : ['source_format', 'source_format'],
-            'harvest' : ['source_format', 'interim_format'],
-            'clean' : ['interim_format', 'interim_format'],
-            'bale' : ['interim_format', 'interim_format'],
-            'deliver' : ['interim_format', 'final_format'],
-            'cook' : ['final_format', 'final_format'],
-            'critic' : ['final_format', 'final_format']}
+            'sow': ['source_format', 'source_format'],
+            'harvest': ['source_format', 'interim_format'],
+            'clean': ['interim_format', 'interim_format'],
+            'bale': ['interim_format', 'interim_format'],
+            'deliver': ['interim_format', 'final_format'],
+            'cook': ['final_format', 'final_format'],
+            'critic': ['final_format', 'final_format']}
         # Sets dict to translate 'import'/'export' strings to index of lists in
         # the data settings above.
         self.settings_index = {'import': 0, 'export': 1}
         # Sets default folders for results to be exported based upon type of
         # information being exported.
         self.results_folders = {
-            'isolated' : 'recipe',
-            'comparative' : 'experiment'}
+            'isolated': 'recipe',
+            'comparative': 'experiment'}
         return self
 
     def edit_default_kwargs(self, kwargs, settings):

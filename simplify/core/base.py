@@ -72,16 +72,20 @@ class SimpleClass(ABC):
         self.draft()
         # Creates 'idea' attribute if a string is passed to Idea when subclass
         # was instanced.
-        if self.__class__.__name__ != 'Idea':
-            self._check_idea()
+        if self.__class__.__name__ == 'Idea':
+            self.publish()  
+        else:    
+            # self._check_idea()
             # Injects parameters and attributes from shared Idea instance.
             self._inject_idea()
         # Runs attribute checks from list in 'checks' attribute (if it exists).
         self._run_checks()
-        # Converts values in 'options' to classes by lazily importing them.
-        self._lazily_import_options()
+        # Converts values in 'steps' to classes by lazily importing them.
+        self._lazily_import()
         # Calls 'publish' method if 'auto_publish' is True.
-        if hasattr(self, 'auto_publish') and self.auto_publish:
+        if (hasattr(self, 'auto_publish') 
+                and self.auto_publish 
+                and self.__class__.__name__ != 'Idea'):
             self.publish()
             # Calls 'implement' method if 'auto_implement' is True.
             if hasattr(self, 'auto_implement') and self.auto_implement:
@@ -193,6 +197,9 @@ class SimpleClass(ABC):
         """Returns 'options' to mirror dictionary functionality."""
         return self.options
 
+    def __repr__(self):
+        return __str__()
+    
     def __setitem__(self, item, value):
         """Adds item and value to options dictionary.
 
@@ -205,6 +212,9 @@ class SimpleClass(ABC):
         self.options[item] = value
         return self
 
+    def __str__(self):
+        return self.name
+        
     """ Private Methods """
 
     def _check_depot(self):
@@ -243,18 +253,18 @@ class SimpleClass(ABC):
 #                print('Using CPU')
         return self
 
-    def _check_idea(self):
-        """Loads Idea settings from a file if a string is passed instead of an
-        Idea instance.
+    # def _check_idea(self):
+    #     """Loads Idea settings from a file if a string is passed instead of an
+    #     Idea instance.
 
-        Injects sections of 'idea' to a subclass instance using
-        user settings.
-        """
-        # Local import to avoid circular dependency.
-        from simplify import Idea
-        if self.exists('idea') and isinstance(self.idea, str):
-            self.idea = Idea(configuration = self.idea)
-        return self
+    #     Injects sections of 'idea' to a subclass instance using
+    #     user settings.
+    #     """
+    #     # Local import to avoid circular dependency.
+    #     from simplify import Idea
+    #     if self.exists('idea') and isinstance(self.idea, str):
+    #         self.idea = Idea(configuration = self.idea)
+    #     return self
 
     def _check_ingredients(self, ingredients = None):
         """Checks if ingredients attribute exists and takes appropriate action.
@@ -352,7 +362,7 @@ class SimpleClass(ABC):
         self = self.idea.inject(instance = self, sections = sections)
         return self
 
-    def _lazily_import_options(self):
+    def _lazily_import(self):
         """Limits module imports to only needed package dependencies.
 
         This method allows users to either save memory or have less
@@ -363,19 +373,20 @@ class SimpleClass(ABC):
             {name(str): [module_path(str), class_name(str)]}
 
         """
-        imported_options = {}
+        imported_steps = {}
         if not self.exists('simplify_options'):
             self.simplify_options = []
-        if self.exists('options'):
-            if not hasattr(self, 'lazy_import') or self.lazy_import:
-                if self.has_list_values(self.options):
-                    for name, settings in self.options.items():
+        if not hasattr(self, 'lazy_import') or self.lazy_import:
+            if self.exists(self.iterator):
+                if (not isinstance(getattr(self, self.iterator), list)
+                        and self.has_list_values(getattr(self, self.iterator))):
+                    for name, settings in getattr(self, self.iterator).items():
                         if 'simplify' in settings[0]:
                             self.simplify_options.append(name)
-                        imported_options.update(
+                        imported_steps.update(
                             {name: getattr(import_module(settings[0]),
                                            settings[1])})
-                    self.options = imported_options
+                    setattr(self, self.iterator, imported_steps)
         return self
 
     def _run_checks(self):

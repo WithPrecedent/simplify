@@ -15,7 +15,7 @@ from simplify.core.base import SimpleClass
 class SimpleParameters(SimpleClass):
 
     name: str = 'parameters_factory'
-    auto_publish : bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()

@@ -122,7 +122,7 @@ class Canvas(SimpleIterable):
         # Sets 'iterable_type' so that proper parent methods are used.
         self.iterable_type = 'serial'
         # Sets 'iterable_class' to allow use of parent methods.
-        self.iterable = 'depictions'
+        self.iterator = 'depictions'
         return self
 
     def publish(self):
@@ -138,6 +138,6 @@ class Canvas(SimpleIterable):
             for recipe in self.listify(self.recipes):
                 if self.verbose:
                     print('Visualizing', recipe.name + recipe.number)
-                for step, technique in getattr(self, self.iterable).items():
+                for step, technique in getattr(self, self.iterator).items():
                     technique.implement(recipe = recipe, review = reviews)
         return self

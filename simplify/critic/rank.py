@@ -45,7 +45,7 @@ class Rank(SimpleIterable):
                 'shap': ['simplify.critic.steps.rankers', 'ShapImportances'],
                 'builtin': ['simplify.critic.steps.rankers', 
                             'BuiltinImportances']}
-        self.iterable = 'feature_importances'
+        self.iterator = 'feature_importances'
         self.idea_setting = 'feature_importance_technique'
         return self
 
@@ -55,7 +55,7 @@ class Rank(SimpleIterable):
                 importances = getattr(self, name).implement(
                         recipe = recipes,
                         explainer = explainers)
-                getattr(self, self.iterable).update({name: importances})
+                getattr(self, self.iterator).update({name: importances})
         return self
 
 

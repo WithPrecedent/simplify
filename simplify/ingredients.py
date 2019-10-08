@@ -96,6 +96,7 @@ class Ingredients(SimpleClass):
     datatypes: object = None
     prefixes: object = None
     auto_publish: bool = True
+    lazy_import: bool = False
 
     def __post_init__(self):
         super().__post_init__()

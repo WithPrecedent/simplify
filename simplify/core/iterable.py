@@ -7,7 +7,6 @@
 """
 
 from dataclasses import dataclass
-from itertools import product
 
 from simplify.core.base import SimpleClass
 
@@ -61,78 +60,30 @@ class SimpleIterable(SimpleClass):
         """Allows class instance to be directly iterated by returning the
         primary iterable contained within the class instance.
         """
-        return getattr(self, self.iterable)
+        return getattr(self, self.iterator)
 
     """ Private Methods """
 
-    def _add_parallel(self, number, step, suffix):
-        setattr(self, step, {})
-        plans = self._create_plans(step = step, suffix = suffix)
-        for plan in plans:
-            key = step + '_' + str(number)
-            final_plan = dict(zip(self.sequence, plan))
-            getattr(self, step).update(
-                {key: self.options[step](number = number + 1,
-                                         steps = final_plan)})
-        return getattr(self, step)
-
-    def _add_serial(self, number, step):
-        setattr(self, step, self.options[step](
-            technique = getattr(self, self.iterable)[number]))
-        return getattr(self, step)
-
-    def _check_iterable(self):
+    def _add_list_to_iterator(self, items):
+        for step in self.listify(items):
+            getattr(self, self.iterator).update({step: self.options[step]})
+        return self
+            
+    def _check_iterator(self):
         """Creates class iterable attribute to be filled with concrete steps if
         one does not exist.
         """
-        if not self.exists('steps'):
-            self.steps = {}
+        if not self.exists('iterator'):
+            self.iterator = 'steps'
+        if not self.exists(self.iterator):
+            setattr(self, self.iterator, {})
         if not self.exists('iterable_setting'):
             self.iterable_setting = self.name + '_steps'
-        if self.exists(self.iterable_setting) and not self.exists('sequence'):
-            self.sequence = self.listify(getattr(self, self.iterable_setting))
-        elif not self.exists('sequence'):
-            self.sequence = list(self.options.keys())
-        return self
-
-    def _create_plans(self, step, suffix = 'techniques'):
-        """Creates cartesian product of all parallel plans.
-
-        Args:
-            step(str): name of step in 'sequence'.
-            suffix(str): string at end of Idea setting keys.
-
-        Returns
-            all_plans(list of class iterable subclass): all possible plans
-                from user settings in an Idea instance.
-
-        """
-        plans = []
-        for substep in self.parallel_options[step]:
-            key = substep + '_' + suffix
-            if key in self.idea.configuration[self.name]:
-                plans.append(self.listify(
-                    self.idea.configuration[self.name][key]))
-            else:
-                plans.append(['none'])
-        all_plans = list(map(list, product(*plans)))
-        return all_plans
-
-    def _create_steps(self, suffix = 'techniques'):
-        """Creates complete list of steps from Idea settings.
-
-        Args:
-            suffix(str): string at end of Idea setting keys.
-
-        """
-        for i, step in enumerate(self.sequence):
-            if (self.exists('parallel_options')
-                    and step in self.parallel_options):
-                completed_step = self._add_parallel(
-                    number = i, step = step, suffix = suffix)
-            else:
-                completed_step = self._add_serial(number = i, step = step)
-            getattr(self, self.iterable).update(step, completed_step)
+        if self.exists(self.iterable_setting):
+            self._add_list_to_iterator(
+                self._convert_wildcards(getattr(self, self.iterable_setting)))
+        else:
+            setattr(self, self.iterator, self.options)
         return self
 
     def _infuse_attributes(self, instance, return_variables = None):
@@ -166,9 +117,9 @@ class SimpleIterable(SimpleClass):
         """ Declares defaults for class."""
         super().draft()
         self.options = {}
-        self.parallel_options = {}
-        self.checks.extend(['iterable'])
+        self.checks.extend(['iterator'])
         self.return_variables = []
+        self.iterator = 'steps'
         return self
 
     def edit_iterable(self, iterables):
@@ -179,14 +130,24 @@ class SimpleIterable(SimpleClass):
             iterables(SimpleIterable, list(SimpleIterable)): iterables to be
                 added into 'iterables' attribute.
         """
-        getattr(self, 'iterable').extend(self.listify(iterables))
+        if isinstance(iterables, dict):
+            getattr(self, self.iterator).update(iterables)
+        elif isinstance(iterables, list):
+            self._add_list_to_iterable(items = iterables)
         return self
 
     def publish(self):
         super().publish()
-        self._create_steps()
+        for name, step in getattr(self, self.iterator).items():
+            print('name', name)
+            print('step', step)
+            if isinstance(step, str):
+                print('step is string')
+                setattr(self, name, self.options[name](technique = step))
+            else:
+                setattr(self, name, step())
         return self
-
+    
     def implement(self, *args, **kwargs):
         """Method that implements all of the publishd objects with the passed
         args and kwargs.
@@ -198,12 +159,8 @@ class SimpleIterable(SimpleClass):
             *args, **kwargs: other parameters can be added to method as needed.
 
         """
-        for step in getattr(self, self.iterable):
-            if isinstance(step, list):
-                for substep in step:
-                    substep.implement(*args, **kwargs)
-            else:
-                step.implement(*args, **kwargs)
+        for name in getattr(self, self.iterator).keys():
+            getattr(self, name).implement(*args, **kwargs)
             if self.exists('return_variables'):
-                self._infuse_attributes(instance = step)
+                self._infuse_attributes(instance = getattr(self, name))
         return self

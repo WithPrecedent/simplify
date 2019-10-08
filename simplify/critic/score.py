@@ -75,9 +75,9 @@ class Score(SimpleIterable):
                   self.listify(self.metrics)[0], 'metric with a score of',
                   f'{self.best_recipe_score: 4.4f}', 'is:')
             for technique in getattr(self,
-                    self.iterable).best_recipe.techniques:
+                    self.iterator).best_recipe.techniques:
                 print(technique.capitalize(), ':',
-                      getattr(getattr(self, self.iterable).best_recipe,
+                      getattr(getattr(self, self.iterator).best_recipe,
                               technique).technique)
         return
 

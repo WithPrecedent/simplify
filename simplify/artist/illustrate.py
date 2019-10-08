@@ -60,7 +60,7 @@ class Illustrate(SimpleIterable):
     
     def draft(self):
         self.options = {
-            'histogram' : ['seaborn', 'distplot']}
+            'histogram': ['seaborn', 'distplot']}
         return self
     
     def publish(self):

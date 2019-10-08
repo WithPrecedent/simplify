@@ -8,10 +8,12 @@
 
 from configparser import ConfigParser
 from dataclasses import dataclass
+from importlib import import_module
 import os
 import re
 
 from simplify.core.base import SimpleClass
+from simplify.core.iterable import SimpleIterable
 
 
 @dataclass
@@ -22,7 +24,7 @@ class Idea(SimpleClass):
     dictionary, converting dictionary values to appropriate datatypes, and
     stores portions of the configuration dictionary as attributes in other
     classes. Idea is based on python's ConfigParser. It seeks to cure some
-    of the shortcomings of the base ConfigParser package, including:
+    of the shortcomings of the base ConfigParser getattr(self, name), including:
         1) All values in ConfigParser are strings by default.
         2) The nested structure for getting items creates verbose code.
         3) It still OrderedDict (even though python 3.6+ has automatically
@@ -113,6 +115,16 @@ class Idea(SimpleClass):
             it in the current working directory and store its contents in
             'configuration'. If a dict is provided, it should be nested into
             sections with individual settings in key/value pairs.
+        depot(Depot or str): an instance of Depot or a string containing the 
+            full path of where the root folder should be located for file 
+            output. Once a Depot instance is created, it is automatically made 
+            available to all other SimpleClass subclasses that are instanced in 
+            the future. If 'depot' is not passed, a default Depot instance will
+            be created.
+        ingredients(Ingredients or str): an instance of Ingredients, a string
+            containing the full file path of where a data file for a pandas
+            DataFrame is located, or a string containing a file name in the
+            default data folder, as defined in the Depot instance.
         infer_types(bool): whether values in 'configuration' are converted to
             other types (True) or left as strings (False).
         name(str): as with other classes in siMpLify, the name is used for
@@ -121,12 +133,18 @@ class Idea(SimpleClass):
         auto_publish(bool): whether to automatically call the 'publish'
             method when the class is instanced. Unless adding an additional
             source for 'configuration' settings, this should be set to True.
+        auto_implement(bool): sets whether to automatically call the 'implement'
+            method when the class is instanced.
 
     """
     configuration: object = None
+    depot: object = None
+    ingredients: object = None
     infer_types: bool = True
     name: str = 'idea'
     auto_publish: bool = True
+    auto_implement: bool = False
+    lazy_import: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -162,8 +180,8 @@ class Idea(SimpleClass):
                     found_value = True
                     self.configuration[config_key].pop(key)
         if not found_value:
-            error_message = key + ' not found in idea dictionary'
-            raise KeyError(error_message)
+            error = key + ' not found in idea dictionary'
+            raise KeyError(error)
         return self
 
     def __getattr__(self, attr):
@@ -249,11 +267,11 @@ class Idea(SimpleClass):
                 else:
                     self.configuration[section] = dictionary
             else:
-                error_message = 'dictionary must be dict type'
-                raise TypeError(error_message)
+                error = 'dictionary must be dict type'
+                raise TypeError(error)
         else:
-            error_message = 'section must be str type'
-            raise TypeError(error_message)
+            error = 'section must be str type'
+            raise TypeError(error)
         return self
 
     """ Private Methods """
@@ -271,9 +289,9 @@ class Idea(SimpleClass):
         """
         if self.configuration:
             if isinstance(self.configuration, str):
-                if '\.ini' in self.configuration:
+                if self.configuration.endswith('.ini'):
                     self.technique = 'ini_file'
-                elif '\.py' in self.configuration:
+                elif self.configuration.endswith('.py'):
                     self.technique = 'py_file'
                 else:
                     error = 'configuration file must be .py or .ini file'
@@ -290,8 +308,8 @@ class Idea(SimpleClass):
         return self
 
     def _infer_types(self):
-        """If 'infer_types' is True, all dictionary values in 'configuration'
-        are converted to the appropriate datatype.
+        """If 'infer_types' is True, values in 'configuration' are converted to 
+        the appropriate datatype.
         """
         if self.infer_types:
             for section, dictionary in self.configuration.items():
@@ -300,18 +318,23 @@ class Idea(SimpleClass):
         return self
 
     def _inject_base(self):
-        """Injects parent class, SimpleClass with this Idea so that it is
-        available to other modules in the siMpLify package.
+        """Injects parent class, SimpleClass, with this Idea so that it is
+        available to other modules in the siMpLify getattr(self, name).
         """
         setattr(SimpleClass, 'idea', self)
         return self
 
-    def _inject_steps(self, instance, key, value, override):
-        if not getattr(instance, 'steps') or override:
-            for item in self.listify(instance._convert_wildcards(value)):
-                getattr(instance, 'steps').update(
-                        {item: self.options[item]})
-        return instance
+    # def _inject_steps(self, instance, key, value, override):
+    #     if not hasattr(instance, 'steps') or instance.steps is None:
+    #         instance.steps = {}
+    #     if not instance.steps or override:
+    #         for item in self.listify(instance._convert_wildcards(value)):
+    #             if item in ['chef'] and instance.name == 'chef':
+    #                 instance.steps.update(
+    #                     {'recipes': instance.options['recipes']})
+    #             else:
+    #                 instance.steps.update({item: instance.options[item]})
+    #     return instance
 
     def _inject_parameters(self, instance, override):
         if not instance.parameters or override:
@@ -320,11 +343,11 @@ class Idea(SimpleClass):
                 instance.parameters = self.idea.configuration[key]
         return instance
 
-    def _inject_techniques(self, instance, key, value, override):
-        if not hasattr(instance, key) or override:
-            setattr(instance, key,
-                    self.listify(instance._convert_wildcards(value)))
-        return instance
+    # def _inject_techniques(self, instance, key, value, override):
+    #     if not hasattr(instance, key) or override:
+    #         setattr(instance, key,
+    #                 self.listify(instance._convert_wildcards(value)))
+    #     return instance
 
     def _load_from_ini(self, file_path = None):
         """Creates a configuration dictionary from an .ini file."""
@@ -342,13 +365,21 @@ class Idea(SimpleClass):
             raise FileNotFoundError(error)
         return self
 
-    def _load_from_py(self):
+    def _load_from_py(self, file_path = None):
         """Creates a configuration dictionary from an .py file.
 
         Todo:
-            Add .py file implementation.
+            file_path(str): path to python module with 'configuration' dict
+                defined.
+            
         """
-        pass
+        if file_path:
+            configuration_file = file_path
+        else:
+            configuration_file = self.configuration
+        if os.path.isfile(configuration_file):
+            self.configuration = getattr(import_module(configuration_file), 
+                                         'configuration')
         return self
 
     @staticmethod
@@ -439,32 +470,34 @@ class Idea(SimpleClass):
                                                override = override)
         for section in self.listify(sections):
             for key, value in self.configuration[section].items():
-                if (hasattr(instance, 'iterable_setting')
-                        and key == instance.iterable_setting):
-                    self._inject_steps(
-                            instance = instance,
-                            key = key,
-                            value = value,
-                            override = override)
-                elif key.endswith('_techniques'):
-                    self._inject_techniques(
-                            instance = instance,
-                            key = key,
-                            value = value,
-                            override = override)
-                elif not hasattr(instance, key) or override:
-                    setattr(instance, key, instance._convert_wildcards(value))
+            #     if (hasattr(instance, 'iterable_setting')
+            #             and key == instance.iterator_setting):
+            #         self._inject_steps(
+            #                 instance = instance,
+            #                 key = key,
+            #                 value = value,
+            #                 override = override)
+            #     elif key.endswith('_techniques'):
+            #         self._inject_techniques(
+            #                 instance = instance,
+            #                 key = key,
+            #                 value = value,
+            #                 override = override)
+            #     elif not hasattr(instance, key) or override:
+                setattr(instance, key, instance._convert_wildcards(value))
         return instance
 
     """ Core siMpLify Methods """
 
     def draft(self):
-        """Sets options to create 'configuration' dict'."""
-        # Sets options for creating 'configuration'.
+        """Sets options to create 'configuration' dictionary and checks to run
+        on passed parameters."""
+        super().draft()
         self.options = {
                 'py_file': self._load_from_py,
                 'ini_file': self._load_from_ini,
                 'dict': None}
+        self.checks.extend(['depot', 'ingredients'])
         return self
 
     def publish(self):
@@ -476,8 +509,16 @@ class Idea(SimpleClass):
             self.options[self.technique]()
         self._infer_types()
         self._inject_base()
+        self.inject(instance = self, sections = ['general'])
         return self
 
+    def implement(self, ingredients = None):
+        if ingredients:
+            self.ingredients = ingredients
+        self.simplify = Simplify()
+        self.simplify.implement(ingredients = self.ingredients)
+        return self
+        
     """ Python Dictionary Compatibility Methods """
 
     def update(self, new_settings):
@@ -495,15 +536,118 @@ class Idea(SimpleClass):
         if isinstance(new_settings, dict):
             self.configuration.update(new_settings)
         elif isinstance(new_settings, str):
-            if '\.ini' in self.configuration:
-                technique = self._load_ini_file
-            elif '\.py' in self.configuration:
+            if new_settings.endswith('.ini'):
+                technique = 'ini_file'
+            elif new_settings.endswith('.py'):
                 technique = self._load_py_file
             self.configuration.update(technique(file_path = new_settings))
         elif (hasattr(new_settings, 'configuration')
                 and isinstance(new_settings.configuration, dict)):
             self.configuration.update(new_settings.configuration)
         else:
-            error_message = 'new_options must be dict, Idea , or file path'
-            raise TypeError(error_message)
+            error = 'new_options must be dict, Idea, or file path'
+            raise TypeError(error)
+        return self
+    
+    
+@dataclass
+class Simplify(SimpleIterable):
+    """Controller class for siMpLify projects.
+
+    This class is provided for applications that rely on Idea settings and/or 
+    subclass attributes. For a more customized application, users can access the 
+    subgetattr(self, name)s ('farmer', 'chef', 'critic', and 'artist') directly.
+
+        name(str): name of class used to match settings sections in an Idea
+            settings file and other portions of the siMpLify getattr(self, name). This is
+            used instead of __class__.__name__ so that subclasses can maintain
+            the same string name without altering the formal class name.
+        auto_publish(bool): sets whether to automatically call the 'publish'
+            method when the class is instanced. If you do not plan to make any
+            adjustments beyond the Idea configuration, this option should be
+            set to True. If you plan to make such changes, 'publish' should be
+            called when those changes are complete.
+        auto_implement(bool): sets whether to automatically call the 'implement'
+            method when the class is instanced.
+
+    """
+
+    steps: object = None
+    name: str = 'simplify'
+    auto_publish: bool = True
+    auto_implement: bool = False
+
+    def __post_init__(self):
+        super().__post_init__()
+        return self
+
+    def __call__(self, ingredients = None):
+        """Calls the class as a function.
+        
+        Args:
+        
+            ingredients(Ingredients or str): an instance of Ingredients, a 
+                string containing the full file path of where a data file for a 
+                pandas DataFrame is located, or a string containing a file name 
+                in the default data folder, as defined in a Depot instance.
+                
+        """
+        self.__post_init__()
+        self.implement(ingredients = ingredients)
+        return self
+
+    def _implement_dangerous(self):
+        first_step = True
+        for name in getattr(self, self.iterator).keys():
+            if first_step:
+                first_step = False
+                getattr(self, name).implement(ingredients = self.ingredients)
+            else:
+                getattr(self, name).implement(previous_step = previous_step)
+            previous_step = getattr(self, name)
+        return self
+
+    def _implement_safe(self):
+        for name in getattr(self, self.iterator).keys():
+            if name in ['farmer']:
+                getattr(self, name).implement(ingredients = self.ingredients)
+                self.ingredients = getattr(self, name).ingredients
+                delattr(self, name)
+            if name in ['chef']:
+                getattr(self, name).implement(ingredients = self.ingredients)
+                self.ingredients = getattr(self, name).ingredients
+                self.recipes = getattr(self, name).recipes
+                delattr(self, name)
+            if name in ['critic']:
+                getattr(self, name).implement(ingredients = self.ingredients,
+                                  recipes = self.recipes)
+                self.ingredients = getattr(self, name).ingredients
+                self.reviews = getattr(self, name).reviews
+                delattr(self, name)
+            if name in ['artist']:
+                getattr(self, name).implement(ingredients = self.ingredients,
+                                  recipes = self.recipes,
+                                  reviews = self.reviews)
+                delattr(self, name)
+        return self
+
+    """ Core siMpLify Methods """
+
+    def draft(self):
+        super().draft()
+        self.options = {
+                'farmer': ['simplify.farmer', 'Almanac'],
+                'chef': ['simplify.chef', 'Cookbook'],
+                'critic': ['simplify.critic', 'Review'],
+                'artist': ['simplify.artist', 'Canvas']}
+        self.iterable_setting = 'packages'
+        return self
+    
+    def implement(self, ingredients = None):
+        if ingredients:
+            self.ingredients = ingredients
+        if self.conserve_memory:
+            self._implement_safe()
+        else:
+            self._implement_dangerous()
         return self

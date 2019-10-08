@@ -80,7 +80,7 @@ class Review(SimpleIterable):
             'validation_set': 'val_set'}
         self.columns = list(self.required_columns.keys())
         self.columns.extend(list(recipe.steps.keys()))
-        for number, instance in getattr(self, self.iterable).items():
+        for number, instance in getattr(self, self.iterator).items():
             if hasattr(instance, 'columns') and instance.name != 'summarize':
                 self.columns.extend(instance.columns)
         return self
@@ -119,7 +119,7 @@ class Review(SimpleIterable):
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.step = 'critic'
         # Sets iterable-related attributes.
-        self.iterable = 'reviews'
+        self.iterator = 'reviews'
         self.iterable_setting = 'review_steps'
         self.iterable_type = 'serial'
         self.return_variables = {
@@ -127,7 +127,7 @@ class Review(SimpleIterable):
             'explain': ['values'],
             'rank': ['importances'],
             'predict': ['predictions, probabilities'],
-            'score' : ['report']}
+            'score': ['report']}
         return self
 
     def publish(self):
@@ -152,7 +152,7 @@ class Review(SimpleIterable):
         for self.recipe in self.listify(recipes):
             if self.verbose:
                 print('Reviewing', self.recipe.name, str(self.recipe.number))
-            for name, technique in getattr(self, self.iterable).items():
+            for name, technique in getattr(self, self.iterator).items():
                 technique.implement(ingredients = ingredients,
                                     recipes = recipes)
                 if self.exists('return_variables'):

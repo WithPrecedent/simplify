@@ -8,25 +8,27 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import load_breast_cancer
 
-from simplify import Simplify, Idea
+from simplify import Idea
 
-# Sets path to settings file and root folder for file output.
-#idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
-#                                         'cancer_settings.ini'))
-# Depending upon your OS and python configuration, this path might work better.
-idea = Idea(configuration = os.path.join(os.getcwd(),
-                                         'cancer_settings.ini'))
-root_folder = os.path.join('..', '..')
-
-# Loads cancer data and converts from numpy arrays to pandas dataframe.
+# Loads cancer data and converts from numpy arrays to a pandas DataFrame.
 cancer = load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
 
-# Creates simplify instance to process and analyze data.
-cancer_project = Simplify(ingredients = df,
-                          idea = idea,
-                          depot = root_folder)
+# Sets root_folder for data and results exports.
+root_folder = os.path.join('..', '..')
+# Sets location of configuration settings for the project.
+idea_file = os.path.join(os.getcwd(), 'examples', 'cancer_settings.ini')
+# Depending upon your OS and python configuration, this path might work better.
+#idea_file = os.path.join(os.getcwd(), 'cancer_settings.ini')
+
+# Creates siMpLify project, automatically configuring the process based upon
+# settings in the 'idea_file'. 
+cancer_project = Idea(
+    configuration = idea_file,
+    depot = root_folder,
+    ingredients = df)
+
 # Converts label to boolean type to correct numpy default above.
 cancer_project.ingredients.change_datatype(columns = 'target',
                                            datatype = 'boolean')

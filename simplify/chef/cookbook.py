@@ -7,6 +7,7 @@
 """
 
 from dataclasses import dataclass
+from itertools import product
 
 from simplify.core.iterable import SimpleIterable
 
@@ -49,7 +50,7 @@ class Cookbook(SimpleIterable):
     ingredients: object = None
     recipes: object = None
     steps: object = None
-    name: str = 'cookbook'
+    name: str = 'chef'
     auto_publish: bool = True
     auto_implement: bool = False
 
@@ -59,9 +60,42 @@ class Cookbook(SimpleIterable):
 
     """ Private Methods """
 
+    def _publish_recipes(self, suffix = 'techniques'):
+        """Creates cartesian product of all recipes.
+
+        Args:
+            suffix(str): string at end of Idea setting keys where possible
+                techniques are stored.
+
+        Returns
+            all_plans(list of SimpleIterable subclass): all possible plans from 
+                user settings in an Idea instance.
+
+        """
+        print('iterator', getattr(self, self.iterator))
+        recipes = []
+        if self.recipes is None:
+            self.recipes = {}
+        for step in getattr(self, self.iterator).keys():
+            key = step + '_' + suffix
+            if key in self.idea.configuration[self.name]:
+                recipes.append(self.listify(
+                    self.idea.configuration[self.name][key]))
+            else:
+                recipes.append(['none'])
+        all_recipes = list(map(list, product(*recipes)))
+        for i, recipe in enumerate(all_recipes):
+            steps = {}
+            for j, technique in enumerate(recipe):
+                step = list(getattr(self, self.iterator).keys())[j]
+                steps.update({step: technique})
+            self.recipes.update({
+                'recipe_' + str(i + 1): Recipe(steps = steps)})        
+        return self
+    
     def _implement_recipes(self):
         """Tests all 'recipes'."""
-        for recipe in getattr(self, self.iterable):
+        for recipe in self.recipes:
             if self.verbose:
                 print('Testing', recipe.name, str(recipe.number))
             recipe.implement(ingredients = self.ingredients)
@@ -133,7 +167,7 @@ class Cookbook(SimpleIterable):
         """
         if recipes in ['all'] or isinstance(recipes, list):
             if recipes in ['all']:
-                recipes = getattr(self, self.iterable)
+                recipes = self.recipes
             for recipe in recipes:
                 self.depot._set_recipe_folder(recipe = recipe)
                 recipe.save(folder = self.depot.recipe)
@@ -151,17 +185,17 @@ class Cookbook(SimpleIterable):
         """Sets default options for the Chef's cookbook."""
         super().draft()
         self.options = {
-            'recipes': ['simplify.chef.recipe', 'Recipe'],
-            'critic' : ['simplify.critic.review', 'Review'],
-            'artist': ['simplify.artist.canvas', 'Canvas']}
-        self.parallel_options = {
-                'recipes': ['scale', 'split', 'encode', 'mix', 'cleave',
-                            'sample', 'reduce', 'model']}
-        self.checks.extend(['ingredients'])
-        # Locks 'step' attribute at 'cook' for conform methods in package.
-        self.step = 'cook'
-        # Sets attributes to allow proper parent methods to be used.
-        self.iterable_setting = 'packages'
+                'scale': ['simplify.chef.steps.scale', 'Scale'],
+                'split': ['simplify.chef.steps.split', 'Split'],
+                'encode': ['simplify.chef.steps.encode', 'Encode'],
+                'mix': ['simplify.chef.steps.mix', 'Mix'],
+                'cleave': ['simplify.chef.steps.cleave', 'Cleave'],
+                'sample': ['simplify.chef.steps.sample', 'Sample'],
+                'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
+                'model': ['simplify.chef.steps.model', 'Model']}
+        self.iterator = 'steps'
+        self.iterable_setting = 'chef_steps'
+        self.step = 'chef'
         return self
 
     def edit_recipes(self, recipes):
@@ -172,21 +206,22 @@ class Cookbook(SimpleIterable):
                 added into 'recipes' attribute.
         """
         if self.recipes is None:
-            self.recipes = {}
-        if self.recipes:
+            setattr(self, self.iterator, {})
+        if recipes:
             if isinstance(recipes, dict):
                 recipes = list(recipes.values())
                 last_num = list(self.recipes.keys())[-1:]
+            else:
+                last_num = 0              
             for i, recipe in enumerate(self.listify(recipes)):
                 self.recipes.update({last_num + i + 1: recipe})
-        elif isinstance(recipes, dict):
-            self.recipes = recipes
-        else:
-            self.recipes = {}
-            for i, recipe in enumerate(self.listify(recipes)):
-                self.recipes.update({i + 1: recipe})
         return self
 
+    def publish(self):
+        Recipe.options = getattr(self, self.iterator)
+        self._publish_recipes()
+        return self
+    
     def implement(self, ingredients = None, previous_package = None):
         """Completes an iteration of a Cookbook.
 
@@ -215,3 +250,112 @@ class Cookbook(SimpleIterable):
             if not 'reduce' in self.steps or self.reduce == ['none']:
                 self.ingredients.save_dropped(folder = self.depot.experiment)
         return self
+    
+    
+@dataclass
+class Recipe(SimpleIterable):
+    """Contains steps for analyzing data in the siMpLify Cookbook subpackage.
+
+    Args:
+        number(int): number of recipe in a sequence - used for recordkeeping
+            purposes.
+        steps(dict): dictionary containing keys of SimpleTechnique names
+            (strings) and values of SimpleIterable subclass instances.
+        name(str): name of class for matching settings in the Idea instance
+            and elsewhere in the siMpLify package.
+        auto_publish(bool): whether 'publish' method should be called when
+            the class is instanced. This should generally be set to True.
+
+    """
+
+    number: int = 0
+    steps: object = None
+    name: str = 'recipe'
+    auto_publish: bool = True
+    lazy_import:bool = False
+
+    def __post_init__(self):
+        self.idea_sections = ['chef']
+        super().__post_init__()
+        return self
+
+    """ Private Methods """
+
+    def _calculate_hyperparameters(self):
+        """Computes hyperparameters that can be determined by the source data
+        (without creating data leakage problems).
+
+        This method currently only support xgboost's scale_pos_weight
+        parameter. Future hyperparameter computations will be added as they
+        are discovered.
+        """
+        # 'ingredients' attribute is required before method can be called.
+        if self.ingredients is not None:
+            # Data is split in oder for certain values to be computed that
+            # require features and the label to be split.
+            self.ingredients.split_xy(label = self.label)
+            # Model class is injected with scale_pos_weight for algorithms that
+            # use that parameter.
+            self.options['model'].scale_pos_weight = (
+                    len(self.ingredients.y.index) /
+                    ((self.ingredients.y == 1).sum())) - 1
+        return self
+
+    """ Public Import/Export Methods """
+
+    def save(self, file_path = None, folder = None, file_name = None):
+        self.depot.save(variable = self,
+                        file_path = file_path,
+                        folder = folder,
+                        file_name = file_name,
+                        file_format = 'pickle')
+        return
+
+    """ Core siMpLify Methods """
+
+    def draft(self):
+        super().draft()
+        if not self.options:   
+            self.options = {
+                    'scale': ['simplify.chef.steps.scale', 'Scale'],
+                    'split': ['simplify.chef.steps.split', 'Split'],
+                    'encode': ['simplify.chef.steps.encode', 'Encode'],
+                    'mix': ['simplify.chef.steps.mix', 'Mix'],
+                    'cleave': ['simplify.chef.steps.cleave', 'Cleave'],
+                    'sample': ['simplify.chef.steps.sample', 'Sample'],
+                    'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
+                    'model': ['simplify.chef.steps.model', 'Model']}
+        self.iterable_setting = 'chef_steps'
+        return self
+
+    def implement(self, ingredients):
+        """Applies the recipe steps to the passed ingredients."""
+        steps = getattr(self, 'iterable').copy()
+        self.ingredients = ingredients
+        self.ingredients.split_xy(label = self.label)
+        # If using cross-validation or other data splitting technique, the
+        # pre-split methods apply to the 'x' data. After the split, steps
+        # must incorporate the split into 'x_train' and 'x_test'.
+        for step, technique in self.steps:
+            steps.pop(step)
+            if step == 'split':
+                break
+            else:
+                self.ingredients = self.steps[step].implement(
+                    ingredients = self.ingredients,
+                    plan = self)
+        split_algorithm = self.steps['split'].algorithm
+        for train_index, test_index in split_algorithm.split(
+                self.ingredients.x, self.ingredients.y):
+            self.ingredients.x_train, self.ingredients.x_test = (
+                   self.ingredients.x.iloc[train_index],
+                   self.ingredients.x.iloc[test_index])
+            self.ingredients.y_train, self.ingredients.y_test = (
+                   self.ingredients.y.iloc[train_index],
+                   self.ingredients.y.iloc[test_index])
+            for step, technique in steps.items():
+                self.ingredients = technique.implement(
+                       ingredients = self.ingredients,
+                       plan = self)
+        return self
+
