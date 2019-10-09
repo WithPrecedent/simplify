@@ -32,6 +32,7 @@ class Sample(SimpleTechnique):
     auto_publish: bool = True
 
     def __post_init__(self):
+        self.idea_sections = ['chef']
         super().__post_init__()
         return self
 

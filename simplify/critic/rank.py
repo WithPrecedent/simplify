@@ -29,10 +29,11 @@ class Rank(SimpleIterable):
     """
 
     steps: object = None
-    name: str = 'ranker'
+    name: str = 'rank'
     auto_publish: bool = True
 
     def __post_init__(self):
+        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 
@@ -45,19 +46,9 @@ class Rank(SimpleIterable):
                 'shap': ['simplify.critic.steps.rankers', 'ShapImportances'],
                 'builtin': ['simplify.critic.steps.rankers', 
                             'BuiltinImportances']}
-        self.iterator = 'feature_importances'
-        self.idea_setting = 'feature_importance_technique'
+        self.sequence_setting = 'importance_techniques'
+        self.return_variables = ['importances']
         return self
-
-    def implement(self, ingredients = None, recipes = None, explainers = None):
-        for name in self.options.keys():
-            if name in getattr(self, self.idea_setting):
-                importances = getattr(self, name).implement(
-                        recipe = recipes,
-                        explainer = explainers)
-                getattr(self, self.iterator).update({name: importances})
-        return self
-
 
 @dataclass
 class RankSelect(SimpleTechnique):

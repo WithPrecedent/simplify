@@ -62,10 +62,7 @@ class SimpleTechnique(SimpleClass):
 
     def _set_algorithm(self):
         """Creates 'algorithm' attribute and adds parameters."""
-        if self.technique in ['none', 'None', None]:
-            self.technique = 'none'
-            self.algorithm = None
-        elif (self.exists('simplify_options')
+        if (self.exists('simplify_options')
                 and self.technique in self.simplify_options):
             self.algorithm = self.options[self.technique](
                     parameters = self.parameters)
@@ -77,6 +74,8 @@ class SimpleTechnique(SimpleClass):
         """Creates final parameters for this instance's 'algorithm'."""
         self.parameters_factory = SimpleParameters()
         self.parameters = self.parameters_factory.implement(instance = self)
+        if hasattr(self, '_parse_parameters'):
+            self._parse_parameters()
         return self
 
     """ Core siMpLify Public Methods """
@@ -88,9 +87,17 @@ class SimpleTechnique(SimpleClass):
         return self
 
     def publish(self):
-        super().publish()
-        self._set_parameters()
-        self._set_algorithm()
+        """Finalizes settings and creates instances of 'steps'."""
+        if self.technique != 'none':
+            super().publish()
+            if hasattr(self, '_set_estimator'):
+                self._set_estimator()
+                self._set_parameters()
+            else:
+                self._set_parameters()
+                self._set_algorithm()
+        else:
+            self.algorithm = None
         return self
 
     @numpy_shield

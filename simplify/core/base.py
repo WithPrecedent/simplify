@@ -194,8 +194,8 @@ class SimpleClass(ABC):
         """Returns 'options' to mirror dictionary functionality."""
         return self.options
 
-    def __repr__(self):
-        return self.__str__()
+    # def __repr__(self):
+    #     return self.__str__()
 
     def __setitem__(self, item, value):
         """Adds item and value to options dictionary.
@@ -209,8 +209,8 @@ class SimpleClass(ABC):
         self.options[item] = value
         return self
 
-    def __str__(self):
-        return self.name
+    # def __str__(self):
+    #     return self.name
 
     """ Private Methods """
 
@@ -346,9 +346,17 @@ class SimpleClass(ABC):
         self = self.idea.inject(instance = self, sections = sections)
         return self
 
-    def _lazy_import(self, settings):
-        return getattr(import_module(settings[0]), settings[1])
-
+    def _using_option(self, name):
+        if hasattr(self, 'lazy_imports'):
+            if name in self.lazy_imports:
+                return True      
+        if ((hasattr(self, 'sequence') and name in self.sequence)
+            or (hasattr(self, 'technique')
+                and (name in self.technique or name in self.model_type))):
+            return True
+        else:
+            return False
+        
     def _lazily_import(self):
         """Limits module imports to only needed package dependencies.
 
@@ -367,13 +375,12 @@ class SimpleClass(ABC):
                 or self.lazy_import)
                 and self.has_list_values(self.options)):
             for name, settings in self.options.items():
-                if ((hasattr(self, 'sequence') and name in self.sequence)
-                        or (hasattr(self, 'technique')
-                            and name in self.technique)):
+                if self._using_option(name):
                     if 'simplify' in settings[0]:
                         self.simplify_options.append(name)
                     imported_steps.update(
-                        {name: self._lazy_import(settings = settings)})
+                        {name: getattr(
+                            import_module(settings[0]), settings[1])})
             self.options.update(imported_steps)
         return self
 

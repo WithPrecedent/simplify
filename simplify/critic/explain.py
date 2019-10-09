@@ -29,6 +29,7 @@ class Explain(SimpleIterable):
     auto_publish: bool = True
 
     def __post_init__(self):
+        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 

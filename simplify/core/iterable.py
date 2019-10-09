@@ -77,15 +77,28 @@ class SimpleIterable(SimpleClass):
                 corresponds to particular keys stored in 'options'.
 
         """
+        add_prefix = False
+        if not hasattr(instance, 'returned_variables'):
+            instance.returned_variables = [] 
         if return_variables is None and self.exists('return_variables'):
+               
             if isinstance(self.return_variables, dict):
-                return_variables = self.return_variables[instance.name]
+                if instance.name in self.return_variables:
+                    return_variables = self.return_variables[instance.name]
+                else:
+                    return_variables = []
             else:
                 return_variables = self.return_variables
+                add_prefix = True
         if return_variables is not None:
             for variable in self.listify(return_variables):
                 if hasattr(instance, variable):
-                    setattr(self, variable, getattr(instance, variable))
+                    if add_prefix:
+                        name = instance.name + '_' + variable
+                    else:
+                        name = variable
+                    setattr(self, name, getattr(instance, name))
+                    instance.returned_variables.append(name)
                 elif self.verbose:
                     print(variable, 'not found in', instance.name)
         return self
@@ -144,8 +157,8 @@ class SimpleIterable(SimpleClass):
             *args, **kwargs: other parameters can be added to method as needed.
 
         """
-        for name in getattr(self, self.steps).keys():
-            getattr(self, name).implement(*args, **kwargs)
+        for step in self.sequence:
+            getattr(self, step).implement(*args, **kwargs)
             if self.exists('return_variables'):
-                self._infuse_attributes(instance = getattr(self, name))
+                self._infuse_attributes(instance = getattr(self, step))
         return self

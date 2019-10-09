@@ -33,6 +33,7 @@ class TFModel(SimpleTechnique):
     name: str = 'tensorflow'
 
     def __post_init__(self):
+        self.idea_sections = ['chef']
         super().__post_init__()
         return self
 

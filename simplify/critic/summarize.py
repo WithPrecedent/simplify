@@ -29,12 +29,13 @@ class Summarize(SimpleIterable):
     """
 
     steps: object = None
-    name: str = 'summarize'
+    name: str = 'summary'
     auto_publish: bool = True
     auto_implement: bool = False
     lazy_import: bool = False
 
     def __post_init__(self):
+        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 
@@ -107,18 +108,18 @@ class Summarize(SimpleIterable):
         self.report = pd.DataFrame(columns = self.columns)
         return self
 
-    def implement(self, ingredients = None, recipes = None, transpose = True,
-                  file_name = 'data_summary', file_format = 'csv'):
-        """Creates a DataFrame of common summary data.
+    def implement(self, recipe = None, transpose = True,
+                  file_name = 'data_report', file_format = 'csv'):
+        """Creates a DataFrame of common report data.
 
         Args:
-            df(DataFrame): data to create summary report for.
+            df(DataFrame): data to create report report for.
             transpose(bool): whether the 'df' columns should be listed
                 horizontally (True) or vertically (False) in 'report'.
             file_name(str): name of file to be exported (without extension).
             file_format(str): exported file format.
         """
-        self._implement_report(df = ingredients.df)
+        self._implement_report(df = recipe.ingredients.df)
         self._implement_export_parameters(file_name = file_name,
                                           file_format = file_format,
                                           transpose = transpose)

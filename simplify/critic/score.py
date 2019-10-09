@@ -35,6 +35,7 @@ class Score(SimpleIterable):
     auto_implement: bool = False
 
     def __post_init__(self):
+        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 
@@ -108,26 +109,26 @@ class Score(SimpleIterable):
         self._set_columns()
         return self
 
-    def implement(self, ingredients = None, recipes = None):
+    def implement(self, recipe = None):
         """Prepares the results of a single recipe application to be added to
         the .report dataframe.
         """
-        scores = pd.Series(index = self.columns)
+        self.report = pd.Series(index = self.columns)
         for column, value in self.options.items():
             if column in self.metrics:
                 if column in self.prob_options:
-                    params = {'y_true': self.recipe.ingredients.y_test,
+                    params = {'y_true': recipe.ingredients.y_test,
                               'y_prob': self.predicted_probs[:, 1]}
                 elif column in self.score_options:
-                    params = {'y_true': self.recipe.ingredients.y_test,
+                    params = {'y_true': recipe.ingredients.y_test,
                               'y_score': self.predicted_probs[:, 1]}
                 else:
-                    params = {'y_true': self.recipe.ingredients.y_test,
+                    params = {'y_true': recipe.ingredients.y_test,
                               'y_pred': self.predictions}
                 if column in self.special_metrics:
                     params.update({column: self.special_metrics[column]})
                 result = value(**params)
                 if column in self.negative_metrics:
                     result = -1 * result
-                scores[column] = result
-        return scores
+                self.report[column] = result
+        return self

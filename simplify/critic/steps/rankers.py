@@ -29,13 +29,13 @@ class GiniImportances(SimpleTechnique):
     def implement(self, recipe = None, explainer = None):
         features = list(recipe.ingredients.x_test.columns)
         if hasattr(recipe.model.algorithm, 'feature_importances_'):
-            importances = pd.Series(
+            self.importances = pd.Series(
                     data = recipe.model.algorithm.feature_importances_,
                     index = features)
-            importances.sort_values(ascending = False, inplace = True)
+            self.importances.sort_values(ascending = False, inplace = True)
         else:
-            importances = None
-        return importances
+            self.importances = None
+        return self
 
 
 @dataclass
@@ -59,10 +59,10 @@ class PermutationImportances(SimpleTechnique):
         importance_instance.fit(
                 recipe.ingredients.x_test,
                 recipe.ingredients.y_test)
-        importances = show_weights(
+        self.importances = show_weights(
                 importance_instance,
                 feature_names = recipe.ingredients.columns.keys())
-        return importances
+        return self
 
 @dataclass
 class ShapImportances(SimpleTechnique):
@@ -76,8 +76,8 @@ class ShapImportances(SimpleTechnique):
         return self
 
     def implement(self, recipe = None, explainer = None):
-        importances = np.abs(explainer.shap_values).mean(0)
-        return importances
+        self.importances = np.abs(explainer.shap_values).mean(0)
+        return self
 
 
 @dataclass
@@ -92,4 +92,5 @@ class BuiltinImportances(SimpleTechnique):
         return self
 
     def implement(self, recipe = None, explainer = None):
-        return importances
+        self.importances = None
+        return self

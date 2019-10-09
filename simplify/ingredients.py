@@ -596,7 +596,8 @@ class Ingredients(SimpleClass):
                               self.all_datatypes[datatype]))
         return self
 
-    def save_dropped(self, file_name = 'dropped_columns', file_format = 'csv'):
+    def save_dropped(self, folder = 'experiment', file_name = 'dropped_columns', 
+                     file_format = 'csv'):
         """Saves 'dropped_columns' into a file
 
         Args:
@@ -609,7 +610,7 @@ class Ingredients(SimpleClass):
             if self.verbose:
                 print('Exporting dropped feature list')
             self.depot.save(variable = self.dropped_columns,
-                                folder = self.depot.experiment,
+                                folder = folder,
                                 file_name = file_name,
                                 file_format = file_format)
         elif self.verbose:

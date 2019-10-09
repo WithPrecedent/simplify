@@ -27,11 +27,12 @@ class Predict(SimpleIterable):
             is instanced.
     """
     steps: object = None
-    name: str = 'predictor'
+    name: str = 'predict'
     auto_publish: bool = True
     auto_implement: bool = False
 
     def __post_init__(self):
+        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 

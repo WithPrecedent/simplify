@@ -36,6 +36,7 @@ class Search(SimpleTechnique):
     auto_publish: bool = False
 
     def __post_init__(self):
+        self.idea_sections = ['chef']
         super().__post_init__()
         return self
     
@@ -43,7 +44,7 @@ class Search(SimpleTechnique):
       
     def _set_parameters(self):
         self.parameters.update(
-            {'estimator': self.estimator,
+            {'estimator': self.estimator.algorithm,
              'param_distributions': self.space,
              'random_state': self.seed})
         if 'refit' in self.parameters:
@@ -56,7 +57,8 @@ class Search(SimpleTechnique):
             print('Searching for best hyperparameters using',
                   self.technique, 'search algorithm')
             print('The', self.parameters['scoring'],
-                  'score of the best estimator for this model is',
+                  'score of the best estimator for the', 
+                  self.estimator.technique, ' model is',
                   f'{self.algorithm.best_score_: 4.4f}')
         return self
 

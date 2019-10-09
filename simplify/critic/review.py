@@ -51,6 +51,7 @@ class Review(SimpleIterable):
     auto_implement: bool = False
 
     def __post_init__(self):
+        self.idea_sections = ['chef']
         super().__post_init__()
         return self
 
@@ -79,10 +80,11 @@ class Review(SimpleIterable):
             'seed': 'seed',
             'validation_set': 'val_set'}
         self.columns = list(self.required_columns.keys())
-        self.columns.extend(list(recipe.steps.keys()))
-        for number, instance in getattr(self, self.iterator).items():
-            if hasattr(instance, 'columns') and instance.name != 'summarize':
-                self.columns.extend(instance.columns)
+        self.columns.extend(recipe.sequence)
+        for step in self.sequence:
+            if (hasattr(getattr(self, step), 'columns') 
+                    and getattr(self, step).name != 'summarize'):
+                self.columns.extend(getattr(self, step).columns)
         return self
 
     def _start_report(self, recipe):
@@ -98,11 +100,12 @@ class Review(SimpleIterable):
         Args:
             review(Review.report): 'report' from an instance of review
         """
-        self.depot.save(variable = report,
-                        folder = self.depot.experiment,
-                        file_name = self.model_type + '_review',
-                        file_format = 'csv',
-                        header = True)
+        self.depot.save(
+            variable = report,
+            folder = self.depot.experiment,
+            file_name = self.model_type + '_review',
+            file_format = 'csv',
+            header = True)
         return
 
     """ Core siMpLify methods """
@@ -111,30 +114,21 @@ class Review(SimpleIterable):
         """Sets default options for the Critic's analysis."""
         super().draft()
         self.options = {
-            'summarize': ['simplify.critic.summarize', 'Summarize'],
-            'explain': ['simplify.critic.explain', 'Explain'],
-            'rank': ['simplify.critic.rank', 'Rank'],
-            'predict': ['simplify.critic.predict', 'Predict'],
+            'summary': ['simplify.critic.summarize', 'Summarize'],
+            'explanation': ['simplify.critic.explain', 'Explain'],
+            'ranking': ['simplify.critic.rank', 'Rank'],
+            'prediction': ['simplify.critic.predict', 'Predict'],
             'score': ['simplify.critic.score', 'Score']}
         # Locks 'step' attribute at 'critic' for conform methods in package.
-        self.step = 'critic'
-        # Sets iterable-related attributes.
-        self.iterator = 'reviews'
-        self.iterable_setting = 'review_steps'
-        self.iterable_type = 'serial'
-        self.return_variables = {
-            'summarize': ['summary'],
-            'explain': ['values'],
-            'rank': ['importances'],
-            'predict': ['predictions, probabilities'],
-            'score': ['report']}
+        self.depot.step = 'critic'
+        self.return_variables = ['report']
         return self
 
     def publish(self):
         super().publish()
         return self
 
-    def implement(self, ingredients = None, recipes = None):
+    def implement(self, recipes = None):
         """Evaluates recipe with various tools and publishs report.
 
         Args:
@@ -142,19 +136,21 @@ class Review(SimpleIterable):
                 Ingredients.
             recipes (list or Recipe): a Recipe or a list of Recipes.
         """
-        # Sets local 'ingredients' attribute.
-        if self.ingredients is None and hasattr(recipes, 'ingredients'):
-            self.ingredients = recipes.ingredients
         # Initializes comparative model report with set columns.
         if not self.exists('report'):
-            self._start_report(recipe = self.listify(recipes)[0])
+            self._start_report(recipe = recipes['1'])
         # Iterates through 'recipes' to gather review information.
-        for self.recipe in self.listify(recipes):
+        self.recipes = recipes
+        for number, recipe in self.recipes.items():
             if self.verbose:
-                print('Reviewing', self.recipe.name, str(self.recipe.number))
-            for name, technique in getattr(self, self.iterator).items():
-                technique.implement(ingredients = ingredients,
-                                    recipes = recipes)
+                print('Reviewing', recipe.name, str(recipe.number))
+            step_reviews = {}
+            for step in self.sequence:
+                if step in ['rank']:
+                    getattr(self, step).implement(recipe = recipe)
                 if self.exists('return_variables'):
-                    self._get_return_variables(instance = technique)
+                    recipe._infuse_attributes(
+                        instance = getattr(self, step),
+                        return_variables = self.return_variables)
+        print('final_recipes', self.recipes)      
         return self

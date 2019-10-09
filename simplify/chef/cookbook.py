@@ -78,18 +78,22 @@ class Cookbook(SimpleIterable):
             recipe.implement(ingredients = self.ingredients)
             if self.export_results:
                 self.depot._set_experiment_folder()
-                self.depot._set_recipe_folder()
+                self.depot._set_plan_folder(iterable = recipe, 
+                                            name = 'recipe')
                 if self.export_all_recipes:
                     self.save_recipes(recipes = recipe)
-                if 'reduce' in self.steps and self.reduce != 'none':
+                if 'reduce' in self.sequence and recipe.reduce != 'none':
                     self.ingredients.save_dropped(folder = self.depot.recipe)
-            if 'critic' in self.packages:
-                self.critic.implement(ingredients = recipe.ingredients,
-                                      recipes = recipe)
-            if 'artist' in self.packages:
-                self.artist.implement(ingredients = self.critic.ingredients,
-                                      recipes = recipe,
-                                      reviews = self.critic.reviews)
+                else:
+                    self.ingredients.save_dropped(
+                        folder = self.depot.experiment)
+            # if 'critic' in self.packages:
+            #     self.critic.implement(ingredients = recipe.ingredients,
+            #                           recipes = recipe)
+            # if 'artist' in self.packages:
+            #     self.artist.implement(ingredients = self.critic.ingredients,
+            #                           recipes = recipe,
+            #                           reviews = self.critic.reviews)
         return self
 
     """ Public Tool Methods """
@@ -173,7 +177,7 @@ class Cookbook(SimpleIterable):
         if self.recipes is None:
             self.recipes = {}
         self.comparer = True
-        self.step = 'chef'
+        self.depot.step = 'chef'
         return self
 
     def edit_recipes(self, recipes):
@@ -226,8 +230,6 @@ class Cookbook(SimpleIterable):
             self._implement_recipes()
         if self.export_results:
             self.save_recipes(recipes = 'best')
-            if not 'reduce' in self.steps or self.reduce == ['none']:
-                self.ingredients.save_dropped(folder = self.depot.experiment)
         return self
 
 
@@ -267,14 +269,10 @@ class Recipe(SimpleIterable):
         parameter. Future hyperparameter computations will be added as they
         are discovered.
         """
-        # 'ingredients' attribute is required before method can be called.
-        if self.ingredients is not None:
-            # Data is split in oder for certain values to be computed that
-            # require features and the label to be split.
-            self.ingredients.split_xy(label = self.label)
+        if self.steps['model'] in ['xgboost']:
             # Model class is injected with scale_pos_weight for algorithms that
             # use that parameter.
-            self.options['model'].scale_pos_weight = (
+            self.model.scale_pos_weight = (
                     len(self.ingredients.y.index) /
                     ((self.ingredients.y == 1).sum())) - 1
         return self
@@ -308,22 +306,23 @@ class Recipe(SimpleIterable):
 
     def implement(self, ingredients):
         """Applies the recipe steps to the passed ingredients."""
-        steps = self.steps.copy()
+        sequence = self.sequence.copy()
         self.ingredients = ingredients
         self.ingredients.split_xy(label = self.label)
+        if self._calculate_hyperparameters:
+            self._calculate_hyperparameters            
         # If using cross-validation or other data splitting technique, the
         # pre-split methods apply to the 'x' data. After the split, steps
         # must incorporate the split into 'x_train' and 'x_test'.
-        for step, technique in self.steps:
-            steps.pop(step)
+        for step in self.sequence:
+            sequence.remove(step)
             if step == 'split':
                 break
             else:
-                self.ingredients = self.steps[step].implement(
+                self.ingredients = getattr(self, step).implement(
                     ingredients = self.ingredients,
                     plan = self)
-        split_algorithm = self.steps['split'].algorithm
-        for train_index, test_index in split_algorithm.split(
+        for train_index, test_index in self.split.algorithm.split(
                 self.ingredients.x, self.ingredients.y):
             self.ingredients.x_train, self.ingredients.x_test = (
                    self.ingredients.x.iloc[train_index],
@@ -331,8 +330,8 @@ class Recipe(SimpleIterable):
             self.ingredients.y_train, self.ingredients.y_test = (
                    self.ingredients.y.iloc[train_index],
                    self.ingredients.y.iloc[test_index])
-            for step, technique in steps.items():
-                self.ingredients = technique.implement(
+            for step in sequence:
+                self.ingredients = getattr(self, step).implement(
                        ingredients = self.ingredients,
                        plan = self)
         return self

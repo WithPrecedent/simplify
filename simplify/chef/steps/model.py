@@ -83,25 +83,15 @@ class Model(SimpleTechnique):
         return self
 
     def _set_estimator(self):
-        print(self.name, self.technique, self.model_type, self.options)
         self.estimator = self.options[self.model_type](
             technique = self.technique)
         return self
 
-    def _set_parameters(self):
-        self.runtime_parameters = {'random_state': self.seed}
-        self.parameters_factory = SimpleParameters()
-        self.parameters = self.parameters_factory.implement(
-            instance = self.estimator)
-        self._parse_parameters()
-        return self
-
     def _set_search(self):
         self.search = self.options['search'](
-            technique = self.search_technique,
-            parameters = self.idea['search_parameters'])
+            technique = self.search_technique)
         self.search.space = self.space
-        self.search.estimator = self.estimator.algorithm
+        self.search.estimator = self.estimator
         self.search.publish()
         return self
 
@@ -121,12 +111,12 @@ class Model(SimpleTechnique):
         return self
 
     def publish(self):
+        """Finalizes settings and creates instances of 'steps'."""
+        self.lazy_imports = [self.model_type, 'search']
+        self.runtime_parameters = {'random_state': self.seed}
         super().publish()
-        if self.technique != 'none':
-            self._set_estimator()
-            self._set_parameters()
-            if self.hyperparameter_search:
-                self._set_search()
+        if self.hyperparameter_search:
+            self._set_search()
         return self
 
     def implement(self, ingredients, plan = None):

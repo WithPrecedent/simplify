@@ -424,7 +424,7 @@ class Depot(SimpleClass):
                                              subfolder = subfolder)
         return self
 
-    def _set_iterable_folder(self, iterable, name = 'iterable'):
+    def _set_plan_folder(self, iterable, name = None):
         """Creates folder path for iterable-specific exports.
 
         Args:
@@ -432,10 +432,13 @@ class Depot(SimpleClass):
             name(string): name of attribute for the folder path to be stored
                 and the prefix of the folder to be created on disc.
         """
-        subfolder = name + '_'
+        if name:
+            subfolder = name + '_'
+        else:
+            subfolder = iterable.name + '_'
         if self.exists('naming_classes'):
             for step in self.listify(self.naming_classes):
-                subfolder += iterable.steps[step].technique + '_'
+                subfolder += getattr(iterable, step).technique + '_'
         subfolder += str(iterable.number)
         setattr(self, name, self.create_folder(folder = self.experiment,
                                                subfolder = subfolder))
@@ -685,7 +688,7 @@ class Depot(SimpleClass):
             'clean': ['interim', 'interim'],
             'bale': ['interim', 'interim'],
             'deliver': ['interim', 'processed'],
-            'cook': ['processed', 'processed'],
+            'chef': ['processed', 'processed'],
             'critic': ['processed', 'recipe']}
         self.data_file_names = {
             'sow': [None, None],
@@ -693,7 +696,7 @@ class Depot(SimpleClass):
             'clean': ['harvested_data', 'cleaned_data'],
             'bale': ['cleaned_data', 'baled_data'],
             'deliver': ['baled_data', 'final_data'],
-            'cook': ['final_data', 'final_data'],
+            'chef': ['final_data', 'final_data'],
             'critic': ['final_data', 'predicted_data']}
         self.data_file_formats = {
             'sow': ['source_format', 'source_format'],
@@ -701,7 +704,7 @@ class Depot(SimpleClass):
             'clean': ['interim_format', 'interim_format'],
             'bale': ['interim_format', 'interim_format'],
             'deliver': ['interim_format', 'final_format'],
-            'cook': ['final_format', 'final_format'],
+            'chef': ['final_format', 'final_format'],
             'critic': ['final_format', 'final_format']}
         # Sets dict to translate 'import'/'export' strings to index of lists in
         # the data settings above.

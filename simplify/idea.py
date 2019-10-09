@@ -620,16 +620,10 @@ class Simplify(SimpleIterable):
                 self.ingredients = getattr(self, name).ingredients
                 self.recipes = getattr(self, name).recipes
                 delattr(self, name)
-            if name in ['critic']:
-                getattr(self, name).implement(ingredients = self.ingredients,
-                                  recipes = self.recipes)
-                self.ingredients = getattr(self, name).ingredients
-                self.reviews = getattr(self, name).reviews
-                delattr(self, name)
-            if name in ['artist']:
-                getattr(self, name).implement(ingredients = self.ingredients,
-                                  recipes = self.recipes,
-                                  reviews = self.reviews)
+            if name in ['critic', 'artist']:
+                getattr(self, name).implement(
+                    recipes = self.recipes)
+                self.recipes = getattr(self, name).recipes
                 delattr(self, name)
         return self
 
