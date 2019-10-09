@@ -9,6 +9,7 @@
 from configparser import ConfigParser
 from dataclasses import dataclass
 from importlib import import_module
+from itertools import product
 import os
 import re
 
@@ -115,10 +116,10 @@ class Idea(SimpleClass):
             it in the current working directory and store its contents in
             'configuration'. If a dict is provided, it should be nested into
             sections with individual settings in key/value pairs.
-        depot(Depot or str): an instance of Depot or a string containing the 
-            full path of where the root folder should be located for file 
-            output. Once a Depot instance is created, it is automatically made 
-            available to all other SimpleClass subclasses that are instanced in 
+        depot(Depot or str): an instance of Depot or a string containing the
+            full path of where the root folder should be located for file
+            output. Once a Depot instance is created, it is automatically made
+            available to all other SimpleClass subclasses that are instanced in
             the future. If 'depot' is not passed, a default Depot instance will
             be created.
         ingredients(Ingredients or str): an instance of Ingredients, a string
@@ -308,7 +309,7 @@ class Idea(SimpleClass):
         return self
 
     def _infer_types(self):
-        """If 'infer_types' is True, values in 'configuration' are converted to 
+        """If 'infer_types' is True, values in 'configuration' are converted to
         the appropriate datatype.
         """
         if self.infer_types:
@@ -324,30 +325,35 @@ class Idea(SimpleClass):
         setattr(SimpleClass, 'idea', self)
         return self
 
-    # def _inject_steps(self, instance, key, value, override):
-    #     if not hasattr(instance, 'steps') or instance.steps is None:
-    #         instance.steps = {}
-    #     if not instance.steps or override:
-    #         for item in self.listify(instance._convert_wildcards(value)):
-    #             if item in ['chef'] and instance.name == 'chef':
-    #                 instance.steps.update(
-    #                     {'recipes': instance.options['recipes']})
-    #             else:
-    #                 instance.steps.update({item: instance.options[item]})
-    #     return instance
-
     def _inject_parameters(self, instance, override):
-        if not instance.parameters or override:
-            key = instance.technique + '_parameters'
-            if key in self.idea.configuration:
-                instance.parameters = self.idea.configuration[key]
+        if instance.parameters is None or override:
+            key_technique = instance.technique + '_parameters'
+            key_name = instance.name + '_parameters'
+            if key_technique in self.idea.configuration:
+                instance.parameters = self.idea.configuration[key_technique]
+            elif key_name in self.idea.configuration:
+                instance.parameters = self.idea.configuration[key_name]
         return instance
 
-    # def _inject_techniques(self, instance, key, value, override):
-    #     if not hasattr(instance, key) or override:
-    #         setattr(instance, key,
-    #                 self.listify(instance._convert_wildcards(value)))
-    #     return instance
+    def _inject_plans(self, instance, override):
+        """Creates cartesian product of all plans."""
+        if hasattr(instance, 'comparer') and instance.comparer:
+            plans = []
+            for step in instance.sequence:
+                key = step + '_techniques'
+                if key in self.configuration[instance.name]:
+                    plans.append(self.listify(self._convert_wildcards(
+                            self.configuration[instance.name][key])))
+                else:
+                    plans.append(['none'])
+            instance.plans = list(map(list, product(*plans)))
+        return instance
+
+    def _inject_sequence(self, instance, override):
+         if not instance.sequence or override:
+             instance.sequence = self.listify(instance._convert_wildcards(
+                self.configuration[instance.name][instance.sequence_setting]))
+         return instance
 
     def _load_from_ini(self, file_path = None):
         """Creates a configuration dictionary from an .ini file."""
@@ -371,14 +377,14 @@ class Idea(SimpleClass):
         Todo:
             file_path(str): path to python module with 'configuration' dict
                 defined.
-            
+
         """
         if file_path:
             configuration_file = file_path
         else:
             configuration_file = self.configuration
         if os.path.isfile(configuration_file):
-            self.configuration = getattr(import_module(configuration_file), 
+            self.configuration = getattr(import_module(configuration_file),
                                          'configuration')
         return self
 
@@ -464,27 +470,22 @@ class Idea(SimpleClass):
             instance with attribute(s) added.
 
         """
-        # Injects appropriate 'parameters' into SimpleTechnique instance.
-        if hasattr(instance, 'parameters') and hasattr(instance, 'technique'):
-            instance = self._inject_parameters(instance = instance,
-                                               override = override)
         for section in self.listify(sections):
             for key, value in self.configuration[section].items():
-            #     if (hasattr(instance, 'iterable_setting')
-            #             and key == instance.iterator_setting):
-            #         self._inject_steps(
-            #                 instance = instance,
-            #                 key = key,
-            #                 value = value,
-            #                 override = override)
-            #     elif key.endswith('_techniques'):
-            #         self._inject_techniques(
-            #                 instance = instance,
-            #                 key = key,
-            #                 value = value,
-            #                 override = override)
-            #     elif not hasattr(instance, key) or override:
                 setattr(instance, key, instance._convert_wildcards(value))
+        # Injects appropriate 'parameters' into SimpleTechnique instance.
+        if hasattr(instance, 'parameters'):
+            instance = self._inject_parameters(
+                    instance = instance,
+                    override = override)
+        if (instance.name in self.configuration
+                and hasattr(instance, 'sequence_setting')):
+            instance = self._inject_sequence(
+                    instance = instance,
+                    override = override)
+            instance = self._inject_plans(
+                    instance = instance,
+                    override = override)
         return instance
 
     """ Core siMpLify Methods """
@@ -510,6 +511,7 @@ class Idea(SimpleClass):
         self._infer_types()
         self._inject_base()
         self.inject(instance = self, sections = ['general'])
+        super().publish()
         return self
 
     def implement(self, ingredients = None):
@@ -518,7 +520,7 @@ class Idea(SimpleClass):
         self.simplify = Simplify()
         self.simplify.implement(ingredients = self.ingredients)
         return self
-        
+
     """ Python Dictionary Compatibility Methods """
 
     def update(self, new_settings):
@@ -548,14 +550,14 @@ class Idea(SimpleClass):
             error = 'new_options must be dict, Idea, or file path'
             raise TypeError(error)
         return self
-    
-    
+
+
 @dataclass
 class Simplify(SimpleIterable):
     """Controller class for siMpLify projects.
 
-    This class is provided for applications that rely on Idea settings and/or 
-    subclass attributes. For a more customized application, users can access the 
+    This class is provided for applications that rely on Idea settings and/or
+    subclass attributes. For a more customized application, users can access the
     subgetattr(self, name)s ('farmer', 'chef', 'critic', and 'artist') directly.
 
         name(str): name of class used to match settings sections in an Idea
@@ -583,14 +585,14 @@ class Simplify(SimpleIterable):
 
     def __call__(self, ingredients = None):
         """Calls the class as a function.
-        
+
         Args:
-        
-            ingredients(Ingredients or str): an instance of Ingredients, a 
-                string containing the full file path of where a data file for a 
-                pandas DataFrame is located, or a string containing a file name 
+
+            ingredients(Ingredients or str): an instance of Ingredients, a
+                string containing the full file path of where a data file for a
+                pandas DataFrame is located, or a string containing a file name
                 in the default data folder, as defined in a Depot instance.
-                
+
         """
         self.__post_init__()
         self.implement(ingredients = ingredients)
@@ -598,7 +600,7 @@ class Simplify(SimpleIterable):
 
     def _implement_dangerous(self):
         first_step = True
-        for name in getattr(self, self.iterator).keys():
+        for name in self.sequence:
             if first_step:
                 first_step = False
                 getattr(self, name).implement(ingredients = self.ingredients)
@@ -608,7 +610,7 @@ class Simplify(SimpleIterable):
         return self
 
     def _implement_safe(self):
-        for name in getattr(self, self.iterator).keys():
+        for name in self.sequence:
             if name in ['farmer']:
                 getattr(self, name).implement(ingredients = self.ingredients)
                 self.ingredients = getattr(self, name).ingredients
@@ -640,9 +642,9 @@ class Simplify(SimpleIterable):
                 'chef': ['simplify.chef', 'Cookbook'],
                 'critic': ['simplify.critic', 'Review'],
                 'artist': ['simplify.artist', 'Canvas']}
-        self.iterable_setting = 'packages'
+        self.sequence_setting = 'packages'
         return self
-    
+
     def implement(self, ingredients = None):
         if ingredients:
             self.ingredients = ingredients

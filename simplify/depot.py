@@ -772,6 +772,7 @@ class Depot(SimpleClass):
     def publish(self):
         """Creates data and results folders as well as other default subfolders.
         """
+        super().publish()
         self._check_root_folder()
         self.edit_folders(root_folder = self.root,
                          subfolders = [self.data_folder, self.results_folder])

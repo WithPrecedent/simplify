@@ -35,14 +35,14 @@ class Model(SimpleTechnique):
     """
     technique: object = None
     parameters: object = None
-    name: str = 'generic_technique'
+    name: str = 'model'
     auto_publish: bool = True
 
     def __post_init__(self):
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
-    
+
     """ Private Methods """
 
     def _datatype_in_list(self, test_list, data_type):
@@ -80,13 +80,14 @@ class Model(SimpleTechnique):
             else:
                 new_parameters.update({param: values})
         self.parameters = new_parameters
-        return self   
+        return self
 
     def _set_estimator(self):
+        print(self.name, self.technique, self.model_type, self.options)
         self.estimator = self.options[self.model_type](
             technique = self.technique)
         return self
-        
+
     def _set_parameters(self):
         self.runtime_parameters = {'random_state': self.seed}
         self.parameters_factory = SimpleParameters()
@@ -102,8 +103,8 @@ class Model(SimpleTechnique):
         self.search.space = self.space
         self.search.estimator = self.estimator.algorithm
         self.search.publish()
-        return self    
-        
+        return self
+
     """ Core siMpLify Methods """
 
     def draft(self):
@@ -120,11 +121,12 @@ class Model(SimpleTechnique):
         return self
 
     def publish(self):
+        super().publish()
         if self.technique != 'none':
             self._set_estimator()
             self._set_parameters()
             if self.hyperparameter_search:
-                self._set_search()             
+                self._set_search()
         return self
 
     def implement(self, ingredients, plan = None):
@@ -146,4 +148,4 @@ class Model(SimpleTechnique):
 
     def transform(self, x, y = None):
         error = 'transform is not implemented for machine learning models'
-        raise NotImplementedError(error)  
+        raise NotImplementedError(error)

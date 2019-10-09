@@ -70,21 +70,18 @@ class SimpleClass(ABC):
         warnings.filterwarnings('ignore')
         # Calls draft method to set up class instance defaults.
         self.draft()
+        # Sets default 'name' attribute if none exists.
+        self._run_checks(checks = ['name'])
         # Creates 'idea' attribute if a string is passed to Idea when subclass
         # was instanced.
         if self.__class__.__name__ == 'Idea':
-            self.publish()  
-        else:    
-            # self._check_idea()
+            self.publish()
+        else:
             # Injects parameters and attributes from shared Idea instance.
             self._inject_idea()
-        # Runs attribute checks from list in 'checks' attribute (if it exists).
-        self._run_checks()
-        # Converts values in 'steps' to classes by lazily importing them.
-        self._lazily_import()
         # Calls 'publish' method if 'auto_publish' is True.
-        if (hasattr(self, 'auto_publish') 
-                and self.auto_publish 
+        if (hasattr(self, 'auto_publish')
+                and self.auto_publish
                 and self.__class__.__name__ != 'Idea'):
             self.publish()
             # Calls 'implement' method if 'auto_implement' is True.
@@ -198,8 +195,8 @@ class SimpleClass(ABC):
         return self.options
 
     def __repr__(self):
-        return __str__()
-    
+        return self.__str__()
+
     def __setitem__(self, item, value):
         """Adds item and value to options dictionary.
 
@@ -214,7 +211,7 @@ class SimpleClass(ABC):
 
     def __str__(self):
         return self.name
-        
+
     """ Private Methods """
 
     def _check_depot(self):
@@ -228,6 +225,8 @@ class SimpleClass(ABC):
                 self.depot = Depot(root_folder = self.depot)
         else:
             self.depot = Depot()
+        if not hasattr(SimpleClass, 'depot'):
+            setattr(SimpleClass, 'depot', self.depot)
         return self
 
     def _check_gpu(self):
@@ -252,19 +251,6 @@ class SimpleClass(ABC):
 #            if self.verbose:
 #                print('Using CPU')
         return self
-
-    # def _check_idea(self):
-    #     """Loads Idea settings from a file if a string is passed instead of an
-    #     Idea instance.
-
-    #     Injects sections of 'idea' to a subclass instance using
-    #     user settings.
-    #     """
-    #     # Local import to avoid circular dependency.
-    #     from simplify import Idea
-    #     if self.exists('idea') and isinstance(self.idea, str):
-    #         self.idea = Idea(configuration = self.idea)
-    #     return self
 
     def _check_ingredients(self, ingredients = None):
         """Checks if ingredients attribute exists and takes appropriate action.
@@ -355,12 +341,13 @@ class SimpleClass(ABC):
         sections = ['general']
         if self.exists('idea_sections'):
             sections.extend(self.listify(self.idea_sections))
-        if (hasattr(self, 'name')
-                and self.name in self.idea.configuration
-                and not self.name in sections):
+        if self.name in self.idea.configuration and not self.name in sections:
             sections.append(self.name)
         self = self.idea.inject(instance = self, sections = sections)
         return self
+
+    def _lazy_import(self, settings):
+        return getattr(import_module(settings[0]), settings[1])
 
     def _lazily_import(self):
         """Limits module imports to only needed package dependencies.
@@ -376,20 +363,21 @@ class SimpleClass(ABC):
         imported_steps = {}
         if not self.exists('simplify_options'):
             self.simplify_options = []
-        if not hasattr(self, 'lazy_import') or self.lazy_import:
-            if self.exists(self.iterator):
-                if (not isinstance(getattr(self, self.iterator), list)
-                        and self.has_list_values(getattr(self, self.iterator))):
-                    for name, settings in getattr(self, self.iterator).items():
-                        if 'simplify' in settings[0]:
-                            self.simplify_options.append(name)
-                        imported_steps.update(
-                            {name: getattr(import_module(settings[0]),
-                                           settings[1])})
-                    setattr(self, self.iterator, imported_steps)
+        if ((not hasattr(self, 'lazy_import')
+                or self.lazy_import)
+                and self.has_list_values(self.options)):
+            for name, settings in self.options.items():
+                if ((hasattr(self, 'sequence') and name in self.sequence)
+                        or (hasattr(self, 'technique')
+                            and name in self.technique)):
+                    if 'simplify' in settings[0]:
+                        self.simplify_options.append(name)
+                    imported_steps.update(
+                        {name: self._lazy_import(settings = settings)})
+            self.options.update(imported_steps)
         return self
 
-    def _run_checks(self):
+    def _run_checks(self, checks = None):
         """Checks attributes from 'checks' and runs corresponding methods based
         upon strings stored in 'checks'.
 
@@ -398,8 +386,10 @@ class SimpleClass(ABC):
         subclass seeking to add new checks can add a new method using those
         naming conventions.
         """
-        if self.exists('checks'):
-            for check in self.checks:
+        if not checks and hasattr(self, 'checks'):
+            checks = self.checks
+        if checks:
+            for check in checks:
                 getattr(self, '_check_' + check)()
         return self
 
@@ -581,7 +571,7 @@ class SimpleClass(ABC):
         wants to make use of related methods.
         """
         self.options = {}
-        self.checks = ['name']
+        self.checks = []
         return self
 
     def edit(self, keys = None, values = None, options = None):
@@ -620,5 +610,8 @@ class SimpleClass(ABC):
                 publish method. But nothing precludes them from being added
                 to subclasses.
         """
-        pass
+        # Runs attribute checks from list in 'checks' attribute (if it exists).
+        self._run_checks()
+        # Converts values in 'options' to classes by lazily importing them.
+        self._lazily_import()
         return self

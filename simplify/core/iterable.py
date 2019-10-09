@@ -9,6 +9,7 @@
 from dataclasses import dataclass
 
 from simplify.core.base import SimpleClass
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
@@ -24,7 +25,7 @@ class SimpleIterable(SimpleClass):
     To take maximum advantage of this class's functionality, a subclass should
     either, in its draft method, call super().draft() and/or define the
     following attributes there:
-        iterable_setting(str): name of key in an Idea instance where the
+        steps_setting(str): name of key in an Idea instance where the
             options for the iterable are listed. The names of the values
             corresponding to that key should be keys in the local 'options'
             dictionary.
@@ -60,31 +61,9 @@ class SimpleIterable(SimpleClass):
         """Allows class instance to be directly iterated by returning the
         primary iterable contained within the class instance.
         """
-        return getattr(self, self.iterator)
+        return getattr(self, self.steps)
 
     """ Private Methods """
-
-    def _add_list_to_iterator(self, items):
-        for step in self.listify(items):
-            getattr(self, self.iterator).update({step: self.options[step]})
-        return self
-            
-    def _check_iterator(self):
-        """Creates class iterable attribute to be filled with concrete steps if
-        one does not exist.
-        """
-        if not self.exists('iterator'):
-            self.iterator = 'steps'
-        if not self.exists(self.iterator):
-            setattr(self, self.iterator, {})
-        if not self.exists('iterable_setting'):
-            self.iterable_setting = self.name + '_steps'
-        if self.exists(self.iterable_setting):
-            self._add_list_to_iterator(
-                self._convert_wildcards(getattr(self, self.iterable_setting)))
-        else:
-            setattr(self, self.iterator, self.options)
-        return self
 
     def _infuse_attributes(self, instance, return_variables = None):
         """Adds 'return_variables' attributes from instance class to present
@@ -116,38 +95,44 @@ class SimpleIterable(SimpleClass):
     def draft(self):
         """ Declares defaults for class."""
         super().draft()
-        self.options = {}
-        self.checks.extend(['iterator'])
-        self.return_variables = []
-        self.iterator = 'steps'
+        self.simplify_options = []
+        if not hasattr(self, 'return_variables'):
+            self.return_variables = []
+        if not hasattr(self, 'sequence_setting'):
+            self.sequence_setting = self.name + '_steps'
+        if not hasattr(self, 'sequence'):
+            self.sequence = []
+        if not hasattr(self, 'steps'):
+            self.steps = {}
         return self
 
-    def edit_iterable(self, iterables):
-        """Adds a single iterable or list of iterables to the iterables
-        attribute.
+    def edit_steps(self, steps):
+        """Adds a step or list of steps to the 'steps' attribute.
 
         Args:
-            iterables(SimpleIterable, list(SimpleIterable)): iterables to be
-                added into 'iterables' attribute.
+            steps(SimpleIterable, SimpleTechnique, list(SimpleIterable),
+                  list(SimpleTechnique)): step(s) to be added into 'steps'
+                  attribute.
         """
-        if isinstance(iterables, dict):
-            getattr(self, self.iterator).update(iterables)
-        elif isinstance(iterables, list):
-            self._add_list_to_iterable(items = iterables)
+        if isinstance(steps, dict):
+            self.steps.update(steps)
+        elif isinstance(steps, list):
+            for step in self.listify(steps):
+                self.steps.update({step: self.options[step]})
         return self
 
     def publish(self):
         super().publish()
-        for name, step in getattr(self, self.iterator).items():
-            print('name', name)
-            print('step', step)
-            if isinstance(step, str):
-                print('step is string')
-                setattr(self, name, self.options[name](technique = step))
+        for step in self.sequence:
+            if (self.exists('steps')
+                    and step in self.steps
+                    and isinstance(self.steps[step], str)):
+                setattr(self, step, self.options[step](
+                        technique = self.steps[step]))
             else:
-                setattr(self, name, step())
+                setattr(self, step, self.options[step]())
         return self
-    
+
     def implement(self, *args, **kwargs):
         """Method that implements all of the publishd objects with the passed
         args and kwargs.
@@ -159,7 +144,7 @@ class SimpleIterable(SimpleClass):
             *args, **kwargs: other parameters can be added to method as needed.
 
         """
-        for name in getattr(self, self.iterator).keys():
+        for name in getattr(self, self.steps).keys():
             getattr(self, name).implement(*args, **kwargs)
             if self.exists('return_variables'):
                 self._infuse_attributes(instance = getattr(self, name))
