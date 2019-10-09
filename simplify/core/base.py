@@ -403,6 +403,20 @@ class SimpleClass(ABC):
     """ Public Tool Methods """
 
     @staticmethod
+    def add_prefix(iterable, prefix):
+        if isinstance(iterable, dict):
+            return {prefix + '_' + k: v for k, v in iterable.items()}
+        elif isinstance(iterable, list):
+            return [prefix + '_' + item for item in iterable]
+        
+    @staticmethod
+    def add_suffix(iterable, suffix):
+        if isinstance(iterable, dict):
+            return {k + '_' + suffix: v for k, v in iterable.items()}
+        elif isinstance(iterable, list):
+            return [item + '_' + suffix for item in iterable]      
+        
+    @staticmethod
     def deduplicate(iterable):
         """Deduplicates list, pandas DataFrame, or pandas Series.
 

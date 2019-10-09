@@ -78,10 +78,7 @@ class SimpleIterable(SimpleClass):
 
         """
         add_prefix = False
-        if not hasattr(instance, 'returned_variables'):
-            instance.returned_variables = [] 
-        if return_variables is None and self.exists('return_variables'):
-               
+        if return_variables is None and self.exists('return_variables'):              
             if isinstance(self.return_variables, dict):
                 if instance.name in self.return_variables:
                     return_variables = self.return_variables[instance.name]
@@ -91,18 +88,27 @@ class SimpleIterable(SimpleClass):
                 return_variables = self.return_variables
                 add_prefix = True
         if return_variables is not None:
-            for variable in self.listify(return_variables):
-                if hasattr(instance, variable):
-                    if add_prefix:
-                        name = instance.name + '_' + variable
-                    else:
-                        name = variable
-                    setattr(self, name, getattr(instance, name))
-                    instance.returned_variables.append(name)
-                elif self.verbose:
-                    print(variable, 'not found in', instance.name)
+            self._return_variables(
+                instance = instance,
+                variables = return_variables,
+                add_prefix = add_prefix)
         return self
 
+    def _return_variables(self, instance, variables, add_prefix = False):
+        if not self.exists('returned_variables'):
+            self.returned_variables = []
+        for variable in self.listify(variables):
+            if hasattr(instance, variable):
+                if add_prefix:
+                    name = instance.name + '_' + variable
+                else:
+                    name = variable
+                setattr(self, name, getattr(instance, variable))
+                self.returned_variables.append(name)
+            elif self.verbose:
+                print(variable, 'not found in', instance.name)
+        return self
+        
     """ Core siMpLify methods """
 
     def draft(self):

@@ -70,11 +70,12 @@ class Cookbook(SimpleIterable):
                     {str(i + 1): Recipe(number = i + 1, steps = steps)})
         return self
 
-    def _implement_recipes(self):
+    def _implement_recipes(self, using_val_set = False):
         """Tests all 'recipes'."""
         for number, recipe in self.recipes.items():
             if self.verbose:
                 print('Testing', recipe.name, str(recipe.number))
+            recipe.using_val_set = using_val_set
             recipe.implement(ingredients = self.ingredients)
             if self.export_results:
                 self.depot._set_experiment_folder()
@@ -224,7 +225,7 @@ class Cookbook(SimpleIterable):
             self.ingredients._remap_dataframes(data_to_use = 'train_test')
             self._implement_recipes()
             self.ingredients._remap_dataframes(data_to_use = 'train_val')
-            self._implement_recipes()
+            self._implement_recipes(using_val_set = True)
         else:
             self.ingredients._remap_dataframes(data_to_use = self.data_to_use)
             self._implement_recipes()

@@ -10,9 +10,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-#from simplify.core.decorators import localize
 from simplify.core.iterable import SimpleIterable
-
 
 
 @dataclass
@@ -57,6 +55,38 @@ class Review(SimpleIterable):
 
     """ Private Methods """
 
+    def _add_row(self, recipe, report):
+        new_row = pd.Series(index = self.columns)
+        for column, variable in self.required_columns.items():
+            new_row[column] = getattr(recipe, variable)
+        print('report', report)
+        for column in report:
+            new_row[column] = report[column]
+        self.report.loc[len(self.report)] = new_row
+        return self
+
+    def _check_best(self, recipe):
+        """Checks if the current recipe is better than the current best recipe
+        based upon the primary scoring metric.
+
+        Args:
+            recipe: an instance of Recipe to be tested versus the current best
+                recipe stored in the 'best_recipe' attribute.
+        """
+        if not self.exists('best_recipe'):
+            self.best_recipe = recipe
+            self.best_recipe_score = self.report.loc[
+                    self.report.index[-1],
+                    self.listify(self.metrics)[0]]
+        elif (self.report.loc[
+                self.report.index[-1],
+                self.listify(self.metrics)[0]] > self.best_recipe_score):
+            self.best_recipe = recipe
+            self.best_recipe_score = self.report.loc[
+                    self.report.index[-1],
+                    self.listify(self.metrics)[0]]
+        return self
+                
     def _format_step(self, attribute):
         if getattr(self.recipe, attribute).technique in ['none', 'all']:
             step_column = getattr(self.recipe, attribute).technique
@@ -73,12 +103,25 @@ class Review(SimpleIterable):
         else:
             return step.algorithm
 
+    def print_best(self):
+        """Prints output to the console about the best recipe."""
+        if self.verbose:
+            print('The best test recipe, based upon the',
+                  self.listify(self.metrics)[0], 'metric with a score of',
+                  f'{self.best_recipe_score: 4.4f}', 'is:')
+            for technique in getattr(self,
+                    self.iterator).best_recipe.techniques:
+                print(technique.capitalize(), ':',
+                      getattr(getattr(self, self.iterator).best_recipe,
+                              technique).technique)
+        return
+
     def _set_columns(self, recipe):
         self.required_columns = {
             'recipe_number': 'number',
-            'options': 'techniques',
+            'options': 'sequence',
             'seed': 'seed',
-            'validation_set': 'val_set'}
+            'validation_set': 'using_val_set'}
         self.columns = list(self.required_columns.keys())
         self.columns.extend(recipe.sequence)
         for step in self.sequence:
@@ -121,7 +164,8 @@ class Review(SimpleIterable):
             'score': ['simplify.critic.score', 'Score']}
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.depot.step = 'critic'
-        self.return_variables = ['report']
+        self.return_variables = {
+            'score' : ['best_recipe', 'score', 'best_recipe']}
         return self
 
     def publish(self):
@@ -132,25 +176,29 @@ class Review(SimpleIterable):
         """Evaluates recipe with various tools and publishs report.
 
         Args:
-            ingredients (Ingredients): an instance or subclass instance of
-                Ingredients.
-            recipes (list or Recipe): a Recipe or a list of Recipes.
+            recipes(dict(str: Recipe) or Recipe): a Recipe or a dict of Recipes.
+                The recipes included should have fit models for this class's
+                methods to work.
         """
+        if not isinstance(recipes, dict):
+            recipes = {'1': recipes}
+        self.recipes = recipes
         # Initializes comparative model report with set columns.
         if not self.exists('report'):
             self._start_report(recipe = recipes['1'])
+        print('columns', self.columns)
         # Iterates through 'recipes' to gather review information.
-        self.recipes = recipes
         for number, recipe in self.recipes.items():
             if self.verbose:
                 print('Reviewing', recipe.name, str(recipe.number))
             step_reviews = {}
             for step in self.sequence:
-                if step in ['rank']:
-                    getattr(self, step).implement(recipe = recipe)
-                if self.exists('return_variables'):
-                    recipe._infuse_attributes(
-                        instance = getattr(self, step),
-                        return_variables = self.return_variables)
-        print('final_recipes', self.recipes)      
+                getattr(self, step).implement(recipe = recipe)
+                self._infuse_attributes(instance = getattr(self, step))
+                if step in ['score']:
+                    print('score_report', self.score.report)
+                    self._add_row(recipe = recipe, report = self.score.report)
+                    self.check_best()
+        self.print_best
+        print(self.report)
         return self

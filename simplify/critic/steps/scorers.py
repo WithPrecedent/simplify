@@ -17,6 +17,10 @@ from simplify.core.technique import SimpleTechnique
 @dataclass
 class Metrics(SimpleTechnique):
 
+    technique: str = 'none'
+    parameters: object = None
+    name: str = 'metrics'
+    
     def draft(self):
         self.options = {
             'accuracy': metrics.accuracy_score,
@@ -70,6 +74,10 @@ class Metrics(SimpleTechnique):
 @dataclass
 class Reports(SimpleTechnique):
 
+    technique: str = 'none'
+    parameters: object = None
+    name: str = 'reports'
+
     def draft(self):
         self.options = {}
         return self
@@ -93,12 +101,9 @@ class Reports(SimpleTechnique):
 
     def _cluster_report(self):
         return self
-
-
+    
     def _regressor_report(self):
         return self
-
-
 
     def _print_classifier_results(self, recipe):
         """Prints to console basic results separate from report."""

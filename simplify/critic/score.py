@@ -41,46 +41,32 @@ class Score(SimpleIterable):
 
     """ Private Methods """
 
-    def _check_best(self, recipe):
-        """Checks if the current recipe is better than the current best recipe
-        based upon the primary scoring metric.
-
-        Args:
-            recipe: an instance of Recipe to be tested versus the current best
-                recipe stored in the 'best_recipe' attribute.
-        """
-        if not self.exists('best_recipe'):
-            self.best_recipe = recipe
-            self.best_recipe_score = self.report.loc[
-                    self.report.index[-1],
-                    self.listify(self.metrics)[0]]
-        elif (self.report.loc[
-                self.report.index[-1],
-                self.listify(self.metrics)[0]] > self.best_recipe_score):
-            self.best_recipe = recipe
-            self.best_recipe_score = self.report.loc[
-                    self.report.index[-1],
-                    self.listify(self.metrics)[0]]
-        return self
-
+    def _implement_metrics(self, recipe):
+        for column in self.metrics_to_use:
+            if column in self.metrics.options:
+                if column in self.metrics.prob_options:
+                    params = {
+                        'y_true': recipe.ingredients.y_test,
+                        'y_prob': self.predicted_probs[:, 1]}
+                elif column in self.metrics.score_options:
+                    params = {
+                        'y_true': recipe.ingredients.y_test,
+                        'y_score': self.predicted_probs[:, 1]}
+                else:
+                    params = {
+                        'y_true': recipe.ingredients.y_test,
+                        'y_pred': self.predictions}
+                if column in self.metrics.special_metrics:
+                    params.update({column: self.special_metrics[column]})
+                result = self.metrics.metrics.options[column](**params)
+                if column in self.metrics.negative_metrics:
+                    result = -1 * result
+                self.report[column] = result 
+        return self       
+        
     def _set_columns(self):
         self.columns = list(self.options.keys())
         return self
-
-    """ Public Tool Methods """
-
-    def print_best(self):
-        """Prints output to the console about the best recipe."""
-        if self.verbose:
-            print('The best test recipe, based upon the',
-                  self.listify(self.metrics)[0], 'metric with a score of',
-                  f'{self.best_recipe_score: 4.4f}', 'is:')
-            for technique in getattr(self,
-                    self.iterator).best_recipe.techniques:
-                print(technique.capitalize(), ':',
-                      getattr(getattr(self, self.iterator).best_recipe,
-                              technique).technique)
-        return
 
     """ Core siMpLify Methods """
 
@@ -89,6 +75,7 @@ class Score(SimpleIterable):
         self.options = {
                 'metrics': ['simplify.critic.steps.scorers', 'Metrics'],
                 'reports': ['simplify.critic.steps.scorers', 'Reports']}
+        self.sequence = ['metrics']
         return self
 
     def edit(self, name, metric, special_type = None,
@@ -106,29 +93,15 @@ class Score(SimpleIterable):
         return self
 
     def publish(self):
+        super().publish()
         self._set_columns()
+        self.report = pd.Series(index = self.columns)
         return self
 
     def implement(self, recipe = None):
         """Prepares the results of a single recipe application to be added to
         the .report dataframe.
         """
-        self.report = pd.Series(index = self.columns)
-        for column, value in self.options.items():
-            if column in self.metrics:
-                if column in self.prob_options:
-                    params = {'y_true': recipe.ingredients.y_test,
-                              'y_prob': self.predicted_probs[:, 1]}
-                elif column in self.score_options:
-                    params = {'y_true': recipe.ingredients.y_test,
-                              'y_score': self.predicted_probs[:, 1]}
-                else:
-                    params = {'y_true': recipe.ingredients.y_test,
-                              'y_pred': self.predictions}
-                if column in self.special_metrics:
-                    params.update({column: self.special_metrics[column]})
-                result = value(**params)
-                if column in self.negative_metrics:
-                    result = -1 * result
-                self.report[column] = result
+        for step in self.sequence: 
+            getattr(self, '_implement_' + step)(recipe = recipe)       
         return self
