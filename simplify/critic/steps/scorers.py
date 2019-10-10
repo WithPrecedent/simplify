@@ -17,10 +17,15 @@ from simplify.core.technique import SimpleTechnique
 @dataclass
 class Metrics(SimpleTechnique):
 
-    technique: str = 'none'
+    technique: object = None
     parameters: object = None
     name: str = 'metrics'
-    
+
+    def __post_init__(self):
+        self.idea_sections = ['critic']
+        super().__post_init__()
+        return self
+
     def draft(self):
         self.options = {
             'accuracy': metrics.accuracy_score,
@@ -70,13 +75,38 @@ class Metrics(SimpleTechnique):
             'recall_weighted': {'average': 'weighted'}}
         return self
 
+@dataclass
+class Tests(SimpleTechnique):
+
+    technique: object = None
+    parameters: object = None
+    name: str = 'tests'
+
+    def __post_init__(self):
+        self.idea_sections = ['critic']
+        super().__post_init__()
+        return self
+
+    def draft(self):
+        self.options = {
+            'ks_distribution': ['scipy.stats', 'ks_2samp'],
+            'ks_goodness': ['scipy.stats', 'kstest'],
+            'kurtosis_test': ['scipy.stats', 'kurtosistest'],
+            'normal': ['scipy.stats', 'normaltest'],
+            'pearson': ['scipy.stats.pearsonr']}
+        return self
 
 @dataclass
 class Reports(SimpleTechnique):
 
-    technique: str = 'none'
+    technique: object = None
     parameters: object = None
     name: str = 'reports'
+
+    def __post_init__(self):
+        self.idea_sections = ['critic']
+        super().__post_init__()
+        return self
 
     def draft(self):
         self.options = {}
@@ -101,7 +131,7 @@ class Reports(SimpleTechnique):
 
     def _cluster_report(self):
         return self
-    
+
     def _regressor_report(self):
         return self
 

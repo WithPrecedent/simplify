@@ -9,7 +9,6 @@
 from dataclasses import dataclass
 
 from simplify.core.base import SimpleClass
-from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
@@ -78,7 +77,7 @@ class SimpleIterable(SimpleClass):
 
         """
         add_prefix = False
-        if return_variables is None and self.exists('return_variables'):              
+        if return_variables is None and self.exists('return_variables'):
             if isinstance(self.return_variables, dict):
                 if instance.name in self.return_variables:
                     return_variables = self.return_variables[instance.name]
@@ -108,7 +107,7 @@ class SimpleIterable(SimpleClass):
             elif self.verbose:
                 print(variable, 'not found in', instance.name)
         return self
-        
+
     """ Core siMpLify methods """
 
     def draft(self):

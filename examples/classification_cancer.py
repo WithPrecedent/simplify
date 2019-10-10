@@ -18,10 +18,10 @@ df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
 
 # Sets root_folder for data and results exports.
 root_folder = os.path.join('..', '..')
-# Sets location of configuration settings for the project. Depending upon your 
+# Sets location of configuration settings for the project. Depending upon your
 # OS and python configuration, one of these might work better.
-idea_file = os.path.join(os.getcwd(), 'examples', 'cancer_settings.ini')
-#idea_file = os.path.join(os.getcwd(), 'cancer_settings.ini')
+#idea_file = os.path.join(os.getcwd(), 'examples', 'cancer_settings.ini')
+idea_file = os.path.join(os.getcwd(), 'cancer_settings.ini')
 
 # Creates siMpLify project, automatically configuring the process based upon
 # settings in the 'idea_file'.

@@ -327,7 +327,6 @@ class Idea(SimpleClass):
 
     def _inject_parameters(self, instance, override):
         if instance.parameters is None or override:
-            print('injecting', instance.name)
             key_technique = instance.technique + '_parameters'
             key_name = instance.name + '_parameters'
             if key_technique in self.idea.configuration:
