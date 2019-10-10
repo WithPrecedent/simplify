@@ -44,18 +44,9 @@ class Score(SimpleIterable):
     def _implement_metrics(self, recipe):
         for column in self.metrics_to_use:
             if column in self.metrics.options:
-                if column in self.metrics.prob_options:
-                    params = {
-                        'y_true': recipe.ingredients.y_test,
-                        'y_prob': self.predicted_probs[:, 1]}
-                elif column in self.metrics.score_options:
-                    params = {
-                        'y_true': recipe.ingredients.y_test,
-                        'y_score': self.predicted_probs[:, 1]}
+
                 else:
-                    params = {
-                        'y_true': recipe.ingredients.y_test,
-                        'y_pred': self.predictions}
+
                 if column in self.metrics.special_metrics:
                     params.update({column: self.special_metrics[column]})
                 result = self.metrics.metrics.options[column](**params)

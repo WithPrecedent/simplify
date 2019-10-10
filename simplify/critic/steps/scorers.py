@@ -20,12 +20,24 @@ class Metrics(SimpleTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'metrics'
+    recipe : object = None
 
     def __post_init__(self):
         self.idea_sections = ['critic']
         super().__post_init__()
         return self
-
+    
+    def _get_conditional_parameters(self, parameters):
+        if self.technique in 'brier_score_loss':
+            parameters = {
+                'y_true': self.recipe.ingredients.y_test,
+                'y_prob': self.recipe.predicted_probs[:, 1]}
+        elif self.technique in ['roc_auc']:
+             parameters = {
+                 'y_true': self.recipe.ingredients.y_test,
+                 'y_score': self.recipe.predicted_probs[:, 1]}
+        return parameters
+    
     def draft(self):
         self.options = {
             'accuracy': metrics.accuracy_score,
@@ -64,16 +76,19 @@ class Metrics(SimpleTechnique):
             'silhouette': metrics.silhouette_score,
             'v_measure': metrics.v_measure_score,
             'zero_one': metrics.zero_one_loss}
-        self.prob_options = ['brier_score_loss']
-        self.score_options = ['roc_auc']
         self.negative_options = ['brier_loss_score', 'neg_log_loss',
                                  'zero_one']
-        self.special_options = {
+        self.extra_parameters = {
             'fbeta': {'beta': 1},
             'f1_weighted': {'average': 'weighted'},
             'precision_weighted': {'average': 'weighted'},
             'recall_weighted': {'average': 'weighted'}}
         return self
+    
+    def publish(self):
+        self.runtime_parameters = {
+            'y_true': self.recipe.ingredients.y_test,
+            'y_pred': self.recipe.predictions}
 
 @dataclass
 class Tests(SimpleTechnique):

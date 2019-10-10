@@ -36,10 +36,6 @@ class GiniProbabilities(SimpleTechnique):
 
     """ Core siMpLify Methods """
 
-    def publish(self):
-        pass
-        return self
-
     def implement(self, recipe):
         """Makes predictions from fitted model.
 
@@ -84,10 +80,6 @@ class LogProbabilities(SimpleTechnique):
 
     """ Core siMpLify Methods """
 
-    def publish(self):
-        pass
-        return self
-
     def implement(self, recipe):
         """Makes predictions from fitted model.
 
@@ -131,10 +123,6 @@ class ShapProbabilities(SimpleTechnique):
         return self
 
     """ Core siMpLify Methods """
-
-    def publish(self):
-        pass
-        return self
 
     def implement(self, recipe):
         """Makes predictions from fitted model.

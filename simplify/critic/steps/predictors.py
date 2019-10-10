@@ -36,10 +36,6 @@ class GiniPredictor(SimpleTechnique):
 
     """ Core siMpLify Methods """
 
-    def publish(self):
-        pass
-        return self
-
     def implement(self, recipe):
         """Makes predictions from fitted model.
 
@@ -83,10 +79,6 @@ class ShapPredictor(SimpleTechnique):
         return self
 
     """ Core siMpLify Methods """
-
-    def publish(self):
-        pass
-        return self
 
     def implement(self, recipe):
         """Makes predictions from fitted model.
