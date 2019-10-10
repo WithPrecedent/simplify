@@ -86,7 +86,7 @@ class ShapExplain(SimpleTechnique):
 
     technique: object = None
     parameters: object = None
-    name: str = 'shap'
+    name: str = 'shap_explain'
     auto_publish: bool = True
 
     def __post_init__(self):

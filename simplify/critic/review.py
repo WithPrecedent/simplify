@@ -158,9 +158,10 @@ class Review(SimpleIterable):
         super().draft()
         self.options = {
             'summary': ['simplify.critic.summarize', 'Summarize'],
+            'prediction': ['simplify.critic.predict', 'Predict'],
+            'probabilities': ['simplify.critic.probability', 'Probability'],
             'explanation': ['simplify.critic.explain', 'Explain'],
             'ranking': ['simplify.critic.rank', 'Rank'],
-            'prediction': ['simplify.critic.predict', 'Predict'],
             'score': ['simplify.critic.score', 'Score']}
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.depot.step = 'critic'
@@ -169,6 +170,8 @@ class Review(SimpleIterable):
         return self
 
     def publish(self):
+        Narrative.options = self.options
+        Narrative.sequence = self.sequence
         super().publish()
         return self
 
@@ -202,3 +205,52 @@ class Review(SimpleIterable):
         self.print_best
         print(self.report)
         return self
+
+@dataclass
+class Narrative(SimpleIterable):
+
+    number: int = 0
+    steps: object = None
+    name: str = 'narrative'
+    auto_publish: bool = True
+
+    def __post_init__(self):
+        self.idea_sections = ['chef']
+        super().__post_init__()
+        return self
+
+    """ Core siMpLify Methods """
+
+    def draft(self):
+        super().draft()
+        if not self.options:
+            self.options = {
+                'prediction': ['simplify.critic.predict', 'Predict'],
+                'probabilities': ['simplify.critic.probability', 'Probability'],
+                'explanation': ['simplify.critic.explain', 'Explain'],
+                'ranking': ['simplify.critic.rank', 'Rank'],
+                'score': ['simplify.critic.score', 'Score']}
+        self.sequence_setting = 'critic_steps'
+        return self
+    
+    def publish(self):
+        super().publish()
+        return self
+
+    def implement(self, recipe):
+        """Applies the recipe steps to the passed ingredients."""
+        for step in self.sequence:
+            if step in ['summary']:
+                pass
+            elif step in ['prediction', 'probabilities', 'explanation']:
+                getattr(self, step).implement(
+                       recipe = recipe)
+            elif step in ['ranking', 'score']:
+                getattr(self, step).implement(
+                       recipe = recipe,
+                       prediction = self.prediction)
+            if self.export_results:
+                pass
+        return self
+    
+        
