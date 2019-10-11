@@ -13,8 +13,9 @@ import numpy as np
 import pandas as pd
 
 from simplify.core.base import SimpleClass
-from simplify.core.parameters import SimpleParameters
 from simplify.core.decorators import numpy_shield
+from simplify.core.parameters import SimpleParameters
+
 
 
 @dataclass
@@ -87,7 +88,8 @@ class SimpleTechnique(SimpleClass):
         return self
 
     def publish(self):
-        """Finalizes settings and creates instances of 'steps'."""
+        """Finalizes settings and creates an instance of the 'algorithm'."""
+
         if self.technique != 'none':
             super().publish()
             if hasattr(self, '_set_estimator'):

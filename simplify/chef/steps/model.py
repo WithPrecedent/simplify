@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 from scipy.stats import randint, uniform
 
-from simplify.core.parameters import SimpleParameters
 from simplify.core.technique import SimpleTechnique
 
 
@@ -31,6 +30,7 @@ class Model(SimpleTechnique):
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
+
 
     """
     technique: object = None

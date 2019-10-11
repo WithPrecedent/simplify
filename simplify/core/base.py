@@ -329,6 +329,17 @@ class SimpleClass(ABC):
         else:
             return value
 
+    def _draft_pacakage_registry(self):
+        self.tracked_packages = [
+                'sklearn',
+                'simplify',
+                'xgboost',
+                'catboost',
+                'tensorflow',
+                'pytorch',
+                'lightgbm']
+        return self
+
     def _inject_idea(self):
         """Injects portions of Idea instance 'configuration' to subclass.
 
@@ -349,14 +360,14 @@ class SimpleClass(ABC):
     def _using_option(self, name):
         if hasattr(self, 'lazy_imports'):
             if name in self.lazy_imports:
-                return True      
+                return True
         if ((hasattr(self, 'sequence') and name in self.sequence)
             or (hasattr(self, 'technique')
                 and (name in self.technique or name in self.model_type))):
             return True
         else:
             return False
-        
+
     def _lazily_import(self):
         """Limits module imports to only needed package dependencies.
 
@@ -369,15 +380,12 @@ class SimpleClass(ABC):
 
         """
         imported_steps = {}
-        if not self.exists('simplify_options'):
-            self.simplify_options = []
         if ((not hasattr(self, 'lazy_import')
                 or self.lazy_import)
                 and self.has_list_values(self.options)):
             for name, settings in self.options.items():
                 if self._using_option(name):
-                    if 'simplify' in settings[0]:
-                        self.simplify_options.append(name)
+                    self._track_packages(setting = settings[0])
                     imported_steps.update(
                         {name: getattr(
                             import_module(settings[0]), settings[1])})
@@ -400,6 +408,22 @@ class SimpleClass(ABC):
                 getattr(self, '_check_' + check)()
         return self
 
+    def _track_packages(self, setting):
+        """Adds package name to package source registry during lazy
+        importation.
+
+        Args:
+            settings(str): name of import path for package.
+
+        """
+        for package in self.tracked_packages:
+            if package in setting:
+                if not self.exists('package' + '_options'):
+                    setattr(self, 'package' + '_options', [])
+                if package not in getattr(self, 'package' + '_options'):
+                    getattr(self, 'package' + '_options').append(package)
+        return self
+
     """ Public Tool Methods """
 
     @staticmethod
@@ -408,14 +432,14 @@ class SimpleClass(ABC):
             return {prefix + '_' + k: v for k, v in iterable.items()}
         elif isinstance(iterable, list):
             return [prefix + '_' + item for item in iterable]
-        
+
     @staticmethod
     def add_suffix(iterable, suffix):
         if isinstance(iterable, dict):
             return {k + '_' + suffix: v for k, v in iterable.items()}
         elif isinstance(iterable, list):
-            return [item + '_' + suffix for item in iterable]      
-        
+            return [item + '_' + suffix for item in iterable]
+
     @staticmethod
     def deduplicate(iterable):
         """Deduplicates list, pandas DataFrame, or pandas Series.
@@ -592,6 +616,7 @@ class SimpleClass(ABC):
         wants to make use of related methods.
         """
         self.options = {}
+        self._draft_package_registry()
         self.checks = []
         return self
 

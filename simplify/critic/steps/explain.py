@@ -8,29 +8,33 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterable import SimpleIterable
-from simplify.core.technique import SimpleTechnique
+import numpy as np
+
+from simplify.core.critic.review import CriticTechnique
 
 
 @dataclass
-class Explain(SimpleIterable):
+class Explain(CriticTechnique):
     """Explains model results.
 
     Args:
-        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique classes for
-            explaining data analysis models.
-        name(str): designates the name of the class which should be identical
-            to the section of the idea configuration with relevant settings.
-        auto_publish (bool): whether to call the 'publish' method when the
-            class is instanced.
+        technique(str): name of technique.
+        parameters(dict): dictionary of parameters to pass to selected
+            algorithm.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
+        auto_publish(bool): whether 'publish' method should be called when
+            the class is instanced. This should generally be set to True.
+
     """
 
-    steps: object = None
-    name: str = 'explain'
+    technique: object = None
+    parameters: object = None
+    name: str = 'explanations'
     auto_publish: bool = True
 
     def __post_init__(self):
-        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 
@@ -39,30 +43,26 @@ class Explain(SimpleIterable):
     def draft(self):
         super().draft()
         self.options = {
-                'eli5': Eli5Explain,
-                'shap': ShapExplain,
-                'skater': SkaterExplain}
-        self.return_variables = {
-            'eli5': ['feature_importances'],
-            'shap': ['feature_importances', 'values', 'interaction_values'],
-            'skater': ['feature_importances']}
+            'eli5': Eli5Explain,
+            'shap': ShapExplain,
+            'skater': SkaterExplain}
         return self
 
 
-
-
 @dataclass
-class Eli5Explain(SimpleTechnique):
+class Eli5Explain(CriticTechnique):
     """Explains fit model with eli5 package.
 
     Args:
         technique(str): name of technique.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
-        name(str): name of class for matching settings in the Idea instance
-            and for labeling the columns in files exported by Critic.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
         auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
+
     """
 
     technique: object = None
@@ -71,7 +71,6 @@ class Eli5Explain(SimpleTechnique):
     auto_publish: bool = True
 
     def __post_init__(self):
-        """Sets up the core attributes of a ShapEvaluator instance."""
         super().__post_init__()
         return self
 
@@ -81,7 +80,7 @@ class Eli5Explain(SimpleTechnique):
         super().draft()
         self.options = {
             'feature': ['eli5', 'explain_prediction_df'],
-            'permutation': ['eli5.sklearn', 'PermutationImportance']}
+            }
         self.models = {
             'baseline': 'none',
             'catboost': 'specific',
@@ -100,6 +99,8 @@ class Eli5Explain(SimpleTechnique):
         return self
 
     def implement(self, recipe):
+        base_score, score_decreases = get_score_importances(score_func, X, y)
+        feature_importances = np.mean(score_decreases, axis=0)
         from eli5 import show_weights
         self.permutation_weights = show_weights(
                 self.permutation_importances,
@@ -108,28 +109,43 @@ class Eli5Explain(SimpleTechnique):
 
 
 @dataclass
-class ShapExplain(SimpleTechnique):
+class ShapExplain(CriticTechnique):
     """Explains fit model with shap package.
 
     Args:
         technique(str): name of technique.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
-        name(str): name of class for matching settings in the Idea instance
-            and for labeling the columns in files exported by Critic.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
         auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
+
     """
 
     technique: object = None
     parameters: object = None
-    name: str = 'shap_explain'
+    name: str = 'shap_explanation'
     auto_publish: bool = True
 
     def __post_init__(self):
-        """Sets up the core attributes of a ShapEvaluator instance."""
         super().__post_init__()
         return self
+
+    """ Private Methods """
+
+    def _set_method(self, recipe):
+        if self.technique in self.models:
+            self.method = self.options[self.models[self.technique]]
+        else:
+            self.method = self.options['kernel']
+        self.evaluator = self.method(
+            model = recipe.model.algorithm,
+            data = getattr(recipe.ingredients, 'x_' + self.data_to_review))
+        return self
+
+    """ Core siMpLify Methods """
 
     def draft(self):
         self.options = {
@@ -156,40 +172,37 @@ class ShapExplain(SimpleTechnique):
 
     def implement(self, recipe):
         """Applies shap evaluator to data based upon type of model used."""
-        if recipe.model.technique in self.shap_models:
-            self.shap_method_type = self.shap_models[
-                    recipe.model.technique]
-            self.shap_method = self.shap_options[self.shap_method_type]
-        else:
-            self.shap_method_type = 'kernel'
-        df = self.options[self.data_to_evaluate]
-        if self.shap_method_type != 'none':
-            self.shap_evaluator = self.shap_method(
-                    model = recipe.model.algorithm,
-                    data = recipe.ingredients.x_train)
-            self.shap_values = self.shap_evaluator.shap_values(df)
-            if self.shap_method_type == 'tree':
-                self.shap_interactions = (
-                        self.shap_evaluator.shap_interaction_values(
-                                pd.DataFrame(df, columns = df.columns)))
-            else:
-                self.shap_interactions = None
-        self.feature_importances = np.abs(self.shap_values).mean(0)
-        return self
+        if self.technique != 'none':
+            self._set_method()
+            setattr(recipe, self.name + '_values', self.evaluator.shap_values(
+                    getattr(recipe.ingredients, 'x_' + self.data_to_review)))
+            if not hasattr(recipe, self.name):
+                setattr(recipe, self.name, [])
+            getattr(recipe, self.name).append(self.name)
+            if self.method == 'tree':
+                setattr(recipe, self.name + '_interactions',
+                        self.evaluator.shap_interaction_values(
+                                getattr(recipe.ingredients,
+                                        'x_' + self.data_to_review)))
+            getattr(recipe, self.name).append(
+                    getattr(self, self.name + '_interactions'))
+        return getattr(recipe, self.name)
 
 
 @dataclass
-class SkaterExplain(SimpleTechnique):
+class SkaterExplain(CriticTechnique):
     """Explains fit model with skater package.
 
     Args:
         technique(str): name of technique.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
-        name(str): name of class for matching settings in the Idea instance
-            and for labeling the columns in files exported by Critic.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
         auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
+
     """
 
     technique: object = None
@@ -198,7 +211,6 @@ class SkaterExplain(SimpleTechnique):
     auto_publish: bool = True
 
     def __post_init__(self):
-        """Sets up the core attributes of a ShapEvaluator instance."""
         super().__post_init__()
         return self
 

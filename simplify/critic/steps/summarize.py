@@ -10,28 +10,30 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.iterable import SimpleIterable
+from simplify.core.critic.review import CriticTechnique
 
 
 @dataclass
-class Summarize(SimpleIterable):
+class Summarize(CriticTechnique):
     """Summarizes data.
 
     Args:
-        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique
-            classes for explaining data analysis models.
-        name(str): designates the name of the class which should be identical
-            to the section of the idea configuration with relevant settings.
-        auto_publish(bool): whether to call the 'publish' method when the
-            class is instanced.
-        auto_implement(bool): whether to call the 'implement' method when the
-            class is instanced.
+        technique(str): name of technique.
+        parameters(dict): dictionary of parameters to pass to selected
+            algorithm.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
+        auto_publish(bool): whether 'publish' method should be called when
+            the class is instanced. This should generally be set to True.
+
     """
 
-    steps: object = None
+    technique: object = None
+    parameters: object = None
     name: str = 'summary'
     auto_publish: bool = True
-    auto_implement: bool = False
+
 
     def __post_init__(self):
         self.idea_sections = ['critic']
@@ -40,10 +42,28 @@ class Summarize(SimpleIterable):
 
     """ Private Methods """
 
+    def _implement(self, recipe = None, transpose = True,
+                  file_name = 'data_report', file_format = 'csv'):
+        """Creates a DataFrame of common report data.
+
+        Args:
+            df(DataFrame): data to create report report for.
+            transpose(bool): whether the 'df' columns should be listed
+                horizontally (True) or vertically (False) in 'report'.
+            file_name(str): name of file to be exported (without extension).
+            file_format(str): exported file format.
+        """
+        self._implement_report(df = recipe.ingredients.df)
+        self._implement_export_parameters(file_name = file_name,
+                                          file_format = file_format,
+                                          transpose = transpose)
+        return self
+
     def _implement_export_parameters(self, file_name, file_format, transpose):
-        self.export_parameters = {'folder': 'experiment',
-                                  'file_name': file_name,
-                                  'file_format': file_format}
+        self.export_parameters = {
+            'folder': 'experiment',
+            'file_name': file_name,
+            'file_format': file_format}
         if not transpose:
             self.report = self.report.transpose()
             self.export_parameters.update({'header': False, 'index': True})
@@ -73,8 +93,9 @@ class Summarize(SimpleIterable):
             self.report.loc[len(self.report)] = row
         return self
 
-    def _set_columns(self):
+    def _start_report(self):
         self.columns = ['variable'] + (list(self.options.keys()))
+        self.report = pd.DataFrame(columns = self.columns)
         return self
 
     """ Core siMpLify Methods """
@@ -117,23 +138,7 @@ class Summarize(SimpleIterable):
         return self
 
     def publish(self):
-        self._set_columns()
-        self.report = pd.DataFrame(columns = self.columns)
+        self._start_report()
+        super().publish()
         return self
 
-    def implement(self, recipe = None, transpose = True,
-                  file_name = 'data_report', file_format = 'csv'):
-        """Creates a DataFrame of common report data.
-
-        Args:
-            df(DataFrame): data to create report report for.
-            transpose(bool): whether the 'df' columns should be listed
-                horizontally (True) or vertically (False) in 'report'.
-            file_name(str): name of file to be exported (without extension).
-            file_format(str): exported file format.
-        """
-        self._implement_report(df = recipe.ingredients.df)
-        self._implement_export_parameters(file_name = file_name,
-                                          file_format = file_format,
-                                          transpose = transpose)
-        return self

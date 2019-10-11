@@ -10,8 +10,9 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from simplify.core.decorators import numpy_shield
 from simplify.core.iterable import SimpleIterable
-
+from simplify.core.technique import SimpleTechnique
 
 @dataclass
 class Review(SimpleIterable):
@@ -19,16 +20,8 @@ class Review(SimpleIterable):
     data and machine learning models.
 
     Args:
-        ingredients(Ingredients or str): an instance of Ingredients of a string
-            containing the full file path of where a supported file type that
-            can be loaded into a pandas DataFrame is located. If it is a string,
-            the loaded DataFrame will be bound to a new ingredients instance as
-            the 'df' attribute.
         steps(dict(str: SimpleIterable)): names and related SimpleIterable
             classes for analyzing fitted models.
-        recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
-            This argument need not be passed when the class is instanced. It
-            can be passed directly to the 'implement' method as well.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
         auto_publish(bool): whether to call the 'publish' method when the
@@ -39,11 +32,9 @@ class Review(SimpleIterable):
     Since this class is a subclass to SimpleIterable and SimpleClass, all
     documentation for those classes applies as well.
 
-    """
 
-    ingredients: object = None
+    """
     steps: object = None
-    recipes: object = None
     name: str = 'critic'
     auto_publish: bool = True
     auto_implement: bool = False
@@ -165,7 +156,7 @@ class Review(SimpleIterable):
             'ranking': ['simplify.critic.steps.rank', 'Rank'],
             'metrics': ['simplify.critic.steps.metrics', 'Metrics'],
             'test': ['simplify.critic.steps.test', 'Test'],
-            'report': ['simplify.critic.steps.report', 'Report'],}
+            'report': ['simplify.critic.steps.report', 'Report']}
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.depot.step = 'critic'
         return self
@@ -227,11 +218,15 @@ class Narrative(SimpleIterable):
         super().draft()
         if not self.options:
             self.options = {
-                'prediction': ['simplify.critic.predict', 'Predict'],
-                'probabilities': ['simplify.critic.probability', 'Probability'],
-                'explanation': ['simplify.critic.explain', 'Explain'],
-                'ranking': ['simplify.critic.rank', 'Rank'],
-                'score': ['simplify.critic.score', 'Score']}
+                'summary': ['simplify.critic.steps.summarize', 'Summarize'],
+                'prediction': ['simplify.critic.steps.predict', 'Predict'],
+                'probabilities': ['simplify.critic.steps.probability',
+                                'Probability'],
+                'explanation': ['simplify.critic.steps.explain', 'Explain'],
+                'ranking': ['simplify.critic.steps.rank', 'Rank'],
+                'metrics': ['simplify.critic.steps.metrics', 'Metrics'],
+                'test': ['simplify.critic.steps.test', 'Test'],
+                'report': ['simplify.critic.steps.report', 'Report']}
         self.sequence_setting = 'critic_steps'
         return self
 
@@ -255,3 +250,71 @@ class Narrative(SimpleIterable):
                 pass
         return self
 
+@dataclass
+class CriticTechnique(SimpleTechnique):
+    """Parent Class for techniques in the Critic package.
+
+    This subclass of SimpleTechnique differs from other SimpleTechniques
+    because the parameters and algorithm are not joined until the 'implement'
+    stage. This is due to the algorithm needed information from the passed
+    'recipe' before the algorithm is called. And the techniques ordinarily do
+    not have scikit-learn compatible 'fit', 'transform', and 'fit_transform'
+    methods.
+
+    Args:
+        technique(str): name of technique.
+        parameters(dict): dictionary of parameters to pass to selected
+            algorithm.
+        name(str): name of class for matching settings in the Idea instance
+            and for labeling the columns in files exported by Critic.
+        auto_publish(bool): whether 'publish' method should be called when
+            the class is instanced. This should generally be set to True.
+    """
+
+    technique: object = None
+    parameters: object = None
+    name: str = 'generic_critic_technique'
+    auto_publish: bool = True
+
+
+    def __post_init__(self):
+        self.idea_sections = ['chef']
+        super().__post_init__()
+        return self
+
+    """ Dunder Methods """
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+    """ Core siMpLify Public Methods """
+
+    def publish(self):
+        """Finalizes settings.."""
+        # Runs attribute checks from list in 'checks' attribute (if it exists).
+        self._run_checks()
+        # Converts values in 'options' to classes by lazily importing them.
+        self._lazily_import()
+        return self
+
+    def implement(self, recipe, **kwargs):
+        """Returns recipe with feature importances added.
+
+        Args:
+            recipe(Recipe): an instance of Recipe or a subclass.
+
+        """
+        if self.technique != 'none':
+            self._set_parameters()
+            setattr(recipe, self.technique + '_' + self.name,
+                    self.options[self.technique](
+                            recipe = recipe))
+            if not hasattr(recipe, self.name):
+                setattr(recipe, self.name, {})
+            setattr(recipe, self.name).update(
+                    {self.name: getattr(
+                    self, self.technique + '_' + self.name)})
+        return recipe
