@@ -86,7 +86,7 @@ class Review(SimpleIterable):
                     self.report.index[-1],
                     self.listify(self.metrics)[0]]
         return self
-                
+
     def _format_step(self, attribute):
         if getattr(self.recipe, attribute).technique in ['none', 'all']:
             step_column = getattr(self.recipe, attribute).technique
@@ -125,7 +125,7 @@ class Review(SimpleIterable):
         self.columns = list(self.required_columns.keys())
         self.columns.extend(recipe.sequence)
         for step in self.sequence:
-            if (hasattr(getattr(self, step), 'columns') 
+            if (hasattr(getattr(self, step), 'columns')
                     and getattr(self, step).name != 'summarize'):
                 self.columns.extend(getattr(self, step).columns)
         return self
@@ -157,16 +157,17 @@ class Review(SimpleIterable):
         """Sets default options for the Critic's analysis."""
         super().draft()
         self.options = {
-            'summary': ['simplify.critic.summarize', 'Summarize'],
-            'prediction': ['simplify.critic.predict', 'Predict'],
-            'probabilities': ['simplify.critic.probability', 'Probability'],
-            'explanation': ['simplify.critic.explain', 'Explain'],
-            'ranking': ['simplify.critic.rank', 'Rank'],
-            'score': ['simplify.critic.score', 'Score']}
+            'summary': ['simplify.critic.steps.summarize', 'Summarize'],
+            'prediction': ['simplify.critic.steps.predict', 'Predict'],
+            'probabilities': ['simplify.critic.steps.probability',
+                            'Probability'],
+            'explanation': ['simplify.critic.steps.explain', 'Explain'],
+            'ranking': ['simplify.critic.steps.rank', 'Rank'],
+            'metrics': ['simplify.critic.steps.metrics', 'Metrics'],
+            'test': ['simplify.critic.steps.test', 'Test'],
+            'report': ['simplify.critic.steps.report', 'Report'],}
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.depot.step = 'critic'
-        self.return_variables = {
-            'score' : ['best_recipe', 'score', 'best_recipe']}
         return self
 
     def publish(self):
@@ -206,6 +207,7 @@ class Review(SimpleIterable):
         print(self.report)
         return self
 
+
 @dataclass
 class Narrative(SimpleIterable):
 
@@ -232,7 +234,7 @@ class Narrative(SimpleIterable):
                 'score': ['simplify.critic.score', 'Score']}
         self.sequence_setting = 'critic_steps'
         return self
-    
+
     def publish(self):
         super().publish()
         return self
@@ -252,5 +254,4 @@ class Narrative(SimpleIterable):
             if self.export_results:
                 pass
         return self
-    
-        
+

@@ -18,21 +18,20 @@ class Summarize(SimpleIterable):
     """Summarizes data.
 
     Args:
-        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique classes for
-            explaining data analysis models.
+        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique
+            classes for explaining data analysis models.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_publish (bool): whether to call the 'publish' method when the
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement (bool): whether to call the 'implement' method when the class
-            is instanced.
+        auto_implement(bool): whether to call the 'implement' method when the
+            class is instanced.
     """
 
     steps: object = None
     name: str = 'summary'
     auto_publish: bool = True
     auto_implement: bool = False
-    lazy_import: bool = False
 
     def __post_init__(self):
         self.idea_sections = ['critic']
@@ -84,23 +83,37 @@ class Summarize(SimpleIterable):
         """Sets options for Summarize class."""
         super().draft()
         self.options = {
-                'datatype': ['dtype'],
-                'count': 'count',
-                'min':'min',
-                'q1': ['quantile', 0.25],
-                'median': 'median',
-                'q3': ['quantile', 0.75],
-                'max': 'max',
-                'mad': 'mad',
-                'mean': 'mean',
-                'stan_dev': 'std',
-                'mode': ['mode', [0]],
-                'sum': 'sum',
-                'kurtosis': 'kurtosis',
-                'skew': 'skew',
-                'variance': 'var',
-                'stan_error': 'sem',
-                'unique': 'nunique'}
+            'datatype': self._get_datatype,
+            'count': ['numpy.ndarray', 'size'],
+            'min':['numpy', 'nanmin'],
+            'q1': ['numpy', 'nanquantile'],
+            'median': ['numpy', 'nanmedian'],
+            'q3': ['numpy', 'nanquantile'],
+            'max': ['numpy', 'nanmax'],
+            'mad': ['scipy.stats', 'median_absolute_deviation'],
+            'mean': ['numpy', 'nanmean'],
+            'std': ['numpy', 'nanstd'],
+            'standard_error': ['scipy.stats', 'sem'],
+            'geometric_mean': ['scipy.stats', 'gmean'],
+            'geometric_std': ['scipy.stats', 'gstd'],
+            'harmonic_mean': ['scipy.stats', 'hmean'],
+            'mode': ['scipy.stats', 'mode'],
+            'sum': ['numpy', 'nansum'],
+            'kurtosis': ['scipy.stats', 'kurtosis'],
+            'skew': ['scipy.stats', 'skew'],
+            'variance': ['numpy', 'nanvar'],
+            'variation': ['scipy.stats', 'variation'],
+            'unique': ['numpy', 'nunique']}
+        self.extra_parameters = {
+            'kurtosis': {'nan_policy': 'omit'},
+            'mad': {'nan_policy': 'omit'},
+            'mode': {'nan_policy': 'omit'},
+            'q1': {'q': 0.25},
+            'q3': {'q': 0.75},
+            'sem': {'nan_policy': 'omit'},
+            'skew': {'nan_policy': 'omit'},
+            'variation': {'nan_policy': 'omit'}}
+        self.simplify_options = ['datatype']
         return self
 
     def publish(self):

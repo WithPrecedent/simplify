@@ -8,9 +8,6 @@
 
 from dataclasses import dataclass
 
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from skopt import BayesSearchCV
-
 from simplify.core.technique import SimpleTechnique
 
 
