@@ -28,15 +28,12 @@ class Summarize(CriticTechnique):
             the class is instanced. This should generally be set to True.
 
     """
-
     technique: object = None
     parameters: object = None
     name: str = 'summary'
     auto_publish: bool = True
 
-
     def __post_init__(self):
-        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 

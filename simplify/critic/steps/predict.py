@@ -26,7 +26,6 @@ class Predict(CriticTechnique):
             the class is instanced. This should generally be set to True.
 
     """
-
     technique: object = None
     parameters: object = None
     name: str = 'prediction'

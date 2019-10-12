@@ -16,22 +16,22 @@ class Probability(CriticTechnique):
     """Creates predictions from fitted models for out-of-sample data.
 
     Args:
-        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique
-            classes for creating predictions data analysis models.
-        name(str): designates the name of the class which should be identical
-            to the section of the idea configuration with relevant settings.
-        auto_publish (bool): whether to call the 'publish' method when the
-            class is instanced.
-        auto_implement (bool): whether to call the 'implement' method when the
-            class is instanced.
+        technique(str): name of technique.
+        parameters(dict): dictionary of parameters to pass to selected
+            algorithm.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
+        auto_publish(bool): whether 'publish' method should be called when
+            the class is instanced. This should generally be set to True.
+
     """
-    steps: object = None
+    technique: object = None
+    parameters: object = None
     name: str = 'probabilities'
     auto_publish: bool = True
-    auto_implement: bool = False
 
     def __post_init__(self):
-        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 

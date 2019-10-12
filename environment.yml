@@ -1,6 +1,7 @@
-name: model
+name: develop
 channels:
 - conda-forge
+- districtdatalabs
 dependencies:
 - python>=3.6
 - category_encoders
@@ -8,28 +9,33 @@ dependencies:
 - cython
 - dataclasses
 - eli5
+- flit
 - git
 - glob2
-- imbalanced-learn 
+- imbalanced-learn
+- ipykernel
+- ipython
 - matplotlib
+- mlxtend
 - more-itertools
 - numpy
 - pandas
 - pip
-- pip:
-  - yellowbrick
-  - mlextend
-  - xgboost
+- pip: 
   - tensorflow==2.0.0-rc0
 - pyqt
 - pystan
 - python-docx
 - pytorch
+- py-xgboost
 - scikit-learn
 - scikit-optimize
 - scipy
 - seaborn
+- setuptools
 - shap
+- sphinx
 - sqlalchemy
 - statsmodels
 - sympy
+- yellowbrick

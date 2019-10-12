@@ -8,20 +8,30 @@
 
 from dataclasses import dataclass
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.critic.review import CriticTechnique
 
 
 @dataclass
-class Test(SimpleTechnique):
+class Test(CriticTechnique):
+    """Applies statistical tests to data.
 
-    recipe : object = None
+    Args:
+        technique(str): name of technique.
+        parameters(dict): dictionary of parameters to pass to selected
+            algorithm.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
+        auto_publish(bool): whether 'publish' method should be called when
+            the class is instanced. This should generally be set to True.
+
+    """
     technique: object = None
     parameters: object = None
     name: str = 'tests'
     auto_publish: bool = True
 
     def __post_init__(self):
-        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 
@@ -35,9 +45,9 @@ class Test(SimpleTechnique):
             'pearson': ['scipy.stats.pearsonr']}
         return self
 
-    def publish(self):
+    def implement(self):
         self.runtime_parameters = {
-            'y_true': self.recipe.ingredients.y_test,
-            'y_pred': self.recipe.predictions}
-        super().publish()
+            'y_true': getattr(recipe.ingredients, 'y_' + self.data_to_review),
+            'y_pred': recipe.predictions}
+        super().implement()
         return self
