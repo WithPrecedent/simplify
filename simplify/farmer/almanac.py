@@ -15,6 +15,22 @@ from simplify.core.technique import SimpleTechnique
 from simplify.core.technique import SimpleTechnique
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'sow': ['simplify.farmer.sow', 'Sow'],
+    'harvest': ['simplify.farmer.harvest', 'Harvest'],
+    'clean': ['simplify.farmer.clean', 'Clean'],
+    'bale': ['simplify.farmer.bale', 'Bale'],
+    'deliver': ['simplify.farmer.deliver', 'Deliver']}
+
+
 @dataclass
 class Almanac(SimpleIterable):
     """Implements data parsing, wrangling, munging, merging, engineering, and
@@ -22,18 +38,18 @@ class Almanac(SimpleIterable):
 
     Args:
         idea(Idea or str): an instance of Idea or a string containing the file
-            path or file name (in the current working directory) where a 
+            path or file name (in the current working directory) where a
             supoorted settings file for an Idea instance is located.
         depot(Depot): an instance of Depot.
         ingredients(Ingredients or str): an instance of Ingredients or a string
             with the file path for a pandas DataFrame that will. This argument
-            does not need to be passed when the class is instanced. 
+            does not need to be passed when the class is instanced.
         steps(dict(str: SimpleTechnique)): steps to be completed in order. This
             argument should only be passed if the user wishes to override the
             steps listed in the Idea settings or if the user is not using the
             Idea class.
-        plans(SimpleIterable): instanced subclasses of SimpleIterable for prepared tools
-            for the Almanac.
+        plans(SimpleIterable): instanced subclasses of SimpleIterable for
+            prepared tools for the Almanac.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
         auto_publish(bool): whether to call the 'publish' method when the
@@ -42,9 +58,9 @@ class Almanac(SimpleIterable):
             Idea configuration, this option should be set to True. If you plan
             to make such changes, 'publish' should be called when those
             changes are complete.
-        auto_implement(bool): whether to call the 'implement' method when the class
-            is instanced.
-            
+        auto_implement(bool): whether to call the 'implement' method when the
+            class is instanced.
+
     Since this class is a subclass to SimpleIterable and SimpleClass, all
     documentation for those classes applies as well.
 
@@ -140,12 +156,6 @@ class Almanac(SimpleIterable):
     def draft(self):
         """ Declares default step names and classes in an Harvest."""
         super().draft()
-        self.options = {
-                'sow': ['simplify.farmer.sow', 'Sow'],
-                'harvest': ['simplify.farmer.harvest', 'Harvest'],
-                'clean': ['simplify.farmer.clean', 'Clean'],
-                'bale': ['simplify.farmer.bale', 'Bale'],
-                'deliver': ['simplify.farmer.deliver', 'Deliver']}
         self.draft_class = Almanac
         self.checks.extend(['drafts', 'sections', 'defaults'])
         return self

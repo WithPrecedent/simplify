@@ -12,6 +12,25 @@ from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'bins': ['sklearn.preprocessing', 'KBinsDiscretizer'],
+    'gauss': ['simplify.chef.steps.techniques.gaussify', 'Gaussify'],
+    'maxabs': ['sklearn.preprocessing', 'MaxAbsScaler'],
+    'minmax': ['sklearn.preprocessing', 'MinMaxScaler'],
+    'normalize': ['sklearn.preprocessing', 'Normalizer'],
+    'quantile': ['sklearn.preprocessing', 'QuantileTransformer'],
+    'robust': ['sklearn.preprocessing', 'RobustScaler'],
+    'standard': ['sklearn.preprocessing', 'StandardScaler']}
+
+
 @dataclass
 class Scale(SimpleTechnique):
     """Scales numerical data according to selected algorithm.
@@ -40,37 +59,28 @@ class Scale(SimpleTechnique):
 
     def draft(self):
         super().draft()
-        self.options = {
-                'bins': ['sklearn.preprocessing', 'KBinsDiscretizer'],
-                'gauss': ['simplify.chef.steps.techniques.gaussify',
-                          'Gaussify'],
-                'maxabs': ['sklearn.preprocessing', 'MaxAbsScaler'],
-                'minmax': ['sklearn.preprocessing', 'MinMaxScaler'],
-                'normalize': ['sklearn.preprocessing', 'Normalizer'],
-                'quantile': ['sklearn.preprocessing', 'QuantileTransformer'],
-                'robust': ['sklearn.preprocessing', 'RobustScaler'],
-                'standard': ['sklearn.preprocessing', 'StandardScaler']}
-        self.default_parameters = {'bins': {'encode': 'ordinal',
-                                             'strategy': 'uniform',
-                                             'n_bins': 5},
-                                   'gauss': {'standardize': False,
-                                              'copy': False},
-                                   'maxabs': {'copy': False},
-                                   'minmax': {'copy': False},
-                                   'normalize': {'copy': False},
-                                   'quantile': {'copy': False},
-                                   'robust': {'copy': False},
-                                   'standard': {'copy': False}}
+        self.default_parameters = {
+            'bins': {'encode': 'ordinal',
+                        'strategy': 'uniform',
+                        'n_bins': 5},
+            'gauss': {'standardize': False,
+                        'copy': False},
+            'maxabs': {'copy': False},
+            'minmax': {'copy': False},
+            'normalize': {'copy': False},
+            'quantile': {'copy': False},
+            'robust': {'copy': False},
+            'standard': {'copy': False}}
 #        self.extra_parameters = {
 #                'gauss': {'rescaler': self.options['minmax']}}
         self.selected_parameters = True
         self.custom_options = ['gauss']
         return self
-    
+
     def publish(self):
         super().publish()
         return self
-    
+
     @numpy_shield
     def implement(self, ingredients, plan = None, columns = None):
         if columns is None:

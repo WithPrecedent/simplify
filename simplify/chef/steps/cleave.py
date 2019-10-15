@@ -12,6 +12,17 @@ from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {}
+
+
 @dataclass
 class Cleave(SimpleTechnique):
     """Stores different groups of features (to allow comparison among those

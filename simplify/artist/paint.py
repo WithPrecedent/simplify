@@ -14,6 +14,40 @@ import matplotlib.pyplot as plt
 from simplify.core.iterable import SimpleIterable
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'calibration': self.calibration,
+    'cluster_tree': self.cluster_tree,
+    'confusion': self.confusion,
+    'cumulative_gain': self.cumulative,
+    'decision_boundaries': self.decision_boundaries,
+    'elbow': self.elbow_curve,
+    'heat_map': self.heat_map,
+    'histogram': self.histogram,
+    'kde': self.kde_plot,
+    'ks_statistic': self.ks_stat,
+    'lift': self.lift_curve,
+    'linear': self.linear_regress,
+    'logistic': self.logistic_regress,
+    'pair_plot': self.pair_plot,
+    'pr_curve': self.pr_plot,
+    'residuals': self.residuals,
+    'roc_curve': self.roc_plot,
+    'shap_dependency': self.shap_dependency,
+    'shap_force': self.shap_force_plot,
+    'shap_heat_map': self.shap_heat_map,
+    'shap_interactions': self.shap_interactions,
+    'shap_summary': self.shap_summary,
+    'silhouette': self.silhouette}
+
+
 @dataclass
 class Paint(SimpleIterable):
     """Creates data analysis visualizations.
@@ -26,7 +60,7 @@ class Paint(SimpleIterable):
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
     """
-    
+
     steps: object = None
     name: str = 'paint'
     auto_publish: bool = True
@@ -81,29 +115,6 @@ class Paint(SimpleIterable):
 
     def draft(self):
         """Sets available plots dictionary."""
-        self.options = {'calibration': self.calibration,
-                        'cluster_tree': self.cluster_tree,
-                        'confusion': self.confusion,
-                        'cumulative_gain': self.cumulative,
-                        'decision_boundaries': self.decision_boundaries,
-                        'elbow': self.elbow_curve,
-                        'heat_map': self.heat_map,
-                        'histogram': self.histogram,
-                        'kde': self.kde_plot,
-                        'ks_statistic': self.ks_stat,
-                        'lift': self.lift_curve,
-                        'linear': self.linear_regress,
-                        'logistic': self.logistic_regress,
-                        'pair_plot': self.pair_plot,
-                        'pr_curve': self.pr_plot,
-                        'residuals': self.residuals,
-                        'roc_curve': self.roc_plot,
-                        'shap_dependency': self.shap_dependency,
-                        'shap_force': self.shap_force_plot,
-                        'shap_heat_map': self.shap_heat_map,
-                        'shap_interactions': self.shap_interactions,
-                        'shap_summary': self.shap_summary,
-                        'silhouette': self.silhouette}
         return self
 
 #    def _edit_dependency_plots(self):

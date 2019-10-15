@@ -12,6 +12,15 @@ from simplify.core.decorators import localize
 from simplify.core.iterable import SimpleIterable
 
 
+# Sets default options for module if 'options' not passed to a subclass.
+DEFAULT_OPTIONS = {
+    'farmer': ['simplify.farmer', 'Almanac'],
+    'chef': ['simplify.chef', 'Cookbook'],
+    'critic': ['simplify.critic', 'Review'],
+    'artist': ['simplify.artist', 'Canvas']}
+DEFAULT_CHECKS = ['ingredients']
+
+
 @dataclass
 class Simplify(SimpleIterable):
     """Controller class for completely automated siMpLify projects.
@@ -114,13 +123,7 @@ class Simplify(SimpleIterable):
 
     def draft(self):
         super().draft()
-        self.options = {
-                'farmer': ['simplify.farmer', 'Almanac'],
-                'chef': ['simplify.chef', 'Cookbook'],
-                'critic': ['simplify.critic', 'Review'],
-                'artist': ['simplify.artist', 'Canvas']}
-        self.checks.extend(['ingredients'])
-        self.iterable_setting = 'packages'
+        self.sequence_setting = 'packages'
         return self
 
     def implement(self, ingredients = None):

@@ -22,10 +22,10 @@ from datetime import timedelta
 
 from numpy import datetime64
 from pandas.api.types import CategoricalDtype
-   
+
 @dataclass
 class SimpleType(ABC):
-    """Parent abstract base class for setting dictionaries related to datatypes 
+    """Parent abstract base class for setting dictionaries related to datatypes
     and file types.
 
     To use the class, a subclass must have the following methods:
@@ -46,11 +46,11 @@ class SimpleType(ABC):
         self._create_reversed()
         return self
 
-    """ Magic Methods """
+    """ Dunder Methods """
 
     def __getattr__(self, attr):
         """Returns dict methods applied to 'name_to_type' attribute if those
-        methods are sought from the class instance. 
+        methods are sought from the class instance.
 
         Args:
             attr: attribute sought.
@@ -78,11 +78,11 @@ class SimpleType(ABC):
 
     def __setitem__(self, key, value):
         """Sets key to 'value' in 'name_to_type' and reverse in 'type_to_name'.
-        
+
         If the class has 'default_values', then:
             if 'value' matches a 'key' in type_to_name, the same default value
             is applied. Otherwise, None is used as the default_value.
-            
+
         Args:
             item: key name to be set in 'name_to_type'.
             value: value to be set in 'name_to_type'.
@@ -113,33 +113,33 @@ class SimpleType(ABC):
         """Required method that sets default values for a subclass."""
         pass
         return self
-  
+
     def items(self):
         """Returns items from 'name_to_type' to mirror dict functionality."""
-        return self.name_to_type.items()   
-            
+        return self.name_to_type.items()
+
     def keys(self):
         """Returns keys from 'name_to_type' to mirror dict functionality."""
         return self.name_to_type.keys()
-    
+
     def pop(self, key):
-        """Removes key from 'name_to_type' and 'type_to_name' to mirror dict 
+        """Removes key from 'name_to_type' and 'type_to_name' to mirror dict
         functionality.
-        
+
         Args:
             key: dict key to be removed.
         """
         self.name_to_type.pop(key)
         self.type_to_name.pop(key)
         return self
-    
+
     def update(self, datatypes):
         """Adds values to 'name_to_type' and recreates reversed dict to mirror
         dict functionality.
-        
+
         Args:
-            datatypes: a dictionary with keys of datatype names and values of 
-                datatypes.        
+            datatypes: a dictionary with keys of datatype names and values of
+                datatypes.
         """
         self.name_to_type.update(datatypes)
         self._create_reversed()
@@ -153,8 +153,8 @@ class SimpleType(ABC):
 @dataclass
 class DataTypes(SimpleType):
     """Stores dictionaries related to datatypes used by siMpLify package.
-    
-    All datatypes use string proxies to allow for easy calling or related 
+
+    All datatypes use string proxies to allow for easy calling or related
     methods and consistent naming structure throughout the package.
     """
 
@@ -183,18 +183,18 @@ class DataTypes(SimpleType):
                                'datetime': 1/1/1900,
                                'timedelta': 0}
         return self
-     
-    def edit_datatypes(self, names = None, python_types = None, 
+
+    def edit_datatypes(self, names = None, python_types = None,
                        datatypes = None):
         """Updates datatypes dictionary and its reverse with new keys and values
         from passed arguments.
-        
+
         Args:
             names: a string name or list of names for keys in the datatypes
                 dict.
             python_types: a python, numpy, pandas, or custom datatype or list
                 of the same.
-            datatypes: a dictionary with keys of datatype names and values of 
+            datatypes: a dictionary with keys of datatype names and values of
                 datatypes.
         """
         if datatypes:
@@ -202,11 +202,11 @@ class DataTypes(SimpleType):
         if names and python_types:
             self.name_to_type.update(dict(zip(names, python_types)))
         self._create_reversed()
-        return self  
-       
+        return self
+
     def edit_default_values(self, default_values):
         """Updates 'default_values' dict'
-        
+
         Args:
             default_values: dict with keys of strings of datatypes and values
                 of default value for that datatype.
@@ -214,7 +214,7 @@ class DataTypes(SimpleType):
         self.default_values.update(default_values)
         return self
 
-  
+
 @dataclass
 class FileTypes(SimpleType):
     """Stores dictionaries related to file types used by siMpLify package."""

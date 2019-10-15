@@ -12,6 +12,25 @@ from itertools import product
 from simplify.core.iterable import SimpleIterable
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'scale': ['simplify.chef.steps.scale', 'Scale'],
+    'split': ['simplify.chef.steps.split', 'Split'],
+    'encode': ['simplify.chef.steps.encode', 'Encode'],
+    'mix': ['simplify.chef.steps.mix', 'Mix'],
+    'cleave': ['simplify.chef.steps.cleave', 'Cleave'],
+    'sample': ['simplify.chef.steps.sample', 'Sample'],
+    'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
+    'model': ['simplify.chef.steps.model', 'Model']}
+
+
 @dataclass
 class Cookbook(SimpleIterable):
     """Dynamically creates recipes for staging, machine learning, and data
@@ -79,7 +98,7 @@ class Cookbook(SimpleIterable):
             recipe.implement(ingredients = self.ingredients)
             if self.export_results:
                 self.depot._set_experiment_folder()
-                self.depot._set_plan_folder(iterable = recipe, 
+                self.depot._set_plan_folder(iterable = recipe,
                                             name = 'recipe')
                 if self.export_all_recipes:
                     self.save_recipes(recipes = recipe)
@@ -166,15 +185,6 @@ class Cookbook(SimpleIterable):
     def draft(self):
         """Sets default options for the Chef's cookbook."""
         super().draft()
-        self.options = {
-            'scale': ['simplify.chef.steps.scale', 'Scale'],
-            'split': ['simplify.chef.steps.split', 'Split'],
-            'encode': ['simplify.chef.steps.encode', 'Encode'],
-            'mix': ['simplify.chef.steps.mix', 'Mix'],
-            'cleave': ['simplify.chef.steps.cleave', 'Cleave'],
-            'sample': ['simplify.chef.steps.sample', 'Sample'],
-            'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
-            'model': ['simplify.chef.steps.model', 'Model']}
         if self.recipes is None:
             self.recipes = {}
         self.comparer = True
@@ -311,7 +321,7 @@ class Recipe(SimpleIterable):
         self.ingredients = ingredients
         self.ingredients.split_xy(label = self.label)
         if self._calculate_hyperparameters:
-            self._calculate_hyperparameters            
+            self._calculate_hyperparameters
         # If using cross-validation or other data splitting technique, the
         # pre-split methods apply to the 'x' data. After the split, steps
         # must incorporate the split into 'x_train' and 'x_test'.

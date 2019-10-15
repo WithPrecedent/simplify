@@ -12,6 +12,21 @@ from simplify.core.decorators import localize
 from simplify.core.iterable import SimpleIterable
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'style': ['simplify.artist.syle', 'Style'],
+    'illustrate': ['simplify.artist.illustrate', 'Illustrate'],
+    'paint': ['simplify.artist.paint', 'Paint'],
+    'animate': ['simplify.artist.animate', 'Animate']}
+
+
 @dataclass
 class Canvas(SimpleIterable):
     """Builds tools for data visualization.
@@ -20,8 +35,8 @@ class Canvas(SimpleIterable):
         ingredients(Ingredients): an instance of Ingredients. This argument need
             not be passed when the class is instanced. It can be passed directly
             to the 'implement' method as well.
-        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique classes for
-            analyzing fitted models.
+        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique
+            classes for analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It
             can be passed directly to the 'implement' method as well.
@@ -33,8 +48,8 @@ class Canvas(SimpleIterable):
             to the section of the idea configuration with relevant settings.
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement (bool): whether to call the 'implement' method when the class
-            is instanced.
+        auto_implement (bool): whether to call the 'implement' method when the
+            class is instanced.
 
     Since this class is a subclass to SimpleIterable and SimpleClass, all
     documentation for those classes applies as well.
@@ -111,11 +126,6 @@ class Canvas(SimpleIterable):
 
     def draft(self):
         """Sets default styles, options, and plots."""
-        self.options = {
-                'style': ['simplify.artist.syle', 'Style'],
-                'illustrate': ['simplify.artist.illustrate', 'Illustrate'],
-                'paint': ['simplify.artist.paint', 'Paint'],
-                'animate': ['simplify.artist.animate', 'Animate']}
         self.checks = ['model_type']
         # Locks 'step' attribute at 'artist' for conform methods in package.
         self.step = 'artist'

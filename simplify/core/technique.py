@@ -1,7 +1,7 @@
 
 """
 .. module:: technique
-:synopsis: technique in siMpLify step
+:synopsis: catalog of algorithms for selection and implementation
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -15,7 +15,6 @@ import pandas as pd
 from simplify.core.base import SimpleClass
 from simplify.core.decorators import numpy_shield
 from simplify.core.parameters import SimpleParameters
-
 
 
 @dataclass

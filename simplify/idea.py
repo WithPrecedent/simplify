@@ -7,7 +7,7 @@
 """
 
 from configparser import ConfigParser
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import import_module
 from itertools import product
 import os
@@ -16,6 +16,20 @@ import re
 from simplify.core.base import SimpleClass
 from simplify.core.iterable import SimpleIterable
 
+
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'farmer': ['simplify.farmer', 'Almanac'],
+    'chef': ['simplify.chef', 'Cookbook'],
+    'critic': ['simplify.critic', 'Review'],
+    'artist': ['simplify.artist', 'Canvas']}
 
 @dataclass
 class Idea(SimpleClass):
@@ -148,6 +162,7 @@ class Idea(SimpleClass):
     lazy_import: bool = False
 
     def __post_init__(self):
+        self.checks = ['depot', 'ingredients']
         super().__post_init__()
         return self
 
@@ -291,9 +306,9 @@ class Idea(SimpleClass):
         if self.configuration:
             if isinstance(self.configuration, str):
                 if self.configuration.endswith('.ini'):
-                    self.technique = 'ini_file'
+                    self.technique = self._load_from_ini
                 elif self.configuration.endswith('.py'):
-                    self.technique = 'py_file'
+                    self.technique = self._load_from_py
                 else:
                     error = 'configuration file must be .py or .ini file'
                     raise TypeError(error)
@@ -494,11 +509,7 @@ class Idea(SimpleClass):
         """Sets options to create 'configuration' dictionary and checks to run
         on passed parameters."""
         super().draft()
-        self.options = {
-                'py_file': self._load_from_py,
-                'ini_file': self._load_from_ini,
-                'dict': None}
-        self.checks.extend(['depot', 'ingredients'])
+
         return self
 
     def publish(self):
@@ -506,8 +517,8 @@ class Idea(SimpleClass):
         parameter and injecting Idea into SimpleClass.
         """
         self._check_configuration()
-        if self.options[self.technique]:
-            self.options[self.technique]()
+        if hasattr(self, 'technique') and self.technique:
+            self.technique()
         self._infer_types()
         self._inject_base()
         self.inject(instance = self, sections = ['general'])
@@ -539,9 +550,9 @@ class Idea(SimpleClass):
             self.configuration.update(new_settings)
         elif isinstance(new_settings, str):
             if new_settings.endswith('.ini'):
-                technique = 'ini_file'
+                technique = self._load_from_ini
             elif new_settings.endswith('.py'):
-                technique = self._load_py_file
+                technique = self._load_from_py
             self.configuration.update(technique(file_path = new_settings))
         elif (hasattr(new_settings, 'configuration')
                 and isinstance(new_settings.configuration, dict)):
@@ -561,9 +572,10 @@ class Simplify(SimpleIterable):
     subgetattr(self, name)s ('farmer', 'chef', 'critic', and 'artist') directly.
 
         name(str): name of class used to match settings sections in an Idea
-            settings file and other portions of the siMpLify getattr(self, name). This is
-            used instead of __class__.__name__ so that subclasses can maintain
-            the same string name without altering the formal class name.
+            settings file and other portions of the siMpLify getattr(self,
+            name). This is used instead of __class__.__name__ so that subclasses
+            can maintain the same string name without altering the formal class
+            name.
         auto_publish(bool): sets whether to automatically call the 'publish'
             method when the class is instanced. If you do not plan to make any
             adjustments beyond the Idea configuration, this option should be
@@ -573,11 +585,11 @@ class Simplify(SimpleIterable):
             method when the class is instanced.
 
     """
-
     steps: object = None
     name: str = 'simplify'
     auto_publish: bool = True
     auto_implement: bool = False
+    sequence_setting: str = 'packages'
 
     def __post_init__(self):
         super().__post_init__()
@@ -628,16 +640,6 @@ class Simplify(SimpleIterable):
         return self
 
     """ Core siMpLify Methods """
-
-    def draft(self):
-        super().draft()
-        self.options = {
-                'farmer': ['simplify.farmer', 'Almanac'],
-                'chef': ['simplify.chef', 'Cookbook'],
-                'critic': ['simplify.critic', 'Review'],
-                'artist': ['simplify.artist', 'Canvas']}
-        self.sequence_setting = 'packages'
-        return self
 
     def implement(self, ingredients = None):
         if ingredients:

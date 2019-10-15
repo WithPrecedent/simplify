@@ -11,6 +11,21 @@ from dataclasses import dataclass
 from simplify.core.iterable import SimpleIterable
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'download': ['simplify.farmer.steps.download', 'Download'],
+    'scrape': ['simplify.farmer.steps.scrape', 'Scrape'],
+    'convert': ['simplify.farmer.steps.convert', 'Convert'],
+    'divide': ['simplify.farmer.steps.divide', 'Divide']}
+
+
 @dataclass
 class Sow(SimpleIterable):
     """Acquires and performs basic preparation of data sources.
@@ -33,11 +48,6 @@ class Sow(SimpleIterable):
         return self
 
     def draft(self):
-        self.options = {
-                'download': ['simplify.farmer.steps.download', 'Download'],
-                'scrape': ['simplify.farmer.steps.scrape', 'Scrape'],
-                'convert': ['simplify.farmer.steps.convert', 'Convert'],
-                'divide': ['simplify.farmer.steps.divide', 'Divide']}
         self.needed_parameters = {'convert': ['file_in', 'file_out',
                                                  'method'],
                                   'download': ['file_url', 'file_name'],

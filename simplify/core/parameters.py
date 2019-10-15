@@ -21,7 +21,7 @@ class SimpleParameters(SimpleClass):
         super().__post_init__()
         return self
 
-    """ Magic Methods """
+    """ Dunder Methods """
 
     def __call__(self, instance):
         self.__post_init__()
@@ -67,7 +67,7 @@ class SimpleParameters(SimpleClass):
                 else:
                     parameters = instance.default_parameters
         else:
-            if (hasattr(instance, 'technique') 
+            if (hasattr(instance, 'technique')
                     and instance.technique != 'none'
                     and instance.parameters):
                 parameters = self._denestify(
@@ -160,8 +160,8 @@ class SimpleParameters(SimpleClass):
                     if hasattr(self, '_get_' + value):
                         parameters = getattr(self, '_get_' + value)(
                                 instance = instance, parameters = parameters)
-                    elif (hasattr(instance, value) 
-                            and getattr(instance, value) 
+                    elif (hasattr(instance, value)
+                            and getattr(instance, value)
                             and parameters):
                         if instance.exists('technique'):
                             parameters.update(self._denestify(

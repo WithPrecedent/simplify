@@ -12,6 +12,19 @@ import os
 from simplify.core.iterable import SimpleIterable
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'organize': ['simplify.core.retool', 'ReTool'],
+    'parse': ['simplify.core.retool', 'ReTool']}
+
+
 @dataclass
 class Harvest(SimpleIterable):
     """Extracts data from text or other sources.
@@ -51,9 +64,6 @@ class Harvest(SimpleIterable):
         return algorithm
 
     def draft(self):
-        self.options = {
-                'organize': ['simplify.core.retool', 'ReTool'],
-                'parse': ['simplify.core.retool', 'ReTool']}
         return self
 
     def _set_columns(self, algorithm):

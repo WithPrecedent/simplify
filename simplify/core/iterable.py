@@ -49,7 +49,7 @@ class SimpleIterable(SimpleClass):
         super().__post_init__()
         return self
 
-    """ Magic Methods """
+    """ Dunder Methods """
 
     def __call__(self, *args, **kwargs):
         """Calls '__post_init__ and then 'implement' with args and kwargs."""

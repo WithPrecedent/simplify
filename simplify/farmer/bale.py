@@ -11,6 +11,19 @@ from dataclasses import dataclass
 from simplify.core.iterable import SimpleIterable
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'merge': ['simplify.farmer.steps.merge', 'Merge'],
+    'supplement': ['simplify.farmer.steps.supplement', 'Supplement']}
+
+
 @dataclass
 class Bale(SimpleIterable):
     """Class for combining different datasets."""
@@ -23,10 +36,6 @@ class Bale(SimpleIterable):
         return self
 
     def draft(self):
-        self.options = {
-                'merge': ['simplify.farmer.steps.merge', 'Merge'],
-                'supplement': ['simplify.farmer.steps.supplement',
-                               'Supplement']}
         self.needed_parameters = {'merger': ['index_columns', 'merge_type']}
         return self
 

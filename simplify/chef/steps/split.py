@@ -11,6 +11,22 @@ from dataclasses import dataclass
 from simplify.core.technique import SimpleTechnique
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'group_kfold': ['sklearn.model_selection', 'GroupKFold'],
+    'kfold': ['sklearn.model_selection', 'KFold'],
+    'stratified': ['sklearn.model_selection', 'StratifiedKFold'],
+    'time': ['sklearn.model_selection', 'TimeSeriesSplit'],
+    'train_test': ['sklearn.model_selection', 'ShuffleSplit']}
+
+
 @dataclass
 class Split(SimpleTechnique):
     """Splits data into training, testing, and/or validation sets, uses time
@@ -24,6 +40,7 @@ class Split(SimpleTechnique):
             and for labeling the columns in files exported by Critic.
         auto_publish (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
+            
     """
 
     technique: object = None
@@ -38,22 +55,16 @@ class Split(SimpleTechnique):
 
     def draft(self):
         super().draft()
-        self.options = {
-                'group_kfold': ['sklearn.model_selection', 'GroupKFold'],
-                'kfold': ['sklearn.model_selection', 'KFold'],
-                'stratified': ['sklearn.model_selection', 'StratifiedKFold'],
-                'time': ['sklearn.model_selection', 'TimeSeriesSplit'],
-                'train_test': ['sklearn.model_selection', 'ShuffleSplit']}
         self.default_parameters = {
-                'train_test': {'test_size': 0.33},
-                'kfold': {'n_splits': 5, 'shuffle': False},
-                'stratified': {'n_splits': 5, 'shuffle': False},
-                'group_kfold': {'n_splits': 5},
-                'time': {'n_splits': 5}}      
+            'train_test': {'test_size': 0.33},
+            'kfold': {'n_splits': 5, 'shuffle': False},
+            'stratified': {'n_splits': 5, 'shuffle': False},
+            'group_kfold': {'n_splits': 5},
+            'time': {'n_splits': 5}}
         self.extra_parameters = {'train_test': {'n_splits': 1}}
         self.selected_parameters = True
         return self
-    
+
     def publish(self):
         self.runtime_parameters = {'random_state': self.seed}
         super().publish()

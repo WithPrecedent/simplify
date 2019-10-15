@@ -11,6 +11,20 @@ from dataclasses import dataclass
 from simplify.core.technique import SimpleTechnique
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'bayes': ['skopt', 'BayesSearchCV'],
+    'grid': ['sklearn.model_selection', 'GridSearchCV'],
+    'random': ['sklearn.model_selection', 'RandomizedSearchCV']}
+
+
 @dataclass
 class Search(SimpleTechnique):
     """Searches for optimal model hyperparameters using specified technique.
@@ -36,9 +50,9 @@ class Search(SimpleTechnique):
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
-    
+
     """ Private Methods """
-      
+
     def _set_parameters(self):
         self.parameters.update(
             {'estimator': self.estimator.algorithm,
@@ -54,7 +68,7 @@ class Search(SimpleTechnique):
             print('Searching for best hyperparameters using',
                   self.technique, 'search algorithm')
             print('The', self.parameters['scoring'],
-                  'score of the best estimator for the', 
+                  'score of the best estimator for the',
                   self.estimator.technique, ' model is',
                   f'{self.algorithm.best_score_: 4.4f}')
         return self
@@ -62,10 +76,6 @@ class Search(SimpleTechnique):
     """ Core siMpLify Methods """
 
     def draft(self):
-        self.options = {
-                'bayes': ['skopt', 'BayesSearchCV'],
-                'grid': ['sklearn.model_selection', 'GridSearchCV'],
-                'random': ['sklearn.model_selection', 'RandomizedSearchCV']}
         return self
 
     def implement(self, ingredients):

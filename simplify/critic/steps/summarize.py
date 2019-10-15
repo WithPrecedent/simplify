@@ -13,6 +13,38 @@ import pandas as pd
 from simplify.core.critic.review import CriticTechnique
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'datatype': self._get_datatype,
+    'count': ['numpy.ndarray', 'size'],
+    'min':['numpy', 'nanmin'],
+    'q1': ['numpy', 'nanquantile'],
+    'median': ['numpy', 'nanmedian'],
+    'q3': ['numpy', 'nanquantile'],
+    'max': ['numpy', 'nanmax'],
+    'mad': ['scipy.stats', 'median_absolute_deviation'],
+    'mean': ['numpy', 'nanmean'],
+    'std': ['numpy', 'nanstd'],
+    'standard_error': ['scipy.stats', 'sem'],
+    'geometric_mean': ['scipy.stats', 'gmean'],
+    'geometric_std': ['scipy.stats', 'gstd'],
+    'harmonic_mean': ['scipy.stats', 'hmean'],
+    'mode': ['scipy.stats', 'mode'],
+    'sum': ['numpy', 'nansum'],
+    'kurtosis': ['scipy.stats', 'kurtosis'],
+    'skew': ['scipy.stats', 'skew'],
+    'variance': ['numpy', 'nanvar'],
+    'variation': ['scipy.stats', 'variation'],
+    'unique': ['numpy', 'nunique']}
+
+
 @dataclass
 class Summarize(CriticTechnique):
     """Summarizes data.
@@ -100,28 +132,6 @@ class Summarize(CriticTechnique):
     def draft(self):
         """Sets options for Summarize class."""
         super().draft()
-        self.options = {
-            'datatype': self._get_datatype,
-            'count': ['numpy.ndarray', 'size'],
-            'min':['numpy', 'nanmin'],
-            'q1': ['numpy', 'nanquantile'],
-            'median': ['numpy', 'nanmedian'],
-            'q3': ['numpy', 'nanquantile'],
-            'max': ['numpy', 'nanmax'],
-            'mad': ['scipy.stats', 'median_absolute_deviation'],
-            'mean': ['numpy', 'nanmean'],
-            'std': ['numpy', 'nanstd'],
-            'standard_error': ['scipy.stats', 'sem'],
-            'geometric_mean': ['scipy.stats', 'gmean'],
-            'geometric_std': ['scipy.stats', 'gstd'],
-            'harmonic_mean': ['scipy.stats', 'hmean'],
-            'mode': ['scipy.stats', 'mode'],
-            'sum': ['numpy', 'nansum'],
-            'kurtosis': ['scipy.stats', 'kurtosis'],
-            'skew': ['scipy.stats', 'skew'],
-            'variance': ['numpy', 'nanvar'],
-            'variation': ['scipy.stats', 'variation'],
-            'unique': ['numpy', 'nunique']}
         self.extra_parameters = {
             'kurtosis': {'nan_policy': 'omit'},
             'mad': {'nan_policy': 'omit'},

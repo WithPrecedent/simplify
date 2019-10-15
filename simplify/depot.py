@@ -19,6 +19,17 @@ from simplify.core.base import SimpleClass
 from simplify.core.types import FileTypes
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {}
+
+
 @dataclass
 class Depot(SimpleClass):
     """Manages files and folders for the siMpLify package.
@@ -777,10 +788,12 @@ class Depot(SimpleClass):
         """
         super().publish()
         self._check_root_folder()
-        self.edit_folders(root_folder = self.root,
-                         subfolders = [self.data_folder, self.results_folder])
-        self.edit_folders(root_folder = self.data,
-                         subfolders = self.data_subfolders)
+        self.edit_folders(
+            root_folder = self.root,
+            subfolders = [self.data_folder, self.results_folder])
+        self.edit_folders(
+            root_folder = self.data,
+            subfolders = self.data_subfolders)
         # Injects Depot instance into base SimpleClass
         self._inject_base()
         return self

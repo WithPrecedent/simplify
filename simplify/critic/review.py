@@ -16,6 +16,25 @@ from simplify.core.iterable import SimpleIterable
 from simplify.core.technique import SimpleTechnique
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'summary': ['simplify.critic.steps.summarize', 'Summarize'],
+    'explanation': ['simplify.critic.steps.explain', 'Explain'],
+    'prediction': ['simplify.critic.steps.predict', 'Predict'],
+    'probabilities': ['simplify.critic.steps.probability', 'Probability'],
+    'ranking': ['simplify.critic.steps.rank', 'Rank'],
+    'metrics': ['simplify.critic.steps.metrics', 'Metrics'],
+    'test': ['simplify.critic.steps.test', 'Test'],
+    'report': ['simplify.critic.steps.report', 'Report']}
+
+
 @dataclass
 class Review(SimpleIterable):
     """Builds tools for evaluating, explaining, and creating predictions from
@@ -24,8 +43,9 @@ class Review(SimpleIterable):
     Args:
         steps(dict(str: CriticTechnique)): names and related CriticTechnique
             classes for analyzing fitted models.
-        name(str): designates the name of the class which should be identical
-            to the section of the idea configuration with relevant settings.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
         auto_implement(bool): whether to call the 'implement' method when the
@@ -45,45 +65,11 @@ class Review(SimpleIterable):
         super().__post_init__()
         return self
 
-    """ Private Methods """
-
-    def _check_best(self, recipe):
-        """Checks if the current recipe is better than the current best recipe
-        based upon the primary scoring metric.
-
-        Args:
-            recipe: an instance of Recipe to be tested versus the current best
-                recipe stored in the 'best_recipe' attribute.
-        """
-        if not self.exists('best_recipe'):
-            self.best_recipe = recipe
-            self.best_recipe_score = self.report.loc[
-                    self.report.index[-1],
-                    self.listify(self.metrics)[0]]
-        elif (self.report.loc[
-                self.report.index[-1],
-                self.listify(self.metrics)[0]] > self.best_recipe_score):
-            self.best_recipe = recipe
-            self.best_recipe_score = self.report.loc[
-                    self.report.index[-1],
-                    self.listify(self.metrics)[0]]
-        return self
-
     """ Core siMpLify methods """
 
     def draft(self):
         """Sets default options for the Critic's analysis."""
         super().draft()
-        self.options = {
-            'summary': ['simplify.critic.steps.summarize', 'Summarize'],
-            'explanation': ['simplify.critic.steps.explain', 'Explain'],
-            'prediction': ['simplify.critic.steps.predict', 'Predict'],
-            'probabilities': ['simplify.critic.steps.probability',
-                            'Probability'],
-            'ranking': ['simplify.critic.steps.rank', 'Rank'],
-            'metrics': ['simplify.critic.steps.metrics', 'Metrics'],
-            'test': ['simplify.critic.steps.test', 'Test'],
-            'report': ['simplify.critic.steps.report', 'Report']}
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.depot.step = 'critic'
         return self
@@ -103,16 +89,15 @@ class Review(SimpleIterable):
                 methods to work.
         """
         if not isinstance(recipes, dict):
-            recipes = {'1': recipes}
+            recipes = {recipes.number: recipes}
         self.recipes = recipes
         # Initializes comparative model report with set columns.
-        if not self.exists('report'):
-            self._start_report(recipe = recipes['1'])
-        print('columns', self.columns)
+        if not self.exists('article'):
+            self.article = Article()
         # Iterates through 'recipes' to gather review information.
         for number, recipe in self.recipes.items():
             if self.verbose:
-                print('Reviewing', recipe.name, str(recipe.number))
+                print('Reviewing', recipe.name, str(number))
             step_reviews = {}
             for step in self.sequence:
                 getattr(self, step).implement(recipe = recipe)
@@ -121,8 +106,6 @@ class Review(SimpleIterable):
                     print('score_report', self.score.report)
                     self._add_row(recipe = recipe, report = self.score.report)
                     self.check_best()
-        self.print_best
-        print(self.report)
         return self
 
 
@@ -143,17 +126,6 @@ class Narrative(SimpleIterable):
 
     def draft(self):
         super().draft()
-        if not self.options:
-            self.options = {
-                'summary': ['simplify.critic.steps.summarize', 'Summarize'],
-                'explanation': ['simplify.critic.steps.explain', 'Explain'],
-                'prediction': ['simplify.critic.steps.predict', 'Predict'],
-                'probabilities': ['simplify.critic.steps.probability',
-                                'Probability'],
-                'ranking': ['simplify.critic.steps.rank', 'Rank'],
-                'metrics': ['simplify.critic.steps.metrics', 'Metrics'],
-                'test': ['simplify.critic.steps.test', 'Test'],
-                'report': ['simplify.critic.steps.report', 'Report']}
         self.sequence_setting = 'critic_steps'
         return self
 
@@ -180,13 +152,13 @@ class Narrative(SimpleIterable):
 
 @dataclass
 class Article(SimpleClass):
-    
+
     def __post_init__(self):
         super().__post_init__()
         return self
-    
-    """ Private Methods """  
-    
+
+    """ Private Methods """
+
     def _add_row(self, recipe, report):
         new_row = pd.Series(index = self.columns)
         for column, variable in self.required_columns.items():
@@ -194,9 +166,31 @@ class Article(SimpleClass):
         print('report', report)
         for column in report:
             new_row[column] = report[column]
-        self.report.loc[len(self.report)] = new_row
+        self.text.loc[len(self.text)] = new_row
         return self
-    
+
+    def _check_best(self, recipe):
+        """Checks if the current recipe is better than the current best recipe
+        based upon the primary scoring metric.
+
+        Args:
+            recipe: an instance of Recipe to be tested versus the current best
+                recipe stored in the 'best_recipe' attribute.
+        """
+        if not self.exists('best_recipe'):
+            self.best_recipe = recipe
+            self.best_recipe_score = self.article.loc[
+                    self.article.index[-1],
+                    self.listify(self.metrics)[0]]
+        elif (self.article.loc[
+                self.article.index[-1],
+                self.listify(self.metrics)[0]] > self.best_recipe_score):
+            self.best_recipe = recipe
+            self.best_recipe_score = self.article.loc[
+                    self.article.index[-1],
+                    self.listify(self.metrics)[0]]
+        return self
+
     def _format_step(self, attribute):
         if getattr(self.recipe, attribute).technique in ['none', 'all']:
             step_column = getattr(self.recipe, attribute).technique
@@ -242,8 +236,8 @@ class Article(SimpleClass):
 
     def _start_report(self, recipe):
         self._set_columns(recipe = recipe)
-        self.report = pd.DataFrame(columns = self.columns)
-        return self 
+        self.text = pd.DataFrame(columns = self.columns)
+        return self
 
     """ Public Import/Export Methods """
 
@@ -260,8 +254,8 @@ class Article(SimpleClass):
             file_format = 'csv',
             header = True)
         return
-    
-    
+
+
 @dataclass
 class CriticTechnique(SimpleTechnique):
     """Parent Class for techniques in the Critic package.
@@ -319,10 +313,10 @@ class CriticTechnique(SimpleTechnique):
 
         """
         if self.technique != 'none':
-            self._set_parameters()
+            if not hasattr(self, 'no_parameters') and not self.no_parameters:
+                self._set_parameters()
             setattr(recipe, self.technique + '_' + self.name,
-                    self.options[self.technique](
-                            recipe = recipe))
+                    self.options[self.technique](recipe = recipe))
             if not hasattr(recipe, self.name):
                 setattr(recipe, self.name, {})
             setattr(recipe, self.name).update(

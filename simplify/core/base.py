@@ -1,13 +1,13 @@
 """
 .. module:: base
-:synopsis: core parent classes of siMpLify package
+:synopsis: abstract base class for siMpLify package
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib import import_module
 import os
 import warnings
@@ -17,10 +17,21 @@ import pandas as pd
 #from tensorflow.test import is_gpu_available
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {}
+
+
 @dataclass
 class SimpleClass(ABC):
-    """Absract base class for classes in siMpLify package to support a common
-    architecture and allow for sharing of universal methods.
+    """Parent class for siMpLify package to support a common architecture and
+    allow for sharing of universal methods.
 
     SimpleClass creates a code structure patterned after the writing process.
     It divides processes into four stages which are the names or prefixes to
@@ -63,13 +74,14 @@ class SimpleClass(ABC):
             class is instanced.
 
     """
+    options: dict = field(default = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
         """Calls selected initialization methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Calls draft method to set up class instance defaults.
-        self.draft()
+        # Creates instance of lazy importing class.
+        self.lazy = LazyImporter()
         # Sets default 'name' attribute if none exists.
         self._run_checks(checks = ['name'])
         # Creates 'idea' attribute if a string is passed to Idea when subclass
@@ -89,7 +101,7 @@ class SimpleClass(ABC):
                 self.implement()
         return self
 
-    """ Magic Methods """
+    """ Dunder Methods """
 
     def __call__(self, idea, *args, **kwargs):
         """When called as a function, a subclass will return the implement
@@ -329,17 +341,6 @@ class SimpleClass(ABC):
         else:
             return value
 
-    def _draft_pacakage_registry(self):
-        self.tracked_packages = [
-                'sklearn',
-                'simplify',
-                'xgboost',
-                'catboost',
-                'tensorflow',
-                'pytorch',
-                'lightgbm']
-        return self
-
     def _inject_idea(self):
         """Injects portions of Idea instance 'configuration' to subclass.
 
@@ -357,41 +358,6 @@ class SimpleClass(ABC):
         self = self.idea.inject(instance = self, sections = sections)
         return self
 
-    def _using_option(self, name):
-        if hasattr(self, 'lazy_imports'):
-            if name in self.lazy_imports:
-                return True
-        if ((hasattr(self, 'sequence') and name in self.sequence)
-            or (hasattr(self, 'technique')
-                and (name in self.technique or name in self.model_type))):
-            return True
-        else:
-            return False
-
-    def _lazily_import(self):
-        """Limits module imports to only needed package dependencies.
-
-        This method allows users to either save memory or have less
-        dependencies locally available by importing fewer packages than
-        would be done through normal, blanket importation.
-
-        To use this method, 'options' should be formatted as follows:
-            {name(str): [module_path(str), class_name(str)]}
-
-        """
-        imported_steps = {}
-        if ((not hasattr(self, 'lazy_import')
-                or self.lazy_import)
-                and self.has_list_values(self.options)):
-            for name, settings in self.options.items():
-                if self._using_option(name):
-                    self._track_packages(setting = settings[0])
-                    imported_steps.update(
-                        {name: getattr(
-                            import_module(settings[0]), settings[1])})
-            self.options.update(imported_steps)
-        return self
-
     def _run_checks(self, checks = None):
         """Checks attributes from 'checks' and runs corresponding methods based
         upon strings stored in 'checks'.
@@ -406,22 +372,6 @@ class SimpleClass(ABC):
         if checks:
             for check in checks:
                 getattr(self, '_check_' + check)()
-        return self
-
-    def _track_packages(self, setting):
-        """Adds package name to package source registry during lazy
-        importation.
-
-        Args:
-            settings(str): name of import path for package.
-
-        """
-        for package in self.tracked_packages:
-            if package in setting:
-                if not self.exists('package' + '_options'):
-                    setattr(self, 'package' + '_options', [])
-                if package not in getattr(self, 'package' + '_options'):
-                    getattr(self, 'package' + '_options').append(package)
         return self
 
     """ Public Tool Methods """
@@ -493,19 +443,6 @@ class SimpleClass(ABC):
                 and getattr(self, attribute) is not None)
 
     @staticmethod
-    def has_list_values(dictionary):
-        """Returns if passed 'dictionary' has lists for values.
-
-        Args:
-            dictionary(dict): dict to be tested.
-
-        Returns:
-            boolean value indicating whether any value in the 'dictionary' has
-                list for all values
-        """
-        return all(isinstance(d, list) for d in dictionary.values())
-
-    @staticmethod
     def is_nested(dictionary):
         """Returns if passed 'dictionary' is nested at least one-level.
 
@@ -569,7 +506,7 @@ class SimpleClass(ABC):
             file_path(str): a complete file path for the file to be loaded.
             folder(str): a path to the folder where the file should be loaded
                 from (not used if file_path is passed).
-            file_name(str): contains the name of the file to be loaded without '
+            file_name(str): contains the name of the file to be loaded without
                 the file extension (not used if file_path is passed).
             file_format(str): name of file format in Depot.extensions.
 
@@ -615,9 +552,6 @@ class SimpleClass(ABC):
         Generally, the 'checks' attribute should be set here if the subclass
         wants to make use of related methods.
         """
-        self.options = {}
-        self._draft_package_registry()
-        self.checks = []
         return self
 
     def edit(self, keys = None, values = None, options = None):
@@ -660,4 +594,101 @@ class SimpleClass(ABC):
         self._run_checks()
         # Converts values in 'options' to classes by lazily importing them.
         self._lazily_import()
+        return self
+
+
+@dataclass
+class LazyImporter(object):
+    """Lazily imports modules and packages in 'options' attribute.
+
+    To allow users flexibility in dependency usage and lower memory consumption,
+    this class imports objects from specified modules at runtime when needed.
+    Module references can be internal or to external dependencies as long as
+    the import path is valid.
+
+    To use this class, 'options' should be formatted as follows:
+        {name(str): (module_path(str), class_name(str))}
+                            or
+        {name(str): [module_path(str), class_name(str)]}
+
+    The class also maintains lists of packages from designated packages listed
+    in 'tracked_packages'. These lists are created so that specific methods
+    can be adapted based upon the package source of a technique chosen.
+
+    This class also converts other internal references in 'options' from strings
+    to attributes.
+
+    """
+    def __post_init__(self):
+        self._set_tracked_packages()
+        return self
+
+    """ Private Methods """
+
+    def _load_option(self, name, settings):
+        if 'self' == settings[0]:
+            imported_option = {name: getattr(self, settings[1])}
+        else:
+            self._track_packages(setting = settings[0])
+            imported_option = ({name: self.lazily_import(
+                module = settings[0], name = settings[1])})
+        return imported_option
+
+    def _set_tracked_packages(self):
+        self.tracked_packages = [
+            'sklearn',
+            'simplify',
+            'xgboost',
+            'catboost',
+            'tensorflow',
+            'pytorch',
+            'lightgbm']
+        return self
+
+    def _track_packages(self, setting):
+        """Adds package name to package source registry during lazy
+        importation.
+
+        Args:
+            settings(str): name of import path for package.
+
+        """
+        for package in self.tracked_packages:
+            if package in setting:
+                if not self.exists('package' + '_options'):
+                    setattr(self, 'package' + '_options', [])
+                if package not in getattr(self, 'package' + '_options'):
+                    getattr(self, 'package' + '_options').append(package)
+        return self
+
+    def _using_option(self, key):
+        """Returns whether option is being used."""
+        if hasattr(self, 'lazy_imports'):
+            if key in self.lazy_imports:
+                return True
+        if hasattr(self, 'sequence') and key in self.sequence:
+            return True
+        elif (hasattr(self, 'technique')
+              and (key in self.technique or key in self.model_type)):
+            return True
+        else:
+            return False
+
+    """ Public Input/Output Methods """
+
+    @staticmethod
+    def lazily_import(module, name):
+        return getattr(import_module(module), name)
+
+    def load(self, attribute = 'options'):
+        """Imports modules at runtime."""
+        if not hasattr(self, 'lazy_import') or self.lazy_import:
+            new_options = {}
+            for name, settings in getattr(self, attribute).items():
+                if (self._using_option(key = name)
+                        and (isinstance(settings, list)
+                             or isinstance(settings, tuple))):
+                    new_options = ({name: self._load_option(
+                        name = name, settings = settings)})
+            getattr(self, attribute).update(new_options)
         return self

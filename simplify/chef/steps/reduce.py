@@ -12,6 +12,24 @@ from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'kbest': ['sklearn.feature_selection', 'SelectKBest'],
+    'fdr': ['sklearn.feature_selection', 'SelectFdr'],
+    'fpr': ['sklearn.feature_selection', 'SelectFpr'],
+    'custom': ['sklearn.feature_selection', 'SelectFromModel'],
+    'rank': ['simplify.critic.rank', 'RankSelect'],
+    'rfe': ['sklearn.feature_selection', 'RFE'],
+    'rfecv': ['sklearn.feature_selection', 'RFECV']}
+
+
 @dataclass
 class Reduce(SimpleTechnique):
     """Reduces features using different algorithms, including the model
@@ -39,14 +57,6 @@ class Reduce(SimpleTechnique):
 
     def draft(self):
         super().draft()
-        self.options  = {
-                'kbest': ['sklearn.feature_selection', 'SelectKBest'],
-                'fdr': ['sklearn.feature_selection', 'SelectFdr'],
-                'fpr': ['sklearn.feature_selection', 'SelectFpr'],
-                'custom': ['sklearn.feature_selection', 'SelectFromModel'],
-                'rank': ['simplify.critic.rank', 'RankSelect'],
-                'rfe': ['sklearn.feature_selection', 'RFE'],
-                'rfecv': ['sklearn.feature_selection', 'RFECV']}
 #        self.scorers = {'f_classif': f_classif,
 #                        'chi2': chi2,
 #                        'mutual_class': mutual_info_classif,

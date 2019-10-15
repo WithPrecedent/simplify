@@ -11,6 +11,18 @@ from dataclasses import dataclass
 from simplify.core.technique import SimpleTechnique
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'box-cox': ['sklearn.preprocessing', 'PowerTransformer'],
+    'yeo-johnson': ['sklearn.preprocessing', 'PowerTransformer']}
+
 @dataclass
 class Gaussify(SimpleTechnique):
     """Transforms data columns to more gaussian distribution.
@@ -40,9 +52,6 @@ class Gaussify(SimpleTechnique):
         return self
 
     def draft(self):
-        self.options = {
-                'box-cox': ['sklearn.preprocessing', 'PowerTransformer'],
-                'yeo-johnson': ['sklearn.preprocessing', 'PowerTransformer']}
         return self
 
     def publish(self):

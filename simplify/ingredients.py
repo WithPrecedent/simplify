@@ -17,6 +17,28 @@ from simplify.core.decorators import choose_df, combine_lists
 from simplify.core.types import DataTypes
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+# Declares dictionary of DataFrames contained in Ingredients to allow
+# temporary remapping of attributes in __getattr__. __setattr does
+# not use this mapping.
+DEFAULT_OPTIONS = {
+    'x': '_x',
+    'y': '_y',
+    'x_train': '_x_train',
+    'y_train': '_y_train',
+    'x_test': '_x_test',
+    'y_test': '_y_test',
+    'x_val': '_x_val',
+    'y_val': '_y_val'}
+
+
 @dataclass
 class Ingredients(SimpleClass):
     """Stores pandas DataFrames and Series with related information about those
@@ -61,7 +83,7 @@ class Ingredients(SimpleClass):
             Series, or file paths): These need not be passed when the class is
             instanced. They are merely listed for users who already have divided
             datasets and still wish to use the siMpLify package. The arguments
-            are prefixed with an underscore to allow mapping to the 
+            are prefixed with an underscore to allow mapping to the
             corresponding public attributes (x, y, x_train, y_train, x_test,
             y_test, x_val, y_val)
         datatypes(dict): contains column names as keys and datatypes for values
@@ -96,7 +118,6 @@ class Ingredients(SimpleClass):
     datatypes: object = None
     prefixes: object = None
     auto_publish: bool = True
-    lazy_import: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -145,13 +166,13 @@ class Ingredients(SimpleClass):
         return [df.columns.get_loc(column) for column in columns]
 
     def _hide_dataframes(self):
-        """Hides dataframe from public variables to allow remapping and 
+        """Hides dataframe from public variables to allow remapping and
         __getattr__ interception.
         """
         for proxy, hidden in self.options.items():
             self.__dict__[hidden] = self.__dict__.pop(proxy)
         return self
-        
+
     def _initialize_datatypes(self, df = None):
         """Initializes datatypes for columns of pandas DataFrame or Series if
         not already provided.
@@ -596,7 +617,7 @@ class Ingredients(SimpleClass):
                               self.all_datatypes[datatype]))
         return self
 
-    def save_dropped(self, folder = 'experiment', file_name = 'dropped_columns', 
+    def save_dropped(self, folder = 'experiment', file_name = 'dropped_columns',
                      file_format = 'csv'):
         """Saves 'dropped_columns' into a file
 
@@ -666,17 +687,7 @@ class Ingredients(SimpleClass):
 
     def draft(self):
         """Sets defaults for Ingredients when class is instanced."""
-        # Declares dictionary of DataFrames contained in Ingredients to allow
-        # temporary remapping of attributes in __getattr__. __setattr does
-        # not use this mapping.
-        self.options = {'x': '_x',
-                        'y': '_y',
-                        'x_train': '_x_train',
-                        'y_train': '_y_train',
-                        'x_test': '_x_test',
-                        'y_test': '_y_test',
-                        'x_val': '_x_val',
-                        'y_val': '_y_val'}
+
         # Hides dataframe names to allow remapping with properties
         # self._hide_dataframes()
         # Sets checks to run.
@@ -726,12 +737,12 @@ class Ingredients(SimpleClass):
         else:
             self._x = value
         return self
-       
+
     @property
     def y(self):
         """Returns data currently mapped to 'y'"""
         return getattr(self, self.options['y'])
- 
+
     @y.setter
     def y(self, value):
         """Sets value of attribute currently mapped to 'y'"""
@@ -740,12 +751,12 @@ class Ingredients(SimpleClass):
         else:
             self._y = value
         return self
-      
+
     @property
     def x_train(self):
         """Returns data currently mapped to 'x_train'"""
         return getattr(self, self.options['x_train'])
- 
+
     @x_train.setter
     def x_train(self, value):
         """Sets value of attribute currently mapped to 'x_train'"""
@@ -754,12 +765,12 @@ class Ingredients(SimpleClass):
         else:
             self._x_train = value
         return self
-          
+
     @property
     def y_train(self):
         """Returns data currently mapped to 'y_train'"""
         return getattr(self, self.options['y_train'])
- 
+
     @y_train.setter
     def y_train(self, value):
         """Sets value of attribute currently mapped to 'y_train'"""
@@ -768,12 +779,12 @@ class Ingredients(SimpleClass):
         else:
             self._y_train = value
         return self
-    
+
     @property
     def x_test(self):
         """Returns data currently mapped to 'x_test'"""
         return getattr(self, self.options['x_test'])
- 
+
     @x_test.setter
     def x_test(self, value):
         """Sets value of attribute currently mapped to 'x_test'"""
@@ -782,12 +793,12 @@ class Ingredients(SimpleClass):
         else:
             self._x_test = value
         return self
-          
+
     @property
     def y_test(self):
         """Returns data currently mapped to 'y_test'"""
         return getattr(self, self.options['y_test'])
- 
+
     @y_test.setter
     def y_test(self, value):
         """Sets value of attribute currently mapped to 'y_test'"""
@@ -795,12 +806,12 @@ class Ingredients(SimpleClass):
             setattr(self, self.options['y_test'], value)
         else:
             self._y_test = value
-        return self         
+        return self
     @property
     def x_val(self):
         """Returns data currently mapped to 'x_val'"""
         return getattr(self, self.options['x_val'])
- 
+
     @x_val.setter
     def x_val(self, value):
         """Sets value of attribute currently mapped to 'x_val'"""
@@ -809,12 +820,12 @@ class Ingredients(SimpleClass):
         else:
             self._x_val = value
         return self
-          
+
     @property
     def y_val(self):
         """Returns data currently mapped to 'y_val'"""
         return getattr(self, self.options['y_val'])
- 
+
     @y_val.setter
     def y_val(self, value):
         """Sets value of attribute currently mapped to 'y_val'"""
@@ -823,7 +834,7 @@ class Ingredients(SimpleClass):
         else:
             self._y_val = value
         return self
-      
+
     @property
     def full(self):
         """Returns the full dataset divided into x and y twice.
@@ -868,95 +879,95 @@ class Ingredients(SimpleClass):
     def xy(self):
         """Returns the full dataset divided into x and y."""
         return self.x_val, self.y_val
-    
+
     @property
     def booleans(self):
         return self._get_columns_by_type('boolean')
-    
+
     @booleans.setter
     def booleans(self, values):
         self.datatypes.update(dict.fromkeys(self.listify(
-            self._all_datatypes['boolean']), values))  
+            self._all_datatypes['boolean']), values))
         return self
-          
+
     @property
     def floats(self):
         return self._get_columns_by_type('float')
-    
+
     @floats.setter
     def floats(self, values):
         self.datatypes.update(dict.fromkeys(self.listify(
-            self._all_datatypes['float']), values))  
+            self._all_datatypes['float']), values))
         return self
-    
+
     @property
     def integers(self):
         return self._get_columns_by_type('integer')
-    
+
     @integers.setter
     def integers(self, values):
         self.datatypes.update(dict.fromkeys(self.listify(
-            self._all_datatypes['integer']), values))  
+            self._all_datatypes['integer']), values))
         return self
-    
+
     @property
     def strings(self):
         return self._get_columns_by_type('string')
-    
+
     @strings.setter
     def strings(self, values):
         self.datatypes.update(dict.fromkeys(self.listify(
-            self._all_datatypes['string']), values))  
+            self._all_datatypes['string']), values))
         return self
-    
+
     @property
     def categoricals(self):
         return self._get_columns_by_type('category')
-    
+
     @categoricals.setter
     def categoricals(self, values):
         self.datatypes.update(dict.fromkeys(self.listify(
-            self._all_datatypes['category']), values))  
+            self._all_datatypes['category']), values))
         return self
-    
+
     @property
     def lists(self):
         return self._get_columns_by_type('list')
-    
+
     @lists.setter
     def lists(self, values):
         self.datatypes.update(dict.fromkeys(self.listify(
-            self._all_datatypes['lists']), values))  
+            self._all_datatypes['lists']), values))
         return self
-    
+
     @property
     def datetimes(self):
         return self._get_columns_by_type('datetime')
-    
+
     @datetimes.setter
     def datetimes(self, values):
         self.datatypes.update(dict.fromkeys(self.listify(
-            self._all_datatypes['datetime']), values))  
+            self._all_datatypes['datetime']), values))
         return self
-    
+
     @property
     def timedeltas(self):
         return self._get_columns_by_type('timedelta')
-    
+
     @timedeltas.setter
     def timedeltas(self, values):
         self.datatypes.update(dict.fromkeys(self.listify(
-            self._all_datatypes['timedelta']), values))  
+            self._all_datatypes['timedelta']), values))
         return self
-    
+
     @property
     def numerics(self):
         return self.floats + self.integers
-    
+
     @property
     def scalers(self):
         return self.integers + self.floats
-    
+
     @property
     def encoders(self):
         return self.categoricals

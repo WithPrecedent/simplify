@@ -9,9 +9,7 @@
 import os
 import sys
 
-from simplify import Idea
-from simplify import Depot
-from simplify import Ingredients
+from simplify import Idea, Depot, Ingredients
 from simplify.core.base import SimpleClass, Simplify
 
 
@@ -47,10 +45,10 @@ def _get_file(file_reference):
 
     Returns:
         path(str) based upon the 'file_reference' if the file exists.
-    
+
     Raises:
         FileNotFoundError if 'file_reference' does not match a file on disc.
-        
+
     """
     if os.path.isfile(file_reference):
         return file_reference
@@ -75,7 +73,7 @@ def _get_depot(arguments):
         return Depot(root_folder = arguments['-depot'])
     else:
         return Depot(root_folder = os.path.join('..', '..'))
-        
+
 def _get_idea(arguments):
     """Creates Idea instance from command line or default options.
 
@@ -105,7 +103,7 @@ def _get_ingredients(arguments):
             ingredients(Ingredients): instance of Ingredients with loaded
                 pandas DataFrame as 'df' attribute if '-ingredients' option
                 passed and the file was found. Otherwise, Ingredients is
-                instanced with no DataFrame (which is the normal case for 
+                instanced with no DataFrame (which is the normal case for
                 projects using siMpLify to gather data).
 
     """

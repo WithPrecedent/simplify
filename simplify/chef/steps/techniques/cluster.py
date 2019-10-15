@@ -11,6 +11,28 @@ from dataclasses import dataclass
 from simplify.core.technique import SimpleTechnique
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'affinity': ['sklearn.cluster', 'AffinityPropagation'],
+    'agglomerative': ['sklearn.cluster', 'AgglomerativeClustering'],
+    'birch': ['sklearn.cluster', 'Birch'],
+    'dbscan': ['sklearn.cluster', 'DBSCAN'],
+    'kmeans': ['sklearn.cluster', 'KMeans'],
+    'mean_shift': ['sklearn.cluster', 'MeanShift'],
+    'spectral': ['sklearn.cluster', 'SpectralClustering'],
+    'svm_linear': ['sklearn.cluster', 'OneClassSVM'],
+    'svm_poly': ['sklearn.cluster', 'OneClassSVM'],
+    'svm_rbf': ['sklearn.cluster', 'OneClassSVM,'],
+    'svm_sigmoid': ['sklearn.cluster', 'OneClassSVM']}
+
+
 @dataclass
 class Cluster(SimpleTechnique):
     """Applies machine learning algorithms based upon user selections.
@@ -34,33 +56,20 @@ class Cluster(SimpleTechnique):
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
-    
+
     """ Private Methods """
-    
+
     def _get_conditional_options(self):
         if self.gpu:
             self.options.update({
                 'dbscan': ['cuml', 'DBScan'],
                 'kmeans': ['cuml', 'KMeans']})
         return self
- 
+
     """ Core siMpLify Methods """
-       
+
     def draft(self):
         super().draft()
-        self.options = {
-                'affinity': ['sklearn.cluster', 'AffinityPropagation'],
-                'agglomerative': ['sklearn.cluster',
-                                   'AgglomerativeClustering'],
-                'birch': ['sklearn.cluster', 'Birch'],
-                'dbscan': ['sklearn.cluster', 'DBSCAN'],
-                'kmeans': ['sklearn.cluster', 'KMeans'],
-                'mean_shift': ['sklearn.cluster', 'MeanShift'],
-                'spectral': ['sklearn.cluster', 'SpectralClustering'],
-                'svm_linear': ['sklearn.cluster', 'OneClassSVM'],
-                'svm_poly': ['sklearn.cluster', 'OneClassSVM'],
-                'svm_rbf': ['sklearn.cluster', 'OneClassSVM,'],
-                'svm_sigmoid': ['sklearn.cluster', 'OneClassSVM']}
         self._get_conditional_options()
         return self
 

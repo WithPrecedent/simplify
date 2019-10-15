@@ -12,6 +12,27 @@ from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'backward': ['category_encoders', 'BackwardDifferenceEncoder'],
+    'basen': ['category_encoders', 'BaseNEncoder'],
+    'binary': ['category_encoders', 'BinaryEncoder'],
+    'dummy': ['category_encoders', 'OneHotEncoder'],
+    'hashing': ['category_encoders', 'HashingEncoder'],
+    'helmert': ['category_encoders', 'HelmertEncoder'],
+    'loo': ['category_encoders', 'LeaveOneOutEncoder'],
+    'ordinal': ['category_encoders', 'OrdinalEncoder'],
+    'sum': ['category_encoders', 'SumEncoder'],
+    'target': ['category_encoders', 'TargetEncoder']}
+
+
 @dataclass
 class Encode(SimpleTechnique):
     """Encodes categorical variables according to a selected algorithm.
@@ -38,22 +59,11 @@ class Encode(SimpleTechnique):
 
     def draft(self):
         super().draft()
-        self.options = {
-                'backward': ['category_encoders', 'BackwardDifferenceEncoder'],
-                'basen': ['category_encoders', 'BaseNEncoder'],
-                'binary': ['category_encoders', 'BinaryEncoder'],
-                'dummy': ['category_encoders', 'OneHotEncoder'],
-                'hashing': ['category_encoders', 'HashingEncoder'],
-                'helmert': ['category_encoders', 'HelmertEncoder'],
-                'loo': ['category_encoders', 'LeaveOneOutEncoder'],
-                'ordinal': ['category_encoders', 'OrdinalEncoder'],
-                'sum': ['category_encoders', 'SumEncoder'],
-                'target': ['category_encoders', 'TargetEncoder']}
         return self
 
     def publish(self):
         pass
-    
+
     @numpy_shield
     def implement(self, ingredients, plan = None, columns = None):
         if columns is None:

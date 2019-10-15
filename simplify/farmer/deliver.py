@@ -13,6 +13,19 @@ import pandas as pd
 from simplify.core.iterable import SimpleIterable
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'reshape': ['simplify.farmer.steps.reshape', 'Reshape'],
+    'streamline': ['simplify.farmer.steps.streamline', 'Streamline']}
+
+
 @dataclass
 class Deliver(SimpleIterable):
     """Makes final structural changes to data before analysis.
@@ -43,10 +56,6 @@ class Deliver(SimpleIterable):
         return self
 
     def draft(self):
-        self.options = {
-                'reshape': ['simplify.farmer.steps.reshape', 'Reshape'],
-                'streamline': ['simplify.farmer.steps.streamline',
-                               'Streamline']}
         self.needed_parameters = {'shapers': ['shape_type', 'stubs',
                                                'id_column', 'values',
                                                'separator'],

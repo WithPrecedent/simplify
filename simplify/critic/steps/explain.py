@@ -13,6 +13,20 @@ import numpy as np
 from simplify.core.critic.review import CriticTechnique
 
 
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+subclass because siMpLify uses a lazy importing system. This locates the
+potential module importations in roughly the same place as normal module-level
+import commands. A SimpleClass subclass will, by default, add the
+DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
+to use another set of 'options' for a subclass, they just need to pass
+'options' when the class is instanced.
+"""
+DEFAULT_OPTIONS = {
+    'eli5': Eli5Explain,
+    'shap': ShapExplain,
+    'skater': SkaterExplain}
+
+
 @dataclass
 class Explain(CriticTechnique):
     """Explains model results.
@@ -41,10 +55,6 @@ class Explain(CriticTechnique):
 
     def draft(self):
         super().draft()
-        self.options = {
-            'eli5': Eli5Explain,
-            'shap': ShapExplain,
-            'skater': SkaterExplain}
         return self
 
 
