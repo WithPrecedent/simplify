@@ -78,7 +78,6 @@ class Scale(SimpleTechnique):
         return self
 
     def publish(self):
-        print(self.name, self.options)
         super().publish()
         return self
 
