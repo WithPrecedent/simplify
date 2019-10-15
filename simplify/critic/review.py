@@ -66,20 +66,26 @@ class Review(SimpleIterable):
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
-
+    
+    """ Private Methods """
+    
+    def _publish_narrative(self):
+        for i, plan in enumerate(self.plans):
+            steps = {}
+            for j, technique in enumerate(plan):
+                steps.update({self.sequence[j]: technique})
+            self.recipes.update(
+                    {str(i + 1): Narrative(number = i + 1, steps = steps)})
+        return self
+    
     """ Core siMpLify methods """
 
     def draft(self):
         """Sets default options for the Critic's analysis."""
         super().draft()
+        self.comparer = Narrative
         # Locks 'step' attribute at 'critic' for conform methods in package.
         self.depot.step = 'critic'
-        return self
-
-    def publish(self):
-        Narrative.options = self.options
-        Narrative.sequence = self.sequence
-        super().publish()
         return self
 
     def implement(self, recipes = None):
@@ -128,6 +134,8 @@ class Narrative(SimpleIterable):
 
     def draft(self):
         super().draft()
+        if not self.options:
+            self.options = DEFAULT_OPTIONS
         self.sequence_setting = 'critic_steps'
         return self
 

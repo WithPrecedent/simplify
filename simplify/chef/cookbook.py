@@ -82,15 +82,6 @@ class Cookbook(SimpleIterable):
 
     """ Private Methods """
 
-    def _publish_recipes(self):
-        for i, plan in enumerate(self.plans):
-            steps = {}
-            for j, technique in enumerate(plan):
-                steps.update({self.sequence[j]: technique})
-            self.recipes.update(
-                    {str(i + 1): Recipe(number = i + 1, steps = steps)})
-        return self
-
     def _implement_recipes(self, using_val_set = False):
         """Tests all 'recipes'."""
         for number, recipe in self.recipes.items():
@@ -189,7 +180,7 @@ class Cookbook(SimpleIterable):
         super().draft()
         if self.recipes is None:
             self.recipes = {}
-        self.comparer = True
+        self.comparer = Recipe
         self.depot.step = 'chef'
         return self
 
@@ -210,12 +201,6 @@ class Cookbook(SimpleIterable):
                 last_num = 0
             for i, recipe in enumerate(self.listify(recipes)):
                 self.recipes.update({last_num + i + 1: recipe})
-        return self
-
-    def publish(self):
-        Recipe.options = self.options
-        Recipe.sequence = self.sequence
-        self._publish_recipes()
         return self
 
     def implement(self, ingredients = None, previous_package = None):
@@ -293,6 +278,8 @@ class Recipe(SimpleIterable):
     """ Public Import/Export Methods """
 
     def save(self, file_path = None, folder = None, file_name = None):
+        if folder is None:
+            folder = self.depot.recipe
         self.depot.save(variable = self,
                         file_path = file_path,
                         folder = folder,
@@ -305,15 +292,7 @@ class Recipe(SimpleIterable):
     def draft(self):
         super().draft()
         if not self.options:
-            self.options = {
-                'scale': ['simplify.chef.steps.scale', 'Scale'],
-                'split': ['simplify.chef.steps.split', 'Split'],
-                'encode': ['simplify.chef.steps.encode', 'Encode'],
-                'mix': ['simplify.chef.steps.mix', 'Mix'],
-                'cleave': ['simplify.chef.steps.cleave', 'Cleave'],
-                'sample': ['simplify.chef.steps.sample', 'Sample'],
-                'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
-                'model': ['simplify.chef.steps.model', 'Model']}
+            self.options = DEFAULT_OPTIONS
         self.sequence_setting = 'chef_steps'
         return self
 

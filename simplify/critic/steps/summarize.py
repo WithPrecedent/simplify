@@ -45,7 +45,6 @@ DEFAULT_OPTIONS = {
     'variation': ['scipy.stats', 'variation'],
     'unique': ['numpy', 'nunique']}
 
-
 @dataclass
 class Summarize(CriticTechnique):
     """Summarizes data.
@@ -65,6 +64,7 @@ class Summarize(CriticTechnique):
     parameters: object = None
     name: str = 'summary'
     auto_publish: bool = True
+    no_parameter_injection: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
@@ -72,7 +72,7 @@ class Summarize(CriticTechnique):
         return self
 
     """ Private Methods """
-
+    
     def _implement(self, recipe = None, transpose = True,
                   file_name = 'data_report', file_format = 'csv'):
         """Creates a DataFrame of common report data.

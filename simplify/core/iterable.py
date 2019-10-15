@@ -93,6 +93,15 @@ class SimpleIterable(SimpleClass):
                 add_prefix = add_prefix)
         return self
 
+    def _publish_comparer(self):
+        for i, plan in enumerate(self.plans):
+            steps = {}
+            for j, technique in enumerate(plan):
+                steps.update({self.sequence[j]: technique})
+            self.recipes.update(
+                    {str(i + 1): self.comparer(number = i + 1, steps = steps)})        
+        return self
+    
     def _return_variables(self, instance, variables, add_prefix = False):
         if not self.exists('returned_variables'):
             self.returned_variables = []
@@ -141,14 +150,19 @@ class SimpleIterable(SimpleClass):
 
     def publish(self):
         super().publish()
-        for step in self.sequence:
-            if (self.exists('steps')
-                    and step in self.steps
-                    and isinstance(self.steps[step], str)):
-                setattr(self, step, self.options[step](
-                        technique = self.steps[step]))
-            else:
-                setattr(self, step, self.options[step]())
+        if hasattr(self, 'comparer'):
+            setattr(self.comparer, 'options', self.options)
+            setattr(self.comparer, 'sequence', self.sequence)
+            self._publish_comparer()
+        else:
+            for step in self.sequence:
+                if (self.exists('steps')
+                        and step in self.steps
+                        and isinstance(self.options[step], str)):
+                    setattr(self, step, self.options[step](
+                            technique = self.steps[step]))
+                else:
+                    setattr(self, step, self.options[step]())
         return self
 
     def implement(self, *args, **kwargs):
