@@ -7,11 +7,12 @@
 """
 
 import csv
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import datetime
 import glob
 import os
 import pickle
+from typing import Dict
 
 import pandas as pd
 
@@ -33,9 +34,11 @@ DEFAULT_OPTIONS = {}
 @dataclass
 class Depot(SimpleClass):
     """Manages files and folders for the siMpLify package.
+    
     Creates and stores dynamic and static file paths, properly formats files
     for import and export, and allows loading and saving of siMpLify, pandas,
     and numpy objects in set folders.
+    
     Args:
         root_folder(str): the complete path from which the other paths and
             folders used by Depot should be created.
@@ -61,6 +64,7 @@ class Depot(SimpleClass):
     name: str = 'depot'
     auto_publish: bool = True
     lazy_import: bool = False
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
         # Adds additional section of idea to be injected as local attributes.
@@ -199,13 +203,6 @@ class Depot(SimpleClass):
             return self.state_machine.format_in
         else:
             return self.state_machine.format_out
-
-    def _inject_base(self):
-        """Injects parent class with this Depot instance so that the instance is
-        available to other files in the siMpLify package.
-        """
-        SimpleClass.depot = self
-        return self
 
     def _load_csv(self, file_path, **kwargs):
         """Loads csv file into a pandas DataFrame.
@@ -795,5 +792,5 @@ class Depot(SimpleClass):
             root_folder = self.data,
             subfolders = self.data_subfolders)
         # Injects Depot instance into base SimpleClass
-        self._inject_base()
+        self._inject_base(attribute = 'depot')
         return self

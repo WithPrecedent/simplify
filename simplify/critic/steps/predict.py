@@ -6,9 +6,10 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
-from simplify.core.critic.review import CriticTechnique
+from simplify.critic.review import CriticTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -43,6 +44,7 @@ class Predict(CriticTechnique):
     parameters: object = None
     name: str = 'prediction'
     auto_publish: bool = True
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
         super().__post_init__()

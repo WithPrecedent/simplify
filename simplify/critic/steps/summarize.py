@@ -6,11 +6,12 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 import pandas as pd
 
-from simplify.core.critic.review import CriticTechnique
+from simplify.critic.review import CriticTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -22,7 +23,7 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'datatype': self._get_datatype,
+    'datatype': ['self', '_get_datatype'],
     'count': ['numpy.ndarray', 'size'],
     'min':['numpy', 'nanmin'],
     'q1': ['numpy', 'nanquantile'],
@@ -64,6 +65,7 @@ class Summarize(CriticTechnique):
     parameters: object = None
     name: str = 'summary'
     auto_publish: bool = True
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
         super().__post_init__()

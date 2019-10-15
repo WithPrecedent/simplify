@@ -6,7 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 from simplify.core.technique import SimpleTechnique
 
@@ -45,7 +46,8 @@ class Search(SimpleTechnique):
     parameters: object = None
     name: str = 'search'
     auto_publish: bool = False
-
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
+    
     def __post_init__(self):
         self.idea_sections = ['chef']
         super().__post_init__()

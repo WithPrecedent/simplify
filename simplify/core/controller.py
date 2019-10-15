@@ -6,7 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 from simplify.core.decorators import localize
 from simplify.core.iterable import SimpleIterable
@@ -23,32 +24,17 @@ DEFAULT_CHECKS = ['ingredients']
 
 @dataclass
 class Simplify(SimpleIterable):
-    """Controller class for completely automated siMpLify projects.
+    """Controller class for siMpLify projects.
 
-    This class is provided for applications that rely exclusively on Idea
-    settings and/or subclass attributes. For a more customized application,
-    users can access the subpackages ('farmer', 'chef', 'critic', and 'artist')
-    directly.
+    This class is provided for applications that rely on Idea settings and/or
+    subclass attributes. For a more customized application, users can access the
+    subgetattr(self, name)s ('farmer', 'chef', 'critic', and 'artist') directly.
 
-    Args:
-        idea(Idea or str): an instance of Idea or a string containing the file
-            path or file name (in the current working directory) where a
-            supoorted settings file for an Idea instance is located. Once an
-            Idea instance is created by a subclass of SimpleClass, it is
-            automatically made available to all other SimpleClass subclasses
-            that are instanced in the future.
-        ingredients(Ingredients or str): an instance of Ingredients or a string
-            containing the file path of where a data file for a pandas
-            DataFrame is located.
-        depot(Depot or str): an instance of Depot a string containing the full
-            path of where the root folder should be located for file output.
-            Once a Depot instance is created by a subclass of SimpleClass, it
-            is automatically made available to all other SimpleClass subclasses
-            that are instanced in the future.
         name(str): name of class used to match settings sections in an Idea
-            settings file and other portions of the siMpLify package. This is
-            used instead of __class__.__name__ so that subclasses can maintain
-            the same string name without altering the formal class name.
+            settings file and other portions of the siMpLify getattr(self,
+            name). This is used instead of __class__.__name__ so that subclasses
+            can maintain the same string name without altering the formal class
+            name.
         auto_publish(bool): sets whether to automatically call the 'publish'
             method when the class is instanced. If you do not plan to make any
             adjustments beyond the Idea configuration, this option should be
@@ -58,14 +44,12 @@ class Simplify(SimpleIterable):
             method when the class is instanced.
 
     """
-
-    idea: object = None
-    ingredients: object = None
-    depot: object = None
     steps: object = None
     name: str = 'simplify'
     auto_publish: bool = True
     auto_implement: bool = False
+    sequence_setting: str = 'packages'
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
         super().__post_init__()
@@ -74,59 +58,53 @@ class Simplify(SimpleIterable):
     def __call__(self, ingredients = None):
         """Calls the class as a function.
 
-        Only keyword arguments are accepted so that they can be properly
-        turned into local attributes. Those attributes are then used by the
-        various 'implement' methods.
-
         Args:
-            **kwargs(list(Recipe) and/or Ingredients): variables that will
-                be turned into localized attributes.
+
+            ingredients(Ingredients or str): an instance of Ingredients, a
+                string containing the full file path of where a data file for a
+                pandas DataFrame is located, or a string containing a file name
+                in the default data folder, as defined in a Depot instance.
+
         """
         self.__post_init__()
         self.implement(ingredients = ingredients)
         return self
 
     def _implement_dangerous(self):
-        first_package = True
-        for name, package in self.steps.items():
-            if first_package:
-                first_package = False
-                package.implement(ingredients = self.ingredients)
+        """Implements steps without concern for memory consumption."""
+        first_step = True
+        for name in self.sequence:
+            if first_step:
+                first_step = False
+                getattr(self, name).implement(ingredients = self.ingredients)
             else:
-                package.implement(previous_package = previous_package)
-            previous_package = package
+                getattr(self, name).implement(previous_step = previous_step)
+            previous_step = getattr(self, name)
         return self
 
     def _implement_safe(self):
-        for name, package in self.steps.items():
+        """Implements steps while attempting to conserve memory."""
+        for name in self.sequence:
             if name in ['farmer']:
-                package.implement(ingredients = self.ingredients)
-                self.ingredients = package.ingredients
-                del package
+                getattr(self, name).implement(ingredients = self.ingredients)
+                self.ingredients = getattr(self, name).ingredients
+                delattr(self, name)
             if name in ['chef']:
-                package.implement(ingredients = self.ingredients)
-                self.ingredients = package.ingredients
-                self.recipes = package.recipes
-                del package
-            if name in ['critic']:
-                package.implement(ingredients = self.ingredients,
-                                  recipes = self.recipes)
-                self.ingredients = package.ingredients
-                self.reviews = package.reviews
-            if name in ['artist']:
-                package.implement(ingredients = self.ingredients,
-                                  recipes = self.recipes,
-                                  reviews = self.reviews)
+                getattr(self, name).implement(ingredients = self.ingredients)
+                self.ingredients = getattr(self, name).ingredients
+                self.recipes = getattr(self, name).recipes
+                delattr(self, name)
+            if name in ['critic', 'artist']:
+                getattr(self, name).implement(
+                    recipes = self.recipes)
+                self.recipes = getattr(self, name).recipes
+                delattr(self, name)
         return self
 
     """ Core siMpLify Methods """
 
-    def draft(self):
-        super().draft()
-        self.sequence_setting = 'packages'
-        return self
-
     def implement(self, ingredients = None):
+        """Implements steps in 'sequence'."""
         if ingredients:
             self.ingredients = ingredients
         if self.conserve_memory:

@@ -6,7 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 import pandas as pd
 
@@ -59,6 +60,7 @@ class Review(SimpleIterable):
     name: str = 'critic'
     auto_publish: bool = True
     auto_implement: bool = False
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
         self.idea_sections = ['chef']
@@ -302,7 +304,7 @@ class CriticTechnique(SimpleTechnique):
         # Runs attribute checks from list in 'checks' attribute (if it exists).
         self._run_checks()
         # Converts values in 'options' to classes by lazily importing them.
-        self._lazily_import()
+        self.lazy.load()
         return self
 
     def implement(self, recipe, **kwargs):

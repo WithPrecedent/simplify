@@ -6,8 +6,9 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import product
+from typing import Dict
 
 from simplify.core.iterable import SimpleIterable
 
@@ -73,7 +74,8 @@ class Cookbook(SimpleIterable):
     auto_publish: bool = True
     auto_implement: bool = False
     lazy_import: bool = False
-
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
+    
     def __post_init__(self):
         super().__post_init__()
         return self

@@ -6,7 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 from scipy.stats import randint, uniform
 
@@ -52,6 +53,7 @@ class Model(SimpleTechnique):
     parameters: object = None
     name: str = 'model'
     auto_publish: bool = True
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
         self.idea_sections = ['chef']

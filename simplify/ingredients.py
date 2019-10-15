@@ -6,8 +6,9 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -118,7 +119,8 @@ class Ingredients(SimpleClass):
     datatypes: object = None
     prefixes: object = None
     auto_publish: bool = True
-
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
+    
     def __post_init__(self):
         super().__post_init__()
         return self

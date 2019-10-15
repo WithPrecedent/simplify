@@ -6,7 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
@@ -42,6 +43,7 @@ class Cleave(SimpleTechnique):
     parameters: object = None
     name: str = 'cleave'
     auto_publish: bool = True
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
         self.idea_sections = ['chef']

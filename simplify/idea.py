@@ -12,9 +12,12 @@ from importlib import import_module
 from itertools import product
 import os
 import re
+from typing import Dict
 
 from simplify.core.base import SimpleClass
+from simplify.core.controller import Simplify
 from simplify.core.iterable import SimpleIterable
+from simplify.core.loader import LazyImporter
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -25,11 +28,8 @@ DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
-DEFAULT_OPTIONS = {
-    'farmer': ['simplify.farmer', 'Almanac'],
-    'chef': ['simplify.chef', 'Cookbook'],
-    'critic': ['simplify.critic', 'Review'],
-    'artist': ['simplify.artist', 'Canvas']}
+DEFAULT_OPTIONS = {}
+
 
 @dataclass
 class Idea(SimpleClass):
@@ -162,7 +162,6 @@ class Idea(SimpleClass):
     lazy_import: bool = False
 
     def __post_init__(self):
-        self.checks = ['depot', 'ingredients']
         super().__post_init__()
         return self
 
@@ -331,13 +330,6 @@ class Idea(SimpleClass):
             for section, dictionary in self.configuration.items():
                 for key, value in dictionary.items():
                     self.configuration[section][key] = self._typify(value)
-        return self
-
-    def _inject_base(self):
-        """Injects parent class, SimpleClass, with this Idea so that it is
-        available to other modules in the siMpLify getattr(self, name).
-        """
-        setattr(SimpleClass, 'idea', self)
         return self
 
     def _inject_parameters(self, instance, override):
@@ -509,7 +501,9 @@ class Idea(SimpleClass):
         """Sets options to create 'configuration' dictionary and checks to run
         on passed parameters."""
         super().draft()
-
+        self.checks.extend(['depot', 'ingredients'])
+        # Creates instance of lazy importing class.
+        self.lazy = LazyImporter()
         return self
 
     def publish(self):
@@ -520,7 +514,7 @@ class Idea(SimpleClass):
         if hasattr(self, 'technique') and self.technique:
             self.technique()
         self._infer_types()
-        self._inject_base()
+        self._inject_base(attribute = 'idea')
         self.inject(instance = self, sections = ['general'])
         super().publish()
         return self
@@ -562,90 +556,3 @@ class Idea(SimpleClass):
             raise TypeError(error)
         return self
 
-
-@dataclass
-class Simplify(SimpleIterable):
-    """Controller class for siMpLify projects.
-
-    This class is provided for applications that rely on Idea settings and/or
-    subclass attributes. For a more customized application, users can access the
-    subgetattr(self, name)s ('farmer', 'chef', 'critic', and 'artist') directly.
-
-        name(str): name of class used to match settings sections in an Idea
-            settings file and other portions of the siMpLify getattr(self,
-            name). This is used instead of __class__.__name__ so that subclasses
-            can maintain the same string name without altering the formal class
-            name.
-        auto_publish(bool): sets whether to automatically call the 'publish'
-            method when the class is instanced. If you do not plan to make any
-            adjustments beyond the Idea configuration, this option should be
-            set to True. If you plan to make such changes, 'publish' should be
-            called when those changes are complete.
-        auto_implement(bool): sets whether to automatically call the 'implement'
-            method when the class is instanced.
-
-    """
-    steps: object = None
-    name: str = 'simplify'
-    auto_publish: bool = True
-    auto_implement: bool = False
-    sequence_setting: str = 'packages'
-
-    def __post_init__(self):
-        super().__post_init__()
-        return self
-
-    def __call__(self, ingredients = None):
-        """Calls the class as a function.
-
-        Args:
-
-            ingredients(Ingredients or str): an instance of Ingredients, a
-                string containing the full file path of where a data file for a
-                pandas DataFrame is located, or a string containing a file name
-                in the default data folder, as defined in a Depot instance.
-
-        """
-        self.__post_init__()
-        self.implement(ingredients = ingredients)
-        return self
-
-    def _implement_dangerous(self):
-        first_step = True
-        for name in self.sequence:
-            if first_step:
-                first_step = False
-                getattr(self, name).implement(ingredients = self.ingredients)
-            else:
-                getattr(self, name).implement(previous_step = previous_step)
-            previous_step = getattr(self, name)
-        return self
-
-    def _implement_safe(self):
-        for name in self.sequence:
-            if name in ['farmer']:
-                getattr(self, name).implement(ingredients = self.ingredients)
-                self.ingredients = getattr(self, name).ingredients
-                delattr(self, name)
-            if name in ['chef']:
-                getattr(self, name).implement(ingredients = self.ingredients)
-                self.ingredients = getattr(self, name).ingredients
-                self.recipes = getattr(self, name).recipes
-                delattr(self, name)
-            if name in ['critic', 'artist']:
-                getattr(self, name).implement(
-                    recipes = self.recipes)
-                self.recipes = getattr(self, name).recipes
-                delattr(self, name)
-        return self
-
-    """ Core siMpLify Methods """
-
-    def implement(self, ingredients = None):
-        if ingredients:
-            self.ingredients = ingredients
-        if self.conserve_memory:
-            self._implement_safe()
-        else:
-            self._implement_dangerous()
-        return self

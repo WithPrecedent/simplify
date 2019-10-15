@@ -53,6 +53,7 @@ class SimpleTechnique(SimpleClass):
     parameters: object = None
     name: str = 'generic_technique'
     auto_publish: bool = True
+    options: object = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -83,7 +84,6 @@ class SimpleTechnique(SimpleClass):
     def draft(self):
         """ Declares defaults for class."""
         super().draft()
-        self.options = {}
         return self
 
     def publish(self):

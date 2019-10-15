@@ -23,6 +23,7 @@ from datetime import timedelta
 from numpy import datetime64
 from pandas.api.types import CategoricalDtype
 
+
 @dataclass
 class SimpleType(ABC):
     """Parent abstract base class for setting dictionaries related to datatypes
@@ -41,6 +42,8 @@ class SimpleType(ABC):
     type structures easier.
     """
 
+    options: object = None
+    
     def __post_init__(self):
         self.draft()
         self._create_reversed()

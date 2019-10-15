@@ -6,7 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 from simplify.core.technique import SimpleTechnique
 from simplify.core.decorators import numpy_shield
@@ -49,6 +50,7 @@ class Scale(SimpleTechnique):
     parameters: object = None
     name: str = 'scale'
     auto_publish: bool = True
+    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
         self.idea_sections = ['chef']
@@ -71,13 +73,12 @@ class Scale(SimpleTechnique):
             'quantile': {'copy': False},
             'robust': {'copy': False},
             'standard': {'copy': False}}
-#        self.extra_parameters = {
-#                'gauss': {'rescaler': self.options['minmax']}}
         self.selected_parameters = True
         self.custom_options = ['gauss']
         return self
 
     def publish(self):
+        print(self.name, self.options)
         super().publish()
         return self
 
