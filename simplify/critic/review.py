@@ -67,24 +67,16 @@ class Review(SimpleIterable):
         super().__post_init__()
         return self
     
-    """ Private Methods """
-    
-    def _publish_narrative(self):
-        for i, plan in enumerate(self.plans):
-            steps = {}
-            for j, technique in enumerate(plan):
-                steps.update({self.sequence[j]: technique})
-            self.recipes.update(
-                    {str(i + 1): Narrative(number = i + 1, steps = steps)})
-        return self
-    
     """ Core siMpLify methods """
 
     def draft(self):
         """Sets default options for the Critic's analysis."""
         super().draft()
+        # Sets comparer class for storing parallel plans
         self.comparer = Narrative
-        # Locks 'step' attribute at 'critic' for conform methods in package.
+        self.comparer_iterable = 'narratives'
+        self.narratives = {}
+        # Locks 'step' attribute at 'critic' for state dependent methods.
         self.depot.step = 'critic'
         return self
 
@@ -126,7 +118,7 @@ class Narrative(SimpleIterable):
     auto_publish: bool = True
 
     def __post_init__(self):
-        self.idea_sections = ['chef']
+        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 
@@ -137,10 +129,7 @@ class Narrative(SimpleIterable):
         if not self.options:
             self.options = DEFAULT_OPTIONS
         self.sequence_setting = 'critic_steps'
-        return self
-
-    def publish(self):
-        super().publish()
+        self.is_comparer = True
         return self
 
     def implement(self, recipe):
@@ -173,7 +162,6 @@ class Article(SimpleClass):
         new_row = pd.Series(index = self.columns)
         for column, variable in self.required_columns.items():
             new_row[column] = getattr(recipe, variable)
-        print('report', report)
         for column in report:
             new_row[column] = report[column]
         self.text.loc[len(self.text)] = new_row
@@ -265,6 +253,16 @@ class Article(SimpleClass):
             header = True)
         return
 
+    """ Core siMpLify Methods """
+    
+    def draft(self):
+        super().draft()
+        return self
+
+    def publish(self):
+        super().publish()
+        return self
+        
 
 @dataclass
 class CriticTechnique(SimpleTechnique):
@@ -312,7 +310,7 @@ class CriticTechnique(SimpleTechnique):
         # Runs attribute checks from list in 'checks' attribute (if it exists).
         self._run_checks()
         # Converts values in 'options' to classes by lazily importing them.
-        self.lazy.load()
+        instance = self.lazy.load(instance = self, attribute = 'options')
         return self
 
     def implement(self, recipe, **kwargs):

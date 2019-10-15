@@ -45,9 +45,9 @@ class LazyImporter(SimpleClass):
 
     """ Private Methods """
 
-    def _load_option(self, name, settings):
+    def _load_option(self, instance, name, settings):
         if 'self' == settings[0]:
-            imported_option = {name: getattr(self, settings[1])}
+            imported_option = {name: getattr(instance, settings[1])}
         else:
             self._track_packages(setting = settings[0])
             imported_option = ({name: self.lazily_import(
@@ -98,7 +98,9 @@ class LazyImporter(SimpleClass):
                         and (isinstance(settings, list)
                              or isinstance(settings, tuple))):
                     new_options.update(self._load_option(
-                        name = name, settings = settings))
+                        instance = instance,
+                        name = name, 
+                        settings = settings))
             getattr(instance, attribute).update(new_options)
         return instance
     

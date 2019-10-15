@@ -98,8 +98,8 @@ class SimpleIterable(SimpleClass):
             steps = {}
             for j, technique in enumerate(plan):
                 steps.update({self.sequence[j]: technique})
-            self.recipes.update(
-                    {str(i + 1): self.comparer(number = i + 1, steps = steps)})        
+            getattr(self, self.comparer_iterable).update(
+                    {str(i + 1): self.comparer(number = i + 1, steps = steps)})    
         return self
     
     def _return_variables(self, instance, variables, add_prefix = False):
@@ -156,13 +156,12 @@ class SimpleIterable(SimpleClass):
             self._publish_comparer()
         else:
             for step in self.sequence:
-                if (self.exists('steps')
-                        and step in self.steps
-                        and isinstance(self.options[step], str)):
+                if hasattr(self, 'is_comparer') and self.is_comparer is True:
                     setattr(self, step, self.options[step](
                             technique = self.steps[step]))
                 else:
                     setattr(self, step, self.options[step]())
+                print(self.name, step)
         return self
 
     def implement(self, *args, **kwargs):

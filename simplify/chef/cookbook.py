@@ -180,7 +180,10 @@ class Cookbook(SimpleIterable):
         super().draft()
         if self.recipes is None:
             self.recipes = {}
+        # Sets comparer class for storing parallel plans
         self.comparer = Recipe
+        self.comparer_iterable = 'recipes'
+        # Locks 'step' attribute at 'chef' for state dependent methods.
         self.depot.step = 'chef'
         return self
 
@@ -294,6 +297,7 @@ class Recipe(SimpleIterable):
         if not self.options:
             self.options = DEFAULT_OPTIONS
         self.sequence_setting = 'chef_steps'
+        self.is_comparer = True
         return self
 
     def implement(self, ingredients):
