@@ -65,12 +65,6 @@ class SimplePlan(SimpleClass):
         self.steps = new_steps
         return self
 
-    def implement(self, variable, *args, **kwargs):
-        for step, technique in self.steps.items():
-            variable = technique.implement(variable, *args, **kwargs)
-            if self.exists('return_variables'):
-                self._infuse_return_variables(instance = getattr(self, step))
-        return self
 
 @dataclass
 class SimpleBatch(SimplePlan):
@@ -119,4 +113,13 @@ class SimpleSequence(SimplePlan):
 
     def __post_init__(self):
         super().__post_init__()
+        return self
+    
+    def implement(self, variable, *args, **kwargs):
+        if hasattr(self, 'variable_to_store'):
+            setattr(self, self.variable_to_store, variable)
+        for step, technique in self.steps.items():
+            variable = technique.implement(variable, *args, **kwargs)
+            if self.exists('return_variables'):
+                self._infuse_return_variables(instance = getattr(self, step))
         return self

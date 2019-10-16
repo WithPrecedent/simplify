@@ -883,6 +883,16 @@ class Ingredients(SimpleClass):
         return self.x_val, self.y_val
 
     @property
+    def x_full(self):
+        """Returns 'x' for easier DataState management."""
+        return self.x
+
+    @property
+    def y_full(self):
+        """Returns 'y' for easier DataState management."""
+        return self.y
+    
+    @property
     def booleans(self):
         return self._get_columns_by_type('boolean')
 

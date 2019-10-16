@@ -286,6 +286,7 @@ class Recipe(SimplePlan):
         if not self.options:
             self.options = DEFAULT_OPTIONS
         self.sequence_setting = 'chef_steps'
+        self.variable_to_store = 'ingredients'
         self.is_comparer = True
         return self
 
@@ -302,6 +303,7 @@ class Recipe(SimplePlan):
         for step in self.sequence:
             sequence.remove(step)
             if step == 'split':
+                self.data_state
                 break
             else:
                 self.ingredients = getattr(self, step).implement(

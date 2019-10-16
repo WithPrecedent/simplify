@@ -47,7 +47,6 @@ class Model(SimpleTechnique):
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
 
-
     """
     technique: object = None
     parameters: object = None
