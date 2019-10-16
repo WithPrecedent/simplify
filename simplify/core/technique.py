@@ -53,7 +53,6 @@ class SimpleTechnique(SimpleClass):
     parameters: object = None
     name: str = 'generic_technique'
     auto_publish: bool = True
-    options: object = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -66,6 +65,7 @@ class SimpleTechnique(SimpleClass):
         if (self.exists('simplify_options')
                 and self.technique in self.simplify_options):
             self.algorithm = self.options[self.technique](
+                    technique = self.technique,
                     parameters = self.parameters)
         else:
             self.algorithm = self.options[self.technique](**self.parameters)
@@ -88,7 +88,6 @@ class SimpleTechnique(SimpleClass):
 
     def publish(self):
         """Finalizes settings and creates an instance of the 'algorithm'."""
-
         if self.technique != 'none':
             super().publish()
             if hasattr(self, '_set_estimator'):
@@ -102,7 +101,7 @@ class SimpleTechnique(SimpleClass):
         return self
 
     @numpy_shield
-    def implement(self, ingredients, **kwargs):
+    def implement(self, ingredients, *args, **kwargs):
         """Generic implementation method for SimpleTechnique subclass.
 
         Args:
@@ -111,11 +110,16 @@ class SimpleTechnique(SimpleClass):
         """
         if self.algorithm:
             if self.technique in self.simplify_options:
-                ingredients = self.algorithm.implement(ingredients, **kwargs)
+                ingredients = self.algorithm.implement(
+                    ingredients, *args, **kwargs)
             else:
-                self.algorithm.fit(ingredients.x_train, ingredients.y_train)
-                ingredients.x_train = self.algorithm.transform(
-                        ingredients.x_train)
+                self.algorithm.fit(
+                    X = getattr(ingredients, 'x_' + self.data_to_train),
+                    Y = getattr(ingredients, 'y_' + self.data_to_train),
+                    *args, **kwargs)
+                setattr(ingredients, 'x_' + self.data_to_train,
+                        self.algorithm.transform(X = getattr(
+                            ingredients, 'x_' + self.data_to_train)))
         return ingredients
 
     """ Scikit-Learn Compatibility Methods """
@@ -131,18 +135,22 @@ class SimpleTechnique(SimpleClass):
 
         Raises:
             AttributeError if no 'fit' method exists for local 'algorithm'.
+
         """
         if hasattr(self.algorithm, 'fit'):
             if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
                 if y is None:
-                    self.algorithm.fit(x)
+                    self.algorithm.fit(X = x)
                 else:
-                    self.algorithm.fit(x, y)
+                    self.algorithm.fit(X = x, Y = y)
             elif ingredients is not None:
-                ingredients = self.algorithm.fit(ingredients.x_train,
-                                                 ingredients.y_train)
+                ingredients = self.algorithm.fit(
+                    X = getattr(ingredients, 'x_' + self.data_to_train),
+                    Y = getattr(ingredients, 'y_' + self.data_to_train))
+
         else:
-            error = 'fit method does not exist for this algorithm'
+            error = ('fit method does not exist for '
+                     + self.technique + ' algorithm')
             raise AttributeError(error)
         return self
 
@@ -162,6 +170,7 @@ class SimpleTechnique(SimpleClass):
         Raises:
             TypeError if DataFrame, ndarray, or ingredients is not passed to
                 the method.
+
         """
         self.fit(x = x, y = y, ingredients = ingredients)
         if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
@@ -174,6 +183,7 @@ class SimpleTechnique(SimpleClass):
 
     def transform(self, x = None, y = None, ingredients = None):
         """Generic transform method for partial compatibility to sklearn.
+
         Args:
             x(DataFrame or ndarray): independent variables/features.
             y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
@@ -187,18 +197,19 @@ class SimpleTechnique(SimpleClass):
         Raises:
             AttributeError if no 'transform' method exists for local
                 'algorithm'.
+
         """
         if hasattr(self.algorithm, 'transform'):
             if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
                 if y is None:
-                    x = self.algorithm.transform(x)
+                    return self.algorithm.transform(x)
                 else:
-                    x = self.algorithm.transform(x, y)
-                return x
+                    return self.algorithm.transform(x, y)
             elif ingredients is not None:
-                ingredients = self.algorithm.transform(ingredients.x_train,
-                                                       ingredients.y_train)
-                return ingredients
+                return self.algorithm.transform(
+                    X = getattr(ingredients, 'x_' + self.data_to_train),
+                    Y = getattr(ingredients, 'y_' + self.data_to_train))
         else:
-            error = 'transform method does not exist for this algorithm'
+            error = ('transform method does not exist for '
+                     + self.technique + ' algorithm')
             raise AttributeError(error)

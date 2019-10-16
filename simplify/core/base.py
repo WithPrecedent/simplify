@@ -83,7 +83,7 @@ class SimpleClass(ABC):
         warnings.filterwarnings('ignore')
         # Sets default 'name' attribute if none exists.
         self._run_checks(checks = ['name'])
-        # Sets initial values for subclass.     
+        # Sets initial values for subclass.
         self.draft()
         # Creates 'idea' attribute if a string is passed to Idea when subclass
         # was instanced.
@@ -206,7 +206,7 @@ class SimpleClass(ABC):
 
     def __iter__(self):
         """Returns 'options' to mirror dictionary functionality."""
-        return self.options
+        return self.options.items()
 
     # def __repr__(self):
     #     return self.__str__()
@@ -349,7 +349,7 @@ class SimpleClass(ABC):
         """
         setattr(SimpleClass, attribute, self)
         return self
-    
+
     def _inject_idea(self):
         """Injects portions of Idea instance 'configuration' to subclass.
 

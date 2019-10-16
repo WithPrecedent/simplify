@@ -1,5 +1,5 @@
 """
-.. module:: iterables
+.. module:: iterable
 :synopsis: iterable builder and container
 :author: Corey Rayburn Yung
 :copyright: 2019
@@ -42,8 +42,6 @@ class SimpleIterable(SimpleClass):
 
     """
     steps: object = None
-    number: int = 0
-    name: str = 'simple_iterable'
 
     def __post_init__(self):
         super().__post_init__()
@@ -60,11 +58,14 @@ class SimpleIterable(SimpleClass):
         """Allows class instance to be directly iterated by returning the
         primary iterable contained within the class instance.
         """
-        return getattr(self, self.steps)
+        if hasattr(self, 'comparer_iterable'):
+            return getattr(self, self.comparer_iterable).items()
+        else:
+            return self.steps.items()
 
     """ Private Methods """
 
-    def _infuse_attributes(self, instance, return_variables = None):
+    def _infuse_return_variables(self, instance, return_variables = None):
         """Adds 'return_variables' attributes from instance class to present
         class.
 
@@ -99,9 +100,9 @@ class SimpleIterable(SimpleClass):
             for j, technique in enumerate(plan):
                 steps.update({self.sequence[j]: technique})
             getattr(self, self.comparer_iterable).update(
-                    {str(i + 1): self.comparer(number = i + 1, steps = steps)})    
+                    {str(i + 1): self.comparer(number = i + 1, steps = steps)})
         return self
-    
+
     def _return_variables(self, instance, variables, add_prefix = False):
         if not self.exists('returned_variables'):
             self.returned_variables = []
@@ -161,7 +162,6 @@ class SimpleIterable(SimpleClass):
                             technique = self.steps[step]))
                 else:
                     setattr(self, step, self.options[step]())
-                print(self.name, step)
         return self
 
     def implement(self, *args, **kwargs):
@@ -178,5 +178,5 @@ class SimpleIterable(SimpleClass):
         for step in self.sequence:
             getattr(self, step).implement(*args, **kwargs)
             if self.exists('return_variables'):
-                self._infuse_attributes(instance = getattr(self, step))
+                self._infuse_return_variables(instance = getattr(self, step))
         return self

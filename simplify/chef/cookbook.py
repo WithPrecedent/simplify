@@ -11,6 +11,7 @@ from itertools import product
 from typing import Dict
 
 from simplify.core.iterable import SimpleIterable
+from simplify.core.plan import SimplePlan
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -75,7 +76,7 @@ class Cookbook(SimpleIterable):
     auto_implement: bool = False
     lazy_import: bool = False
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
-    
+
     def __post_init__(self):
         super().__post_init__()
         return self
@@ -235,7 +236,7 @@ class Cookbook(SimpleIterable):
 
 
 @dataclass
-class Recipe(SimpleIterable):
+class Recipe(SimplePlan):
     """Contains steps for analyzing data in the siMpLify Cookbook subpackage.
 
     Args:
@@ -277,18 +278,6 @@ class Recipe(SimpleIterable):
                     len(self.ingredients.y.index) /
                     ((self.ingredients.y == 1).sum())) - 1
         return self
-
-    """ Public Import/Export Methods """
-
-    def save(self, file_path = None, folder = None, file_name = None):
-        if folder is None:
-            folder = self.depot.recipe
-        self.depot.save(variable = self,
-                        file_path = file_path,
-                        folder = folder,
-                        file_name = file_name,
-                        file_format = 'pickle')
-        return
 
     """ Core siMpLify Methods """
 

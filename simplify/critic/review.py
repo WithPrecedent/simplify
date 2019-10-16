@@ -14,6 +14,7 @@ import pandas as pd
 from simplify.core.decorators import numpy_shield
 from simplify.core.base import SimpleClass
 from simplify.core.iterable import SimpleIterable
+from simplify.core.plan import SimplePlan
 from simplify.core.technique import SimpleTechnique
 
 
@@ -66,7 +67,7 @@ class Review(SimpleIterable):
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
-    
+
     """ Core siMpLify methods """
 
     def draft(self):
@@ -101,7 +102,7 @@ class Review(SimpleIterable):
             step_reviews = {}
             for step in self.sequence:
                 getattr(self, step).implement(recipe = recipe)
-                self._infuse_attributes(instance = getattr(self, step))
+                self._infuse_return_variables(instance = getattr(self, step))
                 if step in ['score']:
                     print('score_report', self.score.report)
                     self._add_row(recipe = recipe, report = self.score.report)
@@ -110,7 +111,7 @@ class Review(SimpleIterable):
 
 
 @dataclass
-class Narrative(SimpleIterable):
+class Narrative(SimplePlan):
 
     number: int = 0
     steps: object = None
@@ -254,7 +255,7 @@ class Article(SimpleClass):
         return
 
     """ Core siMpLify Methods """
-    
+
     def draft(self):
         super().draft()
         return self
@@ -262,7 +263,7 @@ class Article(SimpleClass):
     def publish(self):
         super().publish()
         return self
-        
+
 
 @dataclass
 class CriticTechnique(SimpleTechnique):
