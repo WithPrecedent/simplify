@@ -40,8 +40,9 @@ class SimpleTechnique(SimpleClass):
             corresponding to 'technique'. This parameter need not be passed to
             the SimpleTechnique subclass if the parameters are in the Idea
             instance or if the user wishes to use default parameters.
-        name(str): designates the name of the class which should be identical
-            to the section of the Idea instance with relevant settings.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
         auto_publish(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
@@ -61,7 +62,8 @@ class SimpleTechnique(SimpleClass):
     """ Private Methods """
 
     def _set_algorithm(self):
-        """Creates 'algorithm' attribute and adds parameters."""
+        """Creates 'algorithm' attribute and adds parameters to that algorithm.
+        """
         if (self.exists('simplify_options')
                 and self.technique in self.simplify_options):
             self.algorithm = self.options[self.technique](
@@ -86,6 +88,39 @@ class SimpleTechnique(SimpleClass):
         super().draft()
         return self
 
+
+@dataclass
+class ChefTechnique(SimpleTechnique):
+    """Parent Class for techniques in the Chef package.
+
+    This subclass of SimpleTechnique differs from other SimpleTechniques
+    because the parameters and algorithm are joined at the 'publish' stage. And 
+    the techniques include scikit-learn compatible 'fit', 'transform', and 
+    'fit_transform' methods.
+
+    Args:
+        technique(str): name of technique.
+        parameters(dict): dictionary of parameters to pass to selected
+            algorithm.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
+        auto_publish(bool): whether 'publish' method should be called when
+            the class is instanced. This should generally be set to True.
+    """
+
+    technique: object = None
+    parameters: object = None
+    name: str = 'generic_chef_technique'
+    auto_publish: bool = True
+
+    def __post_init__(self):
+        self.idea_sections = ['chef']
+        super().__post_init__()
+        return self  
+
+    """ Core siMpLify Public Methods """
+
     def publish(self):
         """Finalizes settings and creates an instance of the 'algorithm'."""
         if self.technique != 'none':
@@ -99,7 +134,7 @@ class SimpleTechnique(SimpleClass):
         else:
             self.algorithm = None
         return self
-
+    
     @numpy_shield
     def implement(self, ingredients, *args, **kwargs):
         """Generic implementation method for SimpleTechnique subclass.
@@ -121,7 +156,7 @@ class SimpleTechnique(SimpleClass):
                         self.algorithm.transform(X = getattr(
                             ingredients, 'x_' + self.data_to_train)))
         return ingredients
-
+    
     """ Scikit-Learn Compatibility Methods """
 
     def fit(self, x = None, y = None, ingredients = None):
@@ -212,4 +247,74 @@ class SimpleTechnique(SimpleClass):
         else:
             error = ('transform method does not exist for '
                      + self.technique + ' algorithm')
-            raise AttributeError(error)
+            raise AttributeError(error)              
+
+        
+@dataclass
+class CriticTechnique(SimpleTechnique):
+    """Parent Class for techniques in the Critic package.
+
+    This subclass of SimpleTechnique differs from other SimpleTechniques
+    because the parameters and algorithm are not joined until the 'implement'
+    stage. This is due to the algorithm needed information from the passed
+    'recipe' before the algorithm is called. And the techniques ordinarily do
+    not have scikit-learn compatible 'fit', 'transform', and 'fit_transform'
+    methods.
+
+    Args:
+        technique(str): name of technique.
+        parameters(dict): dictionary of parameters to pass to selected
+            algorithm.
+        name(str): designates the name of the class which is used throughout
+            siMpLify to match methods and settings with this class and
+            identically named subclasses.
+        auto_publish(bool): whether 'publish' method should be called when
+            the class is instanced. This should generally be set to True.
+    """
+
+    technique: object = None
+    parameters: object = None
+    name: str = 'generic_critic_technique'
+    auto_publish: bool = True
+
+    def __post_init__(self):
+        self.idea_sections = ['critic']
+        super().__post_init__()
+        return self
+
+    """ Dunder Methods """
+
+    def __repr__(self):
+        return self.name
+
+    def __str__(self):
+        return self.name
+
+    """ Core siMpLify Public Methods """
+
+    def publish(self):
+        """Finalizes settings.."""
+        # Runs attribute checks from list in 'checks' attribute (if it exists).
+        self._run_checks()
+        # Converts values in 'options' to classes by lazily importing them.
+        instance = self.lazy.load(instance = self, attribute = 'options')
+        return self
+
+    def implement(self, recipe, **kwargs):
+        """Returns recipe with feature importances added.
+
+        Args:
+            recipe(Recipe): an instance of Recipe or a subclass.
+
+        """
+        if self.technique != 'none':
+            if not hasattr(self, 'no_parameters') and not self.no_parameters:
+                self._set_parameters()
+            setattr(recipe, self.technique + '_' + self.name,
+                    self.options[self.technique](recipe = recipe))
+            if not hasattr(recipe, self.name):
+                setattr(recipe, self.name, {})
+            setattr(recipe, self.name).update(
+                    {self.name: getattr(
+                    self, self.technique + '_' + self.name)})
+        return recipe

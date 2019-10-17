@@ -16,7 +16,7 @@ from typing import Dict
 
 from simplify.core.base import SimpleClass
 from simplify.core.controller import Simplify
-from simplify.core.iterable import SimpleIterable
+from simplify.core.package import SimplePackage
 from simplify.core.loader import LazyImporter
 
 

@@ -412,6 +412,12 @@ class SimpleClass(ABC):
         # Assigns passed 'ingredients' to 'ingredients' attribute
         if ingredients:
             self.ingredients = ingredients
+        # If 'ingredients' is a data container, it is assigned to 'df' in a new
+        # instance of Ingredients assigned to 'ingredients'.
+        # If 'ingredients' is a file path, the file is loaded into a DataFrame
+        # and assigned to 'df' in a new Ingredients instance at 'ingredients'.
+        # If 'ingredients' is None, a new Ingredients instance is created and
+        # assigned to 'ingreidents' with no attached DataFrames.
         if (isinstance(self.ingredients, pd.Series)
                 or isinstance(self.ingredients, pd.DataFrame)
                 or isinstance(self.ingredients, np.ndarray)):
@@ -649,10 +655,11 @@ class SimpleClass(ABC):
             file_format(str): name of file format in Depot.extensions.
 
         """
-        setattr(self, name, self.depot.load(file_path = file_path,
-                                            folder = folder,
-                                            file_name = file_name,
-                                            file_format = file_format))
+        setattr(self, name, self.depot.load(
+            file_path = file_path,
+            folder = folder,
+            file_name = file_name,
+            file_format = file_format))
         return self
 
     def save(self, variable = None, file_path = None, folder = None,
@@ -671,11 +678,12 @@ class SimpleClass(ABC):
         """
         if isinstance(variable, str):
             variable = getattr(self, variable)
-        self.depot.save(variable = variable,
-                        file_path = file_path,
-                        folder = folder,
-                        file_name = file_name,
-                        file_format = file_format)
+        self.depot.save(
+            variable = variable,
+            file_path = file_path,
+            folder = folder,
+            file_name = file_name,
+            file_format = file_format)
         return
 
     """ Core siMpLify Methods """
@@ -822,6 +830,4 @@ class Stage(SimpleClass):
         else:
             error = new_state + ' is not a recognized data state'
             raise TypeError(error)
-
-    
-    
+  

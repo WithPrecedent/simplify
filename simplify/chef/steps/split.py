@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -29,7 +29,7 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Split(SimpleTechnique):
+class Split(ChefTechnique):
     """Splits data into training, testing, and/or validation sets, uses time
     series splits, or applies k-folds cross-validation.
 

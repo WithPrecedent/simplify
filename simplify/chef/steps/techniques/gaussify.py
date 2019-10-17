@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -25,7 +25,7 @@ DEFAULT_OPTIONS = {
     'yeo-johnson': ['sklearn.preprocessing', 'PowerTransformer']}
 
 @dataclass
-class Gaussify(SimpleTechnique):
+class Gaussify(ChefTechnique):
     """Transforms data columns to more gaussian distribution.
 
     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'

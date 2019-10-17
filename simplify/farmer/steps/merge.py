@@ -8,11 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import FarmerTechnique
 
 
 @dataclass
-class Merge(SimpleTechnique):
+class Merge(FarmerTechnique):
     """Merges data sources together.
 
     Args:

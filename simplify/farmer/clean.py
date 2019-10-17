@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterable import SimpleIterable
+from simplify.core.technique import FarmerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -29,8 +29,8 @@ class Clean(SimpleIterable):
     """Cleans, munges, and parsers data using fast, vectorized methods.
 
     Args:
-        steps(dict): dictionary containing keys of SimpleTechnique names (strings)
-            and values of SimpleTechnique class instances.
+        steps(dict): dictionary containing keys of FarmerTechnique names (strings)
+            and values of FarmerTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
         auto_publish(bool): whether 'publish' method should be called when

@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterable import SimpleIterable
+from simplify.core.technique import ArtistTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -27,7 +27,7 @@ class Animate(SimpleIterable):
     """Creates animated data visualizations.
 
     Args:
-        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique classes for
+        steps(dict(str: ArtistTechnique)): names and related ArtistTechnique classes for
             creating data visualizations.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.

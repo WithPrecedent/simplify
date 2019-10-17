@@ -10,11 +10,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import FarmerTechnique
 
 
 @dataclass
-class Combine(SimpleTechnique):
+class Combine(FarmerTechnique):
     """Combines features into new features.
 
     Args:

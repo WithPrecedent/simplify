@@ -13,9 +13,9 @@ import pandas as pd
 
 from simplify.core.decorators import numpy_shield
 from simplify.core.base import SimpleClass
-from simplify.core.iterable import SimpleIterable
-from simplify.core.plan import SimplePlan
-from simplify.core.technique import SimpleTechnique
+from simplify.core.package import SimplePackage
+from simplify.core.plans import SimplePlan
+from simplify.core.technique import CriticTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -38,7 +38,7 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Review(SimpleIterable):
+class Review(SimplePackage):
     """Builds tools for evaluating, explaining, and creating predictions from
     data and machine learning models.
 
@@ -46,14 +46,13 @@ class Review(SimpleIterable):
         steps(dict(str: CriticTechnique)): names and related CriticTechnique
             classes for analyzing fitted models.
         name(str): designates the name of the class which is used throughout
-            siMpLify to match methods and settings with this class and
-            identically named subclasses.
+            siMpLify to match methods and settings with this class.
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
         auto_implement(bool): whether to call the 'implement' method when the
             class is instanced.
 
-    Since this class is a subclass to SimpleIterable and SimpleClass, all
+    Since this class is a subclass to SimplePackage and SimpleClass, all
     documentation for those classes applies as well.
 
     """
@@ -72,13 +71,12 @@ class Review(SimpleIterable):
 
     def draft(self):
         """Sets default options for the Critic's analysis."""
-        super().draft()
         # Sets comparer class for storing parallel plans
         self.comparer = Narrative
         self.comparer_iterable = 'narratives'
-        self.narratives = {}
         # Locks 'step' attribute at 'critic' for state dependent methods.
         self.depot.step = 'critic'
+        super().draft()
         return self
 
     def implement(self, recipes = None):
@@ -263,72 +261,3 @@ class Article(SimpleClass):
     def publish(self):
         super().publish()
         return self
-
-
-@dataclass
-class CriticTechnique(SimpleTechnique):
-    """Parent Class for techniques in the Critic package.
-
-    This subclass of SimpleTechnique differs from other SimpleTechniques
-    because the parameters and algorithm are not joined until the 'implement'
-    stage. This is due to the algorithm needed information from the passed
-    'recipe' before the algorithm is called. And the techniques ordinarily do
-    not have scikit-learn compatible 'fit', 'transform', and 'fit_transform'
-    methods.
-
-    Args:
-        technique(str): name of technique.
-        parameters(dict): dictionary of parameters to pass to selected
-            algorithm.
-        name(str): name of class for matching settings in the Idea instance
-            and for labeling the columns in files exported by Critic.
-        auto_publish(bool): whether 'publish' method should be called when
-            the class is instanced. This should generally be set to True.
-    """
-
-    technique: object = None
-    parameters: object = None
-    name: str = 'generic_critic_technique'
-    auto_publish: bool = True
-
-    def __post_init__(self):
-        self.idea_sections = ['chef']
-        super().__post_init__()
-        return self
-
-    """ Dunder Methods """
-
-    def __repr__(self):
-        return self.name
-
-    def __str__(self):
-        return self.name
-
-    """ Core siMpLify Public Methods """
-
-    def publish(self):
-        """Finalizes settings.."""
-        # Runs attribute checks from list in 'checks' attribute (if it exists).
-        self._run_checks()
-        # Converts values in 'options' to classes by lazily importing them.
-        instance = self.lazy.load(instance = self, attribute = 'options')
-        return self
-
-    def implement(self, recipe, **kwargs):
-        """Returns recipe with feature importances added.
-
-        Args:
-            recipe(Recipe): an instance of Recipe or a subclass.
-
-        """
-        if self.technique != 'none':
-            if not hasattr(self, 'no_parameters') and not self.no_parameters:
-                self._set_parameters()
-            setattr(recipe, self.technique + '_' + self.name,
-                    self.options[self.technique](recipe = recipe))
-            if not hasattr(recipe, self.name):
-                setattr(recipe, self.name, {})
-            setattr(recipe, self.name).update(
-                    {self.name: getattr(
-                    self, self.technique + '_' + self.name)})
-        return recipe

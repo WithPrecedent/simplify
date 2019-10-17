@@ -8,11 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import FarmerTechnique
 
 
 @dataclass
-class Supplement(SimpleTechnique):
+class Supplement(FarmerTechnique):
     """Adds new data to similarly structured DataFrame.
 
     Args:

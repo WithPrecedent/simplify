@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import Dict
 
 from simplify.core.decorators import localize
-from simplify.core.iterable import SimpleIterable
+from simplify.core.package import SimplePackage
 
 
 # Sets default options for module if 'options' not passed to a subclass.
@@ -23,7 +23,7 @@ DEFAULT_CHECKS = ['ingredients']
 
 
 @dataclass
-class Simplify(SimpleIterable):
+class Simplify(SimplePackage):
     """Controller class for siMpLify projects.
 
     This class is provided for applications that rely on Idea settings and/or

@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -34,7 +34,7 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Classify(SimpleTechnique):
+class Classify(ChefTechnique):
     """Applies machine learning classifier algorithms based upon user
     selections.
 

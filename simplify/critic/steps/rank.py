@@ -12,7 +12,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import CriticTechnique
 from simplify.critic.review import CriticTechnique
 
 
@@ -92,7 +92,7 @@ class Rank(CriticTechnique):
 
 
 @dataclass
-class RankSelect(SimpleTechnique):
+class RankSelect(CriticTechnique):
     """Uses feature importances for feature reduction in Chef package.
 
     Args:

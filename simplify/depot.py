@@ -436,7 +436,7 @@ class Depot(SimpleClass):
         """Creates folder path for iterable-specific exports.
 
         Args:
-            iterable(SimpleIterable): an instance of SimpleIterable.
+            iterable(SimplePackage): an instance of SimplePackage.
             name(string): name of attribute for the folder path to be stored
                 and the prefix of the folder to be created on disc.
         """

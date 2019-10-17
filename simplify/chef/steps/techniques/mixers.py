@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -24,7 +24,7 @@ DEFAULT_OPTIONS = {}
 
 
 @dataclass
-class DifferenceFeatures(SimpleTechnique):
+class DifferenceFeatures(ChefTechnique):
     """Creates feature interactions using subtraction.
 
     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'
@@ -54,7 +54,7 @@ class DifferenceFeatures(SimpleTechnique):
 
 
 @dataclass
-class QuotientFeatures(SimpleTechnique):
+class QuotientFeatures(ChefTechnique):
     """Creates feature interactions using division.
 
     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'
@@ -82,7 +82,7 @@ class QuotientFeatures(SimpleTechnique):
 
 
 @dataclass
-class SumFeatures(SimpleTechnique):
+class SumFeatures(ChefTechnique):
     """Creates feature interactions using addition.
 
     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'

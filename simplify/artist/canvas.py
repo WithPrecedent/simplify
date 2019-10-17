@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 
 from simplify.core.decorators import localize
-from simplify.core.iterable import SimpleIterable
+from simplify.core.package import SimplePackage
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -28,14 +28,14 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Canvas(SimpleIterable):
+class Canvas(SimplePackage):
     """Builds tools for data visualization.
 
     Args:
         ingredients(Ingredients): an instance of Ingredients. This argument need
             not be passed when the class is instanced. It can be passed directly
             to the 'implement' method as well.
-        steps(dict(str: SimpleTechnique)): names and related SimpleTechnique
+        steps(dict(str: ArtistTechnique)): names and related ArtistTechnique
             classes for analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It

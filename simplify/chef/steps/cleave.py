@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 from simplify.core.decorators import numpy_shield
 
 
@@ -25,7 +25,7 @@ DEFAULT_OPTIONS = {}
 
 
 @dataclass
-class Cleave(SimpleTechnique):
+class Cleave(ChefTechnique):
     """Stores different groups of features (to allow comparison among those
     groups).
 

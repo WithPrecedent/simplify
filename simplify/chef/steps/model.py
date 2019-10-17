@@ -1,6 +1,6 @@
 """
 .. module:: model
-:synopsis: Applies machine learning and statistical models to data
+:synopsis: applies machine learning and statistical models to data
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -11,7 +11,7 @@ from typing import Dict
 
 from scipy.stats import randint, uniform
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -30,14 +30,14 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Model(SimpleTechnique):
+class Model(ChefTechnique):
     """Applies machine learning algorithms based upon user selections.
 
     Args:
         technique(str): name of technique that matches key in 'options'.
         parameters(dict): parameters to be attached to algorithm in 'options'
             corresponding to 'technique'. This parameter need not be passed to
-            the SimpleTechnique subclass if the parameters are in the Idea
+            the ChefTechnique subclass if the parameters are in the Idea
             instance or if the user wishes to use default parameters.
         name(str): designates the name of the class which should be identical
             to the section of the Idea instance with relevant settings.

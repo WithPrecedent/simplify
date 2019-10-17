@@ -9,11 +9,11 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import FarmerTechnique
 
 
 @dataclass
-class Divide(SimpleTechnique):
+class Divide(FarmerTechnique):
     """Divides data source files so that they can be loaded in memory.
 
     Args:

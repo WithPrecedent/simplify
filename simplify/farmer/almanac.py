@@ -9,10 +9,8 @@
 from dataclasses import dataclass
 
 from simplify.core.decorators import local_backups
-from simplify.core.iterable import SimpleIterable
-from simplify.core.iterable import SimpleIterable
-from simplify.core.technique import SimpleTechnique
-from simplify.core.technique import SimpleTechnique
+from simplify.core.package import SimplePackage
+from simplify.core.technique import FarmerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -32,7 +30,7 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Almanac(SimpleIterable):
+class Almanac(SimplePackage):
     """Implements data parsing, wrangling, munging, merging, engineering, and
     cleaning methods for the siMpLify package.
 
@@ -44,11 +42,11 @@ class Almanac(SimpleIterable):
         ingredients(Ingredients or str): an instance of Ingredients or a string
             with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced.
-        steps(dict(str: SimpleTechnique)): steps to be completed in order. This
+        steps(dict(str: FarmerTechnique)): steps to be completed in order. This
             argument should only be passed if the user wishes to override the
             steps listed in the Idea settings or if the user is not using the
             Idea class.
-        plans(SimpleIterable): instanced subclasses of SimpleIterable for
+        plans(SimplePackage): instanced subclasses of SimplePackage for
             prepared tools for the Almanac.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
@@ -61,7 +59,7 @@ class Almanac(SimpleIterable):
         auto_implement(bool): whether to call the 'implement' method when the
             class is instanced.
 
-    Since this class is a subclass to SimpleIterable and SimpleClass, all
+    Since this class is a subclass to SimplePackage and SimpleClass, all
     documentation for those classes applies as well.
 
     """

@@ -10,11 +10,11 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import FarmerTechnique
 
 
 @dataclass
-class Streamline(SimpleTechnique):
+class Streamline(FarmerTechnique):
     """Combines, divides, and otherwise prepares features for analysis.
 
     Args:

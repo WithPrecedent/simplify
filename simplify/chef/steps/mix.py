@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 from simplify.core.decorators import numpy_shield
 
 
@@ -29,7 +29,7 @@ DEFAULT_OPTIONS = {
                    'DifferenceFeatures']}
 
 @dataclass
-class Mix(SimpleTechnique):
+class Mix(ChefTechnique):
     """Computes new features using different algorithms selected.
 
     Args:

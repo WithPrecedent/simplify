@@ -10,11 +10,11 @@ from dataclasses import dataclass
 import os
 import requests
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import FarmerTechnique
 
 
 @dataclass
-class Download(SimpleTechnique):
+class Download(FarmerTechnique):
     """Acquires data from an online source.
 
     Args:

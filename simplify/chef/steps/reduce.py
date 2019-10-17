@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 from simplify.core.decorators import numpy_shield
 
 
@@ -32,7 +32,7 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Reduce(SimpleTechnique):
+class Reduce(ChefTechnique):
     """Reduces features using different algorithms, including the model
     algorithm.
 

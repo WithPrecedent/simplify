@@ -9,11 +9,11 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import FarmerTechnique
 
 
 @dataclass
-class Convert(SimpleTechnique):
+class Convert(FarmerTechnique):
     """Converts data to a usable form.
 
     Args:

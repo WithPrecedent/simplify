@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from simplify.core.iterable import SimpleIterable
+from simplify.core.technique import ArtistTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass

@@ -11,11 +11,11 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import FarmerTechnique
 
 
 @dataclass
-class Reshape(SimpleTechnique):
+class Reshape(FarmerTechnique):
     """Reshapes a DataFrame to wide or long form.
 
     Args:

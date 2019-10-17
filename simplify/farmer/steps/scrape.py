@@ -9,11 +9,11 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import FarmerTechnique
 
 
 @dataclass
-class Scrape(SimpleTechnique):
+class Scrape(FarmerTechnique):
     """Scrapes data from a website.
 
     Args:

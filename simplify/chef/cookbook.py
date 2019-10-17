@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 from itertools import product
 from typing import Dict
 
-from simplify.core.iterable import SimpleIterable
-from simplify.core.plan import SimplePlan
+from simplify.core.package import SimplePackage
+from simplify.core.plans import SimplePlan
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -34,7 +34,7 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Cookbook(SimpleIterable):
+class Cookbook(SimplePackage):
     """Dynamically creates recipes for staging, machine learning, and data
     analysis using a unified interface and architecture.
 
@@ -63,7 +63,7 @@ class Cookbook(SimpleIterable):
         auto_implement(bool): whether to call the 'implement' method when the
             class is instanced.
 
-    Since this class is a subclass to SimpleIterable and SimpleClass, all
+    Since this class is a subclass to SimplePackage and SimpleClass, all
     documentation for those classes applies as well.
 
     """
@@ -214,7 +214,7 @@ class Cookbook(SimpleIterable):
             ingredients(Ingredients): If passsed, it will be assigned to the
                 local 'ingredients' attribute. If not passed, and if it already
                 exists, the local 'ingredients' will be used.
-            previous_package(SimpleIterable): The previous subpackage, if one
+            previous_package(SimplePackage): The previous subpackage, if one
                 was used
 
         """
@@ -242,8 +242,8 @@ class Recipe(SimplePlan):
     Args:
         number(int): number of recipe in a sequence - used for recordkeeping
             purposes.
-        steps(dict): dictionary containing keys of SimpleTechnique names
-            (strings) and values of SimpleIterable subclass instances.
+        steps(dict): dictionary containing keys of ChefTechnique names
+            (strings) and values of SimplePackage subclass instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
         auto_publish(bool): whether 'publish' method should be called when
@@ -303,7 +303,6 @@ class Recipe(SimplePlan):
         for step in self.sequence:
             sequence.remove(step)
             if step == 'split':
-                self.data_state
                 break
             else:
                 self.ingredients = getattr(self, step).implement(

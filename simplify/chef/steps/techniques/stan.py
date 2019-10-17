@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 
 #    from pystan import StanModel
 
@@ -26,7 +26,7 @@ DEFAULT_OPTIONS = {}
 
 
 @dataclass
-class StanModel(SimpleTechnique):
+class StanModel(ChefTechnique):
     """Applies stan algorithms to data.
 
     Args:

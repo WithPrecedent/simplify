@@ -21,8 +21,10 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'gini' : ['self', '_get_gini_predictions'],
-    'shap' : ['self', '_get_shap_predictions']}
+    'gini':
+ ['self', '_get_gini_predictions'],
+    'shap':
+ ['self', '_get_shap_predictions']}
 
 
 @dataclass

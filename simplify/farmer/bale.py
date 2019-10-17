@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.iterable import SimpleIterable
+from simplify.core.technique import FarmerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass

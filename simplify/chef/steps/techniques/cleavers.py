@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -24,7 +24,7 @@ DEFAULT_OPTIONS = {}
 
 
 @dataclass
-class CompareCleaves(SimpleTechnique):
+class CompareCleaves(ChefTechnique):
     """Creates groups of features for comparison.
 
     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'
@@ -54,7 +54,7 @@ class CompareCleaves(SimpleTechnique):
 
 
 @dataclass
-class CombineCleaves(SimpleTechnique):
+class CombineCleaves(ChefTechnique):
     """Creates groups of features for interaction.
 
     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'
@@ -82,7 +82,7 @@ class CombineCleaves(SimpleTechnique):
 
 
 @dataclass
-class SumFeatures(SimpleTechnique):
+class SumFeatures(ChefTechnique):
     """Creates feature interactions using addition.
 
     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'

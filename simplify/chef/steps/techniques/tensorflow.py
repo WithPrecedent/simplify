@@ -11,7 +11,7 @@ from typing import Dict
 
 import tensorflow as tf
 
-from simplify.core.technique import SimpleTechnique
+from simplify.core.technique import ChefTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
@@ -26,7 +26,7 @@ DEFAULT_OPTIONS = {}
 
 
 @dataclass
-class TFModel(SimpleTechnique):
+class TFModel(ChefTechnique):
     """Applies tensorflow model to data.
 
     Args:
