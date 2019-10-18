@@ -36,7 +36,7 @@ class DifferenceFeatures(ChefTechnique):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_publish(bool): whether 'fina
+        auto_draft(bool): whether 'fina
         lize' method should be called when
             the class is instanced. This should generally be set to True.
     """
@@ -44,7 +44,7 @@ class DifferenceFeatures(ChefTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'difference_mixer'
-    auto_publish: bool = True
+    auto_draft: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
     
     def __post_init__(self):
@@ -66,7 +66,7 @@ class QuotientFeatures(ChefTechnique):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_publish(bool): whether 'fina
+        auto_draft(bool): whether 'fina
         lize' method should be called when
             the class is instanced. This should generally be set to True.
     """
@@ -74,7 +74,7 @@ class QuotientFeatures(ChefTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'quotient_mixer'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -94,7 +94,7 @@ class SumFeatures(ChefTechnique):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_publish(bool): whether 'fina
+        auto_draft(bool): whether 'fina
         lize' method should be called when
             the class is instanced. This should generally be set to True.
     """
@@ -102,7 +102,7 @@ class SumFeatures(ChefTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'sum_mixer'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()

@@ -37,7 +37,7 @@ class Gaussify(ChefTechnique):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_publish(bool): whether 'fina
+        auto_draft(bool): whether 'fina
         lize' method should be called when
             the class is instanced. This should generally be set to True.
     """
@@ -45,7 +45,7 @@ class Gaussify(ChefTechnique):
     technique: str = 'box-cox and yeo-johnson'
     parameters: object = None
     name: str = 'gaussifier'
-    auto_publish: bool = True
+    auto_draft: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):

@@ -35,20 +35,20 @@ class Simplify(SimplePackage):
             name). This is used instead of __class__.__name__ so that subclasses
             can maintain the same string name without altering the formal class
             name.
-        auto_publish(bool): sets whether to automatically call the 'publish'
+        auto_draft(bool): sets whether to automatically call the 'publish'
             method when the class is instanced. If you do not plan to make any
             adjustments beyond the Idea configuration, this option should be
             set to True. If you plan to make such changes, 'publish' should be
             called when those changes are complete.
-        auto_implement(bool): sets whether to automatically call the 'implement'
+        auto_publish(bool): sets whether to automatically call the 'implement'
             method when the class is instanced.
 
     """
     steps: object = None
     name: str = 'simplify'
-    auto_publish: bool = True
-    auto_implement: bool = False
-    sequence_setting: str = 'packages'
+    auto_draft: bool = True
+    auto_publish: bool = False
+    order_setting: str = 'packages'
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
@@ -73,7 +73,7 @@ class Simplify(SimplePackage):
     def _implement_dangerous(self):
         """Implements steps without concern for memory consumption."""
         first_step = True
-        for name in self.sequence:
+        for name in self.order:
             if first_step:
                 first_step = False
                 getattr(self, name).implement(ingredients = self.ingredients)
@@ -84,7 +84,7 @@ class Simplify(SimplePackage):
 
     def _implement_safe(self):
         """Implements steps while attempting to conserve memory."""
-        for name in self.sequence:
+        for name in self.order:
             if name in ['farmer']:
                 getattr(self, name).implement(ingredients = self.ingredients)
                 self.ingredients = getattr(self, name).ingredients
@@ -104,7 +104,7 @@ class Simplify(SimplePackage):
     """ Core siMpLify Methods """
 
     def implement(self, ingredients = None):
-        """Implements steps in 'sequence'."""
+        """Implements steps in 'order'."""
         if ingredients:
             self.ingredients = ingredients
         if self.conserve_memory:

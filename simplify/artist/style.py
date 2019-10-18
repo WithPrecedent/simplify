@@ -31,7 +31,7 @@ class Style(SimpleIterable):
     technique: object = None
     parameters: object = None
     name: str = 'style'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()

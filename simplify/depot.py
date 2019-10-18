@@ -49,7 +49,7 @@ class Depot(SimpleClass):
         datetime_naming(bool): whether the date and time should be used to
             create experiment subfolders (so that prior results are not
             overwritten).
-        auto_publish(bool): whether to automatically call the 'publish' method
+        auto_draft(bool): whether to automatically call the 'publish' method
             when the class is instanced. Unless making major changes to the
             file structure (beyond the 'root_folder', 'data_folder', and
             'results_folder' parameters), this should be set to True.
@@ -62,7 +62,7 @@ class Depot(SimpleClass):
     results_folder: str = 'results'
     datetime_naming: bool = True
     name: str = 'depot'
-    auto_publish: bool = True
+    auto_draft: bool = True
     lazy_import: bool = False
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 

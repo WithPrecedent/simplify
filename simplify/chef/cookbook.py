@@ -7,7 +7,6 @@
 """
 
 from dataclasses import dataclass, field
-from itertools import product
 from typing import Dict
 
 from simplify.core.package import SimplePackage
@@ -54,13 +53,13 @@ class Cookbook(SimplePackage):
             recipes.
         name(str): designates the name of the class which should be identical
             to the section of the Idea instance with relevant settings.
-        auto_publish(bool): whether to call the 'publish' method when the
+        auto_draft(bool): whether to call the 'publish' method when the
             class is instanced. If you do not plan to make any adjustments to
             the steps, techniques, or algorithms beyond the Idea configuration,
             this option should be set to True. If you plan to make such
             changes, 'publish' should be called when those changes are
             complete.
-        auto_implement(bool): whether to call the 'implement' method when the
+        auto_publish(bool): whether to call the 'implement' method when the
             class is instanced.
 
     Since this class is a subclass to SimplePackage and SimpleClass, all
@@ -72,8 +71,8 @@ class Cookbook(SimplePackage):
     recipes: object = None
     steps: object = None
     name: str = 'chef'
-    auto_publish: bool = True
-    auto_implement: bool = False
+    auto_draft: bool = True
+    auto_publish: bool = False
     lazy_import: bool = False
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
@@ -96,7 +95,7 @@ class Cookbook(SimplePackage):
                                             name = 'recipe')
                 if self.export_all_recipes:
                     self.save_recipes(recipes = recipe)
-                if 'reduce' in self.sequence and recipe.reduce != 'none':
+                if 'reduce' in self.order and recipe.reduce != 'none':
                     self.ingredients.save_dropped(folder = self.depot.recipe)
                 else:
                     self.ingredients.save_dropped(
@@ -189,22 +188,12 @@ class Cookbook(SimplePackage):
         return self
 
     def edit_recipes(self, recipes):
-        """Adds a single recipe or list of recipes to 'recipes' attribute.
-
+        """Adds a recipe or list of recipes to 'recipes' attribute.
         Args:
-            recipes(Recipe, list(Recipe), or dict(int, Recipe)): recipes to be
-                added into 'recipes' attribute.
+            recipes(dict(str/int: Recipe or list(dict(str/int: Recipe)): 
+                recipe(s) to be added to 'recipes'.
         """
-        if self.recipes is None:
-            setattr(self, self.iterator, {})
-        if recipes:
-            if isinstance(recipes, dict):
-                recipes = list(recipes.values())
-                last_num = list(self.recipes.keys())[-1:]
-            else:
-                last_num = 0
-            for i, recipe in enumerate(self.listify(recipes)):
-                self.recipes.update({last_num + i + 1: recipe})
+        self.edit_comparers(comparers = recipes)
         return self
 
     def implement(self, ingredients = None, previous_package = None):
@@ -246,7 +235,7 @@ class Recipe(SimplePlan):
             (strings) and values of SimplePackage subclass instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     """
@@ -254,7 +243,7 @@ class Recipe(SimplePlan):
     number: int = 0
     steps: object = None
     name: str = 'recipe'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         self.idea_sections = ['chef']
@@ -285,14 +274,14 @@ class Recipe(SimplePlan):
         super().draft()
         if not self.options:
             self.options = DEFAULT_OPTIONS
-        self.sequence_setting = 'chef_steps'
+        self.order_setting = 'chef_steps'
         self.variable_to_store = 'ingredients'
         self.is_comparer = True
         return self
 
     def implement(self, ingredients):
         """Applies the recipe steps to the passed ingredients."""
-        sequence = self.sequence.copy()
+        sequence = self.order.copy()
         self.ingredients = ingredients
         self.ingredients.split_xy(label = self.label)
         if self._calculate_hyperparameters:
@@ -300,7 +289,7 @@ class Recipe(SimplePlan):
         # If using cross-validation or other data splitting technique, the
         # pre-split methods apply to the 'x' data. After the split, steps
         # must incorporate the split into 'x_train' and 'x_test'.
-        for step in self.sequence:
+        for step in self.order:
             sequence.remove(step)
             if step == 'split':
                 break

@@ -47,9 +47,9 @@ class Review(SimplePackage):
             classes for analyzing fitted models.
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class.
-        auto_publish(bool): whether to call the 'publish' method when the
+        auto_draft(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement(bool): whether to call the 'implement' method when the
+        auto_publish(bool): whether to call the 'implement' method when the
             class is instanced.
 
     Since this class is a subclass to SimplePackage and SimpleClass, all
@@ -58,8 +58,8 @@ class Review(SimplePackage):
     """
     steps: object = None
     name: str = 'critic'
-    auto_publish: bool = True
-    auto_implement: bool = False
+    auto_draft: bool = True
+    auto_publish: bool = False
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
@@ -98,7 +98,7 @@ class Review(SimplePackage):
             if self.verbose:
                 print('Reviewing', recipe.name, str(number))
             step_reviews = {}
-            for step in self.sequence:
+            for step in self.order:
                 getattr(self, step).implement(recipe = recipe)
                 self._infuse_return_variables(instance = getattr(self, step))
                 if step in ['score']:
@@ -114,7 +114,7 @@ class Narrative(SimplePlan):
     number: int = 0
     steps: object = None
     name: str = 'narrative'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         self.idea_sections = ['critic']
@@ -127,13 +127,13 @@ class Narrative(SimplePlan):
         super().draft()
         if not self.options:
             self.options = DEFAULT_OPTIONS
-        self.sequence_setting = 'critic_steps'
+        self.order_setting = 'critic_steps'
         self.is_comparer = True
         return self
 
     def implement(self, recipe):
         """Applies the recipe steps to the passed ingredients."""
-        for step in self.sequence:
+        for step in self.order:
             if step in ['summary']:
                 pass
             elif step in ['prediction', 'probabilities', 'explanation']:
@@ -220,12 +220,12 @@ class Article(SimpleClass):
     def _set_columns(self, recipe):
         self.required_columns = {
             'recipe_number': 'number',
-            'options': 'sequence',
+            'options': 'order',
             'seed': 'seed',
             'validation_set': 'using_val_set'}
         self.columns = list(self.required_columns.keys())
-        self.columns.extend(recipe.sequence)
-        for step in self.sequence:
+        self.columns.extend(recipe.order)
+        for step in self.order:
             if (hasattr(getattr(self, step), 'columns')
                     and getattr(self, step).name != 'summarize'):
                 self.columns.extend(getattr(self, step).columns)

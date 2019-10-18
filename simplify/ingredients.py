@@ -95,7 +95,7 @@ class Ingredients(SimpleClass):
             values for columns in a DataFrames or Series. Ingredients assumes
             that all data containers within the instance are related and share a
             pool of column names and types.
-        auto_publish(bool): whether 'publish' method should be called when the
+        auto_draft(bool): whether 'publish' method should be called when the
             class is instanced. This should generally be set to True.
         state_dependent(bool): whether this class is depending upon the current
             state in the siMpLify package. Unless the user is radically changing
@@ -118,7 +118,7 @@ class Ingredients(SimpleClass):
     _y_val: object = None
     datatypes: object = None
     prefixes: object = None
-    auto_publish: bool = True
+    auto_draft: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
     
     def __post_init__(self):

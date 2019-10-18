@@ -45,8 +45,8 @@ class SimpleClass(ABC):
         4) implement: applies those publishd objects to passed variables
             (usually data).
 
-    If the subclass includes boolean attributes of 'auto_publish' or
-    'auto_implement', and those attributes are set to True, then the 'publish'
+    If the subclass includes boolean attributes of 'auto_draft' or
+    'auto_publish', and those attributes are set to True, then the 'publish'
     and/or 'implement' methods are called when the class is instanced.
 
     Args:
@@ -70,38 +70,40 @@ class SimpleClass(ABC):
         name(str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
             throughout the siMpLify package.
-        auto_publish(bool): whether to call the 'publish' method when the
+        auto_draft(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_implement(bool): whether to call the 'implement' method when the
+        auto_publish(bool): whether to call the 'implement' method when the
             class is instanced.
 
     """
+    auto_draft: bool = True
+    auto_draft: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
-
+    
     def __post_init__(self):
-        """Calls selected initialization methods."""
+        """Calls initialization methods and sets defaults."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
+        # Creates SimpleChecker instance to execute various validation and 
+        # initialization methods.
+        self.checker = SimpleChecker()
         # Sets default 'name' attribute if none exists.
-        self._run_checks(checks = ['name'])
+        self.checker.publish(checks = ['name'])
         # Sets initial values for subclass.
-        self.draft()
+        self.draft() 
         # Creates 'idea' attribute if a string is passed to Idea when subclass
         # was instanced.
         if self.__class__.__name__ == 'Idea':
             self.publish()
-            setattr(SimpleClass, 'idea', self)
+            self._inject_base(attribute = 'idea')
         elif self.__class__.__name__ != 'LazyImporter':
             # Injects parameters and attributes from shared Idea instance.
             self._inject_idea()
-        # Calls 'publish' method if 'auto_publish' is True.
-        if (hasattr(self, 'auto_publish')
-                and self.auto_publish
+        # Calls 'publish' method if 'auto_draft' is True.
+        if (hasattr(self, 'auto_draft')
+                and self.auto_draft
                 and self.__class__.__name__ != 'Idea'):
             self.publish()
-            # Calls 'implement' method if 'auto_implement' is True.
-            if hasattr(self, 'auto_implement') and self.auto_implement:
-                self.implement()
         return self
 
     """ Dunder Methods """
@@ -119,12 +121,18 @@ class SimpleClass(ABC):
         Returns:
             return value of 'implement' method.
 
+        Raises:
+            NotImplementedError: if called by Idea instance.
         """
-        self.idea = idea
-        self.auto_publish = True
-        self.auto_implement = False
-        self.__post_init__()
-        return self.implement(*args, **kwargs)
+        if self.__class__.__name__ == 'Idea':
+            error = 'Idea cannot be called as a function'
+            raise NotImplementedError(error)
+        else:
+            self.idea = idea
+            self.auto_draft = True
+            self.auto_publish = False
+            self.__post_init__()
+            return self.publish(*args, **kwargs)
 
     def __contains__(self, item):
         """Checks if item is in 'options'.
@@ -338,121 +346,6 @@ class SimpleClass(ABC):
         
     """ Private Methods """
 
-    def _check_depot(self):
-        """Adds a Depot instance with default settings as 'depot' attribute if
-        one was not passed when the subclass was instanced.
-        
-        Raises:
-            TypeError: if 'depot' is neither a str, None, or Depot instance.
-            
-        """
-        # Local import to avoid circular dependency.
-        from simplify import Depot
-        if self.exists('depot'):
-            if isinstance(self.depot, str):
-                self.depot = Depot(root_folder = self.depot)
-            elif isinstance(self.depot, Depot):
-                pass
-            else:
-                error = 'depot must be a string type or Depot instance'
-                raise TypeError(error)
-        else:
-            self.depot = Depot()
-        if not hasattr(SimpleClass, 'depot'):
-            setattr(SimpleClass, 'depot', self.depot)
-        return self
-
-    def _check_gpu(self):
-        """If gpu status is not set, checks if the local machine has a GPU
-        capable of supporting included machine learning algorithms.
-
-        Because the tensorflow 'is_gpu_available' method is very lenient in
-        counting what qualifies, it is recommended to set the 'gpu' attribute
-        directly or through an Idea instance.
-        """
-#        if hasattr(self, 'gpu'):
-#            if self.gpu and self.verbose:
-#                print('Using GPU')
-#            elif self.verbose:
-#                print('Using CPU')
-#        elif is_gpu_available:
-#            self.gpu = True
-#            if self.verbose:
-#                print('Using GPU')
-#        else:
-#            self.gpu = False
-#            if self.verbose:
-#                print('Using CPU')
-        return self
-
-    def _check_ingredients(self, ingredients = None):
-        """Checks if ingredients attribute exists and takes appropriate action.
-
-        If an 'ingredients' attribute exists, it determines if it contains a
-        file folder, file path, or Ingredients instance. Depending upon its
-        type, different actions are taken to actually create an Ingredients
-        instance.
-
-        If ingredients is None, then an Ingredients instance is
-        created with no pandas DataFrames or Series within it.
-
-        Args:
-            ingredients (Ingredients, a file path containing a DataFrame or
-                Series to add to an Ingredients instance, a folder
-                containing files to be used to compose Ingredients DataFrames
-                and/or Series, DataFrame, Series, or numpy array).
-                
-        Raises:
-            TypeError: if 'ingredients' is neither a str, None, DataFrame,
-                Series, numpy array, or Ingredients instance.
-            
-        """
-        # Local import to avoid circular dependency.
-        from simplify import Ingredients
-        # Assigns passed 'ingredients' to 'ingredients' attribute
-        if ingredients:
-            self.ingredients = ingredients
-        # If 'ingredients' is a data container, it is assigned to 'df' in a new
-        # instance of Ingredients assigned to 'ingredients'.
-        # If 'ingredients' is a file path, the file is loaded into a DataFrame
-        # and assigned to 'df' in a new Ingredients instance at 'ingredients'.
-        # If 'ingredients' is None, a new Ingredients instance is created and
-        # assigned to 'ingreidents' with no attached DataFrames.
-        if (isinstance(self.ingredients, pd.Series)
-                or isinstance(self.ingredients, pd.DataFrame)
-                or isinstance(self.ingredients, np.ndarray)):
-            self.ingredients = Ingredients(df = self.ingredients)
-        elif isinstance(self.ingredients, str):
-            if os.path.isfile(self.ingredients):
-                df = self.depot.load(folder = self.depot.data,
-                                     file_name = self.ingredients)
-                self.ingredients = Ingredients(df = df)
-            elif os.path.isdir(self.ingredients):
-                self.depot.create_glob(folder = self.ingredients)
-                self.ingredients = Ingredients()
-        elif self.ingredients is None:
-            self.ingredients = Ingredients()
-        else:
-            error = 'ingredients must be a string, DataFrame, or an instance'
-            raise TypeError(error)
-        return self
-
-    def _check_name(self):
-        """Sets 'name' attribute if one does not exist in subclass.
-
-        A separate 'name' attribute is used throughout the package so that
-        users can set their own naming conventions or use the names of parent
-        classes when subclassing without being dependent upon
-        __class__.__name__.
-
-        If no 'name' attribute exists (usually defined in the 'draft' method),
-        then __class__.__name__ is used as the default backup.
-
-        """
-        if not self.exists('name'):
-            self.name = self.__class__.__name__.lower()
-        return self
-
     def _convert_wildcards(self, value):
         """Converts 'all', 'default', or 'none' values to a list of items.
 
@@ -461,16 +354,16 @@ class SimpleClass(ABC):
 
         Returns:
             If 'all', all keys listed in 'options' dictionary are returned.
-            If 'default', 'default_operations' are returned or, if they don't
+            If 'default', 'default_steps' are returned or, if they don't
                 exist, all keys listed in 'options' dictionary are returned.
             Otherwise, 'techniques' is returned intact.
         """
         if value in ['all', ['all']]:
             return list(self.options.keys())
         elif value in ['default', ['default']]:
-            if (hasattr(self, 'default_operations')
-                    and self.default_operations):
-                return self.default_operations
+            if (hasattr(self, 'default_steps')
+                    and self.default_steps):
+                return self.default_steps
             else:
                 return list(self.options.keys())
         elif value in ['none', ['none'], None]:
@@ -500,22 +393,6 @@ class SimpleClass(ABC):
         if self.name in self.idea.configuration and not self.name in sections:
             sections.append(self.name)
         self = self.idea.inject(instance = self, sections = sections)
-        return self
-
-    def _run_checks(self, checks = None):
-        """Checks attributes from 'checks' and runs corresponding methods based
-        upon strings stored in 'checks'.
-
-        Those methods should have the prefix '_check_' followed by the string
-        in the attribute 'checks' and have no parameters other than 'self'. Any
-        subclass seeking to add new checks can add a new method using those
-        naming conventions.
-        """
-        if not checks and hasattr(self, 'checks'):
-            checks = self.checks
-        if checks:
-            for check in checks:
-                getattr(self, '_check_' + check)()
         return self
 
     """ Public Tool Methods """
@@ -830,4 +707,171 @@ class Stage(SimpleClass):
         else:
             error = new_state + ' is not a recognized data state'
             raise TypeError(error)
+
+
+@dataclass
+class SimpleChecker(SimpleClass):
+ 
+    def __post_init__(self):
+        self.draft()
+        return self 
+    
+    """ Private Methods """
+      
+    def _check_depot(self, instance):
+        """Adds a Depot instance with default settings as 'depot' attribute if
+        one was not passed when the subclass was instanced.
+        
+        Raises:
+            TypeError: if 'depot' is neither a str, None, or Depot instance.
+            
+        """
+        # Local import to avoid circular dependency.
+        from simplify import Depot
+        if instance.exists('depot'):
+            if isinstance(instance.depot, str):
+                instance.depot = Depot(root_folder = instance.depot)
+            elif isinstance(instance.depot, Depot):
+                pass
+            else:
+                error = 'depot must be a string type or Depot instance'
+                raise TypeError(error)
+        else:
+            instance.depot = Depot()
+        if not hasattr(SimpleClass, 'depot'):
+            setattr(SimpleClass, 'depot', instance.depot)
+        return instance
+
+    def _check_gpu(self, instance):
+        """If gpu status is not set, checks if the local machine has a GPU
+        capable of supporting included machine learning algorithms.
+
+        Because the tensorflow 'is_gpu_available' method is very lenient in
+        counting what qualifies, it is recommended to set the 'gpu' attribute
+        directly or through an Idea instance.
+        """
+#        if hasattr(self, 'gpu'):
+#            if instance.gpu and instance.verbose:
+#                print('Using GPU')
+#            elif instance.verbose:
+#                print('Using CPU')
+#        elif is_gpu_available:
+#            instance.gpu = True
+#            if instance.verbose:
+#                print('Using GPU')
+#        else:
+#            instance.gpu = False
+#            if instance.verbose:
+#                print('Using CPU')
+        return instance
+
+    def _check_ingredients(self, instance, ingredients = None):
+        """Checks if ingredients attribute exists and takes appropriate action.
+
+        If an 'ingredients' attribute exists, it determines if it contains a
+        file folder, file path, or Ingredients instance. Depending upon its
+        type, different actions are taken to actually create an Ingredients
+        instance.
+
+        If ingredients is None, then an Ingredients instance is
+        created with no pandas DataFrames or Series within it.
+
+        Args:
+            ingredients (Ingredients, a file path containing a DataFrame or
+                Series to add to an Ingredients instance, a folder
+                containing files to be used to compose Ingredients DataFrames
+                and/or Series, DataFrame, Series, or numpy array).
+                
+        Raises:
+            TypeError: if 'ingredients' is neither a str, None, DataFrame,
+                Series, numpy array, or Ingredients instance.
+            
+        """
+        # Local import to avoid circular dependency.
+        from simplify import Ingredients
+        # Assigns passed 'ingredients' to 'ingredients' attribute
+        if ingredients:
+            instance.ingredients = ingredients
+        # If 'ingredients' is a data container, it is assigned to 'df' in a new
+        # instance of Ingredients assigned to 'ingredients'.
+        # If 'ingredients' is a file path, the file is loaded into a DataFrame
+        # and assigned to 'df' in a new Ingredients instance at 'ingredients'.
+        # If 'ingredients' is None, a new Ingredients instance is created and
+        # assigned to 'ingreidents' with no attached DataFrames.
+        if (isinstance(instance.ingredients, pd.Series)
+                or isinstance(instance.ingredients, pd.DataFrame)
+                or isinstance(instance.ingredients, np.ndarray)):
+            instance.ingredients = Ingredients(df = instance.ingredients)
+        elif isinstance(instance.ingredients, str):
+            if os.path.isfile(instance.ingredients):
+                df = instance.depot.load(
+                    folder = instance.depot.data,
+                    file_name = instance.ingredients)
+                instance.ingredients = Ingredients(df = df)
+            elif os.path.isdir(instance.ingredients):
+                instance.depot.create_glob(folder = instance.ingredients)
+                instance.ingredients = Ingredients()
+        elif instance.ingredients is None:
+            instance.ingredients = Ingredients()
+        else:
+            error = 'ingredients must be a string, DataFrame, or an instance'
+            raise TypeError(error)
+        return instance
+
+    def _check_name(self, instance):
+        """Sets 'name' attribute if one does not exist in subclass.
+
+        A separate 'name' attribute is used throughout the package so that
+        users can set their own naming conventions or use the names of parent
+        classes when subclassing without being dependent upon
+        __class__.__name__.
+
+        If no 'name' attribute exists (usually defined in the 'draft' method),
+        then __class__.__name__ is used as the default backup.
+
+        """
+        if not instance.exists('name'):
+            instance.name = instance.__class__.__name__.lower()
+        return instance
+
+    """ Core siMpLify Methods """
+    
+    def draft(self):
+        self.checks = []
+        super().draft()
+        return self
+    
+    def publish(self, instance, checks = None):
+        """Checks attributes from 'checks' and runs corresponding methods based
+        upon strings stored in 'checks'.
+
+        Those methods should have the prefix '_check_' followed by the string
+        in the attribute 'checks'. Any subclass seeking to add new checks can 
+        add a new method using those naming conventions with the only passed
+        argument as 'self'.
   
+        Args:
+            instance(SimpleClass): instance to have checks run against.
+            checks(list or str): list or name of checks to be run. If not
+                passed, the list in the 'checks' attribute with be used.   
+                
+        Returns:
+            instance(SimpleClass): instance will modifications made based upon
+                checks performed.   
+        Raises:
+            AttributeError: if correspondig method name is neither in the
+                passed instance nor this class instance.
+        """
+        if not checks and hasattr(instance, 'checks'):
+            checks = instance.checks
+        if checks:
+            for check in self.listify(checks):
+                if check in instance.__dict__():
+                    getattr(instance, '_check_' + check)()
+                elif check in self.__dict__():
+                    instance = getattr(self, '_check_' + check)(
+                        instance = instance)
+                else:
+                    error = check + ' does not correspond to method name'
+                    raise AttributeError(error)
+        return instance

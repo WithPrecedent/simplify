@@ -37,7 +37,7 @@ class LazyImporter(SimpleClass):
     """
     
     name: str = 'lazy_loader'
-    auto_publish: bool = True
+    auto_draft: bool = True
     
     def __post_init__(self):
         super().__post_init__()
@@ -74,7 +74,7 @@ class LazyImporter(SimpleClass):
         """Returns whether option is being used."""
         if hasattr(instance, 'lazy_imports') and key in instance.lazy_imports:
             return True
-        elif hasattr(instance, 'sequence') and key in instance.sequence:
+        elif hasattr(instance, 'order') and key in instance.order:
             return True
         elif hasattr(instance, 'technique') and key in instance.technique:
             return True

@@ -36,7 +36,7 @@ class Search(ChefTechnique):
             algorithm.
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_publish (bool): whether 'publish' method should be called when
+        auto_draft (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to False for
             this class because of the complexity of adding a complete estimator
             before finalizing the search algorithm.
@@ -45,7 +45,7 @@ class Search(ChefTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'search'
-    auto_publish: bool = False
+    auto_draft: bool = False
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
     
     def __post_init__(self):

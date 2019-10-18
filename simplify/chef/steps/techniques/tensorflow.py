@@ -35,13 +35,13 @@ class TFModel(ChefTechnique):
             algorithm.
         name (str): name of class for matching settings in the Idea instance
             and for labeling the columns in files exported by Critic.
-        auto_publish (bool): whether 'publish' method should be called when
+        auto_draft (bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: object = None
     parameters: object = None
-    auto_publish: bool = True
+    auto_draft: bool = True
     name: str = 'tensorflow'
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
     

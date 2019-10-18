@@ -57,13 +57,13 @@ class Paint(SimpleIterable):
             creating data visualizations.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_publish(bool): whether to call the 'publish' method when the
+        auto_draft(bool): whether to call the 'publish' method when the
             class is instanced.
     """
 
     steps: object = None
     name: str = 'paint'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()

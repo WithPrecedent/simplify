@@ -41,7 +41,7 @@ class Model(ChefTechnique):
             instance or if the user wishes to use default parameters.
         name(str): designates the name of the class which should be identical
             to the section of the Idea instance with relevant settings.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     It is also a child class of SimpleClass. So, its documentation applies as
@@ -51,7 +51,7 @@ class Model(ChefTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'model'
-    auto_publish: bool = True
+    auto_draft: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):

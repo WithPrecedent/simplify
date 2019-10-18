@@ -39,14 +39,14 @@ class Explain(CriticTechnique):
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class and
             identically named subclasses.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     """
     technique: object = None
     parameters: object = None
     name: str = 'explanations'
-    auto_publish: bool = True
+    auto_draft: bool = True
     lazy_import:bool = False
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 

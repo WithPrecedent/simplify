@@ -41,7 +41,7 @@ class Eli5Explain(CriticTechnique):
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class and
             identically named subclasses.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     """
@@ -49,7 +49,7 @@ class Eli5Explain(CriticTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'eli5'
-    auto_publish: bool = True
+    auto_draft: bool = True
     options: Dict = field(default_factory = lambda: ELI5_DEFAULT_OPTIONS)
 
     def __post_init__(self):
@@ -98,7 +98,7 @@ class ShapExplain(CriticTechnique):
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class and
             identically named subclasses.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     """
@@ -106,7 +106,7 @@ class ShapExplain(CriticTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'shap_explanation'
-    auto_publish: bool = True
+    auto_draft: bool = True
     options: Dict = field(default_factory = lambda: SHAP_DEFAULT_OPTIONS)
 
     def __post_init__(self):
@@ -175,7 +175,7 @@ class SkaterExplain(CriticTechnique):
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class and
             identically named subclasses.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     """
@@ -183,7 +183,7 @@ class SkaterExplain(CriticTechnique):
     technique: object = None
     parameters: object = None
     name: str = 'skater'
-    auto_publish: bool = True
+    auto_draft: bool = True
     options: Dict = field(default_factory = lambda: SKATER_DEFAULT_OPTIONS)
     
     def __post_init__(self):

@@ -37,14 +37,14 @@ class Report(CriticTechnique):
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class and
             identically named subclasses.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     """
     technique: object = None
     parameters: object = None
     name: str = 'reports'
-    auto_publish: bool = True
+    auto_draft: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
     def __post_init__(self):
@@ -65,7 +65,7 @@ class Report(CriticTechnique):
 
     def draft(self):
         super().publish()
-        self.sequence_setting = 'report_techniques'
+        self.order_setting = 'report_techniques'
         return self
 
     def implement(self, recipe):

@@ -29,7 +29,7 @@ class Bale(SimpleIterable):
     """Class for combining different datasets."""
     technique: object = None
     parameters: object = None
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()

@@ -50,13 +50,13 @@ class Almanac(SimplePackage):
             prepared tools for the Almanac.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
-        auto_publish(bool): whether to call the 'publish' method when the
+        auto_draft(bool): whether to call the 'publish' method when the
             class is instanced. If you do not plan to make any
             adjustments to the steps, techniques, or algorithms beyond the
             Idea configuration, this option should be set to True. If you plan
             to make such changes, 'publish' should be called when those
             changes are complete.
-        auto_implement(bool): whether to call the 'implement' method when the
+        auto_publish(bool): whether to call the 'implement' method when the
             class is instanced.
 
     Since this class is a subclass to SimplePackage and SimpleClass, all
@@ -69,8 +69,8 @@ class Almanac(SimplePackage):
     steps: object = None
     plans: object = None
     name: str = 'chef'
+    auto_draft: bool = True
     auto_publish: bool = True
-    auto_implement: bool = True
 
     def __post_init__(self):
         """Sets up the core attributes of Harvest."""

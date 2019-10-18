@@ -1,6 +1,6 @@
 """
 .. module:: idea
-:synopsis: configures a siMpLify project
+:synopsis: converts an idea into a siMpLify project
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -42,14 +42,14 @@ class Idea(SimpleClass):
     of the shortcomings of the base ConfigParser getattr(self, name), including:
         1) All values in ConfigParser are strings by default.
         2) The nested structure for getting items creates verbose code.
-        3) It still OrderedDict (even though python 3.6+ has automatically
+        3) It uses OrderedDict (even though python 3.6+ has automatically
              orders regular dictionaries).
 
     To use the Idea class, the user can either pass to 'configuration':
         1) a file path, which will automatically be loaded into Idea;
         2) a file name which is located in the current working directory,
             which will automatically be loaded into Idea;
-            or,
+                                or,
         3) a prebuilt nested dictionary matching the specifications of the
         'configuration' attribute.
 
@@ -60,8 +60,16 @@ class Idea(SimpleClass):
     are automatically converted to appropriate datatypes (str, list, float,
     bool, and int are currently supported)
 
-    Users can add any key/value pairs in a section of the 'configuration'
+    Users can add any key/value pairs from a section of the 'configuration'
     dictionary as attributes to a class instance by using the 'inject' method.
+    This method is automatically called for certain types of settings:
+        'parameters': settings with the suffix '_parameters' are automatically
+            added to classes where the prefix matches the class's 'name'.
+        'techniques': for subclasses of 'SimpleComparer', settings with the
+            suffix '_techniques' are automatically added to classes with the
+            prefix as the name of the attribute. These techniques are stored
+            in lists used to create the permutations of possible steps in 
+            subclasses of SimplePlan.
 
     For example, if the idea source file is as follows:
 
@@ -145,20 +153,20 @@ class Idea(SimpleClass):
         name(str): as with other classes in siMpLify, the name is used for
             coordinating between classes. If Idea is subclassed, it is
             generally a good idea to keep the 'name' attribute as 'idea'.
-        auto_publish(bool): whether to automatically call the 'publish'
+        auto_draft(bool): whether to automatically call the 'publish'
             method when the class is instanced. Unless adding an additional
             source for 'configuration' settings, this should be set to True.
-        auto_implement(bool): sets whether to automatically call the 'implement'
+        auto_publish(bool): sets whether to automatically call the 'implement'
             method when the class is instanced.
 
     """
+    name: str = 'idea'
     configuration: object = None
     depot: object = None
     ingredients: object = None
     infer_types: bool = True
-    name: str = 'idea'
-    auto_publish: bool = True
-    auto_implement: bool = False
+    auto_draft: bool = True
+    auto_publish: bool = False
     lazy_import: bool = False
 
     def __post_init__(self):
@@ -346,7 +354,7 @@ class Idea(SimpleClass):
         """Creates cartesian product of all plans."""
         if hasattr(instance, 'comparer') and instance.comparer:
             plans = []
-            for step in instance.sequence:
+            for step in instance.order:
                 key = step + '_techniques'
                 if key in self.configuration[instance.name]:
                     plans.append(self.listify(self._convert_wildcards(
@@ -357,9 +365,9 @@ class Idea(SimpleClass):
         return instance
 
     def _inject_sequence(self, instance, override):
-         if not instance.sequence or override:
-             instance.sequence = self.listify(instance._convert_wildcards(
-                self.configuration[instance.name][instance.sequence_setting]))
+         if not instance.order or override:
+             instance.order = self.listify(instance._convert_wildcards(
+                self.configuration[instance.name][instance.order_setting]))
          return instance
 
     def _load_from_ini(self, file_path = None):
@@ -486,7 +494,7 @@ class Idea(SimpleClass):
                     instance = instance,
                     override = override)
         if (instance.name in self.configuration
-                and hasattr(instance, 'sequence_setting')):
+                and hasattr(instance, 'order_setting')):
             instance = self._inject_sequence(
                     instance = instance,
                     override = override)

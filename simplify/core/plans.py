@@ -22,14 +22,14 @@ class SimplePlan(SimpleClass):
             of techniques to be applied in those steps.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     """
     number: int = 0
     steps: object = None
     name: str = 'generic_plan'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -67,7 +67,7 @@ class SimplePlan(SimpleClass):
 
 
 @dataclass
-class SimpleBatch(SimplePlan):
+class SimpleComparison(SimplePlan):
     """Contains steps to be completed in a siMpLify process.
 
     Args:
@@ -77,14 +77,14 @@ class SimpleBatch(SimplePlan):
             of techniques to be applied in those steps.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     """
     number: int = 0
     steps: object = None
     name: str = 'generic_batch'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -102,14 +102,14 @@ class SimpleSequence(SimplePlan):
             of techniques to be applied in those steps.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     """
     number: int = 0
     steps: object = None
     name: str = 'generic_sequence'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()

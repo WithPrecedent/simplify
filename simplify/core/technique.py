@@ -43,7 +43,7 @@ class SimpleTechnique(SimpleClass):
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class and
             identically named subclasses.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
 
     It is also a child class of SimpleClass. So, its documentation applies as
@@ -53,7 +53,7 @@ class SimpleTechnique(SimpleClass):
     technique: object = None
     parameters: object = None
     name: str = 'generic_technique'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()
@@ -105,14 +105,14 @@ class ChefTechnique(SimpleTechnique):
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class and
             identically named subclasses.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: object = None
     parameters: object = None
     name: str = 'generic_chef_technique'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         self.idea_sections = ['chef']
@@ -268,14 +268,14 @@ class CriticTechnique(SimpleTechnique):
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class and
             identically named subclasses.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: object = None
     parameters: object = None
     name: str = 'generic_critic_technique'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         self.idea_sections = ['critic']

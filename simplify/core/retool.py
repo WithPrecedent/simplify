@@ -55,11 +55,11 @@ class ReTool(SimpleClass):
     encoding: str = 'windows-1252'
     section_prefix: str = 'section'
     edit_prefixes: bool = True
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         self.draft()
-        if self.auto_publish:
+        if self.auto_draft:
             self.publish()
         return self
 
@@ -142,7 +142,7 @@ class ReTool(SimpleClass):
                           sections = self.sections,
                           datatypes = self.datatypes,
                           file_path = self.file_path,
-                          auto_publish = self.auto_publish,
+                          auto_draft = self.auto_draft,
                           encoding = self.encoding,
                           section_prefix = self.section_prefix,
                           flag_options = self.flag_options)
@@ -153,7 +153,7 @@ class ReTool(SimpleClass):
                            datatypes = self.datatypes,
                            flags = self.flags,
                            zipped = self.zipped,
-                           auto_publish = self.auto_publish,
+                           auto_draft = self.auto_draft,
                            section_prefix = self.section_prefix,
                            flag_options = self.flag_options)
             self.keys = tool.keys
@@ -191,12 +191,12 @@ class ReBuild(object):
     datatypes: str = 'datatypes'
     flags: object = None
     zipped: object = None
-    auto_publish: bool = True
+    auto_draft: bool = True
     section_prefix: str = 'section'
     flag_options: object = None
 
     def __post_init__(self):
-        if self.auto_publish:
+        if self.auto_draft:
             self.publish()
         return self
 
@@ -222,13 +222,13 @@ class ReLoad(object):
     sections: str = 'sections'
     datatypes: str = 'datatypes'
     file_path: str = ''
-    auto_publish: bool = True
+    auto_draft: bool = True
     encoding: str = 'windows-1252'
     section_prefix: str = 'section'
     flag_options: object = None
 
     def __post_init__(self):
-        if self.auto_publish:
+        if self.auto_draft:
             self.publish()
         return self
 

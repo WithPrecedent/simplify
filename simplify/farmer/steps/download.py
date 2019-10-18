@@ -23,14 +23,14 @@ class Download(FarmerTechnique):
             algorithm.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
-        auto_publish(bool): whether 'publish' method should be called when
+        auto_draft(bool): whether 'publish' method should be called when
             the class is instanced. This should generally be set to True.
     """
 
     technique: object = None
     parameters: object = None
     name: str = 'downloader'
-    auto_publish: bool = True
+    auto_draft: bool = True
 
     def __post_init__(self):
         super().__post_init__()
