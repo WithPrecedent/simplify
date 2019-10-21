@@ -41,14 +41,18 @@ class SimplePackage(SimpleClass):
     well.
 
     """
+    name: str = 'generic_package'
+    options: object = None
     steps: object = None
+    auto_draft: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
     """ Private Methods """
-    
+
     def _check_package(self):
         if not hasattr(self, 'return_variables'):
             self.return_variables = []
@@ -57,7 +61,7 @@ class SimplePackage(SimpleClass):
         if not hasattr(self, 'order'):
             self.order = []
         if not hasattr(self, 'steps'):
-            self.steps = {}    
+            self.steps = {}
         return self
 
     def _infuse_return_variables(self, instance, return_variables = None,
@@ -120,7 +124,7 @@ class SimplePackage(SimpleClass):
             steps(SimplePackage, SimpleTechnique, list(SimplePackage),
                   list(SimpleTechnique)): step(s) to be added into 'steps'
                   attribute.
-        
+
         Raises:
             KeyError if step in steps is not in options. To avoid this error,
                 either pass steps as a dict or edit the options first (using
@@ -135,7 +139,7 @@ class SimplePackage(SimpleClass):
                     raise KeyError(error)
                 self.steps.update({step: self.options[step]})
                 if not step in self.order:
-                    self.order.append(step)        
+                    self.order.append(step)
         return self
 
 
@@ -148,42 +152,42 @@ class SimpleComparer(SimplePackage):
     steps: object = None
     plans: object = None
     auto_draft: bool = True
-    auto_draft: bool = True
+    auto_publish: bool = True
 
     def __post_init__(self):
         super().__post_init__()
         return self
 
     """ Dunder Methods """
-    
+
     def __iter__(self):
         """Allows class instance to be directly iterated.
-        
+
         Returns:
             dict.items(): the iterable 'items' attribute of the dict attribute
                 stored in the value of 'comparer_iterable'.
         """
         return getattr(self, self.comparer_iterable).items()
-        
+
     """ Private Methods """
-    
+
     def _check_comparer(self):
         """Checks if necessary attributes exist for comparisons.
-        
-        If such attributes do not exist, they are created with default values.        
+
+        If such attributes do not exist, they are created with default values.
         """
         if not self.exists('comparer_iterable'):
-            self.comparer_iterable = 'plans'  
+            self.comparer_iterable = 'plans'
         if getattr(self, self.comparer_iterable) is None:
-            setattr(self, self.comparer_iterable, {})        
+            setattr(self, self.comparer_iterable, {})
         return self
 
     def _draft_comparer(self):
         """Injects Comparer class with needed attributes."""
         setattr(self.comparer, 'options', self.options)
-        setattr(self.comparer, 'order', self.order)        
+        setattr(self.comparer, 'order', self.order)
         return self
-    
+
     """ Core siMpLify methods """
 
     def draft(self):
@@ -197,7 +201,7 @@ class SimpleComparer(SimplePackage):
         'comparer_iterable'.
 
         Args:
-            comparers(dict(str/int: SimplePlan or list(dict(str/int: 
+            comparers(dict(str/int: SimplePlan or list(dict(str/int:
                 SimplePlan)): plan(s) to be added to the attribute named in
                 'comparer_iterable'.
         """
@@ -257,15 +261,15 @@ def SimpleSequencer(SimplePackage):
         return self
 
     """ Dunder Methods """
-    
+
     def __iter__(self):
         """Allows class instance to be directly iterated.
-        
+
         Returns:
             dict.items(): the iterable 'items' attribute of the 'steps' dict.
         """
         return self.steps.items()
-        
+
     """ Core siMpLify methods """
 
     def publish(self):

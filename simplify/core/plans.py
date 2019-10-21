@@ -16,20 +16,27 @@ class SimplePlan(SimpleClass):
     """Contains steps to be completed in a siMpLify process.
 
     Args:
+        name(str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package.
         number(int): number of plan in a sequence - used for recordkeeping
             purposes.
         steps(dict(str: str)): keys are names of steps and values are names
             of techniques to be applied in those steps.
-        name(str): name of class for matching settings in the Idea instance
-            and elsewhere in the siMpLify package.
-        auto_draft(bool): whether 'publish' method should be called when
-            the class is instanced. This should generally be set to True.
+        auto_draft(bool): whether to call the 'publish' method when the class
+            is instanced.
+        auto_publish(bool): whether to call the 'publish' method when the
+            class is instanced.
+
+    It is also a child class of SimpleClass. So, its documentation applies as
+    well.
 
     """
+    name: str = 'generic_plan'
     number: int = 0
     steps: object = None
-    name: str = 'generic_plan'
     auto_draft: bool = True
+    auto_publish: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -65,56 +72,6 @@ class SimplePlan(SimpleClass):
         self.steps = new_steps
         return self
 
-
-@dataclass
-class SimpleComparison(SimplePlan):
-    """Contains steps to be completed in a siMpLify process.
-
-    Args:
-        number(int): number of plan in a sequence - used for recordkeeping
-            purposes.
-        steps(dict(str: str)): keys are names of steps and values are names
-            of techniques to be applied in those steps.
-        name(str): name of class for matching settings in the Idea instance
-            and elsewhere in the siMpLify package.
-        auto_draft(bool): whether 'publish' method should be called when
-            the class is instanced. This should generally be set to True.
-
-    """
-    number: int = 0
-    steps: object = None
-    name: str = 'generic_batch'
-    auto_draft: bool = True
-
-    def __post_init__(self):
-        super().__post_init__()
-        return self
-
-
-@dataclass
-class SimpleSequence(SimplePlan):
-    """Contains steps to be completed in a siMpLify process.
-
-    Args:
-        number(int): number of plan in a sequence - used for recordkeeping
-            purposes.
-        steps(dict(str: str)): keys are names of steps and values are names
-            of techniques to be applied in those steps.
-        name(str): name of class for matching settings in the Idea instance
-            and elsewhere in the siMpLify package.
-        auto_draft(bool): whether 'publish' method should be called when
-            the class is instanced. This should generally be set to True.
-
-    """
-    number: int = 0
-    steps: object = None
-    name: str = 'generic_sequence'
-    auto_draft: bool = True
-
-    def __post_init__(self):
-        super().__post_init__()
-        return self
-    
     def implement(self, variable, *args, **kwargs):
         if hasattr(self, 'variable_to_store'):
             setattr(self, self.variable_to_store, variable)

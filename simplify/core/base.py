@@ -70,27 +70,27 @@ class SimpleClass(ABC):
         name(str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
             throughout the siMpLify package.
-        auto_draft(bool): whether to call the 'publish' method when the
-            class is instanced.
-        auto_publish(bool): whether to call the 'implement' method when the
+        auto_draft(bool): whether to call the 'publish' method when the class
+            is instanced.
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
 
     """
     auto_draft: bool = True
     auto_draft: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
-    
+
     def __post_init__(self):
         """Calls initialization methods and sets defaults."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Creates SimpleChecker instance to execute various validation and 
+        # Creates SimpleChecker instance to execute various validation and
         # initialization methods.
         self.checker = SimpleChecker()
         # Sets default 'name' attribute if none exists.
         self.checker.publish(checks = ['name'])
         # Sets initial values for subclass.
-        self.draft() 
+        self.draft()
         # Creates 'idea' attribute if a string is passed to Idea when subclass
         # was instanced.
         if self.__class__.__name__ == 'Idea':
@@ -236,114 +236,114 @@ class SimpleClass(ABC):
     #     return self.name
 
     """ Properties """
-  
+
     @property
     def training(self):
         """Returns which training DataFrames are currently active.
-        
+
         Returns:
             str: currently active training data name ('train', 'test', 'val',
                 or 'full').
-            
+
         """
         if not self.exists('_training'):
-            self._training = DataState(state = 'train') 
+            self._training = DataState(state = 'train')
         return self._training
-    
+
     @training.setter
     def training(self, new_state):
         """Sets which training DataFrames are currently active.
-        
+
         Args:
-            new_state(str): currently active training data name ('train', 
+            new_state(str): currently active training data name ('train',
                 'test', 'val', or 'full').
-            
+
         """
         if not self.exists('_training'):
-            self._training = DataState()  
+            self._training = DataState()
         self._training.change(new_state)
         return self
-    
+
     @property
     def testing(self):
         """Returns which testing DataFrames are currently active.
-        
+
         Returns:
             str: currently active testing data name ('train', 'test', 'val',
                 or 'full').
-            
+
         """
         if not self.exists('_testing'):
-            self._testing = DataState(state = 'test')  
+            self._testing = DataState(state = 'test')
         return self._testing
-    
+
     @testing.setter
     def testing(self, new_state):
         """Sets which testing DataFrames are currently active.
-        
+
         Args:
-            new_state(str): currently active testing data name ('train', 
+            new_state(str): currently active testing data name ('train',
                 'test', 'val', or 'full').
-            
-        """ 
+
+        """
         if not self.exists('_testing'):
-            self._testing = DataState() 
+            self._testing = DataState()
         self._testing.change(new_state)
         return self
 
-    
+
     @property
     def validation(self):
         """Returns which validation DataFrames are currently active.
-        
+
         Returns:
             str: currently active validation data name ('train', 'test', 'val',
                 or 'full').
-            
+
         """
         if not self.exists('_validation'):
-            self._validation = DataState(state = 'val') 
+            self._validation = DataState(state = 'val')
         return self._validation
-    
+
     @validation.setter
     def validation(self, new_state):
         """Sets which validation DataFrames are currently active.
-        
+
         Args:
-            new_state(str): currently active validation data name ('train', 
+            new_state(str): currently active validation data name ('train',
                 'test', 'val', or 'full').
-            
-        """ 
+
+        """
         if not self.exists('_validation'):
-            self._validation = DataState() 
+            self._validation = DataState()
         self._validation.change(new_state)
         return self
-      
+
     @property
     def stage(self):
         """Returns the shared stage for the overall siMpLify package.
-        
+
         Returns:
             str: active state.
-            
+
         """
         if not self.exists('_stage_state'):
             self._stage_state = Stage()
         return self._stage_state
-    
+
     @stage.setter
     def stage(self, new_stage):
         """Sets the shared stage for the overall siMpLify package
-        
+
         Args:
             new_stage(str): active state.
-            
+
         """
         if not self.exists('_stage_state'):
             self._stage_state = Stage()
         self._stage_state.change(new_stage)
         return self
-        
+
     """ Private Methods """
 
     def _convert_wildcards(self, value):
@@ -624,35 +624,35 @@ class SimpleClass(ABC):
 
 @dataclass
 class DataState(SimpleClass):
-    
+
     state: str = 'train'
-    
+
     def __post_init__(self):
         self.draft()
         return self
-    
+
     def __repr__(self):
         """Returns string name of 'state'."""
         return self.__str__()
-    
+
     def __str__(self):
         """Returns string name of 'state'."""
         return self.state
 
     def draft(self):
         # Sets possible states
-        self.states = ['train', 'test', 'val', 'full']        
+        self.states = ['train', 'test', 'val', 'full']
         return self
-        
+
     def change(self, new_state):
         """Changes 'state' to 'new_state'.
-        
+
         Args:
             new_state(str): name of new state matching a string in 'states'.
-            
+
         Raises:
             TypeError: if new_state is not in 'states'.
-    
+
         """
         if new_state in self.states:
             self.state = new_state
@@ -667,11 +667,11 @@ class Stage(SimpleClass):
     def __post_init__(self):
         self.draft()
         return self
-    
+
     def __repr__(self):
         """Returns string name of 'state'."""
         return self.__str__()
-    
+
     def __str__(self):
         """Returns string name of 'state'."""
         return self.state
@@ -685,22 +685,22 @@ class Stage(SimpleClass):
             else:
                 self.states.append(stage)
         self.state = self.states[0]
-        return self                 
-                
+        return self
+
     def draft(self):
         # Sets possible states
-        self._set_states()     
+        self._set_states()
         return self
-       
+
     def change(self, new_state):
         """Changes 'state' to 'new_state'.
-        
+
         Args:
             new_state(str): name of new state matching a string in 'states'.
-            
+
         Raises:
             TypeError: if new_state is not in 'states'.
-    
+
         """
         if new_state in self.states:
             self.state = new_state
@@ -711,20 +711,20 @@ class Stage(SimpleClass):
 
 @dataclass
 class SimpleChecker(SimpleClass):
- 
+
     def __post_init__(self):
         self.draft()
-        return self 
-    
+        return self
+
     """ Private Methods """
-      
+
     def _check_depot(self, instance):
         """Adds a Depot instance with default settings as 'depot' attribute if
         one was not passed when the subclass was instanced.
-        
+
         Raises:
             TypeError: if 'depot' is neither a str, None, or Depot instance.
-            
+
         """
         # Local import to avoid circular dependency.
         from simplify import Depot
@@ -781,11 +781,11 @@ class SimpleChecker(SimpleClass):
                 Series to add to an Ingredients instance, a folder
                 containing files to be used to compose Ingredients DataFrames
                 and/or Series, DataFrame, Series, or numpy array).
-                
+
         Raises:
             TypeError: if 'ingredients' is neither a str, None, DataFrame,
                 Series, numpy array, or Ingredients instance.
-            
+
         """
         # Local import to avoid circular dependency.
         from simplify import Ingredients
@@ -835,29 +835,29 @@ class SimpleChecker(SimpleClass):
         return instance
 
     """ Core siMpLify Methods """
-    
+
     def draft(self):
         self.checks = []
         super().draft()
         return self
-    
+
     def publish(self, instance, checks = None):
         """Checks attributes from 'checks' and runs corresponding methods based
         upon strings stored in 'checks'.
 
         Those methods should have the prefix '_check_' followed by the string
-        in the attribute 'checks'. Any subclass seeking to add new checks can 
+        in the attribute 'checks'. Any subclass seeking to add new checks can
         add a new method using those naming conventions with the only passed
         argument as 'self'.
-  
+
         Args:
             instance(SimpleClass): instance to have checks run against.
             checks(list or str): list or name of checks to be run. If not
-                passed, the list in the 'checks' attribute with be used.   
-                
+                passed, the list in the 'checks' attribute with be used.
+
         Returns:
             instance(SimpleClass): instance will modifications made based upon
-                checks performed.   
+                checks performed.
         Raises:
             AttributeError: if correspondig method name is neither in the
                 passed instance nor this class instance.
