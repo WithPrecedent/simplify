@@ -7,20 +7,17 @@
 """
 
 # import __main__
-# from simplify.idea import Idea
-# from simplify.depot import Depot
-# from simplify.ingredients import Ingredients
-# from simplify.core.controller import Simplify
-# from simplify.core.decorators import timer
+from simplify.idea import Idea
+from simplify.depot import Depot
+from simplify.ingredients import Ingredients
+from simplify.core.decorators import timer
 
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-# __all__ = ['__main__',
-#            'Idea',
-#            'Depot',
-#            'Ingredients',
-#            'Simplify',
-#            'timer']
+__all__ = ['Idea',
+           'Depot',
+           'Ingredients',
+           'timer']

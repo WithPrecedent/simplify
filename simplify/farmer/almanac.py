@@ -165,7 +165,7 @@ class Almanac(SimplePackage):
         if self.verbose:
             print('Preparing Harvest')
         self._publish_draft_class()
-        self._publish_steps()
+        self._publish_techniques()
         self._publish_draft()
         if hasattr(self, '_set_folders'):
             self._set_folders()

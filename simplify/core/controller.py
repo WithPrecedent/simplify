@@ -6,9 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclasses
+from dataclasses import dataclass
 
-from simplify.core.decorators import localize
 from simplify.core.package import SimplePackage
 
 
@@ -35,6 +34,8 @@ class Simplify(SimplePackage):
         super().__post_init__()
         return self
 
+    """ Dunder Methods """
+    
     def __call__(self, ingredients = None):
         """Calls the class as a function.
 
@@ -50,6 +51,8 @@ class Simplify(SimplePackage):
         self.publish(ingredients = ingredients)
         return self
 
+    """ Private Methods """
+    
     def _publish_dangerous(self):
         """Implements steps without concern for memory consumption."""
         first_step = True

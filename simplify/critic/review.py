@@ -127,7 +127,7 @@ class Narrative(SimplePlan):
         super().draft()
         if not self.options:
             self.options = DEFAULT_OPTIONS
-        self.order_setting = 'critic_steps'
+        self.order_setting = 'critic_techniques'
         self.is_comparer = True
         return self
 

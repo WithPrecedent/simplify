@@ -25,7 +25,7 @@ idea_file = os.path.join(os.getcwd(), 'examples', 'cancer_settings.ini')
 # Creates siMpLify project, automatically configuring the process based upon
 # settings in the 'idea_file'.
 cancer_project = Idea(
-    configuration = idea_file,
+    options = idea_file,
     depot = root_folder,
     ingredients = df)
 

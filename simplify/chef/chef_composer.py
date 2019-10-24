@@ -10,10 +10,13 @@ from dataclasses import dataclass
 from importlib import import_module
 
 from simplify.chef.search_composer import SearchComposer
-from simplify.core.compose import SimpleAlgorithm as Algorithm
+from simplify.core.compose import SimpleAlgorithm
 from simplify.core.compose import SimpleComposer as Composer
-from simplify.core.compose import SimpleTechnique as Technique
+from simplify.core.compose import SimpleTechnique
 from simplify.core.decorators import numpy_shield
+
+Algorithm = ChefAlgorithm
+Technique = ChefTechnique
 
 
 @dataclass
@@ -72,7 +75,7 @@ class ChefComposer(Composer):
         else:
             technique = getattr(self, '_'.join([step, technique]))
             algorithm = self._get_algorithm(technique = technique)
-            parameters = _get_parameters(
+            parameters = self._get_parameters(
                 technique = technique,
                 parameters = parameters)
             return Algorithm(
@@ -84,7 +87,7 @@ class ChefComposer(Composer):
                 space = self.space)
 
 @dataclass
-class ChefTechnique(Technique):
+class ChefTechnique(SimpleTechnique):
 
     name: str = 'chef_technique'
     module: str = None
@@ -98,7 +101,7 @@ class ChefTechnique(Technique):
     hyperparameter_search: bool = False
 
 @dataclass
-class ChefAlgorithm(Algorithm):
+class ChefAlgorithm(SimpleAlgorithm):
     """[summary]
 
     Args:

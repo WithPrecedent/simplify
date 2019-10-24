@@ -9,7 +9,7 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.packages import SimpleComparer
+from simplify.core.packages import SimplePackage
 from simplify.core.plans import SimplePlan
 
 Plan = Recipe
@@ -34,7 +34,7 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Cookbook(SimpleComparer):
+class Cookbook(SimplePackage):
     """Dynamically creates recipes for staging, machine learning, and data
     analysis using a unified interface and architecture.
 
@@ -197,7 +197,7 @@ class Cookbook(SimpleComparer):
         self.edit_comparers(comparers = recipes)
         return self
 
-    def implement(self, ingredients = None, previous_package = None):
+    def publish(self, ingredients = None, previous_package = None):
         """Completes an iteration of a Cookbook.
 
         Args:
@@ -224,6 +224,17 @@ class Cookbook(SimpleComparer):
             self.save_recipes(recipes = 'best')
         return self
 
+    """ Properties """
+
+    @property
+    def recipes(self):
+        return self.plans
+
+    @recipes.setter
+    def recipes(self, plans: dict):
+        self.plans = plans
+        return self  
+    
 
 @dataclass
 class Recipe(SimplePlan):
@@ -240,11 +251,10 @@ class Recipe(SimplePlan):
             the class is instanced. This should generally be set to True.
 
     """
-
+    name: str = 'recipe'
     number: int = 0
     steps: object = None
-    name: str = 'recipe'
-    auto_draft: bool = True
+    
 
     def __post_init__(self):
         self.idea_sections = ['chef']
@@ -275,7 +285,7 @@ class Recipe(SimplePlan):
         super().draft()
         if not self.options:
             self.options = DEFAULT_OPTIONS
-        self.order_setting = 'chef_steps'
+        self.order_setting = 'chef_techniques'
         self.variable_to_store = 'ingredients'
         self.is_comparer = True
         return self

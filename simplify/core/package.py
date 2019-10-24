@@ -31,16 +31,17 @@ class SimplePackage(SimpleClass):
         super().__post_init__()
         return self
 
-    def __iter__(self):
-        try:
-            return self.iterable.items()
-        except AttributeError:
-            return self.steps.items()
+    # def __iter__(self):
+    #     try:
+    #         return self.iterable.items()
+    #     except AttributeError:
+    #         return self.steps.items()
 
     """ Private Methods """
 
     def _check_order(self, override = False):
         """Creates ordering of class steps."""
+        print(self.name, 'checking order')
         if not self.order or override:
             try:
                 self.order = self.listify(self._convert_wildcards(
@@ -56,18 +57,18 @@ class SimplePackage(SimpleClass):
                         raise TypeError(error)
         return self
 
-    def _check_steps(self, override = False):
+    def _check_techniques(self, override = False):
         """Creates steps dict from order and options."""
         if not self.steps or override or isinstance(self.steps, list):
-            new_steps = {}
+            new_techniques = {}
             for step in self.order:
                 try:
-                    new_steps[step] = self.options[step]
+                    new_techniques[step] = self.options[step]
                 except KeyError:
-                    new_steps[step] = 'none'
+                    new_techniques[step] = 'none'
         return self
 
-    def _create_plans(self, override = False):
+    def _draft_plans(self, override = False):
         """Creates cartesian product of all plans."""
         plans = []
         for step in self.order:
@@ -99,9 +100,10 @@ class SimplePackage(SimpleClass):
     def draft(self):
         """Creates initial settings for class based upon Idea settings."""
         self.checks.append('order')
+        print(self.name, self._check_order)
         super().draft()
         if hasattr(self, 'comparer'):
-            self._create_plans()
+            self._draft_plans()
             try:
                 setattr(Plan, 'options', self.options)
                 setattr(Plan, 'order', self.order)
@@ -191,11 +193,11 @@ class SimplePlan(SimpleClass):
     """ Core siMpLify Methods """
 
     def draft(self):
-        new_steps = {}
+        new_techniques = {}
         for step, technique in self.steps.items():
-            new_steps.update({step: self.options[step](technique = technique)})
-            setattr(self, step, new_steps[step])
-        self.steps = new_steps
+            new_techniques.update({step: self.options[step](technique = technique)})
+            setattr(self, step, new_techniques[step])
+        self.steps = new_techniques
         return self
 
     def publish(self, variable, *args, **kwargs):
@@ -206,3 +208,5 @@ class SimplePlan(SimpleClass):
             if self.exists('return_variables'):
                 self._infuse_return_variables(instance = getattr(self, step))
         return self
+    
+Plan = SimplePlan 

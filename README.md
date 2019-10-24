@@ -101,7 +101,7 @@ For example, using the settings file, a user could create a cookbook of recipes 
     calculate_hyperparameters = True
     naming_classes = model, cleaver
     export_all_recipes = True
-    cookbook_steps = scaler, splitter, encoder, mixer, cleaver, sampler, reducer,   model
+    cookbook_techniques = scaler, splitter, encoder, mixer, cleaver, sampler, reducer,   model
     scaler = normalizer, minmax
     splitter = train_test
     encoder = target

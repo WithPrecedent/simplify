@@ -69,7 +69,7 @@ class SimpleClass(ABC):
         self.checker = SimpleChecker()
         self.checks = []
         # Sets default 'name' attribute if none exists.
-        self.checker.publish(checks = ['name'])
+        self = self.checker.publish(instance = self, checks = ['name'])
         # Sets initial values for subclass.
         self.draft()
         # Creates 'idea' attribute if a string is passed to Idea when subclass
@@ -482,7 +482,9 @@ class SimpleClass(ABC):
         Generally, the 'checks' attribute should be set here if the subclass
         wants to make use of related methods.
         """
-
+        # Runs attribute checks from list in 'checks' attribute (if it exists).
+        if self.__class__.__name__ != 'SimpleChecker':
+            self = self.checker.publish(instance = self)
         return self
 
     def edit(self, keys = None, values = None, options = None):
@@ -524,8 +526,7 @@ class SimpleClass(ABC):
                 publish method. But nothing precludes them from being added
                 to subclasses.
         """
-        # Runs attribute checks from list in 'checks' attribute (if it exists).
-        self._run_checks()
+
         return self
 
 
@@ -586,6 +587,8 @@ class SimpleChecker(SimpleClass):
         self.draft()
         return self
 
+    name: str = 'simple_checker'
+    
     """ Private Methods """
 
     def _check_depot(self, instance):
@@ -744,6 +747,8 @@ class SimpleChecker(SimpleClass):
         if not checks and hasattr(instance, 'checks'):
             checks = instance.checks
         if checks:
+            print(instance.name, instance.__dict__)
+            print('checks', checks)
             for check in self.listify(checks):
                 try:
                     getattr(instance, '_check_' + check)()

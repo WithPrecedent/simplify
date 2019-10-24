@@ -989,7 +989,7 @@ class Ingredients(SimpleClass):
         return []
 
 
-        @property
+    @property
     def training(self):
         """Returns which training DataFrames are currently active.
 
