@@ -16,47 +16,28 @@ from simplify.core.technique import CriticTechnique
 from simplify.critic.review import CriticTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
-subclass because siMpLify uses a lazy importing system. This locates the
-potential module importations in roughly the same place as normal module-level
-import commands. A SimpleClass subclass will, by default, add the
-DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
-to use another set of 'options' for a subclass, they just need to pass
-'options' when the class is instanced.
-"""
-DEFAULT_OPTIONS = {
-    'gini': ['self', '_get_sklearn_importances'],
-    'permutation': ['eli5.permutation_importance',
-                    'get_score_importances'],
-    'shap': ['self', '_get_sklearn_importances']}
-
-
 @dataclass
 class Rank(CriticTechnique):
-    """Determines feature importances through a variety of techniques.
+    """[summary]
 
     Args:
-        technique(str): name of technique.
-        parameters(dict): dictionary of parameters to pass to selected
-            algorithm.
-        name(str): designates the name of the class which is used throughout
-            siMpLify to match methods and settings with this class and
-            identically named subclasses.
-        auto_draft(bool): whether 'publish' method should be called when
-            the class is instanced. This should generally be set to True.
+        CriticTechnique ([type]): [description]
 
+    Returns:
+        [type]: [description]
     """
     technique: object = None
     parameters: object = None
     name: str = 'importances'
     auto_draft: bool = True
-    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
+    auto_publish: bool = False
 
     def __post_init__(self):
+        self.idea_sections = ['critic']
         super().__post_init__()
         return self
 
-    """ Private Methos """
+    """ Private Methods """
 
     def _get_permutation_importances(self, recipe):
         scorer = self.listify(self.metrics_techniques)[0]
@@ -66,7 +47,7 @@ class Rank(CriticTechnique):
                 y = getattr(recipe.ingredients, 'y_' + self.data_to_review))
         return np.mean(score_decreases, axis = 'columns')
 
-    def _get_sklearn_importances(self, recipe):
+    def _get_gini_importances(self, recipe):
         features = list(getattr(
                 recipe.ingredients, 'x_' + self.data_to_review).columns)
         if hasattr(recipe.model.algorithm, 'feature_importances_'):
@@ -82,6 +63,15 @@ class Rank(CriticTechnique):
             return np.abs(recipe.shap_explain.values).mean(0)
         else:
             return None
+
+    def _get_eli5_importances(self, recipe):
+        base_score, score_decreases = get_score_importances(score_func, X, y)
+        feature_importances = np.mean(score_decreases, axis=0)
+        from eli5 import show_weights
+        self.permutation_weights = show_weights(
+                self.permutation_importances,
+                feature_names = recipe.ingredients.columns.keys())
+        return self
 
     """ Core siMpLify Public Methods """
 

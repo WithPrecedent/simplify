@@ -6,15 +6,15 @@
 :license: Apache-2.0
 """
 
+from collections import namedtuple
 from functools import partial
-
-from simplify.builder.parameters import get_parameters
-
-
+from importlib import import_module
 
 """
 This module uses a traditional builder design pattern, with this module acting
-as the defacto class, to create algorithms for use in the siMpLify package.
+as the defacto builder class, to create algorithms for use in the siMpLify
+package. The director is any outside class or function which calls the builder
+to create an algorithm and corresponding parameters.
 
 Placing the builder functions here makes for more elegant code. To use these
 functions, the importation line at the top of module using the builder just
@@ -23,10 +23,10 @@ needs:
     import builder
 
 And then to create any new algorithm, the function calls are very
-straightforward and clear. For example, to create a new algorithm derived from
-the scikit-learn package, this is all that is required:
+straightforward and clear. For example, to create a new algorithm and
+corresponding parameters, this is all that is required:
 
-    builder.create_sklearn(parameters)
+    algorithm, parameters = builder.create(**builder_parameters)
 
 Putting the builder in __init__.py takes advantage of the automatic importation
 of the file when the folder is imported. As a result, the specific functions
@@ -38,119 +38,209 @@ which used the file for a builder design pattern, by Luna at:
 https://www.bnmetrics.com/blog/builder-pattern-in-python3-simple-version
 
 """
-technique = namedtuple('technique',
-    ['algorithm', 'parameters', 'default_parameters', 'extra_parameters',
-     'runtime_parameters', 'search_parameters', 'data'])
 
-def create(algorithm_type: str, technique: namedtuple):
-    """Calls appropriate function based upon 'algorithm_type' passed.
-
-    This method adds nothing to calling the functions directly. It is simply
-    included for easier external iteration and/or for those who prefer a generic
-    function for all builders.
+def create(configuration: dict, package: str, step: str, technique: str,
+           parameters: dict = None, runtimes: dict = None):
+    """Creates algorithm and corresponding parameters.
 
     Args:
-        algorithm_type(str): name of algorithm type to be created. It should
-            correspond to the suffix of one of the other functions in this
-            module (following the prefix 'create_').
-        *args, **kwargs: appropriate arguments to be passed to corresponding
-            builder function.
+        configuration (dict): settings dictionary from Idea instance.
+        package (str): name of siMpLify subpackage being used.
+        step (str): name of step in the subpackage being used.
+        technique (str): name of the particular technique for which an
+            algorithm and parameters are sought.
+        parameters (dict, optional): any preexisting parameters. If this is
+            passed, parameters from configuration will not be used. Defaults to
+            None.
+        runtimes (dict, optional): contains any parameters that can only be
+            added at runtime. The keys should match the name of the parameter
+            and the value should be a string matching the name of the attribute
+            in the Technique namedtuple that is used to extract parameter
+            information. Defaults to None.
 
     Returns:
-        instance of new class created by the builder.
-
-    Raises:
-        TypeError: if there is no corresponding function for creating a class
-            instance designated in 'algorithm_type'.
+        algorithm (object), parameters (dict): an algorithm object and
+            corresponding, finalized parameters.
 
     """
-    if algorithm_type in get_supported_types():
-        return locals()['create_' + algorithm_type](technique = technique)
+    techniques_module = import_module(
+        ''.join(['simplify.builder.', package, '_techniques']))
+    technique = get_technique(
+        configuration = configuration,
+        techniques_module = techniques_module,
+        step = step,
+        technique = technique)
+    algorithm = getattr(import_module(technique.module), technique.algorithm)
+    parameters = get_parameters(
+        configuration = configuration,
+        step = step,
+        technique = technique,
+        parameters = parameters,
+        runtimes = runtimes)
+    return module.TechniqueWrapper(
+        technique = technique.name,
+        algorithm = algorithm,
+        parameters = parameters,
+        data_parameters = technique.data_parameters)
+
+def get_technique(configuration: dict, techniques_module: str, step: str,
+                  technique: str, gpu: bool = False):
+    """[summary]
+
+    Args:
+        configuration (dict): [description]
+        techniques_module (str): [description]
+        step (str): [description]
+        technique (str): [description]
+        gpu (bool, optional): [description]. Defaults to False.
+    """
+    if configuration['general']['gpu']:
+        gpu_string = 'gpu'
     else:
-        error = algorithm_type + ' is not a valid class type'
-        raise TypeError(error)
+        gpu_string = ''
+    try:
+        return getattr(module, '_'.join([gpu_string, step, technique]))
+    except AttributeError:
+        return getattr(module, '_'.join([step, technique]))
 
-
-def simplify_alogorithm(technique: namedtuple):
-    """Creates algorithm or algorithm instance.
-
-    Args:
-        algorithm_type(str): name corresponding to the name of the algorithm
-            class to be created. Supported names are stored in
-            'algorithm_classes'.
-        draft_method(func): a replacement 'draft' method if the default method
-            is insufficient.
-        publish_method(func): a replacement 'publish' method if the default
-            method is insufficient.
-        instance_parameters(dict): parameters to be passed to an instance of
-            the new class. This parameter is optional. If it is not passed, a
-            class, and not a class instance, will be returned.
-
-    Returns:
-        techinique(Simplealgorithm): class or class instance of a
-            Simplealgorithm subclass.
-
-    """
-    algorithm_classes = {
-        'farmer': Farmeralgorithm,
-        'chef': Chefalgorithm,
-        'critic': Criticalgorithm,
-        'artist': Artistalgorithm}
-    algorithm = algorithm_classes[algorithm_type]
-    if draft_method:
-        algorithm.draft = draft_method
-    if publish_method:
-        algorithm.publish = publish_method
-    if instance_parameters:
-        algorithm = algorithm(**instance_parameters)
-    return algorithm
-
-def sklearn_algorithm(technique: namedtuple):
-    """Creates algorithm or algorithm instance.
+def get_parameters(configuration: dict, step: str, technique: namedtuple,
+                   parameters: dict, runtimes: dict = None):
+    """[summary]
 
     Args:
-        algorithm_type(str): name corresponding to the name of the algorithm
-            class to be created. Supported names are stored in
-            'algorithm_classes'.
-        draft_method(func): a replacement 'draft' method if the default method
-            is insufficient.
-        publish_method(func): a replacement 'publish' method if the default
-            method is insufficient.
-        instance_parameters(dict): parameters to be passed to an instance of
-            the new class. This parameter is optional. If it is not passed, a
-            class, and not a class instance, will be returned.
+        configuration (dict): [description]
+        step (str): [description]
+        technique (namedtuple): [description]
+        parameters (dict): [description]
+        runtimes (dict, optional): [description]. Defaults to None.
 
     Returns:
-        techinique(Simplealgorithm): class or class instance of a
-            Simplealgorithm subclass.
-
+        [type]: [description]
     """
-    algorithm_classes = {
-        'farmer': Farmeralgorithm,
-        'chef': Chefalgorithm,
-        'critic': Criticalgorithm,
-        'artist': Artistalgorithm}
-    algorithm = algorithm_classes[algorithm_type]
-    if draft_method:
-        algorithm.draft = draft_method
-    if publish_method:
-        algorithm.publish = publish_method
-    if instance_parameters:
-        algorithm = algorithm(**instance_parameters)
-    return algorithm
+    parameters = get_configuration_parameters(
+        configuration = configuration,
+        step = step,
+        technique = technique,
+        parameters = parameters)
+    parameters = get_selected_parameters(
+        technique = technique,
+        parameters = parameters)
+    parameters = get_extra_parameters(
+        technique = technique,
+        parameters = parameters)
+    parameters = get_runtime_parameters(
+        configuration = configuration,
+        step = step,
+        technique = technique,
+        parameters = parameters,
+        runtimes = runtimes)
+    parameters = get_conditional_parameters(
+        technique = technique,
+        parameters = parameters)
+    return parameters
 
+def get_configuration_parameters(configuration: dict, step: str,
+                                 technique: namedtuple, parameters: dict):
+    """
 
-def get_supported_types():
-    """Removes 'create_' from object names in locals() to create a list of
-    supported class types.
+    Args:
+        configuration (dict): [description]
+        step (str): [description]
+        technique (namedtuple): [description]
+        parameters (dict): [description]
 
     Returns:
-        algorithm_types(list): class types which have a corresponding builder
-            function for creation.
-
+        [type]: [description]
     """
-    algorithm_types = []
-    for builder_function in locals().keys():
-        if builder_function.startswith('create_'):
-            algorithm_types.append(builder_function[len('create_'):])
-    return algorithm_types
+    if parameters:
+        return parameters
+    else:
+        try:
+            parameters = configuration[''.join([technique.name, '_parameters'])]
+        except KeyError:
+            try:
+                parameters = configuration[''.join([step, '_parameters'])]
+            except KeyError:
+                pass
+    return parameters
+
+def get_selected_parameters(technique: namedtuple, parameters: dict):
+    """[summary]
+
+    Args:
+        technique (namedtuple): [description]
+        parameters (dict): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    try:
+        if technique.selected_parameters:
+            parameters_to_use = list(
+                technique.default_parameters.keys())
+            new_parameters = {}
+            for key, value in parameters.items():
+                if key in parameters_to_use:
+                    new_parameters.update({key: value})
+            parameters = new_parameters
+    except AttributeError:
+        pass
+    return parameters
+
+def get_extra_parameters(technique: namedtuple, parameters: dict):
+    """[summary]
+
+    Args:
+        technique (namedtuple): [description]
+        parameters (dict): [description]
+    """
+    try:
+        parameters.update(technique.extra_parameters)
+    except TypeError:
+        pass
+    return parameters
+
+def get_runtime_parameters(configuration: dict, step: str,
+                           technique: namedtuple, parameters: dict,
+                           runtimes: dict):
+    """[summary]
+
+    Args:
+        configuration (dict): [description]
+        step (str): [description]
+        technique (namedtuple): [description]
+        parameters (dict): [description]
+        runtimes (dict): [description]
+    """
+    try:
+        for key, value in technique.runtime_parameters.items():
+            try:
+                parameters.update({key: runtimes[value]})
+            except KeyError:
+                try:
+                    parameters.update({key: configuration['general'][value]})
+                except KeyError:
+                    try:
+                        parameters.update({key: configuration[step][value]})
+                    except KeyError:
+                        error = 'no matching runtime parameter found'
+                        raise KeyError(error)
+    except AttributeError:
+        pass
+    return parameters
+
+def get_conditional_parameters(technique: namedtuple, parameters: dict):
+    """[summary]
+
+    Args:
+        technique (namedtuple): [description]
+        parameters (dict): [description]
+    """
+    try:
+        parameters = technique.conditional_parameters(
+            technique = technique,
+            parameters = parameters)
+    except TypeError:
+        pass
+    return parameters
+

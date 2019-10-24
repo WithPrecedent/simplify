@@ -7,69 +7,49 @@
 """
 
 from configparser import ConfigParser
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from importlib import import_module
-from itertools import product
 import os
 import re
-from typing import Dict
 
 from simplify.core.base import SimpleClass
 from simplify.core.controller import Simplify
-from simplify.core.package import SimplePackage
-from simplify.core.loader import LazyImporter
-
-
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
-subclass because siMpLify uses a lazy importing system. This locates the
-potential module importations in roughly the same place as normal module-level
-import commands. A SimpleClass subclass will, by default, add the
-DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
-to use another set of 'options' for a subclass, they just need to pass
-'options' when the class is instanced.
-"""
-DEFAULT_OPTIONS = {}
 
 
 @dataclass
 class Idea(SimpleClass):
     """Converts a data science idea into python.
 
-    If configuration settings are imported from a file, Idea creates a nested
-    dictionary, converting dictionary values to appropriate datatypes, and
-    stores portions of the configuration dictionary as attributes in other
-    classes. Idea is based on python's ConfigParser. It seeks to cure some
-    of the shortcomings of the base ConfigParser getattr(self, name), including:
+    If 'options' are imported from a file, Idea creates a nested dictionary,
+    converting dictionary values to appropriate datatypes, and stores portions
+    of the 'options' dictionary as attributes in other classes. Idea is based
+    on python's ConfigParser. It seeks to cure some of the shortcomings of the
+    base ConfigParser getattr(self, name), including:
         1) All values in ConfigParser are strings by default.
         2) The nested structure for getting items creates verbose code.
-        3) It uses OrderedDict (even though python 3.6+ has automatically
-             orders regular dictionaries).
+        3) It uses OrderedDict (python 3.6+ orders regular dictionaries).
 
-    To use the Idea class, the user can either pass to 'configuration':
+    To use the Idea class, the user can either pass to 'options':
         1) a file path, which will automatically be loaded into Idea;
         2) a file name which is located in the current working directory,
             which will automatically be loaded into Idea;
                                 or,
         3) a prebuilt nested dictionary matching the specifications of the
-        'configuration' attribute.
-
-    Whichever option is chosen, the nested Idea dictionary is stored in the
-    attribute 'configuration'.
+        'options' attribute.
 
     If 'infer_types' is set to True (the default option), the dictionary values
     are automatically converted to appropriate datatypes (str, list, float,
     bool, and int are currently supported)
 
-    Users can add any key/value pairs from a section of the 'configuration'
+    Whichever option is chosen, the nested Idea dictionary is stored in the
+    attribute 'options'. However, dictionary access methods can either be
+    applied to the 'options' dictionary (e.g., idea.options['general']) or an
+    Idea instance (e.g., idea['general']). If using the dictionary 'update'
+    method, it is better to apply it to the Idea instance because the Idea
+    method is more flexible in handling different kinds of arguments.
+
+    Users can add any key/value pairs from a section of the 'options'
     dictionary as attributes to a class instance by using the 'inject' method.
-    This method is automatically called for certain types of settings:
-        'parameters': settings with the suffix '_parameters' are automatically
-            added to classes where the prefix matches the class's 'name'.
-        'techniques': for subclasses of 'SimpleComparer', settings with the
-            suffix '_techniques' are automatically added to classes with the
-            prefix as the name of the attribute. These techniques are stored
-            in lists used to create the permutations of possible steps in 
-            subclasses of SimplePlan.
 
     For example, if the idea source file is as follows:
 
@@ -84,7 +64,7 @@ class Idea(SimpleClass):
         random_test_chunk = True
 
         [chef]
-        chef_steps = split, reduce, model
+        chef_techniques = split, reduce, model
 
     'verbose' and 'file_type' will automatically be added to every siMpLify
     class because they are located in the 'general' section. If a subclass
@@ -109,7 +89,7 @@ class Idea(SimpleClass):
                 self.test_data = True
                 self.test_chunk = 500
                 self.random_test_chunk = True
-                self.cookbook_steps = ['split', 'reduce', 'model']
+                self.chef_techniques = ['split', 'reduce', 'model']
                 return self
 
     Regardless of the idea_sections added, all Idea settings can be similarly
@@ -123,51 +103,51 @@ class Idea(SimpleClass):
 
                             all return 43.
 
+    Within the siMpLify ecosystem, settings of two types take on particular
+    importance and are automatically injected to certain classes:
+        'parameters': settings with the suffix '_parameters' are automatically
+            added to classes where the prefix matches the class's 'name' or
+            'technique'.
+        'techniques': for subclasses of 'SimplePackage', settings with the
+            suffix '_techniques' are automatically added to classes with the
+            prefix as the name of the attribute. These techniques are stored
+            in lists used to create the permutations and/or sequences of
+            possible steps in subclasses of SimplePlan.
+
     Because Idea uses ConfigParser, it only allows 2-level dictionaries. The
     desire for accessibility and simplicity dictated this limitation.
 
-    Idea will also automatically inject any sections of the 'configuration'
-    as 'parameters' in a class instance if the section ends with '_parameters'
-    and the prefix matches either the 'name' or 'technique' attribute.
-
     Args:
-        configuration(str or dict): either a file path, file name, or two-level
+        name (str): as with other classes in siMpLify, the name is used for
+            coordinating between classes. If Idea is subclassed, it is
+            generally a good idea to keep the 'name' attribute as 'idea'.
+        options (str or dict): either a file path, file name, or two-level
             nested dictionary storing settings. If a file path is provided, a
             nested dict will automatically be created from the file and stored
-            in 'configuration'. If a file name is provided, Idea will look for
+            in 'options'. If a file name is provided, Idea will look for
             it in the current working directory and store its contents in
-            'configuration'. If a dict is provided, it should be nested into
+            'options'. If a dict is provided, it should be nested into
             sections with individual settings in key/value pairs.
-        depot(Depot or str): an instance of Depot or a string containing the
+        depot (Depot or str): an instance of Depot or a string containing the
             full path of where the root folder should be located for file
             output. Once a Depot instance is created, it is automatically made
             available to all other SimpleClass subclasses that are instanced in
             the future. If 'depot' is not passed, a default Depot instance will
             be created.
-        ingredients(Ingredients or str): an instance of Ingredients, a string
-            containing the full file path of where a data file for a pandas
-            DataFrame is located, or a string containing a file name in the
-            default data folder, as defined in the Depot instance.
-        infer_types(bool): whether values in 'configuration' are converted to
-            other types (True) or left as strings (False).
-        name(str): as with other classes in siMpLify, the name is used for
-            coordinating between classes. If Idea is subclassed, it is
-            generally a good idea to keep the 'name' attribute as 'idea'.
-        auto_draft(bool): whether to automatically call the 'publish'
-            method when the class is instanced. Unless adding an additional
-            source for 'configuration' settings, this should be set to True.
-        auto_publish(bool): sets whether to automatically call the 'implement'
-            method when the class is instanced.
+        ingredients (Ingredients, DataFrame, or str): an instance of
+            Ingredients, a string containing the full file path of where a data
+            file for a pandas DataFrame is located, or a string containing a
+            file name in the default data folder, as defined in the Depot
+            instance.
+        infer_types (bool): whether values in 'options' are converted to
+            other datatypes (True) or left as strings (False).
 
     """
     name: str = 'idea'
-    configuration: object = None
+    options: object = None
     depot: object = None
     ingredients: object = None
     infer_types: bool = True
-    auto_draft: bool = True
-    auto_publish: bool = False
-    lazy_import: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -176,119 +156,121 @@ class Idea(SimpleClass):
     """ Dunder Methods """
 
     def __add__(self, other):
+        """Adds new settings using the 'update' method.
+
+        Args:
+            other (Idea, dict, or str): an Idea instance, a nested dictionary,
+                or a file path to a configparser-compatible file.
+
+        """
         self.update(new_settings = other)
         return self
 
     def __contains__(self, item):
-        return item in self.configuration
+        """Returns whether item is in 'options'.
+
+        Args:
+            item (str): key to be checked for a match in 'options'.
+
+        """
+        return item in self.options
 
     def __delitem__(self, key):
         """Removes a dictionary section if 'key' matches the name of a section.
+
         Otherwise, it will remove all entries with 'key' inside the various
-        sections of the 'configuration' dictionary.
+        sections of the 'options' dictionary.
 
         Args:
-            key(str): the name of the dictionary key or section to be deleted.
+            key (str): the name of the dictionary key or section to be deleted.
 
         Raises:
-            KeyError: if 'key' not in 'configuration'.
+            KeyError: if 'key' not in 'options'.
         """
-        found_value = False
-        if key in self.configuration:
-            found_value = True
-            self.configuration.pop(key)
-        else:
-            for config_key, config_value in self.configuration.items():
-                if key in config_value:
-                    found_value = True
-                    self.configuration[config_key].pop(key)
-        if not found_value:
-            error = key + ' not found in idea dictionary'
-            raise KeyError(error)
+        try:
+            del self.options[item]
+        except KeyError:
+            for section in list(self.options.keys()):
+                try:
+                    del section[key]
+                except KeyError:
+                    error = key + ' not found in Idea options dictionary'
+                    raise KeyError(error)
         return self
 
-    def __getattr__(self, attr):
-        """Intercepts dict method calls and applies them to 'configuration'.
-
-        Args:
-            attr (str): attribute sought.
-
-        Returns:
-            The matching dict method, an attribute, or None, if a matching
-                attribute does not exist.
-
-        Raises:
-            AttributeError: if a dunder attribute is sought.
-        """
-        # Intecepts common dict methods and applies them to 'configuration'.
-        if attr in ['clear', 'items', 'pop', 'keys', 'values']:
-            return getattr(self.configuration, attr)
-        elif attr in self.__dict__:
-            return self.__dict__[attr]
-        elif attr.startswith('__') and attr.endswith('__'):
-            error = 'Access to magic methods not permitted through __getattr__'
-            raise AttributeError(error)
-        else:
-            error = attr + ' not found in ' + self.__class__.__name__
-            raise AttributeError(error)
-
     def __getitem__(self, key):
-        """Returns a section of 'configuration' or key within a section.
+        """Returns a section of 'options' or key within a section.
 
         Args:
-            key(str): the name of the dictionary key for which the value is
+            key (str): the name of the dictionary key for which the value is
                 sought.
 
         Returns:
-            dict if 'key' matches a section in 'configuration'. If 'key'
+            dict if 'key' matches a section in 'options'. If 'key'
                 matches a key within a section, the value, which can be any of
                 the supported datatypes is returned. If no match is found an
                 empty dict is returned.
+
         """
-        found_value = False
-        if key in self.configuration:
-            found_value = True
-            return self.configuration[key]
-        else:
-            for config_key, config_value in self.configuration.items():
-                if key in config_value:
-                    found_value = True
-                    return self.configuration[config_key]
-        if not found_value:
+        try:
+            return self.options[item]
+        except KeyError:
+            for section in list(self.options.keys()):
+                try:
+                    return section[key]
+                    break
+                except KeyError:
+                    continue
             return {}
 
     def __iadd__(self, other):
+        """Adds new settings using the 'update' method.
+
+        Args:
+            other (Idea, dict, or str): an Idea instance, a nested dictionary,
+                or a file path to a configparser-compatible file.
+
+        """
         self.update(new_settings = other)
         return self
 
     def __iter__(self):
-        """Returns iterable configuration dict items()."""
-        return self.configuration.items()
+        """Returns iterable options dict items()."""
+        return self.options.items()
 
     def __len__(self):
-        return len(self.configuration)
+        """Returns length of 'options'."""
+        return len(self.options)
 
     def __radd__(self, other):
+        """Adds new settings using the 'update' method.
+
+        Args:
+            other (Idea, dict, or str): an Idea instance, a nested dictionary,
+                or a file path to a configparser-compatible file.
+
+        """
         self.update(new_settings = other)
         return self
 
     def __setitem__(self, section, dictionary):
         """Creates new key/value pair(s) in a specified section of
-        'configuration'.
+        'options'.
 
         Args:
-            section(str): name of a section in 'configuration'.
-            dictionary(dict): the dictionary to be placed in that section.
+            section (str): name of a section in 'options'.
+            dictionary (dict): the dictionary to be placed in that section.
 
         Raises:
             TypeError if 'section' isn't a str or 'dictionary' isn't a dict.
+
         """
         if isinstance(section, str):
             if isinstance(dictionary, dict):
-                if section in self.configuration:
-                    self.configuration[section].update(dictionary)
+                if section in self.options:
+                    self.options[section].update(dictionary)
                 else:
-                    self.configuration[section] = dictionary
+                    self.options[section] = dictionary
             else:
                 error = 'dictionary must be dict type'
                 raise TypeError(error)
@@ -299,108 +281,46 @@ class Idea(SimpleClass):
 
     """ Private Methods """
 
-    def _check_configuration(self):
-        """Checks the datatype of 'configuration' and sets 'technique' to
-        properly publish 'configuration'.
-
-        Raises:
-            AttributeError: if 'configuration' is None.
-            TypeError: if 'configuration' is a path to a file that neither
-                has an 'ini' nor 'py' extension or if 'configuration' is
-                neither a str nor a dict.
-
-        """
-        if self.configuration:
-            if isinstance(self.configuration, str):
-                if self.configuration.endswith('.ini'):
-                    self.technique = self._load_from_ini
-                elif self.configuration.endswith('.py'):
-                    self.technique = self._load_from_py
-                else:
-                    error = 'configuration file must be .py or .ini file'
-                    raise TypeError(error)
-                if not os.path.isfile(os.path.abspath(self.configuration)):
-                    self.configuration = os.path.join(os.getcwd(),
-                                                      self.configuration)
-            elif not isinstance(self.configuration, dict):
-                error = 'configuration must be dict or file path'
-                raise TypeError(error)
-        else:
-            error = 'configuration dict or path needed to instance Idea'
-            raise AttributeError(error)
-        return self
-
     def _infer_types(self):
-        """If 'infer_types' is True, values in 'configuration' are converted to
+        """If 'infer_types' is True, values in 'options' are converted to
         the appropriate datatype.
         """
         if self.infer_types:
-            for section, dictionary in self.configuration.items():
+            for section, dictionary in self.options.items():
                 for key, value in dictionary.items():
-                    self.configuration[section][key] = self._typify(value)
+                    self.options[section][key] = self._typify(value)
         return self
 
-    def _inject_parameters(self, instance, override):
-        if instance.parameters is None or override:
-            key_technique = instance.technique + '_parameters'
-            key_name = instance.name + '_parameters'
-            if key_technique in self.idea.configuration:
-                instance.parameters = self.idea.configuration[key_technique]
-            elif key_name in self.idea.configuration:
-                instance.parameters = self.idea.configuration[key_name]
-        return instance
-
-    def _inject_plans(self, instance, override):
-        """Creates cartesian product of all plans."""
-        if hasattr(instance, 'comparer') and instance.comparer:
-            plans = []
-            for step in instance.order:
-                key = step + '_techniques'
-                if key in self.configuration[instance.name]:
-                    plans.append(self.listify(self._convert_wildcards(
-                            self.configuration[instance.name][key])))
-                else:
-                    plans.append(['none'])
-            instance.plans = list(map(list, product(*plans)))
-        return instance
-
-    def _inject_sequence(self, instance, override):
-         if not instance.order or override:
-             instance.order = self.listify(instance._convert_wildcards(
-                self.configuration[instance.name][instance.order_setting]))
-         return instance
-
     def _load_from_ini(self, file_path = None):
-        """Creates a configuration dictionary from an .ini file."""
+        """Creates a options dictionary from an .ini file."""
         if file_path:
-            configuration_file = file_path
+            options_file = file_path
         else:
-            configuration_file = self.configuration
-        if os.path.isfile(configuration_file):
-            configuration = ConfigParser(dict_type = dict)
-            configuration.optionxform = lambda option: option
-            configuration.read(configuration_file)
-            self.configuration = dict(configuration._sections)
+            options_file = self.options
+        if os.path.isfile(options_file):
+            options = ConfigParser(dict_type = dict)
+            options.optionxform = lambda option: option
+            options.read(options_file)
+            self.options = dict(options._sections)
         else:
-            error = 'configuration file ' + configuration_file + ' not found'
+            error = 'options file ' + options_file + ' not found'
             raise FileNotFoundError(error)
         return self
 
     def _load_from_py(self, file_path = None):
-        """Creates a configuration dictionary from an .py file.
+        """Creates a options dictionary from an .py file.
 
         Todo:
-            file_path(str): path to python module with 'configuration' dict
+            file_path(str): path to python module with 'options' dict
                 defined.
 
         """
         if file_path:
-            configuration_file = file_path
+            options_file = file_path
         else:
-            configuration_file = self.configuration
-        if os.path.isfile(configuration_file):
-            self.configuration = getattr(import_module(configuration_file),
-                                         'configuration')
+            options_file = self.options
+        if os.path.isfile(options_file):
+            self.options = getattr(import_module(options_file), 'options')
         return self
 
     @staticmethod
@@ -453,20 +373,8 @@ class Idea(SimpleClass):
     """ Public Tool Methods """
 
     def inject(self, instance, sections, override = False):
-        """Stores the section or sections of the 'configuration' dictionary in
+        """Stores the section or sections of the 'options' dictionary in
         the passed class instance as attributes to that class instance.
-
-        If the sought section has the '_parameters' suffix, the section is
-        returned as a single dictionary at instance.parameters (assuming that
-        it does not exist or 'override' is True).
-
-        If the sought key from a section has the '_steps' suffix, the value for
-        that key is stored at instance.steps (assuming that it does not exist
-        or 'override' is True).
-
-        If the sought key from a section has the '_techniques' suffix, the
-        value for that key is stored either at the attribute named the prefix
-        of the key (assuming that it does not exist or 'override' is True).
 
         Wildcard values of 'all', 'default', and 'none' are appropriately
         changed with the '_convert_wildcards' method.
@@ -474,10 +382,10 @@ class Idea(SimpleClass):
         Args:
             instance(object): a class instance to which attributes should be
                 added.
-            sections(str or list(str)): the sections of 'configuration' which
+            sections(str or list(str)): the sections of 'options' which
                 should be added to the instance.
             override(bool): if True, even existing attributes in instance will
-                be replaced by 'configuration' key/value pairs. If False,
+                be replaced by 'options' key/value pairs. If False,
                 current values in those similarly-named attributes will be
                 maintained (unless they are None).
 
@@ -486,79 +394,81 @@ class Idea(SimpleClass):
 
         """
         for section in self.listify(sections):
-            for key, value in self.configuration[section].items():
+            for key, value in self.options[section].items():
                 setattr(instance, key, instance._convert_wildcards(value))
-        # Injects appropriate 'parameters' into SimpleTechnique instance.
-        if hasattr(instance, 'parameters'):
-            instance = self._inject_parameters(
-                    instance = instance,
-                    override = override)
-        if (instance.name in self.configuration
-                and hasattr(instance, 'order_setting')):
-            instance = self._inject_sequence(
-                    instance = instance,
-                    override = override)
-            instance = self._inject_plans(
-                    instance = instance,
-                    override = override)
         return instance
 
     """ Core siMpLify Methods """
 
     def draft(self):
-        """Sets options to create 'configuration' dictionary and checks to run
-        on passed parameters."""
-        super().draft()
+        """Creates 'options' dictionary and core attributes for Idea instance.
+
+        Raises:
+            AttributeError: if 'options' is None.
+            TypeError: if 'options' is a path to a file that neither has an
+                'ini' nor 'py' extension or if 'options' is neither a str nor a
+                dict.
+
+        """
+        if self.options:
+            if isinstance(self.options, str):
+                if self.options.endswith('.ini'):
+                    self.technique = self._load_from_ini
+                elif self.options.endswith('.py'):
+                    self.technique = self._load_from_py
+                else:
+                    error = 'options file must be .py or .ini file'
+                    raise TypeError(error)
+                if not os.path.isfile(os.path.abspath(self.options)):
+                    self.options = os.path.join(os.getcwd(), self.options)
+            elif not isinstance(self.options, dict):
+                error = 'options must be dict or file path'
+                raise TypeError(error)
+        else:
+            error = 'options dict or path needed to instance Idea'
+            raise AttributeError(error)
+        try:
+            self.technique()
+        except TypeError:
+            pass
+        self._infer_types()
+        self._inject_base(attribute = 'idea')
         self.checks.extend(['depot', 'ingredients'])
-        # Creates instance of lazy importing class.
-        self.lazy = LazyImporter()
         return self
 
     def publish(self):
-        """Prepares instance of Idea by checking passed configuration
-        parameter and injecting Idea into SimpleClass.
-        """
-        self._check_configuration()
-        if hasattr(self, 'technique') and self.technique:
-            self.technique()
-        self._infer_types()
-        self._inject_base(attribute = 'idea')
+        """Finalizes Idea and calls siMpLify controller."""
         self.inject(instance = self, sections = ['general'])
         super().publish()
-        return self
-
-    def implement(self, ingredients = None):
-        if ingredients:
-            self.ingredients = ingredients
         self.simplify = Simplify()
-        self.simplify.implement(ingredients = self.ingredients)
+        self.simplify.publish(ingredients = self.ingredients)
         return self
 
     """ Python Dictionary Compatibility Methods """
 
     def update(self, new_settings):
-        """Adds new settings to the configuration dictionary.
+        """Adds new settings to the options dictionary.
 
         Args:
            new_settings(dict, str, or Idea): can either be a dicti or Idea
                object containing new key/value pairs, or a str containing a
-               file path from which new configuration options can be found.
+               file path from which new options options can be found.
 
         Raises:
             TypeError: if 'new_settings' is neither a dict, str, or Idea
                 instance.
         """
         if isinstance(new_settings, dict):
-            self.configuration.update(new_settings)
+            self.options.update(new_settings)
         elif isinstance(new_settings, str):
             if new_settings.endswith('.ini'):
                 technique = self._load_from_ini
             elif new_settings.endswith('.py'):
                 technique = self._load_from_py
-            self.configuration.update(technique(file_path = new_settings))
-        elif (hasattr(new_settings, 'configuration')
-                and isinstance(new_settings.configuration, dict)):
-            self.configuration.update(new_settings.configuration)
+            self.options.update(technique(file_path = new_settings))
+        elif (hasattr(new_settings, 'options')
+                and isinstance(new_settings.options, dict)):
+            self.options.update(new_settings.options)
         else:
             error = 'new_options must be dict, Idea, or file path'
             raise TypeError(error)

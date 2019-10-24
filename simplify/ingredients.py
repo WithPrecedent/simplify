@@ -120,7 +120,7 @@ class Ingredients(SimpleClass):
     prefixes: object = None
     auto_draft: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
-    
+
     def __post_init__(self):
         super().__post_init__()
         return self
@@ -891,7 +891,7 @@ class Ingredients(SimpleClass):
     def y_full(self):
         """Returns 'y' for easier DataState management."""
         return self.y
-    
+
     @property
     def booleans(self):
         return self._get_columns_by_type('boolean')
@@ -987,3 +987,127 @@ class Ingredients(SimpleClass):
     @property
     def mixers(self):
         return []
+
+
+        @property
+    def training(self):
+        """Returns which training DataFrames are currently active.
+
+        Returns:
+            str: currently active training data name ('train', 'test', 'val',
+                or 'full').
+
+        """
+        if not self.exists('_training'):
+            self._training = DataState(state = 'train')
+        return self._training
+
+    @training.setter
+    def training(self, new_state):
+        """Sets which training DataFrames are currently active.
+
+        Args:
+            new_state(str): currently active training data name ('train',
+                'test', 'val', or 'full').
+
+        """
+        if not self.exists('_training'):
+            self._training = DataState()
+        self._training.change(new_state)
+        return self
+
+    @property
+    def testing(self):
+        """Returns which testing DataFrames are currently active.
+
+        Returns:
+            str: currently active testing data name ('train', 'test', 'val',
+                or 'full').
+
+        """
+        if not self.exists('_testing'):
+            self._testing = DataState(state = 'test')
+        return self._testing
+
+    @testing.setter
+    def testing(self, new_state):
+        """Sets which testing DataFrames are currently active.
+
+        Args:
+            new_state(str): currently active testing data name ('train',
+                'test', 'val', or 'full').
+
+        """
+        if not self.exists('_testing'):
+            self._testing = DataState()
+        self._testing.change(new_state)
+        return self
+
+
+    @property
+    def validation(self):
+        """Returns which validation DataFrames are currently active.
+
+        Returns:
+            str: currently active validation data name ('train', 'test', 'val',
+                or 'full').
+
+        """
+        if not self.exists('_validation'):
+            self._validation = DataState(state = 'val')
+        return self._validation
+
+    @validation.setter
+    def validation(self, new_state):
+        """Sets which validation DataFrames are currently active.
+
+        Args:
+            new_state(str): currently active validation data name ('train',
+                'test', 'val', or 'full').
+
+        """
+        if not self.exists('_validation'):
+            self._validation = DataState()
+        self._validation.change(new_state)
+        return self
+
+
+
+@dataclass
+class DataState(SimpleClass):
+
+    state: str = 'train'
+
+    def __post_init__(self):
+        self.draft()
+        return self
+
+    def __repr__(self):
+        """Returns string name of 'state'."""
+        return self.__str__()
+
+    def __str__(self):
+        """Returns string name of 'state'."""
+        return self.state
+
+    def draft(self):
+        # Sets possible states
+        self.states = ['train', 'test', 'val', 'full']
+        return self
+
+    def change(self, new_state):
+        """Changes 'state' to 'new_state'.
+
+        Args:
+            new_state(str): name of new state matching a string in 'states'.
+
+        Raises:
+            TypeError: if new_state is not in 'states'.
+
+        """
+        if new_state in self.states:
+            self.state = new_state
+        else:
+            error = new_state + ' is not a recognized data state'
+            raise TypeError(error)
+

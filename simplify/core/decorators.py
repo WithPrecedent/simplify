@@ -151,6 +151,55 @@ def combine_lists(method, arguments_to_check = None):
     return wrapper
 
 def numpy_shield(method):
+    """Stores and then reapplies feature names to passed pandas DataFrames.
+
+    If the SimpleAlgorithm subclass 'technique' attribute is 'none', the
+    Ingredients instance is returned unaltered.
+
+    If, however, there is a technique other than 'none', the decorator allows
+    the passing of pandas DataFrame attributes to Ingredients even when the
+    algorithm used transforms those DataFrames to numpy ndarrays. The decorator
+    allows Ingredients attributes to be pandas DataFrames to be passed to a
+    method, have those DataFrames converted to numpy ndarrays and then restored
+    to pandas DataFrames with the original column names when the wrapped method
+    is complete.
+
+    Args:
+        method (method): wrapped method.
+
+    Returns:
+        result (Ingredients): with all transformed numpy ndarrays restored to
+            pandas DataFrames with the same column names.
+    """
+    dataframes_to_check = ['x_train', 'x_test', 'x', 'x_val']
+    series_to_restore = ['y_train', 'y_test', 'y', 'y_val']
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        arguments = signature(method).bind(self, *args, **kwargs).arguments
+        result = arguments['ingredients']
+        if self.technique != 'none':
+            for df_attr in dataframes_to_check:
+                if not getattr(result, df_attr) is None:
+                    x_columns = list(getattr(result, df_attr).columns.values)
+                    break
+            result = method(self, *args, **kwargs)
+            for df_attr in dataframes_to_check:
+                if isinstance(getattr(result, df_attr), np.ndarray):
+                    if not getattr(result, df_attr) is None:
+                        setattr(result, df_attr, pd.DataFrame(
+                                getattr(result, df_attr),
+                                columns = x_columns))
+            for series in series_to_restore:
+                if isinstance(getattr(result, series), np.ndarray):
+                    if isinstance(getattr(result, series), np.ndarray):
+                        setattr(result, series, pd.Series(
+                                getattr(result, series),
+                                name = self.label))
+        return result
+    return wrapper
+
+
+def columns_shield(method):
     """Checks conditions of Cookbook step and adjusts arguments and return
     value accordingly.
 
@@ -188,7 +237,7 @@ def numpy_shield(method):
                 if isinstance(getattr(result, df_attr), np.ndarray):
                     if not getattr(result, df_attr) is None:
                         setattr(result, df_attr, pd.DataFrame(
-                                getattr(result, df_attr), 
+                                getattr(result, df_attr),
                                 columns = x_columns))
             for series in series_to_restore:
                 if isinstance(getattr(result, series), np.ndarray):

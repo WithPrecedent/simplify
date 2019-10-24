@@ -9,9 +9,10 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.core.package import SimplePackage
+from simplify.core.packages import SimpleComparer
 from simplify.core.plans import SimplePlan
 
+Plan = Recipe
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
 subclass because siMpLify uses a lazy importing system. This locates the
@@ -22,18 +23,18 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'scale': ['simplify.chef.steps.scale', 'Scale'],
-    'split': ['simplify.chef.steps.split', 'Split'],
-    'encode': ['simplify.chef.steps.encode', 'Encode'],
-    'mix': ['simplify.chef.steps.mix', 'Mix'],
-    'cleave': ['simplify.chef.steps.cleave', 'Cleave'],
-    'sample': ['simplify.chef.steps.sample', 'Sample'],
-    'reduce': ['simplify.chef.steps.reduce', 'Reduce'],
-    'model': ['simplify.chef.steps.model', 'Model']}
+    'scaler': ['simplify.chef.steps.scale', 'Scale'],
+    'splitter': ['simplify.chef.steps.split', 'Split'],
+    'encoder': ['simplify.chef.steps.encode', 'Encode'],
+    'mixer': ['simplify.chef.steps.mix', 'Mix'],
+    'cleaver': ['simplify.chef.steps.cleave', 'Cleave'],
+    'sampler': ['simplify.chef.steps.sample', 'Sample'],
+    'reducer': ['simplify.chef.steps.reduce', 'Reduce'],
+    'modeler': ['simplify.chef.steps.model', 'Model']}
 
 
 @dataclass
-class Cookbook(SimplePackage):
+class Cookbook(SimpleComparer):
     """Dynamically creates recipes for staging, machine learning, and data
     analysis using a unified interface and architecture.
 
@@ -190,7 +191,7 @@ class Cookbook(SimplePackage):
     def edit_recipes(self, recipes):
         """Adds a recipe or list of recipes to 'recipes' attribute.
         Args:
-            recipes(dict(str/int: Recipe or list(dict(str/int: Recipe)): 
+            recipes(dict(str/int: Recipe or list(dict(str/int: Recipe)):
                 recipe(s) to be added to 'recipes'.
         """
         self.edit_comparers(comparers = recipes)
