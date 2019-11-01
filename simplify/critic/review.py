@@ -27,14 +27,14 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'summary': ['simplify.critic.steps.summarize', 'Summarize'],
-    'explanation': ['simplify.critic.steps.explain', 'Explain'],
-    'prediction': ['simplify.critic.steps.predict', 'Predict'],
-    'probabilities': ['simplify.critic.steps.probability', 'Probability'],
-    'ranking': ['simplify.critic.steps.rank', 'Rank'],
-    'metrics': ['simplify.critic.steps.metrics', 'Metrics'],
-    'test': ['simplify.critic.steps.test', 'Test'],
-    'report': ['simplify.critic.steps.report', 'Report']}
+    'summary': ['simplify.critic.techniques.summarize', 'Summarize'],
+    'explanation': ['simplify.critic.techniques.explain', 'Explain'],
+    'prediction': ['simplify.critic.techniques.predict', 'Predict'],
+    'probabilities': ['simplify.critic.techniques.probability', 'Probability'],
+    'ranking': ['simplify.critic.techniques.rank', 'Rank'],
+    'metrics': ['simplify.critic.techniques.metrics', 'Metrics'],
+    'test': ['simplify.critic.techniques.test', 'Test'],
+    'report': ['simplify.critic.techniques.report', 'Report']}
 
 
 @dataclass
@@ -43,20 +43,20 @@ class Review(SimplePackage):
     data and machine learning models.
 
     Args:
-        steps(dict(str: CriticTechnique)): names and related CriticTechnique
+        techniques(dict(str: CriticTechnique)): names and related CriticTechnique
             classes for analyzing fitted models.
         name(str): designates the name of the class which is used throughout
             siMpLify to match methods and settings with this class.
         auto_draft(bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_publish(bool): whether to call the 'implement' method when the
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
 
     Since this class is a subclass to SimplePackage and SimpleClass, all
     documentation for those classes applies as well.
 
     """
-    steps: object = None
+    techniques: object = None
     name: str = 'critic'
     auto_draft: bool = True
     auto_publish: bool = False
@@ -112,7 +112,7 @@ class Review(SimplePackage):
 class Narrative(SimplePlan):
 
     number: int = 0
-    steps: object = None
+    techniques: object = None
     name: str = 'narrative'
     auto_draft: bool = True
 
@@ -132,7 +132,7 @@ class Narrative(SimplePlan):
         return self
 
     def implement(self, recipe):
-        """Applies the recipe steps to the passed ingredients."""
+        """Applies the recipe techniques to the passed ingredients."""
         for step in self.order:
             if step in ['summary']:
                 pass

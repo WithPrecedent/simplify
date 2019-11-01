@@ -11,16 +11,13 @@ from importlib import import_module
 
 from simplify.chef.search_composer import SearchComposer
 from simplify.core.compose import SimpleAlgorithm
-from simplify.core.compose import SimpleComposer as Composer
+from simplify.core.compose import SimpleComposer
 from simplify.core.compose import SimpleTechnique
 from simplify.core.decorators import numpy_shield
 
-Algorithm = ChefAlgorithm
-Technique = ChefTechnique
-
 
 @dataclass
-class ChefComposer(Composer):
+class ChefComposer(SimpleComposer):
     """[summary]
 
     Args:
@@ -78,13 +75,14 @@ class ChefComposer(Composer):
             parameters = self._get_parameters(
                 technique = technique,
                 parameters = parameters)
-            return Algorithm(
+            return ChefAlgorithm(
                 technique = technique.name,
                 algorithm = algorithm,
                 parameters = parameters,
                 data_dependents = technique.data_dependents,
                 hyperparameter_search = technique.hyperparameter_search,
                 space = self.space)
+
 
 @dataclass
 class ChefTechnique(SimpleTechnique):
@@ -99,6 +97,7 @@ class ChefTechnique(SimpleTechnique):
     selected: bool = False
     conditional: bool = False
     hyperparameter_search: bool = False
+
 
 @dataclass
 class ChefAlgorithm(SimpleAlgorithm):
@@ -281,5 +280,3 @@ class ChefAlgorithm(SimpleAlgorithm):
             error = ('transform method does not exist for '
                      + self.technique + ' algorithm')
             raise AttributeError(error)
-
-

@@ -23,14 +23,14 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'scaler': ['simplify.chef.steps.scale', 'Scale'],
-    'splitter': ['simplify.chef.steps.split', 'Split'],
-    'encoder': ['simplify.chef.steps.encode', 'Encode'],
-    'mixer': ['simplify.chef.steps.mix', 'Mix'],
-    'cleaver': ['simplify.chef.steps.cleave', 'Cleave'],
-    'sampler': ['simplify.chef.steps.sample', 'Sample'],
-    'reducer': ['simplify.chef.steps.reduce', 'Reduce'],
-    'modeler': ['simplify.chef.steps.model', 'Model']}
+    'scaler': ['simplify.chef.techniques.scale', 'Scale'],
+    'splitter': ['simplify.chef.techniques.split', 'Split'],
+    'encoder': ['simplify.chef.techniques.encode', 'Encode'],
+    'mixer': ['simplify.chef.techniques.mix', 'Mix'],
+    'cleaver': ['simplify.chef.techniques.cleave', 'Cleave'],
+    'sampler': ['simplify.chef.techniques.sample', 'Sample'],
+    'reducer': ['simplify.chef.techniques.reduce', 'Reduce'],
+    'modeler': ['simplify.chef.techniques.model', 'Model']}
 
 
 @dataclass
@@ -45,7 +45,7 @@ class Cookbook(SimplePackage):
             need to be passed when the class is instanced. However, failing to
             do so will prevent the use of the Cleave step and the
            '_calculate_hyperparameters' method. 'ingredients' will need to be
-            passed to the 'implement' method if it isn't when the class is
+            passed to the 'publish' method if it isn't when the class is
             instanced. Consequently, it is recommended that 'ingredients' be
             passed when the class is instanced.
         recipes(Recipe or list(Recipe)): Ordinarily, 'recipes' is not passed
@@ -56,11 +56,11 @@ class Cookbook(SimplePackage):
             to the section of the Idea instance with relevant settings.
         auto_draft(bool): whether to call the 'publish' method when the
             class is instanced. If you do not plan to make any adjustments to
-            the steps, techniques, or algorithms beyond the Idea configuration,
+            the techniques, techniques, or algorithms beyond the Idea configuration,
             this option should be set to True. If you plan to make such
             changes, 'publish' should be called when those changes are
             complete.
-        auto_publish(bool): whether to call the 'implement' method when the
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
 
     Since this class is a subclass to SimplePackage and SimpleClass, all
@@ -70,7 +70,7 @@ class Cookbook(SimplePackage):
 
     ingredients: object = None
     recipes: object = None
-    steps: object = None
+    techniques: object = None
     name: str = 'chef'
     auto_draft: bool = True
     auto_publish: bool = False
@@ -233,17 +233,17 @@ class Cookbook(SimplePackage):
     @recipes.setter
     def recipes(self, plans: dict):
         self.plans = plans
-        return self  
-    
+        return self
+
 
 @dataclass
 class Recipe(SimplePlan):
-    """Contains steps for analyzing data in the siMpLify Cookbook subpackage.
+    """Contains techniques for analyzing data in the siMpLify Cookbook subpackage.
 
     Args:
         number(int): number of recipe in a sequence - used for recordkeeping
             purposes.
-        steps(dict): dictionary containing keys of ChefTechnique names
+        techniques(dict): dictionary containing keys of ChefTechnique names
             (strings) and values of SimplePackage subclass instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
@@ -253,8 +253,8 @@ class Recipe(SimplePlan):
     """
     name: str = 'recipe'
     number: int = 0
-    steps: object = None
-    
+    techniques: object = None
+
 
     def __post_init__(self):
         self.idea_sections = ['chef']
@@ -271,7 +271,7 @@ class Recipe(SimplePlan):
         parameter. Future hyperparameter computations will be added as they
         are discovered.
         """
-        if self.steps['model'] in ['xgboost']:
+        if self.techniques['model'] in ['xgboost']:
             # Model class is injected with scale_pos_weight for algorithms that
             # use that parameter.
             self.model.scale_pos_weight = (
@@ -291,14 +291,14 @@ class Recipe(SimplePlan):
         return self
 
     def implement(self, ingredients):
-        """Applies the recipe steps to the passed ingredients."""
+        """Applies the recipe techniques to the passed ingredients."""
         sequence = self.order.copy()
         self.ingredients = ingredients
         self.ingredients.split_xy(label = self.label)
         if self._calculate_hyperparameters:
             self._calculate_hyperparameters
         # If using cross-validation or other data splitting technique, the
-        # pre-split methods apply to the 'x' data. After the split, steps
+        # pre-split methods apply to the 'x' data. After the split, techniques
         # must incorporate the split into 'x_train' and 'x_test'.
         for step in self.order:
             sequence.remove(step)

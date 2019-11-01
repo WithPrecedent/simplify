@@ -23,9 +23,9 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'eli5': ['simplify.critic.steps.techniques.explainers', 'Eli5Explain'],
-    'shap': ['simplify.critic.steps.techniques.explainers', 'ShapExplain'],
-    'skater': ['simplify.critic.steps.techniques.explainers', 'SkaterExplain']}
+    'eli5': ['simplify.critic.techniques.techniques.explainers', 'Eli5Explain'],
+    'shap': ['simplify.critic.techniques.techniques.explainers', 'ShapExplain'],
+    'skater': ['simplify.critic.techniques.techniques.explainers', 'SkaterExplain']}
 
 
 @dataclass

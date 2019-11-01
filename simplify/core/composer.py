@@ -1,6 +1,6 @@
 """
-.. module:: compose
-:synopsis: creates siMpLify-compatible algorithms
+.. module:: composer
+:synopsis: turns techniques into siMpLify-compatible algorithms
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -9,8 +9,6 @@
 from dataclasses import dataclass
 from importlib import import_module
 
-Algorithm = SimpleAlgorithm
-Technique = SimpleTechnique
 
 @dataclass
 class SimpleComposer(SimpleClass):
@@ -19,6 +17,7 @@ class SimpleComposer(SimpleClass):
     Args:
         name (str): public name of class, used by various methods and classes
             throughout the siMpLify package.
+
     """
     name: str = 'generic_composer'
 
@@ -31,8 +30,8 @@ class SimpleComposer(SimpleClass):
             'extra',
             'runtime',
             'conditional')
-        # Create dictionary of imported modules with keys as technique names and
-        # values as the imported module.
+        # Initializees dictionary of imported modules with keys as technique
+        # names and values as imported objects.
         self.options = {}
         return self
 
@@ -69,7 +68,7 @@ class SimpleComposer(SimpleClass):
             self.options[technique.name] = algorithm
             return algorithm
 
-    def _get_parameters(self, technique: Technique):
+    def _get_parameters(self, technique: Technique, parameters: dict):
         """Calls appropriate methods for constructing technique parameters.
 
         Args:
@@ -82,19 +81,27 @@ class SimpleComposer(SimpleClass):
 
         """
         for parameter_type in self.parameter_types:
-            parameters = getattr(
-                self, ''.join(['_get_', parameter_type, 's']))(
+            parameters = (
+                getattr(self, ''.join(['_get_', parameter_type, 's']))(
                     technique = technique,
-                    parameters = parameters)
+                    parameters = parameters))
         return parameters
 
     def _get_ideas(self, technique: SimpleTechnique, parameters: dict):
-        """[summary]
+        """Acquires parameters from Idea instance.
+
+        If the 'parameters' argument already has parameters, no changes are
+        made. The parameters from the Idea instance are only incorporated if
+        no existing parameters are set.
 
         Args:
             technique (Technique): object containing configuration information
                 for parameters to be constructed.
-            parameters (dict): [description]
+            parameters (dict): parameters to be modified and returned.
+
+        Returns:
+            parameters (dict): with any appropriate changes made.
+
         """
         if parameters:
             return parameters
@@ -109,19 +116,28 @@ class SimpleComposer(SimpleClass):
         return parameters
 
     def _get_selecteds(self, technique: SimpleTechnique, parameters: dict):
-        """[summary]
+        """Limits parameters to those appropriate to the technique.
+
+        If 'technique.selected' is True, the keys from 'technique.defaults' are
+        used to select the final returned parameters.
+
+        If 'technique.selected' is a list of parameter keys, then only those
+        parameters are selected for the final returned parameters.
 
         Args:
             technique (Technique): object containing configuration information
                 for parameters to be constructed.
-            parameters (dict): [description]
+            parameters (dict): parameters to be modified and returned.
 
         Returns:
-            [type]: [description]
+            parameters (dict): with any appropriate changes made.
+
         """
         if technique.selected:
-            parameters_to_use = list(
-                technique.defaults.keys())
+            if isinstance(technique.selected, list):
+                parameters_to_use = technique.selected
+            else:
+                parameters_to_use = list(technique.defaults.keys())
             new_parameters = {}
             for key, value in parameters.items():
                 if key in parameters_to_use:
@@ -130,12 +146,16 @@ class SimpleComposer(SimpleClass):
         return parameters
 
     def _get_extras(self, technique: SimpleTechnique, parameters: dict):
-        """Adds extra parameters (mandatory additions) to parameters.
+        """Adds extra parameters (mandatory additions) to 'parameters'.
 
         Args:
             technique (Technique): object containing configuration information
                 for parameters to be constructed.
-            parameters (dict): [description]
+            parameters (dict): parameters to be modified and returned.
+
+        Returns:
+            parameters (dict): with any appropriate changes made.
+
         """
         try:
             parameters.update(technique.extras)
@@ -144,12 +164,23 @@ class SimpleComposer(SimpleClass):
         return parameters
 
     def _get_runtimes(self, technique: SimpleTechnique, parameters: dict):
-        """[summary]
+        """Adds parameters that are determined at runtime.
+
+        The primary example of a runtime parameter throughout siMpLify is the
+        addition of a random seed for a consistent, replicable state.
+
+        The runtime variables should be stored as attributes in the subclass so
+        that the values listed in technique.runtimes match those attributes to
+        be added to parameters.
 
         Args:
             technique (Technique): object containing configuration information
                 for parameters to be constructed.
-            parameters (dict): [description]
+            parameters (dict): parameters to be modified and returned.
+
+        Returns:
+            parameters (dict): with any appropriate changes made.
+
         """
         try:
             for key, value in technique.runtimes.items():
@@ -164,50 +195,111 @@ class SimpleComposer(SimpleClass):
         return parameters
 
     def _get_conditionals(self, technique: SimpleTechnique, parameters: dict):
-        """[summary]
+        """Modifies 'parameters' based upon various conditions.
+
+        A subclass should have its own '_get_conditionals' method for this
+        method to modify 'parameters'. This method is a mere placeholder.
 
         Args:
             technique (Technique): object containing configuration information
                 for parameters to be constructed.
-            parameters (dict): [description]
+            parameters (dict): parameters to be modified and returned.
+
+        Returns:
+            parameters (dict): with any appropriate changes made.
+
         """
         return parameters
 
     """ Core siMpLify Methods """
 
     def draft(self):
-        """[summary]
+        """Sets default techniques for a Composer subclass.
+
+        If a subclass wishes to use gpu-dependent algorithms, that subclass
+        should either include the code below or this method should be called via
+        super().draft().
+
         """
-        # Subclasses should create Technique instances here.
+        # Subclasses should create SimpleTechnique instances here.
         if self.gpu:
             self.add_gpu_techniques()
         return self
 
     def publish(self, technique: str, parameters: dict = None):
-        """[summary]
+        """Converts Simpletechnique to a SimpleAlgorithm.
 
         Args:
             technique (Technique): object containing configuration information
                 for parameters to be constructed.
-            parameters (dict, optional): [description]. Defaults to None.
+            parameters (dict, optional): parameters to be modified and returned.
+                Defaults to None.
+
+        Returns:
+            SimpleAlgorithm instance based upon the passed 'technique' and
+                'parameters' (if applicable).
+
         """
         if technique in ['none', 'None', None]:
             return None
         else:
-            technique = getattr(self, '_'.join([step, technique]))
+            # Changes technique from str to matching SimpleTechnique instance.
+            technique = getattr(self, technique)
+            # Acquires algorithm based upon 'technique' settings.
             algorithm = self._get_algorithm(technique = technique)
-            parameters = _get_parameters(
+            # Determines parameters based upon technique settings.
+            parameters = self._get_parameters(
                 technique = technique,
                 parameters = parameters)
-            return Algorithm(
+            # Returns a SimpleAlgorithm instance.
+            return SimpleAlgorithm(
                 technique = technique.name,
                 algorithm = algorithm,
                 parameters = parameters,
                 data_dependents = technique.data_dependents)
 
+    """ Properties """
+
+    @property
+    def options(self):
+        """Returns dictionary of attribute names and values if they are
+        subclasses of SimpleTechnique.
+
+        This property is used instead of a maintained 'options' dictionary in
+        order to allow users to add SimpleTechnique instances to the subclasses
+        in a variety of ways.
+
+        """
+        return {k: v for (k, v) in self.__dict__.items() if issubclass(v,
+                    SimpleTechnique)}
+
 
 @dataclass
 class SimpleTechnique(object):
+    """Stores settings to import and create a SimpleAlgorithm.
+
+    Args:
+        name (str): public name of class, used by various methods and classes
+            throughout the siMpLify package.
+        module (str): name of internal or external module which contains the
+            'algorithm' object.
+        algorithm (str): name of the object to be imported from 'module'.
+        defaults (dict): default parameters.
+        extras (dict): extra (mandatory) parameters to be added.
+        runtimes (dict): parameters to be added that are only available at
+            runtime. The keys are the keys from the final intended parameters.
+            The values are the names of attributes from the SimpleComposer
+            subclass.
+        data_dependents (dict): parameters to be added that are directly derived
+            from the first passed argument to the SimpleAlgorithm 'publish'
+            method. The keys are the keys from the final intended parameters.
+            The values are the names of attributes from the first passed
+            argument to the SimpleAlgorithm 'publish' method.
+        selected (bool or list): if True, parameters will be limited to the keys
+            of 'defaults'. If a list, only the matching parameter names will
+            be included.
+
+        """
 
     name: str = 'generic_technique'
     module: str = None
@@ -217,15 +309,21 @@ class SimpleTechnique(object):
     runtimes: object = None
     data_dependents: object = None
     selected: bool = False
-    conditional: bool = False
 
 
 @dataclass
 class SimpleAlgorithm(SimpleClass):
-    """[summary]
+    """Wraps or contains an algorithm to be applied with passed parameters.
 
     Args:
-        object ([type]): [description]
+        technique (str): the public name of the selected algorithm.
+        algorithm (object): class or function containing an algorithm to be
+            applied to the variable(s) passed to the 'publish' method.
+        parameters (dict): corresponding parameters for the passed algorithm.
+        data_dependents (dict): parameters that are derived from the variables
+            passed to the 'publish' method. The keys are names of the
+            parameters and the values are the attributes to the first passed
+            variable to 'publish'.
     """
 
     technique: str
@@ -234,13 +332,16 @@ class SimpleAlgorithm(SimpleClass):
     data_dependents: object = None
 
     def __post_init__(self):
+        # super() is not called to limit the memory used by a subclass.
         self.draft()
         return self
 
     """ Private Methods """
 
     def _add_parameters(self):
-        """[summary]
+        """Attaches class instance 'parameters' to the class instance
+        'algorithm'.
+
         """
         try:
             self.algorithm = self.algorithm(**self.parameters)
@@ -249,13 +350,15 @@ class SimpleAlgorithm(SimpleClass):
                 self.algorithm = self.algorithm(self.parameters)
         return self
 
-    def _add_data_dependents(self, ingredients: Ingredients):
-        """[summary]
+    def _add_data_dependents(self, variable: object):
+        """Adds data-derived parameters to the class instance parameters.
 
         Args:
-            ingredients (Ingredients): [description]
+            variable (object): class that contains attributes matching the
+                values in the 'data_dependents' attribute.
+
         """
-        for key, value in self.datas.items():
+        for key, value in self.data_dependents.items():
             self.parameters.update({key, getattr(ingredients, value)})
         self._add_parameters()
         return self
@@ -263,23 +366,32 @@ class SimpleAlgorithm(SimpleClass):
     """ Core siMpLify Methods """
 
     def draft(self):
-        """[summary]
+        """Attaches 'parameters' to 'algorithm' if there are no data-derived
+        parameters.
+
         """
-        self.options = (
-            [i for i in list(self.__dict__.keys()) if isinstance(i, Technique)])
         if not self.data_dependents:
             self._add_parameterss()
         return self
 
-    def publish(self, variable, limitations, *args, **kwargs):
-        """Subclasses should provide their own 'publish' methods."""
+    def publish(self, variable: object, other: object = None, *args,
+                **kwargs):
+        """Subclasses should provide their own 'publish' methods.
+
+        Args:
+            variable (object): the class which provides the source information/
+                data for the SimpleAlgorithm subclass to utilize.
+            other (object): a secondary source of data/information or limits to
+                be placed on the use of 'variable'.
+            *args, **kwargs (parameters): any other parameters to be passed to
+                called methods in the subclass.
+
+        If a subclass wishes to use data-dependent parameters, that subclass
+        should either include the code below or this method should be called via
+        super().publish(variable, other).
+
+        """
         if self.data_dependents:
             self._add_data_dependents()
         return self
 
-    """ Properties """
-    
-    @property
-    def options(self):
-        return {k: v for (k, v) in self.__dict__.items() if isinstance(v,
-                    Technique)}

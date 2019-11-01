@@ -1,5 +1,5 @@
 """
-.. module:: siMpLify critic steps
+.. module:: siMpLify critic techniques
 :synopsis: model evaluation made simple
 :author: Corey Rayburn Yung
 :copyright: 2019

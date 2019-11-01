@@ -53,7 +53,7 @@ class Paint(SimpleIterable):
     """Creates data analysis visualizations.
 
     Args:
-        steps(dict(str: ArtistTechnique)): names and related ArtistTechnique classes for
+        techniques(dict(str: ArtistTechnique)): names and related ArtistTechnique classes for
             creating data visualizations.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
@@ -61,7 +61,7 @@ class Paint(SimpleIterable):
             class is instanced.
     """
 
-    steps: object = None
+    techniques: object = None
     name: str = 'paint'
     auto_draft: bool = True
 

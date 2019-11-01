@@ -20,21 +20,21 @@ class Canvas(SimplePackage):
     Args:
         ingredients(Ingredients): an instance of Ingredients. This argument need
             not be passed when the class is instanced. It can be passed directly
-            to the 'implement' method as well.
-        steps(dict(str: ArtistTechnique)): names and related ArtistTechnique
+            to the 'publish' method as well.
+        techniques(dict(str: ArtistTechnique)): names and related ArtistTechnique
             classes for analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It
-            can be passed directly to the 'implement' method as well.
+            can be passed directly to the 'publish' method as well.
         reviews(Review): an instance of Review containing all metrics and
             evaluation results.This argument need not be passed when the class
-            is instanced. It can be passed directly to the 'implement' method as
+            is instanced. It can be passed directly to the 'publish' method as
             well.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
         auto_draft (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_publish (bool): whether to call the 'implement' method when the
+        auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
 
     Since this class is a subclass to SimpleIterable and SimpleClass, all
@@ -43,7 +43,7 @@ class Canvas(SimplePackage):
     """
 
     ingredients: object = None
-    steps: object = None
+    techniques: object = None
     recipes: object = None
     reviews: object = None
     name: str = 'canvas'
@@ -104,8 +104,8 @@ class Canvas(SimplePackage):
             raise TypeError(error)
 
     def _set_styler(self):
-        if 'styler' not in self.steps:
-            self.steps = ['styler'] + self.steps
+        if 'styler' not in self.techniques:
+            self.techniques = ['styler'] + self.techniques
         return self
 
     """ Core siMpLify Methods """
@@ -130,7 +130,7 @@ class Canvas(SimplePackage):
     def implement(self, ingredients = None, recipes = None, reviews = None):
         if self.ingredients is None:
             self.ingredients = self.recipes.ingredients
-        for name, step  in self.steps:
+        for name, step  in self.techniques:
             for recipe in self.listify(self.recipes):
                 if self.verbose:
                     print('Visualizing', recipe.name + recipe.number)

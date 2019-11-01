@@ -20,8 +20,8 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'merge': ['simplify.farmer.steps.merge', 'Merge'],
-    'supplement': ['simplify.farmer.steps.supplement', 'Supplement']}
+    'merge': ['simplify.farmer.techniques.merge', 'Merge'],
+    'supplement': ['simplify.farmer.techniques.supplement', 'Supplement']}
 
 
 @dataclass

@@ -20,10 +20,10 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'download': ['simplify.farmer.steps.download', 'Download'],
-    'scrape': ['simplify.farmer.steps.scrape', 'Scrape'],
-    'convert': ['simplify.farmer.steps.convert', 'Convert'],
-    'divide': ['simplify.farmer.steps.divide', 'Divide']}
+    'download': ['simplify.farmer.techniques.download', 'Download'],
+    'scrape': ['simplify.farmer.techniques.scrape', 'Scrape'],
+    'convert': ['simplify.farmer.techniques.convert', 'Convert'],
+    'divide': ['simplify.farmer.techniques.divide', 'Divide']}
 
 
 @dataclass
@@ -31,7 +31,7 @@ class Sow(SimpleIterable):
     """Acquires and performs basic preparation of data sources.
 
     Args:
-        steps(dict): dictionary containing keys of FarmerTechnique names (strings)
+        techniques(dict): dictionary containing keys of FarmerTechnique names (strings)
             and values of FarmerTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
@@ -39,7 +39,7 @@ class Sow(SimpleIterable):
             the class is instanced. This should generally be set to True.
     """
 
-    steps: object = None
+    techniques: object = None
     name: str = 'sower'
     auto_draft: bool = True
 

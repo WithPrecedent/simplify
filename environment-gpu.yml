@@ -1,3 +1,7 @@
+name: model
+channels:
+- conda-forge
+- districtdatalabs
 dependencies:
 - python>=3.6
 - category_encoders

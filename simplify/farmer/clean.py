@@ -21,7 +21,7 @@ to use another set of 'options' for a subclass, they just need to pass
 """
 DEFAULT_OPTIONS = {
     'keyword': ['simplify.core.retool', 'ReTool'],
-    'combine': ['simplify.farmer.steps.combine', 'Combine']}
+    'combine': ['simplify.farmer.techniques.combine', 'Combine']}
 
 
 @dataclass
@@ -29,7 +29,7 @@ class Clean(SimpleIterable):
     """Cleans, munges, and parsers data using fast, vectorized methods.
 
     Args:
-        steps(dict): dictionary containing keys of FarmerTechnique names (strings)
+        techniques(dict): dictionary containing keys of FarmerTechnique names (strings)
             and values of FarmerTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
@@ -37,7 +37,7 @@ class Clean(SimpleIterable):
             the class is instanced. This should generally be set to True.
     """
 
-    steps: object = None
+    techniques: object = None
     name: str = 'cleaner'
     auto_draft: bool = True
 

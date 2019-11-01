@@ -4,27 +4,27 @@
 [![Build Status](https://img.shields.io/travis/with_precedent/siMpLify.svg)](https://travis-ci.org/with_precedent/siMpLify)
 
 siMpLify offers tools to make data science more accessible, with a particular
-emphasis on its use in academic research. To that end, the package avoids 
+emphasis on its use in academic research. To that end, the package avoids
 programming jargon (when possible) and implements a unified code architecture
 for all stages of a data science project. So, classes and methods for data
 scraping, parsing, munging, merging, preprocessing, modelling, analyzing, and
-visualizing use the same vocabulary so that siMpLify can be easily used and 
+visualizing use the same vocabulary so that siMpLify can be easily used and
 extended.
 
-siMpLify includes a high-level set of tools that allows users to mix and match various preprocessing methods and statistical models. It provides some unique custom methods and integrates classes and methods from packages such as scikit-learn, category-encoders, imblearn, xgboost, seaborn, and shap. 
+siMpLify includes a high-level set of tools that allows users to mix and match various preprocessing methods and statistical models. It provides some unique custom methods and integrates classes and methods from packages such as scikit-learn, category-encoders, imblearn, xgboost, seaborn, and shap.
 
 The siMpLify package uses an extended metaphor, which is familiar in computer
-programming, as the basis for its overall structure: food preparation. Words 
-like 'recipe' and 'cookbook' appear with regularity in discussing computer code. 
+programming, as the basis for its overall structure: food preparation. Words
+like 'recipe' and 'cookbook' appear with regularity in discussing computer code.
 siMpLify extends this metaphor a bit further in the creation of its four core
 packages:
     1) Farmer: harvests data from a variety of sources, cleans it, and prepares
         it for consumption.
-    2) Chef: using a cookbook of recipes derived from user selections, the Chef 
+    2) Chef: using a cookbook of recipes derived from user selections, the Chef
         applies machine learning and preprocessing methods to data.
     3) Critic: evaluates the results of recipes, offering appropriately-matched       comparisons, summaries, and metrics.
     4) Artist: aiding the Critic, the Artist creates visualizations of the data,
-        models, and model evaluation. 
+        models, and model evaluation.
 
 ## Why siMpLify?
 
@@ -63,8 +63,8 @@ To understand a typical use-case for siMplify, let's examine a project that omit
 
 As an example of siMpLify's functionality, let's review the Chef subpackage. It allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling ingredients based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
 
-By default, the Chef divides the feature engineering and modeling process into eight major steps that can be sequenced in different orders (or supplemented with
-custom steps and techniques):
+By default, the Chef divides the feature engineering and modeling process into eight major techniques that can be sequenced in different orders (or supplemented with
+custom techniques and techniques):
 
 * Scale: converts numerical features into a common scale, using scikit-learn methods.
 * Split: divides data into train, test, and/or validation sets once or iteratively through k-folds cross-validation.

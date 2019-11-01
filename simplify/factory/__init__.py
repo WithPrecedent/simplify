@@ -79,7 +79,7 @@ def create_package(order: list, comparer: object = None,
 
     Args:
         order(list(str)): step names in order.
-        comparer(SimplePlan): SimplePlan subclass to contain a set of steps.
+        comparer(SimplePlan): SimplePlan subclass to contain a set of techniques.
         comparer_iterable(str): the name of the local attribute for storing
             instances of the 'comparer'.
         draft_method(func): a replacement 'draft' method if the default method

@@ -22,8 +22,8 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'reshape': ['simplify.farmer.steps.reshape', 'Reshape'],
-    'streamline': ['simplify.farmer.steps.streamline', 'Streamline']}
+    'reshape': ['simplify.farmer.techniques.reshape', 'Reshape'],
+    'streamline': ['simplify.farmer.techniques.streamline', 'Streamline']}
 
 
 @dataclass
@@ -31,7 +31,7 @@ class Deliver(SimpleIterable):
     """Makes final structural changes to data before analysis.
 
     Args:
-        steps(dict): dictionary containing keys of FarmerTechnique names (strings)
+        techniques(dict): dictionary containing keys of FarmerTechnique names (strings)
             and values of FarmerTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
@@ -39,7 +39,7 @@ class Deliver(SimpleIterable):
             the class is instanced. This should generally be set to True.
     """
 
-    steps: object = None
+    techniques: object = None
     name: str = 'delivery'
     auto_draft: bool = True
 

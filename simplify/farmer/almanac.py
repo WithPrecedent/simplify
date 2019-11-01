@@ -42,9 +42,9 @@ class Almanac(SimplePackage):
         ingredients(Ingredients or str): an instance of Ingredients or a string
             with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced.
-        steps(dict(str: FarmerTechnique)): steps to be completed in order. This
+        techniques(dict(str: FarmerTechnique)): techniques to be completed in order. This
             argument should only be passed if the user wishes to override the
-            steps listed in the Idea settings or if the user is not using the
+            techniques listed in the Idea settings or if the user is not using the
             Idea class.
         plans(SimplePackage): instanced subclasses of SimplePackage for
             prepared tools for the Almanac.
@@ -52,11 +52,11 @@ class Almanac(SimplePackage):
             to the section of the idea configuration with relevant settings.
         auto_draft(bool): whether to call the 'publish' method when the
             class is instanced. If you do not plan to make any
-            adjustments to the steps, techniques, or algorithms beyond the
+            adjustments to the techniques, techniques, or algorithms beyond the
             Idea configuration, this option should be set to True. If you plan
             to make such changes, 'publish' should be called when those
             changes are complete.
-        auto_publish(bool): whether to call the 'implement' method when the
+        auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
 
     Since this class is a subclass to SimplePackage and SimpleClass, all
@@ -66,7 +66,7 @@ class Almanac(SimplePackage):
     idea: object = None
     depot: object = None
     ingredients: object = None
-    steps: object = None
+    techniques: object = None
     plans: object = None
     name: str = 'chef'
     auto_draft: bool = True
@@ -102,7 +102,7 @@ class Almanac(SimplePackage):
     def _publish_draft(self):
         """Initializes the step classes for use by the Harvest."""
         self.drafts = []
-        for step in self.steps:
+        for step in self.techniques:
             step_instance = self.draft_class(name = step,
                                             index_column = self.index_column)
             for technique in self.listify(getattr(self, step + '_techniques')):

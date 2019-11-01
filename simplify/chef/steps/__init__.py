@@ -1,5 +1,5 @@
 """
-.. module:: siMpLify recipe steps
+.. module:: siMpLify recipe techniques
 :synopsis: machine learning workflow made simple
 :author: Corey Rayburn Yung
 :copyright: 2019

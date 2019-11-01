@@ -14,10 +14,11 @@ from simplify.core.base import SimpleClass
 
 @dataclass
 class SimplePackage(SimpleClass):
-    """Parent class for building and controlling iterable steps.
+    """Base class for building and controlling iterable techniques and/or
+    other packages.
 
-    This class adds methods useful to create iterators, iterate over user
-    options, and transform data or fit models. SimplePackage subclasses define
+    This class adds methods useful to create iterators and iterate over passed
+    arguments based upon user-selected options. SimplePackage subclasses
     construct iterators and process data with those iterators.
 
     It is also a child class of SimpleClass. So, its documentation applies as
@@ -25,7 +26,7 @@ class SimplePackage(SimpleClass):
 
     """
     name: str = 'generic_package'
-    steps: object = None
+    techniques: object = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -35,31 +36,30 @@ class SimplePackage(SimpleClass):
     #     try:
     #         return self.iterable.items()
     #     except AttributeError:
-    #         return self.steps.items()
+    #         return self.techniques.items()
 
     """ Private Methods """
 
     def _check_order(self, override = False):
-        """Creates ordering of class steps."""
-        print(self.name, 'checking order')
+        """Creates ordering of class techniques."""
         if not self.order or override:
             try:
                 self.order = self.listify(self._convert_wildcards(
-                    self.idea['_'.join(self.name, 'steps')]))
+                    self.idea['_'.join(self.name, 'techniques')]))
             except KeyError:
                 try:
-                    self.order = list(self.steps.keys())
+                    self.order = list(self.techniques.keys())
                 except TypeError:
-                    if isinstance(self.steps, list):
-                        self.order = self.steps
+                    if isinstance(self.techniques, list):
+                        self.order = self.techniques
                     else:
                         error = 'ordercannot be created for' + self.name
                         raise TypeError(error)
         return self
 
     def _check_techniques(self, override = False):
-        """Creates steps dict from order and options."""
-        if not self.steps or override or isinstance(self.steps, list):
+        """Creates techniques dict from order and options."""
+        if not self.techniques or override or isinstance(self.techniques, list):
             new_techniques = {}
             for step in self.order:
                 try:
@@ -84,15 +84,15 @@ class SimplePackage(SimpleClass):
     def _publish_plans(self):
         new_plans = {}
         for i, plan in enumerate(self.plans):
-            steps = {}
+            techniques = {}
             for j, technique in enumerate(plan):
-                steps.update({self.order[j]: technique})
+                techniques.update({self.order[j]: technique})
             new_plans.update(
-                    {str(i + 1): self.comparer(number = i + 1, steps = steps)})
+                    {str(i + 1): self.comparer(number = i + 1, techniques = techniques)})
         self.plans = new_plans
         # for step in self.order:
         #     setattr(self, step, self.options[step](
-        #         technique = self.steps[step]))
+        #         technique = self.techniques[step]))
         return self
 
     """ Core siMpLify methods """
@@ -140,23 +140,23 @@ class SimplePackage(SimpleClass):
 
     @property
     def all(self):
-        return list(self.steps.keys())
+        return list(self.techniques.keys())
 
     @property
     def defaults(self):
         try:
             return self._defaults
         except AttributeError:
-            return list(steps.keys())
+            return list(techniques.keys())
 
     @defaults.setter
-    def defaults(self, steps):
-        self._defaults = steps
+    def defaults(self, techniques):
+        self._defaults = techniques
 
 
 @dataclass
 class SimplePlan(SimpleClass):
-    """Contains steps to be completed in a siMpLify process.
+    """Contains techniques to be completed in a siMpLify process.
 
     Args:
         name (str): designates the name of the class which should match the
@@ -164,8 +164,8 @@ class SimplePlan(SimpleClass):
             throughout the siMpLify package.
         number (int): number of plan in a sequence - used for recordkeeping
             purposes.
-        steps (dict(str: str)): keys are names of steps and values are names
-            of techniques to be applied in those steps.
+        techniques (dict(str: str)): keys are names of techniques and values are names
+            of techniques to be applied in those techniques.
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
@@ -173,7 +173,7 @@ class SimplePlan(SimpleClass):
     """
     name: str = 'generic_plan'
     number: int = 0
-    steps: object = None
+    techniques: object = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -194,19 +194,19 @@ class SimplePlan(SimpleClass):
 
     def draft(self):
         new_techniques = {}
-        for step, technique in self.steps.items():
+        for step, technique in self.techniques.items():
             new_techniques.update({step: self.options[step](technique = technique)})
             setattr(self, step, new_techniques[step])
-        self.steps = new_techniques
+        self.techniques = new_techniques
         return self
 
     def publish(self, variable, *args, **kwargs):
         if hasattr(self, 'variable_to_store'):
             setattr(self, self.variable_to_store, variable)
-        for step, technique in self.steps.items():
+        for step, technique in self.techniques.items():
             variable = technique.implement(variable, *args, **kwargs)
             if self.exists('return_variables'):
                 self._infuse_return_variables(instance = getattr(self, step))
         return self
-    
-Plan = SimplePlan 
+
+Plan = SimplePlan

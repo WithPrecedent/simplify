@@ -12,8 +12,6 @@ from simplify.chef.composer import ChefAlgorithm
 from simplify.chef.composer import ChefComposer as Composer
 from simplify.chef.composer import ChefTechnique as Technique
 
-Algorithm = ModelAlgorithm
-
 
 @dataclass
 class Modeler(Composer):

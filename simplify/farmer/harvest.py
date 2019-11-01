@@ -30,7 +30,7 @@ class Harvest(SimpleIterable):
     """Extracts data from text or other sources.
 
     Args:
-        steps(dict): dictionary containing keys of FarmerTechnique names (strings)
+        techniques(dict): dictionary containing keys of FarmerTechnique names (strings)
             and values of FarmerTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
@@ -38,7 +38,7 @@ class Harvest(SimpleIterable):
             the class is instanced. This should generally be set to True.
     """
 
-    steps: object = None
+    techniques: object = None
     name: str = 'harvester'
     auto_draft: bool = True
 

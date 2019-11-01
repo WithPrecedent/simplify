@@ -93,7 +93,7 @@ def local_backups(method, excludes = None, includes = None):
     return wrapper
 
 def choose_df(method):
-    """Substitutes the default DataFrame or Seriesif one is not passed to the
+    """Substitutes the default DataFrame or Series if one is not passed to the
     decorated method.
 
     Args:
@@ -108,7 +108,7 @@ def choose_df(method):
     def wrapper(self, *args, **kwargs):
         argspec = getfullargspec(method)
         unpassed_args = argspec.args[len(args):]
-        if 'df' in argspec.args and 'df' in unpassed_args:
+        if 'df' in unpassed_args:
             kwargs.update({'df': getattr(self, self.default_df)})
         return method(self, *args, **kwargs)
     return wrapper

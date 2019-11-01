@@ -31,16 +31,16 @@ class Illustrate(SimpleIterable):
     """Creates data summary visualizations.
 
     Args:
-        steps(dict(str: ArtistTechnique)): names and related ArtistTechnique
+        techniques(dict(str: ArtistTechnique)): names and related ArtistTechnique
             classes for creating data visualizations.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
         auto_draft (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_publish (bool): whether to call the 'implement' method when the
+        auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
     """
-    steps: object = None
+    techniques: object = None
     name: str = 'illustrator'
     auto_draft: bool = True
     auto_publish: bool = True
@@ -79,6 +79,6 @@ class Illustrate(SimpleIterable):
 
     #@localize
     def implement(self, recipes = None, reviews = None):
-        for step in self.steps:
+        for step in self.techniques:
             getattr(self, step)()
         return self

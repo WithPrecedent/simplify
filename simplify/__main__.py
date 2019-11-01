@@ -9,8 +9,10 @@
 import os
 import sys
 
-from simplify import Idea, Depot, Ingredients
-from simplify.core.base import SimpleClass, Simplify
+from simplify.core.idea import Idea
+from simplify.core.depot import Depot
+from simplify.core.ingredients import Ingredients
+from simplify.project import Project
 
 
 def _args_to_dict():
@@ -27,6 +29,7 @@ def _args_to_dict():
     Returns:
         arguments(dict): dictionary of command line options when the options
             are separated by '='.
+
     """
     arguments = {}
     for argument in sys.argv[1:]:
@@ -35,28 +38,6 @@ def _args_to_dict():
             key, value = argument[:separated], argument[separated + 1:]
             arguments[key] = value
     return arguments
-
-def _get_file(file_reference):
-    """Returns file path based upon arguments passed.
-
-    Args:
-        file_reference(str): either full path of file sought or file name of
-            file in the current working directory.
-
-    Returns:
-        path(str) based upon the 'file_reference' if the file exists.
-
-    Raises:
-        FileNotFoundError if 'file_reference' does not match a file on disc.
-
-    """
-    if os.path.isfile(file_reference):
-        return file_reference
-    elif os.path.isfile(os.path.join(os.getcwd(), file_reference)):
-        return os.path.join(os.getcwd(), file_reference)
-    else:
-        error = file_reference + 'not found'
-        raise FileNotFoundError(error)
 
 def _get_depot(arguments):
     """Creates Depot instance from command line or default options.
@@ -69,9 +50,9 @@ def _get_depot(arguments):
                 passed or default option
 
     """
-    if 'depot' in arguments:
+    try:
         return Depot(root_folder = arguments['-depot'])
-    else:
+    except KeyError:
         return Depot(root_folder = os.path.join('..', '..'))
 
 def _get_idea(arguments):
@@ -87,11 +68,12 @@ def _get_idea(arguments):
             FileNotFoundError if passed string for '-idea' option is not found
                 or the default file 'settings.ini' is not found in the current
                 working folder.
+
     """
-    if 'idea' in arguments:
-        return Idea(configuration = _get_file(arguments['-idea']))
-    else:
-        return Idea(configuration = os.path.join(os.getcwd, 'settings.ini'))
+    try:
+        return Idea(options = arguments['-idea'])
+    except KeyError:
+        return Idea(options = os.path.join(os.getcwd, 'settings.ini'))
 
 def _get_ingredients(arguments):
     """Creates Ingredients instance with or without command line options.
@@ -107,16 +89,18 @@ def _get_ingredients(arguments):
                 projects using siMpLify to gather data).
 
     """
-    if '-ingredients' in arguments:
+    try:
         return Ingredients(df = _get_file(arguments['-ingredients']))
-    else:
+    except KeyError:
         return Ingredients()
 
+def main(idea, depot, ingredients):
+    print('Starting siMpLify')
+    return Project(idea = idea, depot = depot, ingredients = ingredients)
 
 if __name__ == '__main__':
-    print('Starting siMpLify')
     arguments = _args_to_dict()
     idea = _get_idea(arguments = arguments)
     depot = _get_depot(arguments = arguments)
     ingredients = _get_ingredients(arguments = arguments)
-    Simplify(idea = idea, depot = depot, ingredients = ingredients)
+    main(idea = idea, depot = depot, ingredients = ingredients)

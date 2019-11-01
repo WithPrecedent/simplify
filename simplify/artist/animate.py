@@ -27,16 +27,16 @@ class Animate(SimpleIterable):
     """Creates animated data visualizations.
 
     Args:
-        steps(dict(str: ArtistTechnique)): names and related ArtistTechnique classes for
+        techniques(dict(str: ArtistTechnique)): names and related ArtistTechnique classes for
             creating data visualizations.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
         auto_draft (bool): whether to call the 'publish' method when the
             class is instanced.
-        auto_publish (bool): whether to call the 'implement' method when the class
+        auto_publish (bool): whether to call the 'publish' method when the class
             is instanced.
     """
-    steps: object = None
+    techniques: object = None
     name: str = 'animator'
     auto_draft: bool = True
     auto_publish: bool = False
