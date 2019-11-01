@@ -21,12 +21,15 @@ class SimpleClass(ABC):
     """Base class for siMpLify to support a common architecture and sharing of
     methods.
 
+    Fundementally, SimpleClass is a cross between composite and builder design 
+    patterns with some added functionality.
+    
     SimpleClass creates a code structure patterned after the writing process.
     It divides processes into three stages which are the names or prefixes to
     the core methods used throughout the siMpLify package:
 
         1) draft: sets default attributes (required).
-        2) edit: makes any desired changes to the default attributes.
+        2) edit: makes any desired changes to the default attributes (optional).
         3) publish: applies selected options to passed argumnts (required).
 
     A subclass's 'draft' method is automatically called when a class is
@@ -55,25 +58,25 @@ class SimpleClass(ABC):
             methods for use throughout the siMpLify package. Once a Depot
             instance is created, it is automatically an attribute of all other
             SimpleClass subclasses that are instanced in the future.
-        ingredients (Ingredients, DataFrame, or str): an instance of
+        ingredients (Ingredients, DataFrame, ndarray, or str): an instance of
             Ingredients, a string containing the full file path of where a data
-            file for a pandas DataFrame is located, or a string containing a
+            file for a pandas DataFrame is located, a string containing a
             file name in the default data folder, as defined in the shared Depot
-            instance. If a DataFrame or string is provided, the resultant
-            DataFrame is stored at the 'df' attribute in a new Ingredients
-            instance.
+            instance, a DataFrame, or numpy ndarray. If a DataFrame, ndarray, or 
+            string is provided, the resultant DataFrame is stored at the 'df' 
+            attribute in a new Ingredients instance.
 
     """
     def __post_init__(self):
         """Calls initialization methods and sets defaults."""
+        # Sets default 'name' attribute if none exists.
+        if not self.exists('name'):
+            self.name = self.__class__.__name__.lower()
         # Initializes 'checks' attribute for validation checks to be performed.
         self.checks = []
         # Sets initial values for subclass.
         self.draft()
-        # Sets default 'name' attribute if none exists.
-        if not self.exists('name'):
-            self.name = self.__class__.__name__.lower()
-        # Injects selected attributes from shared Idea instance.
+        # Injects appropriate settings from shared Idea instance.
         if self.name != 'idea':
             self._inject_idea()
         return self
@@ -81,7 +84,7 @@ class SimpleClass(ABC):
     """ Dunder Methods """
 
     def __contains__(self, item):
-        """Checks if item is in 'options'.
+        """Checks if item is in 'options' attribute.
 
         Args:
             item (str): item to be searched for in 'options' keys.
@@ -133,12 +136,6 @@ class SimpleClass(ABC):
         if attribute in ['clear', 'items', 'pop', 'keys', 'values', 'update',
                          'get', 'fromkeys', 'setdefault', 'popitem', 'copy']:
             return getattr(self.options, attribute)
-        # else:
-        #     try:
-        #         return self.__dict__[attribute]
-        #     except KeyError:
-        #         error = attribute + ' not found in ' + self.__class__.__name__
-        #         raise AttributeError(error)
 
     def __getitem__(self, item):
         """Returns item if 'item' is in 'options' or is an atttribute.
@@ -192,18 +189,25 @@ class SimpleClass(ABC):
         else:
             return value
 
-    # def _inject_base(self, attribute, instance = None):
-    #     """Injects base class, with attribute so that it is available to other
-    #     modules in the siMpLify package.
+    def _draft_techniques(self):
+        """Gets 'steps' from 'idea' if 'steps' not passed."""
+        if self.techniques is None:
+            self.techniques = getattr(self, '_'.join([self.name, 'techniques']))
+        self.steps = self._convert_wildcards(value = self.techniques)
+        return self
+    
+    def _inject_base(self, attribute: str, instance: SimpleClass = None):
+        """Injects base class, with attribute so that it is available to other
+        modules instanced in the future.
 
-    #     Args:
-    #         attribute (str): name of attribute for instance to be stored.
-    #         instance (SimpleClass): instance to be stored in base class.
+        Args:
+            attribute (str): name of attribute for 'instance' to be stored.
+            instance (SimpleClass): instance to be stored in base class.
 
-    #     """
-    #     instance = instance or self
-    #     setattr(SimpleClass, attribute, instance)
-    #     return self
+        """
+        instance = instance or self
+        setattr(SimpleClass, attribute, instance)
+        return self
 
     def _inject_idea(self):
         """Injects portions of shared Idea instance 'options' to subclass.
@@ -223,7 +227,7 @@ class SimpleClass(ABC):
         self = self.idea.inject(instance = self, sections = sections)
         return self
 
-    """ Public Tool Methods """
+    """ Tool Methods """
 
     @staticmethod
     def add_prefix(iterable, prefix):
@@ -278,27 +282,6 @@ class SimpleClass(ABC):
         except TypeError:
             return iterable.drop_duplicates(inplace = True)
 
-    # @staticmethod
-    # def dictify(keys, values, ignore_values_list = False):
-    #     """Creates dict from list of keys and same value or zips two lists.
-
-    #     Args:
-    #         keys (list): keys for new dict.
-    #         values (any): valuse for all keys in the new dict or list of values
-    #             corresponding to list of keys.
-    #         ignore_values_list (bool): if value is a list, but the list should
-    #             be the value for all keys, set to True.
-
-    #     Returns:
-    #         dict with 'keys' as keys and 'values' as all values or zips two
-    #             lists together to form a dict.
-
-    #     """
-    #     if isinstance(values, str) and ignore_values_list:
-    #         return dict.fromkeys(keys, values)
-    #     else:
-    #         return dict(zip(keys, values))
-
     def exists(self, attribute):
         """Returns if attribute exists in subclass and is not None.
 
@@ -327,20 +310,25 @@ class SimpleClass(ABC):
         return any(isinstance(d, dict) for d in dictionary.values())
 
     @staticmethod
-    def listify(variable):
+    def listify(variable, use_null = False):
         """Stores passed variable as a list (if not already a list).
 
         Args:
             variable (str or list): variable to be transformed into a list to
                 allow proper iteration.
+            use_null (boolean): whether to return None (True) or ['none'] 
+                (False).
 
         Returns:
             variable (list): either the original list, a string converted to a
-                list, or a list containing 'none' as its only item.
+                list, None, or a list containing 'none' as its only item.
 
         """
         if not variable:
-            return ['none']
+            if use_null:
+                return None
+            else:
+                return ['none']
         elif isinstance(variable, list):
             return variable
         else:
@@ -368,7 +356,7 @@ class SimpleClass(ABC):
             except TypeError:
                 return variable
 
-    """ Public Input/Output Methods """
+    """ Import/Export Methods """
 
     def load(self, name = None, file_path = None, folder = None,
              file_name = None, file_format = None):
@@ -419,14 +407,66 @@ class SimpleClass(ABC):
         try:
             variable = getattr(self, variable)
         except TypeError:
-            self.depot.save(
-                variable = variable,
-                file_path = file_path,
-                folder = folder,
-                file_name = file_name,
-                file_format = file_format)
+            pass
+        self.depot.save(
+            variable = variable,
+            file_path = file_path,
+            folder = folder,
+            file_name = file_name,
+            file_format = file_format)
         return
 
+    """ Composite Management Methods """
+    
+    def add(self, children: SimpleClass):
+        """Adds child class instances to class instance.
+        
+        Args:
+            children (SimpleClass or list(SimpleClass)): child class instances 
+                to be linked to the current class instance.
+        
+        """
+        for child in self.listify(children, use_null = True):
+            self._children.append(child)
+            child.parent = self
+        return self
+
+    def inject_children(self, attribute: str, instance: SimpleClass = None):
+        """Adds 'instance' to child classes at named 'attribute'.
+
+        Args:
+            attribute (str): name of attribute for 'instance' to be stored.
+            instance (SimpleClass): instance to be stored in child classes.
+
+        """
+        for child in self._children:
+            setattr(child, attribute, instance)
+        return self
+    
+    def inject_parent(self, attribute: str, instance: SimpleClass = None):
+        """Adds 'instance' to parent class at named 'attribute'.
+
+        Args:
+            attribute (str): name of attribute for 'instance' to be stored.
+            instance (SimpleClass): instance to be stored in parent class.
+
+        """
+        setattr(parent, attribute, instance)
+        return self
+    
+    def remove(self, children: SimpleClass):
+        """Removes child class instances from class instance.
+        
+        Args:
+            children (SimpleClass or list(SimpleClass)): child class instances 
+                to be delinked from the current class instance.
+        
+        """
+        for child in self.listify(children):
+            self._children.remove(child)
+            child.parent = None
+        return self
+        
     """ Core siMpLify Methods """
 
     @abstractmethod
@@ -480,6 +520,49 @@ class SimpleClass(ABC):
     """ Properties """
 
     @property
+    def all(self):
+        try:
+            return list(self.options.keys())
+        except AttributeError:
+            self.options = {}
+            return []
+        
+    @property
+    def children(self):
+        try:
+            return self._children
+        except AttributeError:
+            self._children = []
+            return self._children
+
+    @children.setter
+    def children(self, children: SimpleClass):
+        self._children = self.listify(children, use_null = True)
+
+    @property
+    def defaults(self):
+        try:
+            return self._defaults
+        except AttributeError:
+            return list(self.options.keys())
+
+    @defaults.setter
+    def defaults(self, techniques: SimpleClass):
+        self._defaults = self.listify(techniques, use_null = True)
+          
+    @property
+    def parent(self):
+        try:
+            return self._parent
+        except AttributeError:
+            self._parent = None
+            return self._parent
+
+    @parent.setter
+    def parent(self, parent: SimpleClass):
+        self._parent = parent
+        
+    @property
     def stage(self):
         """Returns the shared stage for the overall siMpLify package.
 
@@ -522,11 +605,11 @@ class Stage(SimpleClass):
             classes.
 
     """
-
     name: str = 'state_machine'
 
     def __post_init__(self):
-        self.draft()
+        self._idea_sections = ['simplify']
+        super().__post_init__()
         return self
 
     """ Dunder Methods """
@@ -549,9 +632,9 @@ class Stage(SimpleClass):
 
         """
         states = []
-        for stage in self.idea.options['simplify']['simplify_techniques']:
+        for stage in self.simplify_steps:
             if stage == 'farmer':
-                for step in self.idea.options['farmer']['farmer_techniques']:
+                for step in self.idea['farmer']['farmer_techniques']:
                     states.append(step)
             else:
                 states.append(stage)

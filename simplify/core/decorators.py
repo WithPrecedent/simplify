@@ -118,12 +118,13 @@ def combine_lists(method, arguments_to_check = None):
     to wrapped method.
 
     Args:
-        method(method): wrapped method.
+        method (method): wrapped method.
 
     Returns:
-        new_kwargs(dict): 'columns' parameter has items from 'columns',
+        new_kwargs (dict): 'columns' parameter has items from 'columns',
             'prefixes', and 'mask' parameters combined into a single list
             of column names using the 'create_column_list' method.
+            
     """
     # kwargs names to use to create publishd 'columns' argument
     if not arguments_to_check:

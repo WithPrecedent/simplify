@@ -28,10 +28,9 @@ cancer_project = simplify.project(
     idea = idea,
     depot = root_folder,
     ingredients = df)
-print(getattr(cancer_project.ingredients, cancer_project.ingredients.default_df))
 # Converts label to boolean type to correct numpy default above.
 cancer_project.ingredients.change_datatype(columns = 'target',
-                                              datatype = 'boolean')
+                                           datatype = 'boolean')
 # Fills missing data with appropriate default values based on column datatype.
 cancer_project.ingredients.smart_fill()
 # Iterates through every recipe and exports plots, explainers, and other

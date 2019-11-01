@@ -21,8 +21,13 @@ class ChefComposer(SimpleComposer):
     """[summary]
 
     Args:
-        name (str): public name of class, used by various methods and classes
-            throughout the siMpLify package.
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
+            
     """
     name: str = 'chef_composer'
 
@@ -180,12 +185,11 @@ class ChefAlgorithm(SimpleAlgorithm):
                         self.algorithm.transform(X = getattr(
                             ingredients, ''.join(['x_', data_to_use]))))
             except AttributeError:
-                try:
-                    ingredients = self.algorithm.publish(
-                        ingredients = ingredients,
-                        data_to_use = data_to_use,
-                        columns = columns,
-                        **kwargs)
+                ingredients = self.algorithm.publish(
+                    ingredients = ingredients,
+                    data_to_use = data_to_use,
+                    columns = columns,
+                    **kwargs)
         return ingredients
 
 

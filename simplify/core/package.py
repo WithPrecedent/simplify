@@ -21,6 +21,16 @@ class SimplePackage(SimpleClass):
     arguments based upon user-selected options. SimplePackage subclasses
     construct iterators and process data with those iterators.
 
+    Args:
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
+        techniques (list or str): names of techniques to be applied. These names 
+            should match keys in the 'options' attribute.
+            
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
 
@@ -32,17 +42,19 @@ class SimplePackage(SimpleClass):
         super().__post_init__()
         return self
 
-    # def __iter__(self):
-    #     try:
-    #         return self.iterable.items()
-    #     except AttributeError:
-    #         return self.techniques.items()
+    """ Dunder Methods """
 
+    def __iter__(self):
+        try:
+            return self.plans.items()
+        except AttributeError:
+            pass
+        
     """ Private Methods """
 
     def _check_order(self, override = False):
         """Creates ordering of class techniques."""
-        if not self.order or override:
+        if not self.exists('order') or override:
             try:
                 self.order = self.listify(self._convert_wildcards(
                     self.idea['_'.join(self.name, 'techniques')]))
@@ -53,63 +65,89 @@ class SimplePackage(SimpleClass):
                     if isinstance(self.techniques, list):
                         self.order = self.techniques
                     else:
-                        error = 'ordercannot be created for' + self.name
+                        error = ' '.join(
+                            ['order cannot be created for', self.name])
                         raise TypeError(error)
         return self
 
-    def _check_techniques(self, override = False):
-        """Creates techniques dict from order and options."""
-        if not self.techniques or override or isinstance(self.techniques, list):
-            new_techniques = {}
+    def _draft_composers(self, override = False):
+        """Creates 'composers' dict from 'order' and 'options'.
+        
+        Args:
+            override (bool): whether to override preexisting values.
+            
+        """
+        if not self.exists('composers'):
+            self.composers = {}
+        if not self.techniques or override or isinstance(self.techniques, list):     
             for step in self.order:
                 try:
-                    new_techniques[step] = self.options[step]
+                    self.composers[step] = self.options[step]()
                 except KeyError:
-                    new_techniques[step] = 'none'
+                    error = ' '.join([step, 'does not match any technique in',
+                                      self.name])
+                    raise KeyError(error)
         return self
 
-    def _draft_plans(self, override = False):
+    def _draft_plans(self):
         """Creates cartesian product of all plans."""
         plans = []
         for step in self.order:
-            key = step + '_techniques'
+            key = '_'.join([step, 'techniques'])
             try:
-                plans.append(self.listify(self._convert_wildcards(
-                        getattr(self, self.name))))
+                plans.append(self.listify(
+                    self.composer[step]._convert_wildcards(getattr(self, key))))
             except AttributeError:
                 plans.append(['none'])
         self.plans = list(map(list, product(*plans)))
-        return self
-
-    def _publish_plans(self):
+        """Converts 'plans' from list of lists to list of SimplePlan or 
+        SimpleAlgorithms."""
         new_plans = {}
         for i, plan in enumerate(self.plans):
-            techniques = {}
-            for j, technique in enumerate(plan):
-                techniques.update({self.order[j]: technique})
-            new_plans.update(
-                    {str(i + 1): self.comparer(number = i + 1, techniques = techniques)})
+            algorithms = self._draft_sequence(plan = plan)
+            try:
+                new_plans.update(
+                    {str(i + 1): self.comparer(
+                        number = i + 1, 
+                        steps = algorithms)})
+            except AttributeError:
+                new_plans.update({str(i + 1): algorithms})
         self.plans = new_plans
-        # for step in self.order:
-        #     setattr(self, step, self.options[step](
-        #         technique = self.techniques[step]))
         return self
 
+    def _draft_sequence(self, plan: str):
+        algorithms = {}
+        for j, technique in enumerate(plan):
+            algorithm = self.composers[self.order[j]].publish(
+                technique = technique)
+            algorithms.update({self.order[j]: algorithm})
+        return algorithms
+
+    def _extra_processing(self, variable: SimpleClass, 
+                          simple_object: SimpleClass):
+        return simple_object   
+    
+    """ Public Import/Export Methods """
+    
+    
+    def load_plan(self, file_path):
+        """Imports a single recipe from disc and adds it to the class iterable.
+
+        Args:
+            file_path: a path where the file to be loaded is located.
+        """
+        self.edit_plans(iterables = self.depot.load(file_path = file_path,
+                                                    file_format = 'pickle'))
+        return self
+        
     """ Core siMpLify methods """
 
     def draft(self):
         """Creates initial settings for class based upon Idea settings."""
-        self.checks.append('order')
-        print(self.name, self._check_order)
+        self.checks.extend(['order'])
         super().draft()
-        if hasattr(self, 'comparer'):
-            self._draft_plans()
-            try:
-                setattr(Plan, 'options', self.options)
-                setattr(Plan, 'order', self.order)
-            except ValueError:
-                error = 'Plan is neither found nor set'
-                raise ValueError(error)
+        self._draft_composers()
+        self._draft_plans()
         return self
 
     def edit_plans(self, plans):
@@ -117,23 +155,31 @@ class SimplePackage(SimpleClass):
         'comparer_iterable'.
 
         Args:
-            plans(dict(str/int: SimplePlan or list(dict(str/int:
+            plans (dict(str/int: SimplePlan or list(dict(str/int:
                 SimplePlan)): plan(s) to be added to the attribute named in
                 'comparer_iterable'.
+                
         """
         if isinstance(plans, dict):
             plans = list(plans.values())
+        try:
             last_num = list(self.plans.keys())[-1:]
-        else:
+        except TypeError:
             last_num = 0
-        for i, comparer in enumerate(self.listify(plans)):
-            self.plans.update({last_num + i + 1: comparer})
+        try:
+            for i, comparer in enumerate(self.listify(plans)):
+                self.plans.update({last_num + i + 1: comparer})
+        except AttributeError:
+            self.plans.update({last_num + i + 1: plans})
         return self
 
-    def publish(self, *args, **kwargs):
+    def publish(self, variable: SimpleClass, **kwargs):
         super().publish()
-        for step in self.order:
-            getattr(self, step).publish(*args, **kwargs)
+        for number, simple_object in self.plans.items():
+            if self.verbose:
+                print('Testing', simple_object.name, str(number))
+            simple_object.publish(variable, **kwargs)
+            simple_object = self._extra_processing(variable, simple_object)  
         return self
 
     """ Properties """
@@ -141,7 +187,7 @@ class SimplePackage(SimpleClass):
     @property
     def all(self):
         return list(self.techniques.keys())
-
+        
     @property
     def defaults(self):
         try:
@@ -154,6 +200,7 @@ class SimplePackage(SimpleClass):
         self._defaults = techniques
 
 
+        
 @dataclass
 class SimplePlan(SimpleClass):
     """Contains techniques to be completed in a siMpLify process.
@@ -161,11 +208,14 @@ class SimplePlan(SimpleClass):
     Args:
         name (str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
-            throughout the siMpLify package.
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
         number (int): number of plan in a sequence - used for recordkeeping
             purposes.
-        techniques (dict(str: str)): keys are names of techniques and values are names
-            of techniques to be applied in those techniques.
+        steps (dict(str: str)): keys are names of steps and values are 
+            algorithms to be applied.
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
@@ -173,7 +223,7 @@ class SimplePlan(SimpleClass):
     """
     name: str = 'generic_plan'
     number: int = 0
-    techniques: object = None
+    steps: object = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -193,20 +243,10 @@ class SimplePlan(SimpleClass):
     """ Core siMpLify Methods """
 
     def draft(self):
-        new_techniques = {}
-        for step, technique in self.techniques.items():
-            new_techniques.update({step: self.options[step](technique = technique)})
-            setattr(self, step, new_techniques[step])
-        self.techniques = new_techniques
+        pass
+    
+    def publish(self, variable: SimpleClass, *args, **kwargs):
+        for step, algorithm in self.steps.items():
+            setattr(self, algorithm.publish(
+                getattr(self, variable.name), *args, **kwargs))
         return self
-
-    def publish(self, variable, *args, **kwargs):
-        if hasattr(self, 'variable_to_store'):
-            setattr(self, self.variable_to_store, variable)
-        for step, technique in self.techniques.items():
-            variable = technique.implement(variable, *args, **kwargs)
-            if self.exists('return_variables'):
-                self._infuse_return_variables(instance = getattr(self, step))
-        return self
-
-Plan = SimplePlan

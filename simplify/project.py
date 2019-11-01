@@ -7,26 +7,31 @@
 """
 
 from dataclasses import dataclass
+from importlib import import_module
+import os
 import warnings
 
 import numpy as np
 import pandas as pd
 
+from simplify import timer
 from simplify.core.base import SimpleClass
-from simplify.core.depot import Depot
-from simplify.core.idea import Idea
-from simplify.core.ingredients import Ingredients
 
 
+
+
+@timer('siMpLify project')
 @dataclass
-class Project(object):
+class Project(SimpleClass):
     """Controller class for siMpLify projects.
 
-        name (str): name of class used to match settings sections in an Idea
-            settings file and other portions of the siMpLify getattr(self,
-            name). This is used instead of __class__.__name__ so that subclasses
-            can maintain the same string name without altering the formal class
-            name.
+    Args:
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
         idea (Idea or str): an instance of Idea or a string containing the file
             path or file name (in the current working directory) where a
             supoorted settings file for an Idea instance is located. Once an
@@ -38,16 +43,18 @@ class Project(object):
             methods for use throughout the siMpLify package. Once a Depot
             instance is created, it is automatically an attribute of all other
             SimpleClass subclasses that are instanced in the future.
-        ingredients (Ingredients, DataFrame, or str): an instance of
-            Ingredients, a string containing the full file path of where a data
-            file for a pandas DataFrame is located, or a string containing a
-            file name in the default data folder, as defined in the shared Depot
-            instance. If a DataFrame or string is provided, the resultant
-            DataFrame is stored at the 'df' attribute in a new Ingredients
-            instance.
+        ingredients (Ingredients, DataFrame, Series, ndarray, or str): an 
+            instance of Ingredients, a string containing the full file path of 
+            where a data file for a pandas DataFrame or Series is located, a 
+            string containing a,file name in the default data folder, as defined 
+            in the shared Depot instance, a DataFrame, a Series, or numpy 
+            ndarray. If a DataFrame, ndarray, or string is provided, the 
+            resultant DataFrame is stored at the 'df' attribute in a new 
+            Ingredients instance.
         steps (list): names of all subpackages to be used from the siMpLify
             package. This argument only needs to be passed if the subpackages
-            to be used are different than those listed in 'idea'.
+            to be used are different than those listed in 'idea'. This can be
+            useful in running tests with one particular subpackage.
 
     """
     name: str = 'simplify'
@@ -57,10 +64,7 @@ class Project(object):
     steps: object = None
 
     def __post_init__(self):
-        # Removes various python warnings from console output.
-        warnings.filterwarnings('ignore')
-        # Calls 'draft' method to set core attributes for class.
-        self.draft()
+        super().__post_init__()
         return self
 
     """ Private Methods """
@@ -68,7 +72,7 @@ class Project(object):
     def _draft_depot(self):
         """Completes a Depot instance for the 'depot' attribute.
 
-        If a folder path is passed to 'depot', a Depot instance is created with
+        If a file path is passed to 'depot', a Depot instance is created with
         that folder as 'root_folder'.
 
         If 'depot' is None, a Depot instance is created with default options.
@@ -79,6 +83,8 @@ class Project(object):
             TypeError: if 'depot' is neither a str, None, nor Depot instance.
 
         """
+        # Local importation to avoid circular dependency.
+        from simplify.core.depot import Depot
         if self.depot is None:
             self.depot = Depot()
         elif isinstance(self.depot, str):
@@ -95,7 +101,8 @@ class Project(object):
     def _draft_idea(self):
         """Completes an Idea instance for the 'idea' attribute.
 
-        If a file path is passed to 'idea', an Idea instance from that file.
+        If a file path is passed to 'idea', an Idea instance is created from 
+        that file.
 
         If a completed Idea instance was passed, it is left intact.
 
@@ -103,6 +110,8 @@ class Project(object):
             TypeError: if 'idea' is neither a str nor Idea instance.
 
         """
+        # Local importation to avoid circular dependency.
+        from simplify.core.idea import Idea
         if isinstance(self.idea, str):
             self.idea = Idea(options = self.idea)
         elif isinstance(self.idea, Idea):
@@ -118,9 +127,9 @@ class Project(object):
         """Completes an Ingredients instance for the 'ingredients' attribute.
 
         If 'ingredients' is a data container, it is assigned to 'df' in a new
-            instance of Ingredients assigned to 'ingredients'.
+            instance of Ingredients.
         If 'ingredients' is a file path, the file is loaded into a DataFrame
-            and assigned to 'df' in a new Ingredients instance at 'ingredients'.
+            and assigned to 'df' in a new Ingredients instance.
         If 'ingredients' is None, a new Ingredients instance is created and
             assigned to 'ingreidents' with no attached DataFrames.
 
@@ -129,6 +138,8 @@ class Project(object):
                 Series, numpy array, or Ingredients instance.
 
         """
+        # Local importation to avoid circular dependency.
+        from simplify.core.ingredients import Ingredients
         if self.ingredients is None:
             self.ingredients = Ingredients()
         elif (isinstance(self.ingredients, pd.Series)
@@ -149,14 +160,8 @@ class Project(object):
             raise TypeError(error)
         return self
 
-    def _draft_steps(self):
-        """Gets 'steps' from 'idea' if 'steps' not passed."""
-        if self.steps is None:
-            self.steps = (
-                self.idea[self.name]['_'.join([self.name, 'steps'])])
-        return self
 
-    def _get_parameters(self, step):
+    def _get_parameters(self, step: str):
         """Returns appropriate parameters for subpackage publish method called.
 
         Args:
@@ -194,15 +199,24 @@ class Project(object):
             'artist': ('ingredients', 'chef.recipes', 'critic.reviews')}
         return self
 
-    def publish(self, ingredients = None):
-        """Implements steps in 'order'.
+    def publish(self, ingredients: object = None):
+        """Implements 'steps' in order.
 
         Args:
-            ingredients (DataFrame): data to be processed by steps.
-
+            ingredients (Ingredients, DataFrame, Series, ndarray, or str): an 
+                instance of Ingredients, a string containing the full file path 
+                of where a data file for a pandas DataFrame or Series is 
+                located, a string containing a,file name in the default data 
+                folder, as defined in the shared Depot instance, a DataFrame, a 
+                Series, or numpy ndarray. If a DataFrame, ndarray, or string is 
+                provided, the resultant DataFrame is stored at the 'df' 
+                attribute in a new Ingredients instance. If Ingredients is not 
+                passed, then the local 'ingredients' attribute will be used.
+            
         """
         if ingredients:
             self.ingredients = ingredients
+            self._check_ingredients()
         for step in self.steps:
             setattr(self, step, getattr(
                 import_module(self.options[step][0]),

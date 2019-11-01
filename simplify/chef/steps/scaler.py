@@ -15,7 +15,16 @@ from simplify.chef.composer import ChefTechnique as Technique
 
 @dataclass
 class Scaler(Composer):
-    """Scales numerical data."""
+    """Scales numerical data in a DataFrame stored in Ingredients instance.
+    
+    Args: 
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
+    """
 
     name: str = 'scaler'
 

@@ -15,9 +15,13 @@ class SimpleComposer(SimpleClass):
     """Creates siMpLify-compatible algorithms.
 
     Args:
-        name (str): public name of class, used by various methods and classes
-            throughout the siMpLify package.
-
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
+            
     """
     name: str = 'generic_composer'
 
@@ -53,8 +57,8 @@ class SimpleComposer(SimpleClass):
         added to the 'options' dict.
 
         Args:
-            technique (Technique): object containing configuration information
-                for an Algorithm to be created.
+            technique (SimpleTechnique): object containing configuration 
+                information for an Algorithm to be created.
 
         Returns:
             Algorithm object configured appropriately.
@@ -63,8 +67,9 @@ class SimpleComposer(SimpleClass):
         try:
             return self.options[technique.name]
         except KeyError:
-            algorithm = getattr(import_module(technique.module),
-                                technique.algorithm)
+            algorithm = getattr(
+                import_module(technique.module),
+                technique.algorithm)
             self.options[technique.name] = algorithm
             return algorithm
 
@@ -72,8 +77,8 @@ class SimpleComposer(SimpleClass):
         """Calls appropriate methods for constructing technique parameters.
 
         Args:
-            technique (Technique): object containing configuration information
-                for parameters to be constructed.
+            technique (SimpleTechnique): object containing configuration 
+                information for parameters to be constructed.
 
         Returns:
             dict containing parameters for the technique. Data dependent
@@ -95,8 +100,8 @@ class SimpleComposer(SimpleClass):
         no existing parameters are set.
 
         Args:
-            technique (Technique): object containing configuration information
-                for parameters to be constructed.
+            technique (SimpleTechnique): object containing configuration 
+                information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
         Returns:
@@ -125,8 +130,8 @@ class SimpleComposer(SimpleClass):
         parameters are selected for the final returned parameters.
 
         Args:
-            technique (Technique): object containing configuration information
-                for parameters to be constructed.
+            technique (SimpleTechnique): object containing configuration 
+                information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
         Returns:
@@ -149,8 +154,8 @@ class SimpleComposer(SimpleClass):
         """Adds extra parameters (mandatory additions) to 'parameters'.
 
         Args:
-            technique (Technique): object containing configuration information
-                for parameters to be constructed.
+            technique (SimpleTechnique): object containing configuration 
+                information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
         Returns:
@@ -174,8 +179,8 @@ class SimpleComposer(SimpleClass):
         be added to parameters.
 
         Args:
-            technique (Technique): object containing configuration information
-                for parameters to be constructed.
+            technique (SimpleTechnique): object containing configuration 
+                information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
         Returns:
@@ -201,8 +206,8 @@ class SimpleComposer(SimpleClass):
         method to modify 'parameters'. This method is a mere placeholder.
 
         Args:
-            technique (Technique): object containing configuration information
-                for parameters to be constructed.
+            technique (SimpleTechnique): object containing configuration 
+                information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
         Returns:
@@ -230,8 +235,8 @@ class SimpleComposer(SimpleClass):
         """Converts Simpletechnique to a SimpleAlgorithm.
 
         Args:
-            technique (Technique): object containing configuration information
-                for parameters to be constructed.
+            technique (str): name of technique to be used. It should match the
+                name of a local attribute in the subclass.
             parameters (dict, optional): parameters to be modified and returned.
                 Defaults to None.
 
@@ -261,6 +266,21 @@ class SimpleComposer(SimpleClass):
     """ Properties """
 
     @property
+    def all(self):
+        return list(self.options.keys())
+
+    @property
+    def defaults(self):
+        try:
+            return self._defaults
+        except AttributeError:
+            return list(self.options.keys())
+
+    @defaults.setter
+    def defaults(self, techniques):
+        self._defaults = techniques
+        
+    @property
     def options(self):
         """Returns dictionary of attribute names and values if they are
         subclasses of SimpleTechnique.
@@ -270,8 +290,8 @@ class SimpleComposer(SimpleClass):
         in a variety of ways.
 
         """
-        return {k: v for (k, v) in self.__dict__.items() if issubclass(v,
-                    SimpleTechnique)}
+        return {k: v for (k, v) in self.__dict__.items() if (issubclass(v,
+                    SimpleTechnique) or isinstance(v, SimpleTechnique))}
 
 
 @dataclass
@@ -279,8 +299,12 @@ class SimpleTechnique(object):
     """Stores settings to import and create a SimpleAlgorithm.
 
     Args:
-        name (str): public name of class, used by various methods and classes
-            throughout the siMpLify package.
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
         module (str): name of internal or external module which contains the
             'algorithm' object.
         algorithm (str): name of the object to be imported from 'module'.
@@ -359,7 +383,7 @@ class SimpleAlgorithm(SimpleClass):
 
         """
         for key, value in self.data_dependents.items():
-            self.parameters.update({key, getattr(ingredients, value)})
+            self.parameters.update({key, getattr(variable, value)})
         self._add_parameters()
         return self
 

@@ -85,7 +85,7 @@ class Ingredients(SimpleClass):
         # Returns appropriate DataFrame based upon 'stage' attribute.
         if attribute in ['x_train', 'y_train', 'x_test', 'y_test']:
             prefix, suffix = attribute.split('_')
-            mapped_suffix = self.options[self.stage][suffix]
+            mapped_suffix = self.options[self.state][suffix]
             try:
                 return self.__dict__[''.join(['_', prefix, mapped_suffix])]
             except TypeError:
@@ -94,7 +94,10 @@ class Ingredients(SimpleClass):
             return self.__dict__[''.join(['_', attribute])]
         elif attribute in ['floats', 'integers', 'strings', 'lists', 'booleans',
                            'categoricals', 'datetimes', 'timedeltas']:
-            return self._get_columns_by_type(datatype = attribute[:-1])
+            try:
+                return self.__dict__[attribute]
+            except KeyError:
+                return self._get_columns_by_type(datatype = attribute[:-1])
         elif attribute in ['numerics']:
             return self.floats + self.integers
 
@@ -102,7 +105,7 @@ class Ingredients(SimpleClass):
         # Sets appropriate DataFrame based upon 'stage' attribute.
         if attribute in ['x_train', 'y_train', 'x_test', 'y_test']:
             prefix, suffix = attribute.split('_')
-            mapped_suffix = self.options[self.stage][suffix]
+            mapped_suffix = self.options[self.state][suffix]
             try:
                 self.__dict__[''.join(['_', prefix, mapped_suffix])] = value
             except TypeError:
@@ -127,6 +130,7 @@ class Ingredients(SimpleClass):
                 the 'datatypes' attribute is returned.
 
         """
+        print(columns or list(self.datatypes.keys()))
         return columns or list(self.datatypes.keys())
 
     @choose_df
@@ -139,8 +143,10 @@ class Ingredients(SimpleClass):
 
         """
         for column in list(self.datatypes.keys()):
-            if column not in df.columns:
+            try:
                 del self.datatypes[column]
+            except KeyError:
+                pass
         return self
 
     def _get_columns_by_type(self, datatype):
@@ -162,13 +168,14 @@ class Ingredients(SimpleClass):
         Args:
             df (DataFrame or Series): pandas object with column names to get
                 indices for.
-            columns (list): names of columns for which indices are sought.
+            columns (list or str): name(s) of columns for which indices are 
+                sought.
 
         Returns:
             bool mask for columns matching 'columns'.DataState
 
         """
-        return [df.columns.get_loc(column) for column in columns]
+        return [df.columns.get_loc(column) for column in self.listify(columns)]
 
     @choose_df
     def _initialize_datatypes(self, df = None):
@@ -248,7 +255,7 @@ class Ingredients(SimpleClass):
             KeyError: if a column in 'columns' is not in 'df'.
 
         """
-        for column in self.listify(self._check_columns(columns)):
+        for column in self._check_columns(columns):
             try:
                 if not column in self.booleans:
                     if df[column].nunique() < threshold:
@@ -271,12 +278,12 @@ class Ingredients(SimpleClass):
 
         Args:
             df (DataFrame): pandas object for datatypes to be changed.
-            columns (list): column names for datatypes to be changed.
+            columns (list or str): column name(s) for datatypes to be changed.
             datatype (str): contains name of the datatype to convert the
                 columns.
 
         """
-        for column in columns:
+        for column in self.listify(columns):
             self.datatypes[column] = datatype
         self.convert_column_datatypes(df = df)
         return self
@@ -301,9 +308,11 @@ class Ingredients(SimpleClass):
             raise_errors = 'ignore'
         for column, datatype in self.datatypes.items():
             if not datatype in ['string']:
-                df[column].astype(dtype = self.all_datatypes[datatype],
-                                  copy = False,
-                                  errors = raise_errors)
+                df[column].astype(
+                    dtype = self.all_datatypes[datatype],
+                    copy = False,
+                    errors = raise_errors)
+        print(self.datatypes)
         # Attempts to downcast datatypes to simpler forms if possible.
         self.downcast(df = df)
         return self
@@ -332,9 +341,10 @@ class Ingredients(SimpleClass):
         for column in columns:
             try:
                 df['value_freq'] = df[column].value_counts() / len(df[column])
-                df[column] = np.where(df['value_freq'] <= threshold,
-                                      self.default_values['categorical'],
-                                      df[column])
+                df[column] = np.where(
+                    df['value_freq'] <= threshold,
+                    self.default_values['categorical'],
+                    df[column])
             except KeyError:
                 error = column + ' is not in df'
                 raise KeyError(error)
@@ -348,6 +358,11 @@ class Ingredients(SimpleClass):
         """Dynamically creates a new column list from a list of columns, lists
         of prefixes, and/or boolean mask.
 
+        This method serves as the basis for the 'column_lists' decorator which
+        allows users to pass 'prefixes', 'columns', and 'mask' to a wrapped
+        method with a 'columns' argument. Those three arguments are then
+        combined into the final 'columns' argument.
+        
         Args:
             df (DataFrame): pandas object.
             columns (list or str): column names to be included.
@@ -369,13 +384,13 @@ class Ingredients(SimpleClass):
             pass
         try:
             temp_list = []
-            for prefix in self.listify(prefixes):
+            for prefix in self.listify(prefixes, use_null = True):
                 temp_list = [col for col in df if col.startswith(prefix)]
                 column_names.extend(temp_list)
         except TypeError:
             pass
         try:
-            column_names.extend(self.listify(columns))
+            column_names.extend(self.listify(columns, use_null = True))
         except TypeError:
             pass
         return self.deduplicate(iterable = column_names)
@@ -384,6 +399,9 @@ class Ingredients(SimpleClass):
     def create_series(self, columns = None, return_series = True):
         """Creates a Series (row) with the 'datatypes' dict.
 
+        Default values are added to each item in the series so that pandas does
+        not automatically infer the datatype when a value is passed.
+        
         Args:
             columns (list or str): index names for pandas Series.
             return_series (bool): whether the Series should be returned (True)
@@ -410,16 +428,17 @@ class Ingredients(SimpleClass):
     def decorrelate(self, df = None, columns = None, threshold = 0.95):
         """Drops all but one column from highly correlated groups of columns.
 
-        The threshold is based upon the .corr() method in pandas. columns can
-        include any datatype accepted by .corr(). If columns is set to None,
-        all columns in the DataFrame are tested.
+        The threshold is based upon the .corr() method in pandas. 'columns' can
+        include any datatype accepted by .corr(). If 'columns' is None, all 
+        columns in the DataFrame are tested.
 
         Args:
             df (DataFrame): pandas object to be have highly correlated features
                 removed.
             threshold (float): the level of correlation using pandas corr method
                 above which a column is dropped. The default threshold is 0.95,
-                consistent with a common p-value threshold used in research.
+                consistent with a common p-value threshold used in social 
+                science research.
 
         """
         try:
@@ -451,31 +470,36 @@ class Ingredients(SimpleClass):
             KeyError: if column in 'columns' is not in 'df'.
 
         """
+        print('columns', columns)
         for column in self._check_columns(columns):
-            try:
-                if self.datatypes[column] in ['boolean']:
-                    df[column] = df[column].astype(bool)
-                elif self.datatypes[column] in ['integer', 'float']:
-                    try:
-                        df[column] = pd.to_numeric(df[column],
-                                                   downcast = 'integer')
-                        if min(df[column] >= 0) and allow_unsigned:
-                            df[column] = pd.to_numeric(df[column],
-                                                       downcast = 'unsigned')
-                    except ValueError:
-                        df[column] = pd.to_numeric(df[column],
-                                                   downcast = 'float')
-                elif self.datatypes[column] in ['categorical']:
-                    df[column] = df[column].astype('category')
-                elif self.datatypes[column] in ['list']:
-                    df[column].apply(self.listify,
-                                     axis = 'columns',
-                                     inplace = True)
-                elif self.datatypes[column] in ['datetime']:
-                    df[column] = pd.to_datetime(df[column])
-                elif self.datatypes[column] in ['timedelta']:
-                    df[column] = pd.to_timedelta(df[column])
-            except KeyError:
+            print('column name', column)
+            if self.datatypes[column] in ['boolean']:
+                df[column] = df[column].astype(bool)
+            elif self.datatypes[column] in ['integer', 'float']:
+                try:
+                    df[column] = pd.to_numeric(
+                        df[column],
+                        downcast = 'integer')
+                    if min(df[column] >= 0) and allow_unsigned:
+                        df[column] = pd.to_numeric(
+                            df[column],
+                            downcast = 'unsigned')
+                except ValueError:
+                    df[column] = pd.to_numeric(
+                        df[column],
+                        downcast = 'float')
+            elif self.datatypes[column] in ['categorical']:
+                df[column] = df[column].astype('category')
+            elif self.datatypes[column] in ['list']:
+                df[column].apply(
+                    self.listify,
+                    axis = 'columns',
+                    inplace = True)
+            elif self.datatypes[column] in ['datetime']:
+                df[column] = pd.to_datetime(df[column])
+            elif self.datatypes[column] in ['timedelta']:
+                df[column] = pd.to_timedelta(df[column])
+            else:
                 error = column + ' is not in df'
                 raise KeyError(error)
         return self
@@ -485,20 +509,15 @@ class Ingredients(SimpleClass):
     def drop_columns(self, df = None, columns = None):
         """Drops list of columns and columns with prefixes listed.
 
-        In addition to removing the columns, any dropped columns have their
-        column names stored in the cumulative 'dropped_columns' list. If you
-        wish to make use of the 'dropped_columns' attribute, you should use this
-        'drop_columns' method instead of dropping the columns directly.
-
         Args:
-            df(DataFrame or Series): pandas object for columns to be dropped
+            df (DataFrame or Series): pandas object for columns to be dropped
             columns(list): columns to drop.
+            
         """
-        if isinstance(df, pd.DataFrame):
+        try:
             df.drop(columns, axis = 'columns', inplace = True)
-        else:
+        except TypeError:
             df.drop(columns, inplace = True)
-        self.dropped_columns.extend(columns)
         return self
 
     @combine_lists
@@ -509,20 +528,20 @@ class Ingredients(SimpleClass):
         This differs from the sklearn VarianceThreshold class because it is only
         concerned with rare instances of True and not False. This enables
         users to set a different variance threshold for rarely appearing
-        information. threshold is defined as the percentage of total rows (and
+        information. 'threshold' is defined as the percentage of total rows (and
         not the typical variance formulas used in sklearn).
 
         Args:
-            df(DataFrame): pandas object for columns to checked for infrequent
+            df (DataFrame): pandas object for columns to checked for infrequent
                 boolean True values.
-            columns(list): columns to check.
-            threshold(float): the percentage of True values in a boolean column
-            that must exist for the column to be kept.
+            columns (list or str): columns to check.
+            threshold (float): the percentage of True values in a boolean column
+                that must exist for the column to be kept.
         """
-        if not columns:
+        if columns is None:
             columns = self.booleans
         infrequents = []
-        for column in self.booleans:
+        for column in self.listify(columns):
             try:
                 if df[column].mean() < threshold:
                     infrequents.append(column)
@@ -541,19 +560,19 @@ class Ingredients(SimpleClass):
         simple types.
 
         This methods also allows the user to choose which datatypes to look for
-        by changing the 'default_values' dict stored in 'all_datatypes'.
+        by changing the 'options' dict stored in 'all_datatypes'.
 
         Non-standard python datatypes cannot be inferred.
 
         Args:
             df (DataFrame): pandas object for datatypes to be inferred.
+            
         """
         for datatype in self.all_datatypes.options.values():
             type_columns = df.select_dtypes(
                 include = [datatype]).columns.to_list()
             self.datatypes.update(
-                dict.fromkeys(type_columns,
-                              self.all_datatypes[datatype]))
+                dict.fromkeys(type_columns, self.all_datatypes[datatype]))
         return self
 
     def save_dropped(self, folder = 'experiment', file_name = 'dropped_columns',
@@ -569,10 +588,11 @@ class Ingredients(SimpleClass):
         if self.dropped_columns:
             if self.verbose:
                 print('Exporting dropped feature list')
-            self.depot.save(variable = self.dropped_columns,
-                                folder = folder,
-                                file_name = file_name,
-                                file_format = file_format)
+            self.depot.save(
+                variable = self.dropped_columns,
+                folder = folder,
+                file_name = file_name,
+                file_format = file_format)
         elif self.verbose:
             print('No features were dropped during preprocessing.')
         return
@@ -581,7 +601,7 @@ class Ingredients(SimpleClass):
     @choose_df
     def smart_fill(self, df = None, columns = None):
         """Fills na values in a DataFrame with defaults based upon the datatype
-        listed in the 'datatypes' dictionary.
+        listed in 'all_datatypes'.
 
         Args:
             df (DataFrame): pandas object for values to be filled
@@ -590,6 +610,7 @@ class Ingredients(SimpleClass):
 
         Raises:
             KeyError: if column in 'columns' is not in 'df'.
+            
         """
         for column in self._check_columns(columns):
             try:
@@ -607,14 +628,12 @@ class Ingredients(SimpleClass):
         Args:
             df (DataFrame): initial pandas object to be split.
             label (str or list): name of column(s) to be stored in 'y'.'
+            
         """
-        self.x = Ingredient(
-            df = df[list(df.columns.values).remove(label)],
-            datatypes = self.datatypes,
-            prefixes = self.prefixes)
-        self.y = Ingredient(
-            df = df[label],
-            datatypes = {label: self.datatypes[label]})
+        self.x = df[list(df.columns.values).remove(label)]
+        self.y = df[label],
+        self.label_datatype = self.datatypes[label]
+        self._crosscheck_columns()
         self.state.change('train_test')
         return self
 
@@ -624,18 +643,18 @@ class Ingredients(SimpleClass):
         """Sets defaults for Ingredients when class is instanced."""
         # Creates object for all available datatypes.
         self.all_datatypes = DataTypes()
-        print(self.all_datatypes)
         # Creates 'datatypes' and 'prefixes' dicts if they don't exist.
         self.datatypes = self.datatypes or {}
         self.prefixes = self.prefixes or {}
         # Creates data state machine instance.
         self.state = DataState()
+        # Creates naming suffix convention for use by __getattr__ and 
+        # __setattr__ that change dataset mapping based upon 'state'.
         self.options = {
             'unsplit': {'train': '', 'test': None},
             'train_test': {'train': '_train', 'test': '_test'},
             'train_val': {'train': '_train', 'test': '_val'},
             'full': {'train': '', 'test': ''}}
-        print(self.all_datatypes)
         return self
 
     def publish(self):
