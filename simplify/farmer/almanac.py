@@ -105,11 +105,11 @@ class Almanac(SimplePackage):
         for step in self.techniques:
             step_instance = self.draft_class(name = step,
                                             index_column = self.index_column)
-            for technique in self.listify(getattr(self, step + '_techniques')):
+            for technique in listify(getattr(self, step + '_techniques')):
                 tool_instance = self.edit_technique(
                         step = step,
                         technique = technique,
-                        parameters = self.listify(getattr(self, technique)))
+                        parameters = listify(getattr(self, technique)))
                 step_instance.techniques.append(tool_instance)
             step_instance.publish()
             self.drafts.append(step_instance)

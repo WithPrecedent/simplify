@@ -134,7 +134,7 @@ class Paint(SimpleIterable):
 
     def histogram(self, features = None, file_name = 'histogram.png',
                   **kwargs):
-        for feature in self.listify(features):
+        for feature in listify(features):
             sns.distplot(self.x[feature], feature, **kwargs)
             self.save(feature + '_' + file_name)
         return self

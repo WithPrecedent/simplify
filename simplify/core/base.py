@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from importlib import import_module
 import os
+from typing import Any, Iterable, List, Union
 
 from more_itertools import unique_everseen
 import numpy as np
@@ -18,12 +19,11 @@ import pandas as pd
 
 @dataclass
 class SimpleClass(ABC):
-    """Base class for siMpLify to support a common architecture and sharing of
-    methods.
+    """Base class to support a common architecture and sharing of methods.
 
-    Fundementally, SimpleClass is a cross between composite and builder design 
+    Fundementally, SimpleClass is a cross between composite and builder design
     patterns with some added functionality.
-    
+
     SimpleClass creates a code structure patterned after the writing process.
     It divides processes into three stages which are the names or prefixes to
     the core methods used throughout the siMpLify package:
@@ -62,15 +62,15 @@ class SimpleClass(ABC):
             Ingredients, a string containing the full file path of where a data
             file for a pandas DataFrame is located, a string containing a
             file name in the default data folder, as defined in the shared Depot
-            instance, a DataFrame, or numpy ndarray. If a DataFrame, ndarray, or 
-            string is provided, the resultant DataFrame is stored at the 'df' 
+            instance, a DataFrame, or numpy ndarray. If a DataFrame, ndarray, or
+            string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance.
 
     """
-    def __post_init__(self):
-        """Calls initialization methods and sets defaults."""
+    def __post_init__(self) -> None:
+        """Calls initialization methods and sets class instance defaults."""
         # Sets default 'name' attribute if none exists.
-        if not self.exists('name'):
+        if not self._exists('name'):
             self.name = self.__class__.__name__.lower()
         # Initializes 'checks' attribute for validation checks to be performed.
         self.checks = []
@@ -83,7 +83,7 @@ class SimpleClass(ABC):
 
     """ Dunder Methods """
 
-    def __contains__(self, item):
+    def __contains__(self, item: str) -> bool:
         """Checks if item is in 'options' attribute.
 
         Args:
@@ -95,7 +95,7 @@ class SimpleClass(ABC):
         """
         return item in self.options
 
-    def __delitem__(self, item):
+    def __delitem__(self, item: str) -> None:
         """Deletes item if in 'options' or, if it is an instance attribute, it
         is assigned a value of None.
 
@@ -117,7 +117,7 @@ class SimpleClass(ABC):
                 raise KeyError(error)
         return self
 
-    def __getattr__(self, attribute):
+    def __getattr__(self, attribute: str) -> Any:
         """Returns dict methods applied to options attribute if those methods
         are sought from the class instance.
 
@@ -137,7 +137,7 @@ class SimpleClass(ABC):
                          'get', 'fromkeys', 'setdefault', 'popitem', 'copy']:
             return getattr(self.options, attribute)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         """Returns item if 'item' is in 'options' or is an atttribute.
 
         Args:
@@ -157,13 +157,36 @@ class SimpleClass(ABC):
             except AttributeError:
                 return None
 
+    def __iter__(self) -> Iterable:
+        """Returns iterable options dict items()."""
+        return self.options.items()
+
+    def __len__(self):
+        """Returns length of 'options'."""
+        try:
+            return len(self.options)
+        except AttributeError:
+            self.options = {}
+            return 0
+
+    def __setitem__(self, item: str, value: Any) -> None:
+        """Sets item in 'options' dictionary as 'value'.
+
+        Args:
+            item (str): name of key to be set in 'options'.
+            value (Any): value for 'item' in 'options'.
+
+        """
+        self.options[item] = value
+        return self
+
     """ Private Methods """
 
-    def _convert_wildcards(self, value):
+    def _convert_wildcards(self, value: Union[str, List[str]]) -> List[str]:
         """Converts 'all', 'default', or 'none' values to a list of items.
 
         Args:
-            value (list or str): name(s) of techniques or packages.
+            value (str or list(str)): name(s) of techniques or packages.
 
         Returns:
             If 'all', either the 'all' property or all keys listed in 'options'
@@ -185,104 +208,18 @@ class SimpleClass(ABC):
             except AttributeError:
                 return list(self.options.keys())
         elif value in ['none', ['none'], 'None', ['None'], None]:
-            return 'none'
+            return ['none']
         else:
             return value
 
-    def _draft_techniques(self):
+    def _draft_techniques(self) -> None:
         """Gets 'steps' from 'idea' if 'steps' not passed."""
         if self.techniques is None:
             self.techniques = getattr(self, '_'.join([self.name, 'techniques']))
         self.steps = self._convert_wildcards(value = self.techniques)
         return self
-    
-    def _inject_base(self, attribute: str, instance: SimpleClass = None):
-        """Injects base class, with attribute so that it is available to other
-        modules instanced in the future.
 
-        Args:
-            attribute (str): name of attribute for 'instance' to be stored.
-            instance (SimpleClass): instance to be stored in base class.
-
-        """
-        instance = instance or self
-        setattr(SimpleClass, attribute, instance)
-        return self
-
-    def _inject_idea(self):
-        """Injects portions of shared Idea instance 'options' to subclass.
-
-        Every siMpLify class gets the 'general' section of the Idea settings.
-        Other sections are added according to the 'name' attribute of the
-        subclass and the local 'idea_sections' attribute. How the settings are
-        injected is dependent on the 'inject' method in an Idea instance.
-
-        """
-        sections = ['general']
-        try:
-            sections.extend(self.listify(self.idea_sections))
-        except AttributeError:
-            pass
-        sections.append(self.name)
-        self = self.idea.inject(instance = self, sections = sections)
-        return self
-
-    """ Tool Methods """
-
-    @staticmethod
-    def add_prefix(iterable, prefix):
-        """Adds prefix to each item in a list or keys in a dict.
-
-        An underscore is automatically added after the string prefix.
-
-        Args:
-            iterable (list or dict): iterable to be modified.
-            prefix (str): prefix to be added.
-        Returns:
-            list or dict with prefixes added.
-
-        """
-        try:
-            return {prefix + '_' + k: v for k, v in iterable.items()}
-        except TypeError:
-            return [prefix + '_' + item for item in iterable]
-
-    @staticmethod
-    def add_suffix(iterable, suffix):
-        """Adds suffix to each item in a list or keys in a dict.
-
-        An underscore is automatically added after the string suffix.
-
-        Args:
-            iterable (list or dict): iterable to be modified.
-            suffix (str): suffix to be added.
-        Returns:
-            list or dict with suffixes added.
-
-        """
-        try:
-            return {k + '_' + suffix: v for k, v in iterable.items()}
-        except TypeError:
-            return [item + '_' + suffix for item in iterable]
-
-    @staticmethod
-    def deduplicate(iterable):
-        """Deduplicates list, pandas DataFrame, or pandas Series.
-
-        Args:
-            iterable (list, DataFrame, or Series): iterable to have duplicate
-                entries removed.
-
-        Returns:
-            iterable (list, DataFrame, or Series, same as passed type):
-                iterable with duplicate entries removed.
-        """
-        try:
-            return list(unique_everseen(iterable))
-        except TypeError:
-            return iterable.drop_duplicates(inplace = True)
-
-    def exists(self, attribute):
+    def _exists(self, attribute: str) -> bool:
         """Returns if attribute exists in subclass and is not None.
 
         Args:
@@ -295,71 +232,42 @@ class SimpleClass(ABC):
         return (hasattr(self, attribute)
                 and getattr(self, attribute) is not None)
 
-    @staticmethod
-    def is_nested(dictionary):
-        """Returns if passed 'dictionary' is nested at least one-level.
+    def _inject_base(self, attribute: str,
+                     instance: 'SimpleClass' = None) -> None:
+        """Injects base class, with attribute so that it is available to other
+        modules instanced in the future.
 
         Args:
-            dictionary (dict): dict to be tested.
-
-        Returns:
-            bool: indicating whether any value in the 'dictionary' is also a
-                dict (meaning that 'dictionary' is nested).
+            attribute (str): name of attribute for 'instance' to be stored.
+            instance (SimpleClass): instance to be stored in base class.
 
         """
-        return any(isinstance(d, dict) for d in dictionary.values())
+        instance = instance or self
+        setattr(SimpleClass, attribute, instance)
+        return self
 
-    @staticmethod
-    def listify(variable, use_null = False):
-        """Stores passed variable as a list (if not already a list).
+    def _inject_idea(self) -> None:
+        """Injects portions of shared Idea instance 'options' to subclass.
 
-        Args:
-            variable (str or list): variable to be transformed into a list to
-                allow proper iteration.
-            use_null (boolean): whether to return None (True) or ['none'] 
-                (False).
-
-        Returns:
-            variable (list): either the original list, a string converted to a
-                list, None, or a list containing 'none' as its only item.
+        Every siMpLify class gets the 'general' section of the Idea settings.
+        Other sections are added according to the 'name' attribute of the
+        subclass and the local 'idea_sections' attribute. How the settings are
+        injected is dependent on the 'inject' method in an Idea instance.
 
         """
-        if not variable:
-            if use_null:
-                return None
-            else:
-                return ['none']
-        elif isinstance(variable, list):
-            return variable
-        else:
-            return [variable]
-
-    @staticmethod
-    def stringify(variable):
-        """Converts one item list to a string (if not already a string).
-
-        Args:
-            variable (list): variable to be transformed into a string.
-
-        Returns:
-            variable (str): either the original str, a string pulled from a
-                one-item list, or the original list.
-
-        """
-        if variable is None:
-            return 'none'
-        elif isinstance(variable, str):
-            return variable
-        else:
-            try:
-                return variable[0]
-            except TypeError:
-                return variable
+        sections = ['general']
+        try:
+            sections.extend(listify(self.idea_sections))
+        except AttributeError:
+            pass
+        sections.append(self.name)
+        self = self.idea.inject(instance = self, sections = sections)
+        return self
 
     """ Import/Export Methods """
 
     def load(self, name = None, file_path = None, folder = None,
-             file_name = None, file_format = None):
+             file_name = None, file_format = None) -> None:
         """Loads object from file into subclass attribute ('name').
 
         For any arguments not passed, default values stored in the shared Depot
@@ -384,7 +292,7 @@ class SimpleClass(ABC):
         return self
 
     def save(self, variable = None, file_path = None, folder = None,
-             file_name = None, file_format = None):
+             file_name = None, file_format = None) -> None:
         """Exports a variable or attribute to disc.
 
         For any arguments not passed, default values stored in the shared Depot
@@ -414,24 +322,26 @@ class SimpleClass(ABC):
             folder = folder,
             file_name = file_name,
             file_format = file_format)
-        return
+        return self
 
     """ Composite Management Methods """
-    
-    def add(self, children: SimpleClass):
+
+    def add_children(self,
+            children: Union[List['SimpleClass'], 'SimpleClass']) -> None:
         """Adds child class instances to class instance.
-        
+
         Args:
-            children (SimpleClass or list(SimpleClass)): child class instances 
+            children (SimpleClass or list(SimpleClass)): child class instances
                 to be linked to the current class instance.
-        
+
         """
-        for child in self.listify(children, use_null = True):
+        for child in listify(children, use_null = True):
             self._children.append(child)
             child.parent = self
         return self
 
-    def inject_children(self, attribute: str, instance: SimpleClass = None):
+    def inject_children(self, attribute: str,
+                        instance: 'SimpleClass' = None) -> None:
         """Adds 'instance' to child classes at named 'attribute'.
 
         Args:
@@ -442,8 +352,9 @@ class SimpleClass(ABC):
         for child in self._children:
             setattr(child, attribute, instance)
         return self
-    
-    def inject_parent(self, attribute: str, instance: SimpleClass = None):
+
+    def inject_parent(self, attribute: str,
+                      instance: 'SimpleClass' = None) -> None:
         """Adds 'instance' to parent class at named 'attribute'.
 
         Args:
@@ -453,24 +364,25 @@ class SimpleClass(ABC):
         """
         setattr(parent, attribute, instance)
         return self
-    
-    def remove(self, children: SimpleClass):
+
+    def remove_children(self,
+            children: Union[List['SimpleClass'], 'SimpleClass']) -> None:
         """Removes child class instances from class instance.
-        
+
         Args:
-            children (SimpleClass or list(SimpleClass)): child class instances 
+            children (SimpleClass or list(SimpleClass)): child class instances
                 to be delinked from the current class instance.
-        
+
         """
-        for child in self.listify(children):
+        for child in listify(children):
             self._children.remove(child)
             child.parent = None
         return self
-        
+
     """ Core siMpLify Methods """
 
     @abstractmethod
-    def draft(self):
+    def draft(self) -> None:
         """Required method that sets default values for a subclass.
 
         A dict called 'options' may be defined here for subclasses to use
@@ -479,7 +391,9 @@ class SimpleClass(ABC):
         """
         pass
 
-    def edit(self, keys = None, values = None, options = None):
+    def edit(self, keys: Union[str, List[str]] = None,
+             values: Union[str, List[str]] = None,
+             options: Dict = None) -> 'SimpleClass':
         """Updates 'options' dictionary with passed arguments.
 
         Args:
@@ -506,7 +420,7 @@ class SimpleClass(ABC):
         return self
 
     @abstractmethod
-    def publish(self, *args, **kwargs):
+    def publish(self, *args, **kwargs) -> None:
         """Required method which creates and/or applies any objects to be
         applied to data or variables.
 
@@ -520,15 +434,15 @@ class SimpleClass(ABC):
     """ Properties """
 
     @property
-    def all(self):
+    def all(self) -> List[str]:
         try:
             return list(self.options.keys())
         except AttributeError:
             self.options = {}
             return []
-        
+
     @property
-    def children(self):
+    def children(self) -> List['SimpleClass']:
         try:
             return self._children
         except AttributeError:
@@ -536,22 +450,25 @@ class SimpleClass(ABC):
             return self._children
 
     @children.setter
-    def children(self, children: SimpleClass):
-        self._children = self.listify(children, use_null = True)
+    def children(self, children: Union[List['SimpleClass'], 'SimpleClass']) -> (
+        None):
+        self._children = listify(children, use_null = True)
+        return self
 
     @property
-    def defaults(self):
+    def defaults(self) -> List[str]:
         try:
             return self._defaults
         except AttributeError:
             return list(self.options.keys())
 
     @defaults.setter
-    def defaults(self, techniques: SimpleClass):
-        self._defaults = self.listify(techniques, use_null = True)
-          
+    def defaults(self, techniques: Union[str, List[str]]) -> None:
+        self._defaults = listify(techniques, use_null = True)
+        return self
+
     @property
-    def parent(self):
+    def parent(self) -> 'SimpleClass':
         try:
             return self._parent
         except AttributeError:
@@ -559,11 +476,12 @@ class SimpleClass(ABC):
             return self._parent
 
     @parent.setter
-    def parent(self, parent: SimpleClass):
+    def parent(self, parent: 'SimpleClass') -> None:
         self._parent = parent
-        
+        return self
+
     @property
-    def stage(self):
+    def stage(self) -> str:
         """Returns the shared stage for the overall siMpLify package.
 
         Returns:
@@ -577,7 +495,7 @@ class SimpleClass(ABC):
             return self._stage_state
 
     @stage.setter
-    def stage(self, new_stage):
+    def stage(self, new_stage: str) -> None:
         """Sets the shared stage for the overall siMpLify package
 
         Args:
@@ -607,24 +525,24 @@ class Stage(SimpleClass):
     """
     name: str = 'state_machine'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._idea_sections = ['simplify']
         super().__post_init__()
         return self
 
     """ Dunder Methods """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Returns string name of 'state'."""
         return self.__str__()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns string name of 'state'."""
         return self.state
 
     """ Private Methods """
 
-    def _get_states(self):
+    def _get_states(self) -> List[str]:
         """Determines list of possible stages.
 
         Returns:
@@ -640,9 +558,9 @@ class Stage(SimpleClass):
                 states.append(stage)
         return states
 
-    """ Public State Machine Methods """
+    """ State Machine Methods """
 
-    def change(self, new_state):
+    def change(self, new_state: str) -> None:
         """Changes 'state' to 'new_state'.
 
         Args:
@@ -661,14 +579,14 @@ class Stage(SimpleClass):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         # Gets list of possible states based upon Idea instance options.
         self._get_states()
         # Sets initial state.
         self.state = self.states[0]
         return self
 
-    def publish(self):
+    def publish(self) -> None:
         """ Returns current state.
 
         __str__ and __repr__ can also be used to get the current stage.
@@ -679,7 +597,7 @@ class Stage(SimpleClass):
     """ Properties """
 
     @property
-    def state(self):
+    def state(self) -> str:
         """Returns current state.
 
         __str__ and __repr__ can also be used to get the current stage.
@@ -688,16 +606,16 @@ class Stage(SimpleClass):
         return self.state
 
     @state.setter
-    def state(self, new_state):
+    def state(self, new_state: str) -> None:
         """Changes 'state' to 'new_state'."""
         self.change(new_state = new_state)
 
     @property
-    def states(self):
+    def states(self) -> List[str]:
         """Returns list of possible stages."""
         return self._states or self._get_states()
 
     @states.setter
-    def states(self, new_states):
+    def states(self, new_states: List[str]) -> None:
         """Sets possible stages to 'new_stages'."""
-        self._states = new_states
+        self._states = listify(new_states, use_null = True)

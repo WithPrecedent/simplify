@@ -131,7 +131,7 @@ class Canvas(SimplePackage):
         if self.ingredients is None:
             self.ingredients = self.recipes.ingredients
         for name, step  in self.techniques:
-            for recipe in self.listify(self.recipes):
+            for recipe in listify(self.recipes):
                 if self.verbose:
                     print('Visualizing', recipe.name + recipe.number)
                 for step, technique in getattr(self, self.iterator).items():

@@ -28,9 +28,9 @@ class SimplePackage(SimpleClass):
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-        techniques (list or str): names of techniques to be applied. These names 
+        techniques (list or str): names of techniques to be applied. These names
             should match keys in the 'options' attribute.
-            
+
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
 
@@ -49,14 +49,14 @@ class SimplePackage(SimpleClass):
             return self.plans.items()
         except AttributeError:
             pass
-        
+
     """ Private Methods """
 
     def _check_order(self, override = False):
         """Creates ordering of class techniques."""
-        if not self.exists('order') or override:
+        if not self._exists('order') or override:
             try:
-                self.order = self.listify(self._convert_wildcards(
+                self.order = listify(self._convert_wildcards(
                     self.idea['_'.join(self.name, 'techniques')]))
             except KeyError:
                 try:
@@ -72,14 +72,14 @@ class SimplePackage(SimpleClass):
 
     def _draft_composers(self, override = False):
         """Creates 'composers' dict from 'order' and 'options'.
-        
+
         Args:
             override (bool): whether to override preexisting values.
-            
+
         """
-        if not self.exists('composers'):
+        if not self._exists('composers'):
             self.composers = {}
-        if not self.techniques or override or isinstance(self.techniques, list):     
+        if not self.techniques or override or isinstance(self.techniques, list):
             for step in self.order:
                 try:
                     self.composers[step] = self.options[step]()
@@ -95,12 +95,12 @@ class SimplePackage(SimpleClass):
         for step in self.order:
             key = '_'.join([step, 'techniques'])
             try:
-                plans.append(self.listify(
+                plans.append(listify(
                     self.composer[step]._convert_wildcards(getattr(self, key))))
             except AttributeError:
                 plans.append(['none'])
         self.plans = list(map(list, product(*plans)))
-        """Converts 'plans' from list of lists to list of SimplePlan or 
+        """Converts 'plans' from list of lists to list of SimplePlan or
         SimpleAlgorithms."""
         new_plans = {}
         for i, plan in enumerate(self.plans):
@@ -108,7 +108,7 @@ class SimplePackage(SimpleClass):
             try:
                 new_plans.update(
                     {str(i + 1): self.comparer(
-                        number = i + 1, 
+                        number = i + 1,
                         steps = algorithms)})
             except AttributeError:
                 new_plans.update({str(i + 1): algorithms})
@@ -123,13 +123,13 @@ class SimplePackage(SimpleClass):
             algorithms.update({self.order[j]: algorithm})
         return algorithms
 
-    def _extra_processing(self, variable: SimpleClass, 
+    def _extra_processing(self, variable: SimpleClass,
                           simple_object: SimpleClass):
-        return simple_object   
-    
+        return simple_object
+
     """ Public Import/Export Methods """
-    
-    
+
+
     def load_plan(self, file_path):
         """Imports a single recipe from disc and adds it to the class iterable.
 
@@ -139,7 +139,7 @@ class SimplePackage(SimpleClass):
         self.edit_plans(iterables = self.depot.load(file_path = file_path,
                                                     file_format = 'pickle'))
         return self
-        
+
     """ Core siMpLify methods """
 
     def draft(self):
@@ -158,7 +158,7 @@ class SimplePackage(SimpleClass):
             plans (dict(str/int: SimplePlan or list(dict(str/int:
                 SimplePlan)): plan(s) to be added to the attribute named in
                 'comparer_iterable'.
-                
+
         """
         if isinstance(plans, dict):
             plans = list(plans.values())
@@ -167,7 +167,7 @@ class SimplePackage(SimpleClass):
         except TypeError:
             last_num = 0
         try:
-            for i, comparer in enumerate(self.listify(plans)):
+            for i, comparer in enumerate(listify(plans)):
                 self.plans.update({last_num + i + 1: comparer})
         except AttributeError:
             self.plans.update({last_num + i + 1: plans})
@@ -179,7 +179,7 @@ class SimplePackage(SimpleClass):
             if self.verbose:
                 print('Testing', simple_object.name, str(number))
             simple_object.publish(variable, **kwargs)
-            simple_object = self._extra_processing(variable, simple_object)  
+            simple_object = self._extra_processing(variable, simple_object)
         return self
 
     """ Properties """
@@ -187,7 +187,7 @@ class SimplePackage(SimpleClass):
     @property
     def all(self):
         return list(self.techniques.keys())
-        
+
     @property
     def defaults(self):
         try:
@@ -200,7 +200,7 @@ class SimplePackage(SimpleClass):
         self._defaults = techniques
 
 
-        
+
 @dataclass
 class SimplePlan(SimpleClass):
     """Contains techniques to be completed in a siMpLify process.
@@ -214,7 +214,7 @@ class SimplePlan(SimpleClass):
             classes.
         number (int): number of plan in a sequence - used for recordkeeping
             purposes.
-        steps (dict(str: str)): keys are names of steps and values are 
+        steps (dict(str: str)): keys are names of steps and values are
             algorithms to be applied.
 
     It is also a child class of SimpleClass. So, its documentation applies as
@@ -244,7 +244,7 @@ class SimplePlan(SimpleClass):
 
     def draft(self):
         pass
-    
+
     def publish(self, variable: SimpleClass, *args, **kwargs):
         for step, algorithm in self.steps.items():
             setattr(self, algorithm.publish(

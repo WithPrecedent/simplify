@@ -68,7 +68,7 @@ class Depot(SimpleClass):
                 created.
             subfolders(str or list): subfolder names to form the tree branch.
         """
-        for subfolder in self.listify(subfolders):
+        for subfolder in listify(subfolders):
             temp_folder = self.create_folder(folder = root_folder,
                                              subfolder = subfolder)
             setattr(self, subfolder, temp_folder)
@@ -430,8 +430,8 @@ class Depot(SimpleClass):
             subfolder = name + '_'
         else:
             subfolder = iterable.name + '_'
-        if self.exists('naming_classes'):
-            for step in self.listify(self.naming_classes):
+        if self._exists('naming_classes'):
+            for step in listify(self.naming_classes):
                 subfolder += getattr(iterable, step).technique + '_'
         subfolder += str(iterable.number)
         setattr(self, name, self.create_folder(folder = self.experiment,
@@ -545,7 +545,7 @@ class Depot(SimpleClass):
         """
         instance.data_in = self.create_path(io_status = 'import')
         instance.data_out = self.create_path(io_status = 'export')
-        for section in self.listify(sections):
+        for section in listify(sections):
             if hasattr(self, section + '_in') and override:
                 setattr(instance, section + '_in',
                         getattr(self, section + '_in'))
@@ -760,7 +760,7 @@ class Depot(SimpleClass):
             root_folder(str): path of folder where subfolders should be created.
             subfolders(str or list): subfolder names to be created.
         """
-        for subfolder in self.listify(subfolders):
+        for subfolder in listify(subfolders):
             temp_folder = self.create_folder(folder = root_folder,
                                              subfolder = subfolder)
             setattr(self, subfolder, temp_folder)

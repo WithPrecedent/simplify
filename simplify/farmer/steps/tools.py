@@ -131,5 +131,5 @@ class SimpleUtilities(object):
             variable1: string or list.
             variable2: string or list.
         """
-        return len(self.listify(variable1) == self.listify(variable2))
+        return len(listify(variable1) == listify(variable2))
 

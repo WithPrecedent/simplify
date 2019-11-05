@@ -232,14 +232,6 @@ class Idea(SimpleClass):
         self.update(new_settings = other)
         return self
 
-    def __iter__(self):
-        """Returns iterable options dict items()."""
-        return self.options.items()
-
-    def __len__(self):
-        """Returns length of 'options'."""
-        return len(self.options)
-
     def __radd__(self, other):
         """Adds new settings using the 'update' method.
 
@@ -423,7 +415,7 @@ class Idea(SimpleClass):
             instance with attribute(s) added.
 
         """
-        for section in self.listify(sections):
+        for section in listify(sections):
             try:
                 for key, value in self.options[section].items():
                     if not instance.exists(key) or override:

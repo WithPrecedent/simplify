@@ -168,14 +168,14 @@ class Ingredients(SimpleClass):
         Args:
             df (DataFrame or Series): pandas object with column names to get
                 indices for.
-            columns (list or str): name(s) of columns for which indices are 
+            columns (list or str): name(s) of columns for which indices are
                 sought.
 
         Returns:
             bool mask for columns matching 'columns'.DataState
 
         """
-        return [df.columns.get_loc(column) for column in self.listify(columns)]
+        return [df.columns.get_loc(column) for column in listify(columns)]
 
     @choose_df
     def _initialize_datatypes(self, df = None):
@@ -283,7 +283,7 @@ class Ingredients(SimpleClass):
                 columns.
 
         """
-        for column in self.listify(columns):
+        for column in listify(columns):
             self.datatypes[column] = datatype
         self.convert_column_datatypes(df = df)
         return self
@@ -362,7 +362,7 @@ class Ingredients(SimpleClass):
         allows users to pass 'prefixes', 'columns', and 'mask' to a wrapped
         method with a 'columns' argument. Those three arguments are then
         combined into the final 'columns' argument.
-        
+
         Args:
             df (DataFrame): pandas object.
             columns (list or str): column names to be included.
@@ -384,13 +384,13 @@ class Ingredients(SimpleClass):
             pass
         try:
             temp_list = []
-            for prefix in self.listify(prefixes, use_null = True):
+            for prefix in listify(prefixes, use_null = True):
                 temp_list = [col for col in df if col.startswith(prefix)]
                 column_names.extend(temp_list)
         except TypeError:
             pass
         try:
-            column_names.extend(self.listify(columns, use_null = True))
+            column_names.extend(listify(columns, use_null = True))
         except TypeError:
             pass
         return self.deduplicate(iterable = column_names)
@@ -401,7 +401,7 @@ class Ingredients(SimpleClass):
 
         Default values are added to each item in the series so that pandas does
         not automatically infer the datatype when a value is passed.
-        
+
         Args:
             columns (list or str): index names for pandas Series.
             return_series (bool): whether the Series should be returned (True)
@@ -429,7 +429,7 @@ class Ingredients(SimpleClass):
         """Drops all but one column from highly correlated groups of columns.
 
         The threshold is based upon the .corr() method in pandas. 'columns' can
-        include any datatype accepted by .corr(). If 'columns' is None, all 
+        include any datatype accepted by .corr(). If 'columns' is None, all
         columns in the DataFrame are tested.
 
         Args:
@@ -437,7 +437,7 @@ class Ingredients(SimpleClass):
                 removed.
             threshold (float): the level of correlation using pandas corr method
                 above which a column is dropped. The default threshold is 0.95,
-                consistent with a common p-value threshold used in social 
+                consistent with a common p-value threshold used in social
                 science research.
 
         """
@@ -492,7 +492,7 @@ class Ingredients(SimpleClass):
                 df[column] = df[column].astype('category')
             elif self.datatypes[column] in ['list']:
                 df[column].apply(
-                    self.listify,
+                    listify,
                     axis = 'columns',
                     inplace = True)
             elif self.datatypes[column] in ['datetime']:
@@ -512,7 +512,7 @@ class Ingredients(SimpleClass):
         Args:
             df (DataFrame or Series): pandas object for columns to be dropped
             columns(list): columns to drop.
-            
+
         """
         try:
             df.drop(columns, axis = 'columns', inplace = True)
@@ -541,7 +541,7 @@ class Ingredients(SimpleClass):
         if columns is None:
             columns = self.booleans
         infrequents = []
-        for column in self.listify(columns):
+        for column in listify(columns):
             try:
                 if df[column].mean() < threshold:
                     infrequents.append(column)
@@ -566,7 +566,7 @@ class Ingredients(SimpleClass):
 
         Args:
             df (DataFrame): pandas object for datatypes to be inferred.
-            
+
         """
         for datatype in self.all_datatypes.options.values():
             type_columns = df.select_dtypes(
@@ -610,7 +610,7 @@ class Ingredients(SimpleClass):
 
         Raises:
             KeyError: if column in 'columns' is not in 'df'.
-            
+
         """
         for column in self._check_columns(columns):
             try:
@@ -628,7 +628,7 @@ class Ingredients(SimpleClass):
         Args:
             df (DataFrame): initial pandas object to be split.
             label (str or list): name of column(s) to be stored in 'y'.'
-            
+
         """
         self.x = df[list(df.columns.values).remove(label)]
         self.y = df[label],
@@ -648,7 +648,7 @@ class Ingredients(SimpleClass):
         self.prefixes = self.prefixes or {}
         # Creates data state machine instance.
         self.state = DataState()
-        # Creates naming suffix convention for use by __getattr__ and 
+        # Creates naming suffix convention for use by __getattr__ and
         # __setattr__ that change dataset mapping based upon 'state'.
         self.options = {
             'unsplit': {'train': '', 'test': None},

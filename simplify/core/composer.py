@@ -8,6 +8,10 @@
 
 from dataclasses import dataclass
 from importlib import import_module
+from typing import Any, List, Dict, Union
+
+from simplify.core.base import SimpleClass
+from simplify.core.decorators import numpy_shield
 
 
 @dataclass
@@ -21,9 +25,9 @@ class SimpleComposer(SimpleClass):
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-            
+
     """
-    name: str = 'generic_composer'
+    name: str = 'simple_composer'
 
     def __post_init__(self):
         super().__post_init__()
@@ -32,11 +36,9 @@ class SimpleComposer(SimpleClass):
             'idea',
             'selected',
             'extra',
+            'search',
             'runtime',
             'conditional')
-        # Initializees dictionary of imported modules with keys as technique
-        # names and values as imported objects.
-        self.options = {}
         return self
 
     """ Private Methods """
@@ -57,7 +59,7 @@ class SimpleComposer(SimpleClass):
         added to the 'options' dict.
 
         Args:
-            technique (SimpleTechnique): object containing configuration 
+            technique (SimpleTechnique): object containing configuration
                 information for an Algorithm to be created.
 
         Returns:
@@ -77,7 +79,7 @@ class SimpleComposer(SimpleClass):
         """Calls appropriate methods for constructing technique parameters.
 
         Args:
-            technique (SimpleTechnique): object containing configuration 
+            technique (SimpleTechnique): object containing configuration
                 information for parameters to be constructed.
 
         Returns:
@@ -100,7 +102,7 @@ class SimpleComposer(SimpleClass):
         no existing parameters are set.
 
         Args:
-            technique (SimpleTechnique): object containing configuration 
+            technique (SimpleTechnique): object containing configuration
                 information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
@@ -130,7 +132,7 @@ class SimpleComposer(SimpleClass):
         parameters are selected for the final returned parameters.
 
         Args:
-            technique (SimpleTechnique): object containing configuration 
+            technique (SimpleTechnique): object containing configuration
                 information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
@@ -154,7 +156,7 @@ class SimpleComposer(SimpleClass):
         """Adds extra parameters (mandatory additions) to 'parameters'.
 
         Args:
-            technique (SimpleTechnique): object containing configuration 
+            technique (SimpleTechnique): object containing configuration
                 information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
@@ -179,7 +181,7 @@ class SimpleComposer(SimpleClass):
         be added to parameters.
 
         Args:
-            technique (SimpleTechnique): object containing configuration 
+            technique (SimpleTechnique): object containing configuration
                 information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
@@ -206,12 +208,22 @@ class SimpleComposer(SimpleClass):
         method to modify 'parameters'. This method is a mere placeholder.
 
         Args:
-            technique (SimpleTechnique): object containing configuration 
+            technique (SimpleTechnique): object containing configuration
                 information for parameters to be constructed.
             parameters (dict): parameters to be modified and returned.
 
         Returns:
             parameters (dict): with any appropriate changes made.
+
+        """
+        return parameters
+
+    def _get_search(self, technique: SimpleTechnique, parameters: dict):
+        """[summary]
+
+        Args:
+            technique (SimpleTechnique): [description]
+            parameters (dict): [description]
 
         """
         return parameters
@@ -261,7 +273,10 @@ class SimpleComposer(SimpleClass):
                 technique = technique.name,
                 algorithm = algorithm,
                 parameters = parameters,
-                data_dependents = technique.data_dependents)
+                data_dependents = technique.data_dependents,
+                return_variable = technique.return_variablev,
+                hyperparameter_search = technique.hyperparameter_search,
+                space = self.space)
 
     """ Properties """
 
@@ -279,7 +294,7 @@ class SimpleComposer(SimpleClass):
     @defaults.setter
     def defaults(self, techniques):
         self._defaults = techniques
-        
+
     @property
     def options(self):
         """Returns dictionary of attribute names and values if they are
@@ -322,47 +337,91 @@ class SimpleTechnique(object):
         selected (bool or list): if True, parameters will be limited to the keys
             of 'defaults'. If a list, only the matching parameter names will
             be included.
+        return_variable (bool): whether the 'publish' method should return
+            the passed 'variable' (True) or not (False). Default is False.
+        hyperparameter_search (bool): whether to apply a search algorithm to
+            find better hyperparameters (True). Default is False.
 
         """
-
     name: str = 'generic_technique'
     module: str = None
     algorithm: str = None
-    defaults: object = None
-    extras: object = None
-    runtimes: object = None
-    data_dependents: object = None
+    defaults: Dict = None
+    extras: Dict = None
+    runtimes: Dict = None
+    data_dependents: Dict = None
     selected: bool = False
-
+    return_variable: bool = False
+    hyperparameter_search: bool = False
 
 @dataclass
-class SimpleAlgorithm(SimpleClass):
-    """Wraps or contains an algorithm to be applied with passed parameters.
+class SimpleAlgorithm(object):
+    """Finalizes an algorithm with parameters.
 
     Args:
         technique (str): the public name of the selected algorithm.
-        algorithm (object): class or function containing an algorithm to be
-            applied to the variable(s) passed to the 'publish' method.
+        algorithm (SimpleClass or object): class or function containing an
+            algorithm to be applied to the variable(s) passed to the 'publish'
+            method.
         parameters (dict): corresponding parameters for the passed algorithm.
         data_dependents (dict): parameters that are derived from the variables
             passed to the 'publish' method. The keys are names of the
             parameters and the values are the attributes to the first passed
             variable to 'publish'.
-    """
+        return_variable (bool): whether the 'publish' method should return
+            the passed 'variable' (True) or not (False). Default is False.
 
+    """
     technique: str
     algorithm: object
-    parameters: object
-    data_dependents: object = None
+    parameters: Dict
+    data_dependents: Dict = None
+    return_variable: bool = False
+    hyperparameter_search: bool = False
+    space: Dict = None
 
-    def __post_init__(self):
-        # super() is not called to limit the memory used by a subclass.
+    def __post_init__(self) -> None:
         self.draft()
         return self
 
     """ Private Methods """
 
-    def _add_parameters(self):
+    def _datatype_in_list(self, test_list, datatype):
+        """Tests whether any item in a list is of the passed data type."""
+        return any(isinstance(i, datatype) for i in test_list)
+
+    def _get_search(self, technique: ChefTechnique, parameters: dict):
+        """[summary]
+
+        Args:
+            technique (ChefTechnique): [description]
+            parameters (dict): [description]
+
+        """
+        self.space = {}
+        if technique.hyperparameter_search:
+            new_parameters = {}
+            for parameter, values in parameters.items():
+                if isinstance(values, list):
+                    if self._datatype_in_list(values, float):
+                        self.space.update(
+                            {parameter: uniform(values[0], values[1])})
+                    elif self._datatype_in_list(values, int):
+                        self.space.update(
+                            {parameter: randint(values[0], values[1])})
+                else:
+                    new_parameters.update({parameter: values})
+            parameters = new_parameters
+        return parameters
+
+    def _search_hyperparameter(self, ingredients: Ingredients,
+                               data_to_use: str):
+        search = SearchComposer()
+        search.space = self.space
+        search.estimator = self.algorithm
+        return search.publish(ingredients = ingredients)
+
+    def _join_parameters(self) -> None:
         """Attaches class instance 'parameters' to the class instance
         'algorithm'.
 
@@ -370,36 +429,23 @@ class SimpleAlgorithm(SimpleClass):
         try:
             self.algorithm = self.algorithm(**self.parameters)
         except AttributeError:
-            try:
-                self.algorithm = self.algorithm(self.parameters)
+            self.algorithm = self.algorithm(self.parameters)
         return self
 
-    def _add_data_dependents(self, variable: object):
-        """Adds data-derived parameters to the class instance parameters.
-
-        Args:
-            variable (object): class that contains attributes matching the
-                values in the 'data_dependents' attribute.
-
-        """
-        for key, value in self.data_dependents.items():
-            self.parameters.update({key, getattr(variable, value)})
-        self._add_parameters()
-        return self
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         """Attaches 'parameters' to 'algorithm' if there are no data-derived
         parameters.
 
         """
         if not self.data_dependents:
-            self._add_parameterss()
+            self._join_parameterss()
         return self
 
-    def publish(self, variable: object, other: object = None, *args,
-                **kwargs):
+    def publish(self, variable: Any, other: object = None, *args,
+                **kwargs) -> Union[None, Any]:
         """Subclasses should provide their own 'publish' methods.
 
         Args:
@@ -416,6 +462,136 @@ class SimpleAlgorithm(SimpleClass):
 
         """
         if self.data_dependents:
-            self._add_data_dependents()
+            self._join_data_dependents()
+
+
+
+    """ Core siMpLify Methods """
+
+    @numpy_shield
+    def publish(self, ingredients: Ingredients, data_to_use: str,
+                columns: list = None, **kwargs):
+        """[summary]
+
+        Args:
+            ingredients (Ingredients): [description]
+            data_to_use (str): [description]
+            columns (list, optional): [description]. Defaults to None.
+        """
+        if self.technique != 'none':
+            if self.data_dependents:
+                self._add_data_dependents(ingredients = ingredients)
+            if self.hyperparameter_search:
+                self.algorithm = self._search_hyperparameters(
+                    ingredients = ingredients,
+                    data_to_use = data_to_use)
+            try:
+                self.algorithm.fit(
+                    X = getattr(ingredients, ''.join(['x_', data_to_use])),
+                    Y = getattr(ingredients, ''.join(['y_', data_to_use])),
+                    **kwargs)
+                setattr(ingredients, ''.join(['x_', data_to_use]),
+                        self.algorithm.transform(X = getattr(
+                            ingredients, ''.join(['x_', data_to_use]))))
+            except AttributeError:
+                ingredients = self.algorithm.publish(
+                    ingredients = ingredients,
+                    data_to_use = data_to_use,
+                    columns = columns,
+                    **kwargs)
+        if self.return_variable:
+            return variable
+        else:
+            return self
+
+    """ Scikit-Learn Compatibility Methods """
+
+    def fit(self, x = None, y = None, ingredients = None):
+        """Generic fit method for partial compatibility to sklearn.
+
+        Args:
+            x(DataFrame or ndarray): independent variables/features.
+            y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
+            ingredients(Ingredients): instance of Ingredients containing
+                x_train and y_train attributes (based upon possible remapping).
+
+        Raises:
+            AttributeError if no 'fit' method exists for local 'algorithm'.
+
+        """
+        if hasattr(self.algorithm, 'fit'):
+            if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
+                if y is None:
+                    self.algorithm.fit(X = x)
+                else:
+                    self.algorithm.fit(X = x, Y = y)
+            elif ingredients is not None:
+                ingredients = self.algorithm.fit(
+                    X = getattr(ingredients, 'x_' + self.data_to_train),
+                    Y = getattr(ingredients, 'y_' + self.data_to_train))
+
+        else:
+            error = ('fit method does not exist for '
+                     + self.technique + ' algorithm')
+            raise AttributeError(error)
         return self
 
+    def fit_transform(self, x = None, y = None, ingredients = None):
+        """Generic fit_transform method for partial compatibility to sklearn
+
+        Args:
+            x(DataFrame or ndarray): independent variables/features.
+            y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
+            ingredients(Ingredients): instance of Ingredients containing
+                x_train and y_train attributes (based upon possible remapping).
+
+        Returns:
+            transformed x or ingredients, depending upon what is passed to the
+                method.
+
+        Raises:
+            TypeError if DataFrame, ndarray, or ingredients is not passed to
+                the method.
+
+        """
+        self.fit(x = x, y = y, ingredients = ingredients)
+        if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
+            return self.transform(x = x, y = y)
+        elif ingredients is not None:
+            return self.transform(ingredients = ingredients)
+        else:
+            error = 'fit_transform requires DataFrame, ndarray, or Ingredients'
+            raise TypeError(error)
+
+    def transform(self, x = None, y = None, ingredients = None):
+        """Generic transform method for partial compatibility to sklearn.
+
+        Args:
+            x(DataFrame or ndarray): independent variables/features.
+            y(DataFrame, Series, or ndarray): dependent variable(s)/feature(s)
+            ingredients(Ingredients): instance of Ingredients containing
+                x_train and y_train attributes (based upon possible remapping).
+
+        Returns:
+            transformed x or ingredients, depending upon what is passed to the
+                method.
+
+        Raises:
+            AttributeError if no 'transform' method exists for local
+                'algorithm'.
+
+        """
+        if hasattr(self.algorithm, 'transform'):
+            if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
+                if y is None:
+                    return self.algorithm.transform(x)
+                else:
+                    return self.algorithm.transform(x, y)
+            elif ingredients is not None:
+                return self.algorithm.transform(
+                    X = getattr(ingredients, 'x_' + self.data_to_train),
+                    Y = getattr(ingredients, 'y_' + self.data_to_train))
+        else:
+            error = ('transform method does not exist for '
+                     + self.technique + ' algorithm')
+            raise AttributeError(error)

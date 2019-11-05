@@ -40,7 +40,7 @@ class Rank(CriticTechnique):
     """ Private Methods """
 
     def _get_permutation_importances(self, recipe):
-        scorer = self.listify(self.metrics_techniques)[0]
+        scorer = listify(self.metrics_techniques)[0]
         base_score, score_decreases = self.options[self.technique](
                 score_func = scorer,
                 x = getattr(recipe.ingredients, 'x_' + self.data_to_review),
