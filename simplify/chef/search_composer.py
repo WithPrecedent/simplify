@@ -45,7 +45,29 @@ class SearchComposer(ChefComposer):
         if 'refit' in parameters and isinstance(parameters['scoring'], list):
             parameters['scoring'] = parameters['scoring'][0]
         return parameters
+        self.space = {}
+        if technique.hyperparameter_search:
+            new_parameters = {}
+            for parameter, values in parameters.items():
+                if isinstance(values, list):
+                    if self._datatype_in_list(values, float):
+                        self.space.update(
+                            {parameter: uniform(values[0], values[1])})
+                    elif self._datatype_in_list(values, int):
+                        self.space.update(
+                            {parameter: randint(values[0], values[1])})
+                else:
+                    new_parameters.update({parameter: values})
+            parameters = new_parameters
+        return parameters
 
+    def _search_hyperparameter(self, ingredients: Ingredients,
+                               data_to_use: str):
+        search = SearchComposer()
+        search.space = self.space
+        search.estimator = self.algorithm
+        return search.publish(ingredients = ingredients)
+    
     """ Core siMpLify Methods """
 
     def draft(self):
@@ -53,7 +75,7 @@ class SearchComposer(ChefComposer):
             name = 'bayes',
             module = 'bayes_opt',
             algorithm = 'BayesianOptimization',
-            runtimes = {
+            runtime = {
                 'f': 'estimator',
                 'pbounds': 'space',
                 'random_state': 'seed'})
@@ -61,7 +83,7 @@ class SearchComposer(ChefComposer):
             name = 'grid',
             module = 'sklearn.model_selection',
             algorithm = 'GridSearchCV',
-            runtimes = {
+            runtime = {
                 'estimator': 'estimator',
                 'param_distributions': 'space',
                 'random_state': 'seed'})
@@ -69,7 +91,7 @@ class SearchComposer(ChefComposer):
             name = 'random',
             module = 'sklearn.model_selection',
             algorithm = 'RandomizedSearchCV',
-            runtimes = {
+            runtime = {
                 'estimator': 'estimator',
                 'param_distributions': 'space',
                 'random_state': 'seed'})

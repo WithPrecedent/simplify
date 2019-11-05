@@ -8,14 +8,22 @@
 
 from dataclasses import dataclass
 
-from simplify.chef.composer import ChefAlgorithm as Algorithm
-from simplify.chef.composer import ChefComposer as Composer
-from simplify.chef.composer import ChefTechnique as Technique
+from simplify.core.step import SimpleStep
+from simplify.core.step import SimpleDesign
 
 
 @dataclass
-class Mixer(Composer):
+class Mixer(SimpleStep):
     """Computes new features by combining existing ones.
+    
+    Args: 
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
+            
     """
 
     name: str = 'mixer'
@@ -26,82 +34,83 @@ class Mixer(Composer):
         return self
 
     def draft(self):
-        self.polynomial = Technique(
+        super().draft()
+        self.options = {
+        'polynomial': SimpleDesign(
             name = 'polynomial_mixer',
             module = 'sklearn.preprocessing',
             algorithm = 'PolynomialFeatures',
-            defaults = {
+            default = {
                 'degree': 2,
                 'interaction_only': True,
-                'include_bias': True})
-        self.quotient = Technique(
+                'include_bias': True}),
+        'quotient': SimpleDesign(
             name = 'quotient',
             module = None,
-            algorithm = 'QuotientFeatures')
-        self.sum = Technique(
+            algorithm = 'QuotientFeatures'),
+        'sum': SimpleDesign(
             name = 'sum',
             module = None,
-            algorithm = 'SumFeatures')
-        self.difference = Technique(
+            algorithm = 'SumFeatures'),
+        'difference': SimpleDesign(
             name = 'difference',
             module = None,
-            algorithm = 'DifferenceFeatures')
-        super().draft()
+            algorithm = 'DifferenceFeatures')}
         return self
 
 
-@dataclass
-class DifferenceFeatures(Algorithm):
-    """[summary]
+# @dataclass
+# class DifferenceFeatures(Algorithm):
+#     """[summary]
 
-    Args:
-        technique (str):
-        parameters (dict):
-        space (dict):
-    """
-    technique: str
-    parameters: object
-    space: object
+#     Args:
+#         technique (str):
+#         parameters (dict):
+#         space (dict):
+#     """
+#     technique: str
+#     parameters: object
+#     space: object
 
-    def __post_init__(self):
-        self.idea_sections = ['chef']
-        super().__post_init__()
-        return self
-
-
-@dataclass
-class QuotientFeatures(Algorithm):
-    """[summary]
-
-    Args:
-        technique (str):
-        parameters (dict):
-        space (dict):
-    """
-    technique: str
-    parameters: object
-    space: object
-
-    def __post_init__(self):
-        self.idea_sections = ['chef']
-        super().__post_init__()
-        return self
+#     def __post_init__(self):
+#         self.idea_sections = ['chef']
+#         super().__post_init__()
+#         return self
 
 
-@dataclass
-class SumFeatures(Algorithm):
-    """[summary]
+# @dataclass
+# class QuotientFeatures(Algorithm):
+#     """[summary]
 
-    Args:
-        technique (str):
-        parameters (dict):
-        space (dict):
-    """
-    technique: str
-    parameters: object
-    space: object
+#     Args:
+#         technique (str):
+#         parameters (dict):
+#         space (dict):
+#     """
+#     technique: str
+#     parameters: object
+#     space: object
 
-    def __post_init__(self):
-        self.idea_sections = ['chef']
-        super().__post_init__()
-        return self
+#     def __post_init__(self):
+#         self.idea_sections = ['chef']
+#         super().__post_init__()
+#         return self
+
+
+# @dataclass
+# class SumFeatures(Algorithm):
+#     """[summary]
+
+#     Args:
+#         technique (str):
+#         parameters (dict):
+#         space (dict):
+#     """
+#     technique: str
+#     parameters: object
+#     space: object
+
+#     def __post_init__(self):
+#         self.idea_sections = ['chef']
+#         super().__post_init__()
+#         return self

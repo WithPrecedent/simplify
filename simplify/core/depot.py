@@ -656,7 +656,7 @@ class Depot(SimpleClass):
         """Creates default folder and file settings."""
         # Calls SimpleClass draft for initial baseline settings.
         super().draft()
-        self.checks.append('root_folder')
+        self._check_root_folder()
         # Creates dict with file format names and file extensions.
         self.extensions = FileTypes()
         # Creates list of default subfolders from 'data_folder' to create.

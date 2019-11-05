@@ -8,7 +8,8 @@
 
 from dataclasses import dataclass
 
-from simplify.core.package import SimplePackage, SimplePlan
+from simplify.core.package import SimplePackage
+from simplify.core.package import SimplePlan
 
 
 @dataclass
@@ -23,14 +24,6 @@ class Cookbook(SimplePackage):
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-        ingredients (Ingredients, DataFrame, Series, ndarray, or str): an 
-            instance of Ingredients, a string containing the full file path of 
-            where a data file for a pandas DataFrame or Series is located, a 
-            string containing a,file name in the default data folder, as defined 
-            in the shared Depot instance, a DataFrame, a Series, or numpy 
-            ndarray. If a DataFrame, ndarray, or string is provided, the 
-            resultant DataFrame is stored at the 'df' attribute in a new 
-            Ingredients instance.
         recipes (Recipe or list(Recipe)): Ordinarily, 'recipes' is not passed
             when Cookbook is instanced, but the argument is included if the
             user wishes to reexamine past recipes or manually create new
@@ -44,7 +37,6 @@ class Cookbook(SimplePackage):
 
     """
     name: str = 'chef'
-    ingredients: object = None
     recipes: object = None
     techniques: object = None
 
@@ -54,21 +46,22 @@ class Cookbook(SimplePackage):
 
     """ Private Methods """
 
-    def _extra_processing(self, variable: object, simple_object: object):
+    def _extra_processing(self, plan: SimpleClass,
+            data: SimpleClass) -> Tuple[SimpleClass, SimpleClass]:
         """Tests all 'recipes'."""
-        simple_object.using_val_set = self.using_val_set
+        recipe.using_val_set = self.using_val_set
         if self.export_results:
             self.depot._set_experiment_folder()
             self.depot._set_plan_folder(
-                iterable = simple_object,
+                plan = plan,
                 name = 'recipe')
             if self.export_all_recipes:
-                self.save_recipes(recipes = simple_object)
-            if 'reduce' in self.order and simple_object.reduce != 'none':
-                variable.save_dropped(folder = self.depot.recipe)
+                self.save_recipes(recipes = plan)
+            if 'reduce' in self.order and plan.steps['reduce'] != 'none':
+                data.save_dropped(folder = self.depot.recipe)
             else:
-                variable.save_dropped(folder = self.depot.experiment)
-        return simple_object
+                data.save_dropped(folder = self.depot.experiment)
+        return plan, data
 
     """ Public Tool Methods """
 
@@ -132,14 +125,14 @@ class Cookbook(SimplePackage):
         """Sets default options for the Chef's cookbook."""
         super().draft()
         self.options = {
-            'scaler': ['simplify.chef.techniques.scale', 'Scale'],
-            'splitter': ['simplify.chef.techniques.split', 'Split'],
-            'encoder': ['simplify.chef.techniques.encode', 'Encode'],
-            'mixer': ['simplify.chef.techniques.mix', 'Mix'],
-            'cleaver': ['simplify.chef.techniques.cleave', 'Cleave'],
-            'sampler': ['simplify.chef.techniques.sample', 'Sample'],
-            'reducer': ['simplify.chef.techniques.reduce', 'Reduce'],
-            'modeler': ['simplify.chef.techniques.model', 'Model']}
+            'scaler': ('simplify.chef.techniques.scale', 'Scale'),
+            'splitter': ('simplify.chef.techniques.split', 'Split'),
+            'encoder': ('simplify.chef.techniques.encode', 'Encode'),
+            'mixer': ('simplify.chef.techniques.mix', 'Mix'),
+            'cleaver': ('simplify.chef.techniques.cleave', 'Cleave'),
+            'sampler': ('simplify.chef.techniques.sample', 'Sample'),
+            'reducer': ('simplify.chef.techniques.reduce', 'Reduce'),
+            'modeler': ('simplify.chef.techniques.model', 'Model')}
         # Locks 'stage' attribute at 'chef' for state dependent methods.
         self.stage.change('chef')
         return self
@@ -167,15 +160,15 @@ class Cookbook(SimplePackage):
             self.ingredients = ingredients
         if 'train_test_val' in self.data_to_use:
             self.ingredients.state = 'train_test'
-            ingredients = super().publish(variable = self.ingredients)
+            ingredients = super().publish(data = self.ingredients)
             self.ingredients.state = 'train_val'
-            ingredients = super().publish(variable = self.ingredients)
+            ingredients = super().publish(data = self.ingredients)
         elif 'full' in self._data_to_use:
             self.ingredients.state = 'full'
-            ingredients = super().publish(variable = self.ingredients)
+            ingredients = super().publish(data = self.ingredients)
         else:
             self.ingredients.state = 'train_test'
-            ingredients = super().publish(variable = self.ingredients)
+            ingredients = super().publish(data = self.ingredients)
         if self.export_results:
             self.save_recipes(recipes = 'best')
         return self

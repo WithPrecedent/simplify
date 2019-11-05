@@ -8,18 +8,24 @@
 
 from dataclasses import dataclass
 
-from simplify.chef.composer import ChefAlgorithm
-from simplify.chef.composer import ChefComposer as Composer
-from simplify.chef.composer import ChefTechnique as Technique
+from simplify.core.step import SimpleStep
+from simplify.core.step import SimpleDesign
 from simplify.core.decorators import numpy_shield
 
-Algorithm = ReducerAlgorithm
 
 @dataclass
-class Reducer(Composer):
-    """Splits data into training, testing, and/or validation datasets.
+class Reducer(SimpleStep):
+    """Reduces features through various techniques.
+    
+    Args: 
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
+            
     """
-
     name: str = 'reducer'
 
     def __post_init__(self):
@@ -28,90 +34,57 @@ class Reducer(Composer):
         return self
 
     def draft(self):
-        self.kbest = Technique(
-            name = 'kbest',
-            module = 'sklearn.feature_selection',
-            algorithm = 'SelectKBest',
-            defaults = {'k': 10, 'score_func': 'f_classif'})
-        self.fdr = Technique(
-            name = 'fdr',
-            module = 'sklearn.feature_selection',
-            algorithm = 'SelectFdr',
-            defaults = {'alpha': 0.05, 'score_func': 'f_classif'})
-        self.fpr = Technique(
-            name = 'fpr',
-            module = 'sklearn.feature_selection',
-            algorithm = 'SelectFpr',
-            defaults = {'alpha': 0.05, 'score_func': 'f_classif'})
-        self.custom = Technique(
-            name = 'custom',
-            module = 'sklearn.feature_selection',
-            algorithm = 'SelectFromModel',
-            defaults = {'threshold': 'mean'},
-            runtimes = {'estimator': 'estimator'})
-        self.rank = Technique(
-            name = 'rank',
-            module = 'simplify.critic.rank',
-            algorithm = 'RankSelect')
-        self.rfe = Technique(
-            name = 'rfe',
-            module = 'sklearn.feature_selection',
-            algorithm = 'RFE',
-            defaults = {'n_features_to_select': 10, 'step': 1},
-            runtimes = {'estimator': 'estimator'})
-        self.rfecv = Technique(
-            name = 'rfecv',
-            module = 'sklearn.feature_selection',
-            algorithm = 'RFECV',
-            defaults = {'n_features_to_select': 10, 'step': 1},
-            runtimes = {'estimator': 'estimator'})
         super().draft()
+        self.options = {
+            'kbest': SimpleDesign(
+                name = 'kbest',
+                module = 'sklearn.feature_selection',
+                algorithm = 'SelectKBest',
+                default = {'k': 10, 'score_func': 'f_classif'},
+                selected = True),
+            'fdr': SimpleDesign(
+                name = 'fdr',
+                module = 'sklearn.feature_selection',
+                algorithm = 'SelectFdr',
+                default = {'alpha': 0.05, 'score_func': 'f_classif'},
+                selected = True),
+            'fpr': SimpleDesign(
+                name = 'fpr',
+                module = 'sklearn.feature_selection',
+                algorithm = 'SelectFpr',
+                default = {'alpha': 0.05, 'score_func': 'f_classif'},
+                selected = True),
+            'custom': SimpleDesign(
+                name = 'custom',
+                module = 'sklearn.feature_selection',
+                algorithm = 'SelectFromModel',
+                default = {'threshold': 'mean'},
+                runtime = {'estimator': 'estimator'},
+                selected = True),
+            'rank': SimpleDesign(
+                name = 'rank',
+                module = 'simplify.critic.rank',
+                algorithm = 'RankSelect',
+                selected = True),
+            'rfe': SimpleDesign(
+                name = 'rfe',
+                module = 'sklearn.feature_selection',
+                algorithm = 'RFE',
+                default = {'n_features_to_select': 10, 'step': 1},
+                runtime = {'estimator': 'estimator'},
+                selected = True),
+            'rfecv': SimpleDesign(
+                name = 'rfecv',
+                module = 'sklearn.feature_selection',
+                algorithm = 'RFECV',
+                default = {'n_features_to_select': 10, 'step': 1},
+                runtime = {'estimator': 'estimator'},
+                selected = True)}
+        
 #        self.scorers = {'f_classif': f_classif,
 #                        'chi2': chi2,
 #                        'mutual_class': mutual_info_classif,
 #                        'mutual_regress': mutual_info_regression}
-        self.selected_parameters = True
-        return self
-
-    # def _set_parameters(self, estimator):
-#        if self.technique in ['rfe', 'rfecv']:
-#            self.default_parameters = {'n_features_to_select': 10,
-#                                       'step': 1}
-#            self.runtime_parameters = {'estimator': estimator}
-#        elif self.technique == 'kbest':
-#            self.default_parameters = {'k': 10,
-#                                       'score_func': f_classif}
-#            self.runtime_parameters = {}
-#        elif self.technique in ['fdr', 'fpr']:
-#            self.default_parameters = {'alpha': 0.05,
-#                                       'score_func': f_classif}
-#            self.runtime_parameters = {}
-#        elif self.technique == 'custom':
-#            self.default_parameters = {'threshold': 'mean'}
-#            self.runtime_parameters = {'estimator': estimator}
-#        self._publish_parameters()
-#        self._select_parameters()
-#        self.parameters.update({'estimator': estimator})
-#        if 'k' in self.parameters:
-#            self.num_features = self.parameters['k']
-#        else:
-#            self.num_features = self.parameters['n_features_to_select']
-        # return self
-
-
-@dataclass
-class ReducerAlgorithm(ChefAlgorithm):
-    """[summary]
-
-    Args:
-        object ([type]): [description]
-    """
-    technique: str
-    parameters: object
-    space: object
-
-    def __post_init__(self):
-        super().__post_init__()
         return self
 
     @numpy_shield
@@ -160,3 +133,29 @@ class ReducerAlgorithm(ChefAlgorithm):
                         columns = columns,
                         **kwargs)
         return ingredients
+    
+    # def _set_parameters(self, estimator):
+#        if self.technique in ['rfe', 'rfecv']:
+#            self.default_parameters = {'n_features_to_select': 10,
+#                                       'step': 1}
+#            self.runtime_parameters = {'estimator': estimator}
+#        elif self.technique == 'kbest':
+#            self.default_parameters = {'k': 10,
+#                                       'score_func': f_classif}
+#            self.runtime_parameters = {}
+#        elif self.technique in ['fdr', 'fpr']:
+#            self.default_parameters = {'alpha': 0.05,
+#                                       'score_func': f_classif}
+#            self.runtime_parameters = {}
+#        elif self.technique == 'custom':
+#            self.default_parameters = {'threshold': 'mean'}
+#            self.runtime_parameters = {'estimator': estimator}
+#        self._publish_parameters()
+#        self._select_parameters()
+#        self.parameters.update({'estimator': estimator})
+#        if 'k' in self.parameters:
+#            self.num_features = self.parameters['k']
+#        else:
+#            self.num_features = self.parameters['n_features_to_select']
+        # return self
+

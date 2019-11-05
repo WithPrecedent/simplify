@@ -15,6 +15,8 @@ import pandas as pd
 from simplify.core.base import SimpleClass
 from simplify.core.decorators import choose_df, combine_lists
 from simplify.core.types import DataTypes
+from simplify.core.utilities import deduplicate
+from simplify.core.utilities import listify
 
 
 @dataclass
@@ -130,7 +132,6 @@ class Ingredients(SimpleClass):
                 the 'datatypes' attribute is returned.
 
         """
-        print(columns or list(self.datatypes.keys()))
         return columns or list(self.datatypes.keys())
 
     @choose_df
@@ -312,7 +313,6 @@ class Ingredients(SimpleClass):
                     dtype = self.all_datatypes[datatype],
                     copy = False,
                     errors = raise_errors)
-        print(self.datatypes)
         # Attempts to downcast datatypes to simpler forms if possible.
         self.downcast(df = df)
         return self
@@ -393,7 +393,7 @@ class Ingredients(SimpleClass):
             column_names.extend(listify(columns, use_null = True))
         except TypeError:
             pass
-        return self.deduplicate(iterable = column_names)
+        return deduplicate(iterable = column_names)
 
     @combine_lists
     def create_series(self, columns = None, return_series = True):
@@ -470,9 +470,7 @@ class Ingredients(SimpleClass):
             KeyError: if column in 'columns' is not in 'df'.
 
         """
-        print('columns', columns)
         for column in self._check_columns(columns):
-            print('column name', column)
             if self.datatypes[column] in ['boolean']:
                 df[column] = df[column].astype(bool)
             elif self.datatypes[column] in ['integer', 'float']:

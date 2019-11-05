@@ -8,16 +8,23 @@
 
 from dataclasses import dataclass
 
-from simplify.chef.composer import ChefAlgorithm
-from simplify.chef.composer import ChefComposer as Composer
-from simplify.chef.composer import ChefTechnique as Technique
+from simplify.core.step import SimpleStep
+from simplify.core.step import SimpleDesign
 
 
 @dataclass
-class Modeler(Composer):
+class Modeler(SimpleStep):
     """Splits data into training, testing, and/or validation datasets.
+    
+    Args: 
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
+            
     """
-
     name: str = 'modeler'
 
     def __post_init__(self):
@@ -27,215 +34,217 @@ class Modeler(Composer):
 
     """ Private Methods """
 
-    def _add_gpu_techniques(self):
-        getattr(self, ''.join('_add_gpu_techniques_', self.model_type))()
-        return self
-
     def _add_gpu_techniques_classify(self):
-        self.forest_inference = Technique(
-            name = 'forest_inference',
-            module = 'cuml',
-            algorithm = 'ForestInference')
-        self.random_forest = Technique(
-            name = 'random_forest',
-            module = 'cuml',
-            algorithm = 'RandomForestClassifier')
-        self.logit = Technique(
-            name = 'logit',
-            module = 'cuml',
-            algorithm = 'LogisticRegression')
+        self.options.update({
+            'forest_inference': SimpleDesign(
+                name = 'forest_inference',
+                module = 'cuml',
+                algorithm = 'ForestInference'),
+            'random_forest': SimpleDesign(
+                name = 'random_forest',
+                module = 'cuml',
+                algorithm = 'RandomForestClassifier'),
+            'logit': SimpleDesign(
+                name = 'logit',
+                module = 'cuml',
+                algorithm = 'LogisticRegression')})
         return self
 
     def _add_gpu_techniques_cluster(self):
-        self.dbscan = Technique(
-            name = 'dbscan',
-            module = 'cuml',
-            algorithm = 'DBScan')
-        self.kmeans = Technique(
-            name = 'kmeans',
-            module = 'cuml',
-            algorithm = 'KMeans')
+        self.options.update({
+            'dbscan': SimpleDesign(
+                name = 'dbscan',
+                module = 'cuml',
+                algorithm = 'DBScan'),
+            'kmeans': SimpleDesign(
+                name = 'kmeans',
+                module = 'cuml',
+                algorithm = 'KMeans')})
         return self
 
     def _add_gpu_techniques_regress(self):
-        self.lasso = Technique(
-            name = 'lasso',
-            module = 'cuml',
-            algorithm = 'Lasso')
-        self.ols = Technique(
-            name = 'ols',
-            module = 'cuml',
-            algorithm = 'LinearRegression')
-        self.ridge = Technique(
-            name = 'ridge',
-            module = 'cuml',
-            algorithm = 'RidgeRegression')
+        self.options.update({
+            'lasso': SimpleDesign(
+                name = 'lasso',
+                module = 'cuml',
+                algorithm = 'Lasso'),
+            'ols': SimpleDesign(
+                name = 'ols',
+                module = 'cuml',
+                algorithm = 'LinearRegression'),
+            'ridge': SimpleDesign(
+                name = 'ridge',
+                module = 'cuml',
+                algorithm = 'RidgeRegression')})
         return self
 
     def _draft_classify(self):
-        self.adaboost = Technique(
-            name = 'adaboost',
-            module = 'sklearn.ensemble',
-            algorithm = 'AdaBoostClassifier')
-        self.baseline_classifier = Technique(
-            name = 'baseline_classifier',
-            module = 'sklearn.dummy',
-            algorithm = 'DummyClassifier',
-            extras = {'strategy': 'most_frequent'})
-        self.logit = Technique(
-            name = 'logit',
-            module = 'sklearn.linear_model',
-            algorithm = 'LogisticRegression')
-        self.random_forest = Technique(
-            name = 'random_forest',
-            module = 'sklearn.ensemble',
-            algorithm = 'RandomForestClassifier')
-        self.svm_linear = Technique(
-            name = 'svm_linear',
-            module = 'sklearn.svm',
-            algorithm = 'SVC',
-            extras = {'kernel': 'linear', 'probability': True})
-        self.svm_poly = Technique(
-            name = 'svm_poly',
-            module = 'sklearn.svm',
-            algorithm = 'SVC',
-            extras = {'kernel': 'poly', 'probability': True})
-        self.svm_rbf = Technique(
-            name = 'svm_rbf',
-            module = 'sklearn.svm',
-            algorithm = 'SVC',
-            extras = {'kernel': 'rbf', 'probability': True})
-        self.svm_sigmoid = Technique(
-            name = 'svm_sigmoid ',
-            module = 'sklearn.svm',
-            algorithm = 'SVC',
-            extras = {'kernel': 'sigmoid', 'probability': True})
-        self.tensorflow = Technique(
-            name = 'tensorflow',
-            module = 'tensorflow',
-            algorithm = None,
-            defaults = {
-                'batch_size': 10,
-                'epochs': 2})
-        self.xgboost = Technique(
-            name = 'xgboost',
-            module = 'xgboost',
-            algorithm = 'XGBClassifier',
-            data_dependents = 'scale_pos_weight')
+        self.options = {
+            'adaboost': SimpleDesign(
+                name = 'adaboost',
+                module = 'sklearn.ensemble',
+                algorithm = 'AdaBoostClassifier'),
+            'baseline_classifier': SimpleDesign(
+                name = 'baseline_classifier',
+                module = 'sklearn.dummy',
+                algorithm = 'DummyClassifier',
+                required = {'strategy': 'most_frequent'}),
+            'logit': SimpleDesign(
+                name = 'logit',
+                module = 'sklearn.linear_model',
+                algorithm = 'LogisticRegression'),
+            'random_forest': SimpleDesign(
+                name = 'random_forest',
+                module = 'sklearn.ensemble',
+                algorithm = 'RandomForestClassifier'),
+            'svm_linear': SimpleDesign(
+                name = 'svm_linear',
+                module = 'sklearn.svm',
+                algorithm = 'SVC',
+                required = {'kernel': 'linear', 'probability': True}),
+            'svm_poly': SimpleDesign(
+                name = 'svm_poly',
+                module = 'sklearn.svm',
+                algorithm = 'SVC',
+                required = {'kernel': 'poly', 'probability': True}),
+            'svm_rbf': SimpleDesign(
+                name = 'svm_rbf',
+                module = 'sklearn.svm',
+                algorithm = 'SVC',
+                required = {'kernel': 'rbf', 'probability': True}),
+            'svm_sigmoid': SimpleDesign(
+                name = 'svm_sigmoid ',
+                module = 'sklearn.svm',
+                algorithm = 'SVC',
+                required = {'kernel': 'sigmoid', 'probability': True}),
+            'tensorflow': SimpleDesign(
+                name = 'tensorflow',
+                module = 'tensorflow',
+                algorithm = None,
+                default = {
+                    'batch_size': 10,
+                    'epochs': 2}),
+            'xgboost': SimpleDesign(
+                name = 'xgboost',
+                module = 'xgboost',
+                algorithm = 'XGBClassifier',
+                data_dependent = 'scale_pos_weight')}
         return self
 
     def _draft_cluster(self):
-        self.affinity = Technique(
-            name = 'affinity',
-            module = 'sklearn.cluster',
-            algorithm = 'AffinityPropagation')
-        self.agglomerative = Technique(
-            name = 'agglomerative',
-            module = 'sklearn.cluster',
-            algorithm = 'AgglomerativeClustering')
-        self.birch = Technique(
-            name = 'birch',
-            module = 'sklearn.cluster',
-            algorithm = 'Birch')
-        self.dbscan = Technique(
-            name = 'dbscan',
-            module = 'sklearn.cluster',
-            algorithm = 'DBSCAN')
-        self.kmeans = Technique(
-            name = 'kmeans',
-            module = 'sklearn.cluster',
-            algorithm = 'KMeans')
-        self.mean_shift = Technique(
-            name = 'mean_shift',
-            module = 'sklearn.cluster',
-            algorithm = 'MeanShift')
-        self.spectral = Technique(
-            name = 'spectral',
-            module = 'sklearn.cluster',
-            algorithm = 'SpectralClustering')
-        self.svm_linear = Technique(
-            name = 'svm_linear',
-            module = 'sklearn.cluster',
-            algorithm = 'OneClassSVM')
-        self.svm_poly = Technique(
-            name = 'svm_poly',
-            module = 'sklearn.cluster',
-            algorithm = 'OneClassSVM')
-        self.svm_rbf = Technique(
-            name = 'svm_rbf',
-            module = 'sklearn.cluster',
-            algorithm = 'OneClassSVM,')
-        self.svm_sigmoid = Technique(
-            name = 'svm_sigmoid',
-            module = 'sklearn.cluster',
-            algorithm = 'OneClassSVM')
+        self.options = {    
+            'affinity': SimpleDesign(
+                name = 'affinity',
+                module = 'sklearn.cluster',
+                algorithm = 'AffinityPropagation'),
+            'agglomerative': SimpleDesign(
+                name = 'agglomerative',
+                module = 'sklearn.cluster',
+                algorithm = 'AgglomerativeClustering'),
+            'birch': SimpleDesign(
+                name = 'birch',
+                module = 'sklearn.cluster',
+                algorithm = 'Birch'),
+            'dbscan': SimpleDesign(
+                name = 'dbscan',
+                module = 'sklearn.cluster',
+                algorithm = 'DBSCAN'),
+            'kmeans': SimpleDesign(
+                name = 'kmeans',
+                module = 'sklearn.cluster',
+                algorithm = 'KMeans'),
+            'mean_shift': SimpleDesign(
+                name = 'mean_shift',
+                module = 'sklearn.cluster',
+                algorithm = 'MeanShift'),
+            'spectral': SimpleDesign(
+                name = 'spectral',
+                module = 'sklearn.cluster',
+                algorithm = 'SpectralClustering'),
+            'svm_linear': SimpleDesign(
+                name = 'svm_linear',
+                module = 'sklearn.cluster',
+                algorithm = 'OneClassSVM'),
+            'svm_poly': SimpleDesign(
+                name = 'svm_poly',
+                module = 'sklearn.cluster',
+                algorithm = 'OneClassSVM'),
+            'svm_rbf': SimpleDesign(
+                name = 'svm_rbf',
+                module = 'sklearn.cluster',
+                algorithm = 'OneClassSVM,'),
+            'svm_sigmoid': SimpleDesign(
+                name = 'svm_sigmoid',
+                module = 'sklearn.cluster',
+                algorithm = 'OneClassSVM')}
         return self
 
     def _draft_regress(self):
-        self.adaboost = Technique(
-            name = 'adaboost',
-            module = 'sklearn.ensemble',
-            algorithm = 'AdaBoostRegressor')
-        self.baseline_regressor = Technique(
-            name = 'baseline_regressor',
-            module = 'sklearn.dummy',
-            algorithm = 'DummyRegressor',
-            extras = {'strategy': 'mean'})
-        self.bayes_ridge = Technique(
-            name = 'bayes_ridge',
-            module = 'sklearn.linear_model',
-            algorithm = 'BayesianRidge')
-        self.lasso = Technique(
-            name = 'lasso',
-            module = 'sklearn.linear_model',
-            algorithm = 'Lasso')
-        self.lasso_lars = Technique(
-            name = 'lasso_lars',
-            module = 'sklearn.linear_model',
-            algorithm = 'LassoLars')
-        self.ols = Technique(
-            name = 'ols',
-            module = 'sklearn.linear_model',
-            algorithm = 'LinearRegression')
-        self.random_forest = Technique(
-            name = 'random_forest',
-            module = 'sklearn.ensemble',
-            algorithm = 'RandomForestRegressor')
-        self.ridge = Technique(
-            name = 'ridge',
-            module = 'sklearn.linear_model',
-            algorithm = 'Ridge')
-        self.svm_linear = Technique(
-            name = 'svm_linear',
-            module = 'sklearn.svm',
-            algorithm = 'SVC',
-            extras = {'kernel': 'linear', 'probability': True})
-        self.svm_poly = Technique(
-            name = 'svm_poly',
-            module = 'sklearn.svm',
-            algorithm = 'SVC',
-            extras = {'kernel': 'poly', 'probability': True})
-        self.svm_rbf = Technique(
-            name = 'svm_rbf',
-            module = 'sklearn.svm',
-            algorithm = 'SVC',
-            extras = {'kernel': 'rbf', 'probability': True})
-        self.svm_sigmoid = Technique(
-            name = 'svm_sigmoid ',
-            module = 'sklearn.svm',
-            algorithm = 'SVC',
-            extras = {'kernel': 'sigmoid', 'probability': True})
-        self.xgboost = Technique(
-            name = 'xgboost',
-            module = 'xgboost',
-            algorithm = 'XGBRegressor',
-            data_dependents = 'scale_pos_weight')
+        self.options = {
+            'adaboost': SimpleDesign(
+                name = 'adaboost',
+                module = 'sklearn.ensemble',
+                algorithm = 'AdaBoostRegressor'),
+            'baseline_regressor': SimpleDesign(
+                name = 'baseline_regressor',
+                module = 'sklearn.dummy',
+                algorithm = 'DummyRegressor',
+                required = {'strategy': 'mean'}),
+            'bayes_ridge': SimpleDesign(
+                name = 'bayes_ridge',
+                module = 'sklearn.linear_model',
+                algorithm = 'BayesianRidge'),
+            'lasso': SimpleDesign(
+                name = 'lasso',
+                module = 'sklearn.linear_model',
+                algorithm = 'Lasso'),
+            'lasso_lars': SimpleDesign(
+                name = 'lasso_lars',
+                module = 'sklearn.linear_model',
+                algorithm = 'LassoLars'),
+            'ols': SimpleDesign(
+                name = 'ols',
+                module = 'sklearn.linear_model',
+                algorithm = 'LinearRegression'),
+            'random_forest': SimpleDesign(
+                name = 'random_forest',
+                module = 'sklearn.ensemble',
+                algorithm = 'RandomForestRegressor'),
+            'ridge': SimpleDesign(
+                name = 'ridge',
+                module = 'sklearn.linear_model',
+                algorithm = 'Ridge'),
+            'svm_linear': SimpleDesign(
+                name = 'svm_linear',
+                module = 'sklearn.svm',
+                algorithm = 'SVC',
+                required = {'kernel': 'linear', 'probability': True}),
+            'svm_poly': SimpleDesign(
+                name = 'svm_poly',
+                module = 'sklearn.svm',
+                algorithm = 'SVC',
+                required = {'kernel': 'poly', 'probability': True}),
+            'svm_rbf': SimpleDesign(
+                name = 'svm_rbf',
+                module = 'sklearn.svm',
+                algorithm = 'SVC',
+                required = {'kernel': 'rbf', 'probability': True}),
+            'svm_sigmoid': SimpleDesign(
+                name = 'svm_sigmoid ',
+                module = 'sklearn.svm',
+                algorithm = 'SVC',
+                required = {'kernel': 'sigmoid', 'probability': True}),
+            'xgboost': SimpleDesign(
+                name = 'xgboost',
+                module = 'xgboost',
+                algorithm = 'XGBRegressor',
+                data_dependent = 'scale_pos_weight')}
         return self
 
-    def _get_conditionals(self, technique: SimpleTechnique, parameters: dict):
-        if technique.name in ['xgboost'] and self.gpu:
+    def _get_conditionals(self, technique: str, parameters: dict):
+        if technique in ['xgboost'] and self.gpu:
             parameters.update({'tree_method': 'gpu_exact'})
-        elif technique.name in ['tensorflow']:
+        elif technique in ['tensorflow']:
             algorithm = create_tensorflow_model(
                 technique = technique,
                 parameters = parameters)
@@ -244,36 +253,11 @@ class Modeler(Composer):
     """ Core siMpLify Methods """
 
     def draft(self):
-        getattr(self, ''.join('_draft_', self.model_type))()
         super().draft()
+        getattr(self, ''.join('_draft_', self.model_type))()
+        if self.gpu:
+            getattr(self, ''.join('_add_gpu_techniques_', self.model_type))()
         return self
-
-
-@dataclass
-class ModelAlgorithm(ChefAlgorithm):
-    """[summary]
-
-    Args:
-        object ([type]): [description]
-    """
-    technique: str
-    parameters: object
-    space: object
-
-    def __post_init__(self):
-        self.idea_sections = ['chef']
-        super().__post_init__()
-        return self
-
-    """ Scikit-Learn Compatibility Methods """
-
-    def fit_transform(self, x, y = None):
-        error = 'fit_transform is not implemented for machine learning models'
-        raise NotImplementedError(error)
-
-    def transform(self, x, y = None):
-        error = 'transform is not implemented for machine learning models'
-        raise NotImplementedError(error)
 
 
 def create_tensorflow_model(technique: Technique, parameters: dict):

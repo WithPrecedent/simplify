@@ -31,6 +31,7 @@ def timer(process = None):
     Args:
         process: string containing name of class or method to be used in the
             output describing time elapsed.
+            
     """
     if not process:
         if isinstance(process, FunctionType):
@@ -92,6 +93,42 @@ def local_backups(method, excludes = None, includes = None):
         return method(self, *args, **kwargs)
     return wrapper
 
+def XxYy(truncate = False):
+    """Converts 'X' and 'Y' to 'x' and 'y' in arguments.
+    
+    Because different packages use upper and lower case names for the core
+    independent and dependent variable names, this decorator converts passed
+    uppercase parameter names to their lowercase versions (used by siMpLify).
+    
+    If 'truncate' is True, the named parameter is reduced to just 'x' or 'y'.
+    This is particularly useful for scikit-learn compatibile methods.
+    
+    Args:
+        truncate (bool): whether to discard the suffixes to the variable names 
+            and just use the first character ('x' or 'y').
+        method (method): wrapped method accepting lowercase versions of the
+            variables.
+            
+    Returns:
+        method (method): method with arguments properly adjusted.
+
+    """
+    def shell_converter(method):
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            arguments = signature(method).bind(self, *args, **kwargs).arguments
+            new_arguments = {}
+            for parameter, argument in arguments.items():
+                if parameter in ['X', 'Y', 'X_train', 'Y_train', 'X_test', 
+                                 'Y_test', 'X_val', 'Y_val']:
+                    new_arguments[parameter.lower()] = argument
+                else:
+                    new_arguments[parameter] = argument
+            return method(self, **new_arguments)
+        return wrapper    
+    return shell_converter
+        
+        
 def choose_df(method):
     """Substitutes the default DataFrame or Series if one is not passed to the
     decorated method.

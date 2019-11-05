@@ -10,11 +10,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from importlib import import_module
 import os
-from typing import Any, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Union
 
-from more_itertools import unique_everseen
 import numpy as np
 import pandas as pd
+
+from simplify.core.utilities import listify
 
 
 @dataclass
@@ -72,8 +73,6 @@ class SimpleClass(ABC):
         # Sets default 'name' attribute if none exists.
         if not self._exists('name'):
             self.name = self.__class__.__name__.lower()
-        # Initializes 'checks' attribute for validation checks to be performed.
-        self.checks = []
         # Sets initial values for subclass.
         self.draft()
         # Injects appropriate settings from shared Idea instance.
@@ -181,7 +180,7 @@ class SimpleClass(ABC):
         return self
 
     """ Private Methods """
-
+ 
     def _convert_wildcards(self, value: Union[str, List[str]]) -> List[str]:
         """Converts 'all', 'default', or 'none' values to a list of items.
 
@@ -198,27 +197,14 @@ class SimpleClass(ABC):
 
         """
         if value in ['all', ['all']]:
-            try:
-                return self.all
-            except AttributeError:
-                return list(self.options.keys())
+            return self.all
         elif value in ['default', ['default']]:
-            try:
-                return self.defaults
-            except AttributeError:
-                return list(self.options.keys())
+            self.default
         elif value in ['none', ['none'], 'None', ['None'], None]:
             return ['none']
         else:
             return value
-
-    def _draft_techniques(self) -> None:
-        """Gets 'steps' from 'idea' if 'steps' not passed."""
-        if self.techniques is None:
-            self.techniques = getattr(self, '_'.join([self.name, 'techniques']))
-        self.steps = self._convert_wildcards(value = self.techniques)
-        return self
-
+        
     def _exists(self, attribute: str) -> bool:
         """Returns if attribute exists in subclass and is not None.
 
@@ -389,7 +375,7 @@ class SimpleClass(ABC):
         much of the functionality of SimpleClass.
 
         """
-        pass
+        return self
 
     def edit(self, keys: Union[str, List[str]] = None,
              values: Union[str, List[str]] = None,
@@ -429,7 +415,7 @@ class SimpleClass(ABC):
                 the subclass methods.
 
         """
-        pass
+        return self
 
     """ Properties """
 
@@ -456,15 +442,15 @@ class SimpleClass(ABC):
         return self
 
     @property
-    def defaults(self) -> List[str]:
+    def default(self) -> List[str]:
         try:
-            return self._defaults
+            return self._default
         except AttributeError:
             return list(self.options.keys())
 
-    @defaults.setter
-    def defaults(self, techniques: Union[str, List[str]]) -> None:
-        self._defaults = listify(techniques, use_null = True)
+    @default.setter
+    def default(self, techniques: Union[str, List[str]]) -> None:
+        self._default = listify(techniques, use_null = True)
         return self
 
     @property
@@ -523,7 +509,7 @@ class Stage(SimpleClass):
             classes.
 
     """
-    name: str = 'state_machine'
+    name: str = 'stage_machine'
 
     def __post_init__(self) -> None:
         self._idea_sections = ['simplify']
@@ -542,7 +528,7 @@ class Stage(SimpleClass):
 
     """ Private Methods """
 
-    def _get_states(self) -> List[str]:
+    def _set_states(self) -> List[str]:
         """Determines list of possible stages.
 
         Returns:
@@ -550,7 +536,7 @@ class Stage(SimpleClass):
 
         """
         states = []
-        for stage in self.simplify_steps:
+        for stage in listify(self.simplify_steps):
             if stage == 'farmer':
                 for step in self.idea['farmer']['farmer_techniques']:
                     states.append(step)
@@ -580,8 +566,8 @@ class Stage(SimpleClass):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        # Gets list of possible states based upon Idea instance options.
-        self._get_states()
+        # Sets list of possible states based upon Idea instance options.
+        self.states = self._set_states()
         # Sets initial state.
         self.state = self.states[0]
         return self
@@ -593,29 +579,3 @@ class Stage(SimpleClass):
 
         """
         return self.state
-
-    """ Properties """
-
-    @property
-    def state(self) -> str:
-        """Returns current state.
-
-        __str__ and __repr__ can also be used to get the current stage.
-
-        """
-        return self.state
-
-    @state.setter
-    def state(self, new_state: str) -> None:
-        """Changes 'state' to 'new_state'."""
-        self.change(new_state = new_state)
-
-    @property
-    def states(self) -> List[str]:
-        """Returns list of possible stages."""
-        return self._states or self._get_states()
-
-    @states.setter
-    def states(self, new_states: List[str]) -> None:
-        """Sets possible stages to 'new_stages'."""
-        self._states = listify(new_states, use_null = True)

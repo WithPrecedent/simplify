@@ -12,7 +12,7 @@ fields = [
     'name', 'module', 'algorithm', 'default_parameters', 'extra_parameters',
     'runtime_parameters', 'selected_parameters', 'conditional_parameters',
     'data_parameters']
-Technique = namedtuple('technique', fields, defaults = (None,) * len(fields))
+Technique = namedtuple('technique', fields, default = (None,) * len(fields))
 
 """ Explanation Techniques """
 

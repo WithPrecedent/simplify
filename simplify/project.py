@@ -9,6 +9,7 @@
 from dataclasses import dataclass
 from importlib import import_module
 import os
+from typing import Any, Dict, Iterable, List, Union
 import warnings
 
 import numpy as np
@@ -16,8 +17,9 @@ import pandas as pd
 
 from simplify import timer
 from simplify.core.base import SimpleClass
-
-
+from simplify.core.depot import Depot
+from simplify.core.idea import Idea
+from simplify.core.ingredients import Ingredients
 
 
 @timer('siMpLify project')
@@ -58,18 +60,19 @@ class Project(SimpleClass):
 
     """
     name: str = 'simplify'
-    idea: object = None
-    depot: object = None
-    ingredients: object = None
-    steps: object = None
+    idea: Union[Idea, str] = None
+    depot: Union[Depot, str, None] = None
+    ingredients: Union[Ingredients, pd.DataFrame, pd.Series, np.ndarray, str,
+                  None] = None
+    steps: List = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _draft_depot(self):
+    def _draft_depot(self) -> None:
         """Completes a Depot instance for the 'depot' attribute.
 
         If a file path is passed to 'depot', a Depot instance is created with
@@ -83,8 +86,6 @@ class Project(SimpleClass):
             TypeError: if 'depot' is neither a str, None, nor Depot instance.
 
         """
-        # Local importation to avoid circular dependency.
-        from simplify.core.depot import Depot
         if self.depot is None:
             self.depot = Depot()
         elif isinstance(self.depot, str):
@@ -98,7 +99,7 @@ class Project(SimpleClass):
         SimpleClass.depot = self.depot
         return self
 
-    def _draft_idea(self):
+    def _draft_idea(self) -> None:
         """Completes an Idea instance for the 'idea' attribute.
 
         If a file path is passed to 'idea', an Idea instance is created from 
@@ -110,8 +111,6 @@ class Project(SimpleClass):
             TypeError: if 'idea' is neither a str nor Idea instance.
 
         """
-        # Local importation to avoid circular dependency.
-        from simplify.core.idea import Idea
         if isinstance(self.idea, str):
             self.idea = Idea(options = self.idea)
         elif isinstance(self.idea, Idea):
@@ -123,7 +122,7 @@ class Project(SimpleClass):
         SimpleClass.idea = self.idea
         return self
 
-    def _draft_ingredients(self):
+    def _draft_ingredients(self) -> None:
         """Completes an Ingredients instance for the 'ingredients' attribute.
 
         If 'ingredients' is a data container, it is assigned to 'df' in a new
@@ -138,8 +137,6 @@ class Project(SimpleClass):
                 Series, numpy array, or Ingredients instance.
 
         """
-        # Local importation to avoid circular dependency.
-        from simplify.core.ingredients import Ingredients
         if self.ingredients is None:
             self.ingredients = Ingredients()
         elif (isinstance(self.ingredients, pd.Series)
@@ -161,7 +158,7 @@ class Project(SimpleClass):
         return self
 
 
-    def _get_parameters(self, step: str):
+    def _get_parameters(self, step: str) -> None:
         """Returns appropriate parameters for subpackage publish method called.
 
         Args:
@@ -179,8 +176,9 @@ class Project(SimpleClass):
     """ Core siMpLify Methods """
 
     def draft(self):
+        super().draft()
         # Sets core attributes and completes appropriate class instances.
-        self.core_attributes = ['idea', 'depot', 'ingredients', 'steps']
+        self.core_attributes = ['idea', 'depot', 'ingredients']
         for attribute in self.core_attributes:
             getattr(self, ''.join(['_draft_', attribute]))()
         # Sets step options with information for module importation.
@@ -197,9 +195,12 @@ class Project(SimpleClass):
             'actuary': ('ingredients'),
             'critic': ('ingredients', 'chef.recipes'),
             'artist': ('ingredients', 'chef.recipes', 'critic.reviews')}
+        self.steps = self.simpify_steps
+        print('finished draft', self.steps)
         return self
 
-    def publish(self, ingredients: object = None):
+    def publish(self, ingredients: [Ingredients, pd.DataFrame, pd.Series, 
+                                    np.ndarray, str, None] = None) -> None:
         """Implements 'steps' in order.
 
         Args:
@@ -217,6 +218,7 @@ class Project(SimpleClass):
         if ingredients:
             self.ingredients = ingredients
             self._check_ingredients()
+        print(steps, self.steps)
         for step in self.steps:
             setattr(self, step, getattr(
                 import_module(self.options[step][0]),

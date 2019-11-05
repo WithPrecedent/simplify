@@ -400,7 +400,7 @@ class ReSearch(ReMatch):
         temp_list = []
         temp_list += re.findall(self.key, self.source)
         if temp_list:
-            temp_list = list(self.deduplicate(temp_list))
+            temp_list = list(deduplicate(temp_list))
             df[self.out_column] = temp_list
         else:
             df[self.out_column] = self.default_values[self.datatype]

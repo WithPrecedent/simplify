@@ -11,8 +11,10 @@ from dataclasses import dataclass
 from importlib import import_module
 import os
 import re
+from typing import Any, Dict, Iterable, List, Union
 
 from simplify.core.base import SimpleClass
+from simplify.core.utilities import listify
 
 
 @dataclass
@@ -126,34 +128,21 @@ class Idea(SimpleClass):
             it in the current working directory and store its contents in
             'options'. If a dict is provided, it should be nested into
             sections with individual settings in key/value pairs.
-        depot (Depot or str): an instance of Depot or a string containing the
-            full path of where the root folder should be located for file
-            output. Once a Depot instance is created, it is automatically made
-            available to all other SimpleClass subclasses that are instanced in
-            the future. If 'depot' is not passed, a default Depot instance will
-            be created.
-        ingredients (Ingredients, DataFrame, or str): an instance of
-            Ingredients, a string containing the full file path of where a data
-            file for a pandas DataFrame is located, or a string containing a
-            file name in the default data folder, as defined in the Depot
-            instance.
         infer_types (bool): whether values in 'options' are converted to
             other datatypes (True) or left as strings (False).
 
     """
     name: str = 'idea'
     options: object = None
-    depot: object = None
-    ingredients: object = None
     infer_types: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
     """ Dunder Methods """
 
-    def __add__(self, other):
+    def __add__(self, other: Union[Dict, str, 'Idea']) -> None:
         """Adds new settings using the 'update' method.
 
         Args:
@@ -164,7 +153,7 @@ class Idea(SimpleClass):
         self.update(new_settings = other)
         return self
 
-    def __contains__(self, item):
+    def __contains__(self, item: str) -> bool:
         """Returns whether item is in 'options'.
 
         Args:
@@ -173,7 +162,7 @@ class Idea(SimpleClass):
         """
         return item in self.options
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         """Removes a dictionary section if 'key' matches the name of a section.
 
         Otherwise, it will remove all entries with 'key' inside the various
@@ -186,7 +175,7 @@ class Idea(SimpleClass):
             KeyError: if 'key' not in 'options'.
         """
         try:
-            del self.options[item]
+            del self.options[key]
         except KeyError:
             for section in list(self.options.keys()):
                 try:
@@ -196,7 +185,7 @@ class Idea(SimpleClass):
                     raise KeyError(error)
         return self
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         """Returns a section of 'options' or key within a section.
 
         Args:
@@ -221,7 +210,7 @@ class Idea(SimpleClass):
                     continue
             return {}
 
-    def __iadd__(self, other):
+    def __iadd__(self, other: Union[Dict, str, 'Idea']) -> None:
         """Adds new settings using the 'update' method.
 
         Args:
@@ -232,7 +221,7 @@ class Idea(SimpleClass):
         self.update(new_settings = other)
         return self
 
-    def __radd__(self, other):
+    def __radd__(self, other: Union[Dict, str, 'Idea']) -> None:
         """Adds new settings using the 'update' method.
 
         Args:
@@ -243,13 +232,13 @@ class Idea(SimpleClass):
         self.update(new_settings = other)
         return self
 
-    def __setitem__(self, section, dictionary):
+    def __setitem__(self, section: str, dictionary: Dict) -> None:
         """Creates new key/value pair(s) in a specified section of
         'options'.
 
         Args:
             section (str): name of a section in 'options'.
-            dictionary (dict): the dictionary to be placed in that section.
+            dictionary (Dict): the dictionary to be placed in that section.
 
         Raises:
             TypeError if 'section' isn't a str or 'dictionary' isn't a dict.
@@ -271,7 +260,7 @@ class Idea(SimpleClass):
 
     """ Private Methods """
 
-    def _add_settings(self, settings = None):
+    def _add_settings(self, settings: Union[Dict, str, 'Idea'] = None) -> None:
         """Adds new settings to the options dictionary.
 
         Args:
@@ -302,7 +291,7 @@ class Idea(SimpleClass):
                 raise TypeError(error)
         return self
 
-    def _infer_types(self, settings = None):
+    def _infer_types(self, settings: Dict = None) -> None:
         """If 'infer_types' is True, values in 'options' are converted to
         the appropriate datatype.
         """
@@ -314,7 +303,7 @@ class Idea(SimpleClass):
                     self.options[section][key] = self._typify(value)
         return self
 
-    def _load_from_ini(self, file_path = None):
+    def _load_from_ini(self, file_path: str = None) -> None:
         """Creates a options dictionary from an .ini file.
 
         Args:
@@ -331,7 +320,7 @@ class Idea(SimpleClass):
             raise FileNotFoundError(error)
         return self
 
-    def _load_from_py(self, file_path = None):
+    def _load_from_py(self, file_path: str = None) -> None:
         """Creates a options dictionary from an .py file.
 
         Args:
@@ -346,7 +335,7 @@ class Idea(SimpleClass):
         return self
 
     @staticmethod
-    def _numify(variable):
+    def _numify(variable: str) -> Union[int, float, str]:
         """Attempts to convert 'variable' to a numeric type.
 
         Args:
@@ -364,7 +353,7 @@ class Idea(SimpleClass):
             except ValueError:
                 return variable
 
-    def _typify(self, variable):
+    def _typify(self, variable: str) -> Union[List, int, float, bool, str]:
         """Converts stingsr to appropriate, supported datatypes.
 
         The method converts strings to list (if ', ' is present), int, float,
@@ -394,7 +383,8 @@ class Idea(SimpleClass):
 
     """ Public Tool Methods """
 
-    def inject(self, instance, sections, override = False):
+    def inject(self, instance: SimpleClass, sections: Union[List[str], str], 
+               override: bool = False) -> SimpleClass:
         """Stores the section or sections of the 'options' dictionary in
         the passed class instance as attributes to that class instance.
 
@@ -418,16 +408,16 @@ class Idea(SimpleClass):
         for section in listify(sections):
             try:
                 for key, value in self.options[section].items():
-                    if not instance.exists(key) or override:
-                        setattr(instance, key,
-                                instance._convert_wildcards(value))
+                    print(instance.name, key)
+                    # if not instance.exists(key) or override:
+                    setattr(instance, key, value)
             except KeyError:
                 pass
         return instance
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         """Creates 'options' dictionary and core attributes for Idea instance.
 
         Raises:
@@ -442,7 +432,7 @@ class Idea(SimpleClass):
         super().draft()
         return self
 
-    def publish(self):
+    def publish(self) -> None:
         """Finalizes Idea and calls siMpLify controller."""
         self = self.inject(instance = self, sections = ['general'])
         super().publish()
@@ -450,7 +440,7 @@ class Idea(SimpleClass):
 
     """ Python Dictionary Compatibility Methods """
 
-    def update(self, new_settings):
+    def update(self, new_settings: Union[Dict, str, 'Idea']) -> None:
         """Adds new settings to the options dictionary.
 
         Args:

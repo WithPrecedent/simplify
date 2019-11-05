@@ -7,9 +7,14 @@
 """
 
 from dataclasses import dataclass
+from importlib import import_module
 from itertools import product
+from typing import Any, List, Dict, Union, Tuple
 
 from simplify.core.base import SimpleClass
+from simplify.core.step import SimpleStep
+from simplify.core.technique import SimpleTechnique
+from simplify.core.utilities import listify
 
 
 @dataclass
@@ -28,15 +33,15 @@ class SimplePackage(SimpleClass):
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-        techniques (list or str): names of techniques to be applied. These names
-            should match keys in the 'options' attribute.
+        techniques (List[str] or str): names of techniques to be applied. These 
+            names should match keys in the 'options' attribute.
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
 
     """
-    name: str = 'generic_package'
-    techniques: object = None
+    name: str = 'simple_package'
+    techniques: Union[List[str], str] = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -52,83 +57,62 @@ class SimplePackage(SimpleClass):
 
     """ Private Methods """
 
-    def _check_order(self, override = False):
-        """Creates ordering of class techniques."""
-        if not self._exists('order') or override:
+    def _draft_steps(self) -> None:
+        """Creates 'steps' dict from 'techniques' and 'options'."""
+        self.steps = {}
+        for step in listify(self.techniques):
             try:
-                self.order = listify(self._convert_wildcards(
-                    self.idea['_'.join(self.name, 'techniques')]))
+                self.steps[step] = getattr(
+                    import_module(self.options[step][0]), 
+                    self.options[step][1])(techniques = getattr(
+                        self, '_'.join(step, 'techniques')))
             except KeyError:
-                try:
-                    self.order = list(self.techniques.keys())
-                except TypeError:
-                    if isinstance(self.techniques, list):
-                        self.order = self.techniques
-                    else:
-                        error = ' '.join(
-                            ['order cannot be created for', self.name])
-                        raise TypeError(error)
+                error = ' '.join([step, 
+                                  'does not match an option in', self.name])
+                raise KeyError(error)
         return self
 
-    def _draft_composers(self, override = False):
-        """Creates 'composers' dict from 'order' and 'options'.
-
-        Args:
-            override (bool): whether to override preexisting values.
-
-        """
-        if not self._exists('composers'):
-            self.composers = {}
-        if not self.techniques or override or isinstance(self.techniques, list):
-            for step in self.order:
-                try:
-                    self.composers[step] = self.options[step]()
-                except KeyError:
-                    error = ' '.join([step, 'does not match any technique in',
-                                      self.name])
-                    raise KeyError(error)
-        return self
-
-    def _draft_plans(self):
+    def _draft_plans(self) -> None:
         """Creates cartesian product of all plans."""
         plans = []
-        for step in self.order:
-            key = '_'.join([step, 'techniques'])
+        for step, instance in self.steps.items():
             try:
-                plans.append(listify(
-                    self.composer[step]._convert_wildcards(getattr(self, key))))
+                plans.append(list(instance.techniques.keys()))
             except AttributeError:
                 plans.append(['none'])
         self.plans = list(map(list, product(*plans)))
-        """Converts 'plans' from list of lists to list of SimplePlan or
-        SimpleAlgorithms."""
+        return self
+           
+    def _publish_steps(self, data: Union[Ingredients, Tuple]) -> None:
+        """Finalizes all prepared SimpleTechniques stored in SimpleSteps."""
+        new_steps = {}
+        for step, instance in self.steps.items():
+            instance.publish(data = data)
+            new_steps[step] = instance
+        self.steps = new_steps
+        return self
+    
+    def _publish_plans(self) -> None:
+        """Converts 'plans' from list of lists to SimplePlan(s)."""
         new_plans = {}
         for i, plan in enumerate(self.plans):
-            algorithms = self._draft_sequence(plan = plan)
-            try:
-                new_plans.update(
-                    {str(i + 1): self.comparer(
-                        number = i + 1,
-                        steps = algorithms)})
-            except AttributeError:
-                new_plans.update({str(i + 1): algorithms})
+            key_steps = dict(zip(list(self.steps.keys(), plan)))
+            steps = self._publish_sequence(steps = key_steps)
+            new_plans[str(i + 1)] = self.comparer(number = i + 1, steps = steps)
         self.plans = new_plans
         return self
 
-    def _draft_sequence(self, plan: str):
-        algorithms = {}
-        for j, technique in enumerate(plan):
-            algorithm = self.composers[self.order[j]].publish(
-                technique = technique)
-            algorithms.update({self.order[j]: algorithm})
-        return algorithms
+    def _publish_sequence(self, steps: Dict[str, str]) -> Dict[str, SimpleStep]:
+        instanced_steps = {}
+        for step, technique in self.steps.items():
+            instanced_steps[step] = self.techniques[step][technique]
+        return instanced_steps
 
-    def _extra_processing(self, variable: SimpleClass,
-                          simple_object: SimpleClass):
-        return simple_object
+    def _extra_processing(self, plan: SimpleClass,
+            data: SimpleClass) -> Tuple[SimpleClass, SimpleClass]:
+        return plan, data
 
     """ Public Import/Export Methods """
-
 
     def load_plan(self, file_path):
         """Imports a single recipe from disc and adds it to the class iterable.
@@ -144,9 +128,9 @@ class SimplePackage(SimpleClass):
 
     def draft(self):
         """Creates initial settings for class based upon Idea settings."""
-        self.checks.extend(['order'])
         super().draft()
-        self._draft_composers()
+        self.steps = {}
+        self._draft_steps()
         self._draft_plans()
         return self
 
@@ -173,37 +157,21 @@ class SimplePackage(SimpleClass):
             self.plans.update({last_num + i + 1: plans})
         return self
 
-    def publish(self, variable: SimpleClass, **kwargs):
+    def publish(self, data: SimpleClass, **kwargs):
         super().publish()
-        for number, simple_object in self.plans.items():
+        self._publish_steps(data = data)
+        self._publish_plans()
+        for number, plan in self.plans.items():
             if self.verbose:
-                print('Testing', simple_object.name, str(number))
-            simple_object.publish(variable, **kwargs)
-            simple_object = self._extra_processing(variable, simple_object)
+                print('Testing', plan.name, str(number))
+            plan.publish(data = data, **kwargs)
+            plan, data = self._extra_processing(plan = plan, data = data)
         return self
-
-    """ Properties """
-
-    @property
-    def all(self):
-        return list(self.techniques.keys())
-
-    @property
-    def defaults(self):
-        try:
-            return self._defaults
-        except AttributeError:
-            return list(techniques.keys())
-
-    @defaults.setter
-    def defaults(self, techniques):
-        self._defaults = techniques
-
 
 
 @dataclass
 class SimplePlan(SimpleClass):
-    """Contains techniques to be completed in a siMpLify process.
+    """Iterator for a siMpLify process.
 
     Args:
         name (str): designates the name of the class which should match the
@@ -214,39 +182,174 @@ class SimplePlan(SimpleClass):
             classes.
         number (int): number of plan in a sequence - used for recordkeeping
             purposes.
-        steps (dict(str: str)): keys are names of steps and values are
-            algorithms to be applied.
+        steps (list(SimpleClass)): any
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
 
     """
     name: str = 'generic_plan'
-    number: int = 0
-    steps: object = None
+    metadata: Dict = None
+    steps: List = None
 
-    def __post_init__(self):
-        super().__post_init__()
+    def __post_init__(self) -> None:
+        if self.steps is None:
+            self.steps = []
         return self
 
-    """ Public Import/Export Methods """
+    """ Dunder Methods """
 
-    def save(self, file_path = None, folder = None, file_name = None):
-        self.depot.save(
-            variable = self,
+    def __add__(self, steps: Union['SimpleClass', List['SimpleClass']]) -> None:
+        """Adds step(s) at the end of 'steps'.
+
+        Args:
+            steps ('SimpleClass' or List['SimpleClass']): the next step(s) to be
+                added.
+
+        """
+        self.add(steps = steps)
+        return self
+
+    def __iadd__(self,
+                 steps: Union['SimpleClass', List['SimpleClass']]) -> None:
+        """Adds step(s) at the end of 'steps'.
+
+        Args:
+            steps ('SimpleClass' or List['SimpleClass']): the next step(s) to be
+                added.
+
+        """
+        self.add(steps = steps)
+        return self
+
+    def __radd__(self,
+                 steps: Union['SimpleClass', List['SimpleClass']]) -> None:
+        """Adds step(s) at the beginning of 'steps'.
+
+        Args:
+            steps ('SimpleClass' or List['SimpleClass']): the step(s) to be
+                added at the beginning of 'steps'.
+
+        """
+        for step in listify(steps).reverse():
+            self.steps.insert(step)
+        return self
+
+    """ Import/Export Methods """
+
+    def load(self, file_path = None, folder = None, file_name = None) -> None:
+        """Loads 'steps' from disc.
+
+        For any arguments not passed, default values stored in the shared Depot
+        instance will be used based upon the current 'stage' of the siMpLify
+        project.
+
+        Args:
+            file_path (str): a complete file path for the file to be loaded.
+            folder (str): a path to the folder where the file should be loaded
+                from (not used if file_path is passed).
+            file_name (str): contains the name of the file to be loaded without
+                the file extension (not used if file_path is passed).
+
+        """
+        self.steps = self.depot.load(
             file_path = file_path,
             folder = folder,
             file_name = file_name,
             file_format = 'pickle')
-        return
+        return self
+
+    def save(self, file_path = None, folder = None, file_name = None) -> None:
+        """Exports 'steps' to disc.
+
+        For any arguments not passed, default values stored in the shared Depot
+        instance will be used based upon the current 'stage' of the siMpLify
+        project.
+
+        Args:
+            file_path (str): a complete file path for the file to be saved.
+            folder (str): a path to the folder where the file should be saved
+                (not used if file_path is passed).
+            file_name (str): contains the name of the file to be saved without
+                the file extension (not used if file_path is passed).
+
+        """
+        self.depot.save(
+            variable = self.steps,
+            file_path = file_path,
+            folder = folder,
+            file_name = file_name,
+            file_format = 'pickle')
+        return self
+
+    """ Steps Methods """
+
+    def add(self, steps: Union['SimpleClass', List['SimpleClass']]) -> None:
+        """Adds step(s) at the end of 'steps'.
+
+        Args:
+            steps ('SimpleClass' or List['SimpleClass']): the next step(s) to be
+                added.
+
+        """
+        self.steps.extend(listify(step))
+        return self
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         pass
 
-    def publish(self, variable: SimpleClass, *args, **kwargs):
-        for step, algorithm in self.steps.items():
-            setattr(self, algorithm.publish(
-                getattr(self, variable.name), *args, **kwargs))
+    def publish(self, variable: 'SimpleClass', **kwargs) -> None:
+        """Applies 'steps' to passed 'variable'.
+
+        Args:
+            variable ('SimpleClass'): a data container or other SimpleClass
+                for steps to be applied to.
+
+        """
+        setattr(self, variable.name, variable)
+        for step in listify(self.steps):
+            try:
+                if self.change_state:
+                    self.stage = step
+            except AttributeError:
+                pass
+            if step.return_variable:
+                setattr(self, variable.name, step.publish(
+                    variable = self.variable, **kwargs))
+            else:
+                setattr(self, step.name, step.publish(
+                    variable = self.variable, **kwargs))
+        return self
+
+    """ Properties """
+
+    @property
+    def stage(self) -> str:
+        """Returns the shared stage for the overall siMpLify package.
+
+        Returns:
+            str: active state.
+
+        """
+        try:
+            return self._stage
+        except AttributeError:
+            self._stage = Stage()
+            return self._stage
+
+    @stage.setter
+    def stage(self, new_stage: str) -> None:
+        """Sets the shared stage for the overall siMpLify package
+
+        Args:
+            new_stage (str): active state.
+
+        """
+        try:
+            self._stage.change(new_stage)
+        except AttributeError:
+            self._stage = Stage()
+            self._stage.change(new_stage)
         return self

@@ -8,14 +8,23 @@
 
 from dataclasses import dataclass
 
-from simplify.chef.composer import ChefAlgorithm as Algorithm
-from simplify.chef.composer import ChefComposer as Composer
-from simplify.chef.composer import ChefTechnique as Technique
+from simplify.core.step import SimpleStep
+from simplify.core.step import SimpleDesign
 
 
 @dataclass
-class Cleaver(Composer):
-    """Divides features for comparison or recombination."""
+class Cleaver(SimpleClass):
+    """Divides features for comparison or recombination.
+    
+    Args: 
+        name (str): designates the name of the class which should match the
+            section of settings in the Idea instance and other methods
+            throughout the siMpLify package. If subclassing siMpLify classes,
+            it is often a good idea to maintain to the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes.
+            
+    """
 
     name: str = 'cleaver'
 
@@ -51,15 +60,17 @@ class Cleaver(Composer):
     #     return self
 
     def draft(self):
-        self.compare = Technique(
+        super().draft()
+        self.options = {
+        'compare': SimpleDesign(
             name = 'compare',
             module = None,
-            algorithm = 'CompareCleaves')
-        self.combine = Technique(
+            algorithm = 'CompareCleaves'),
+        'combine': SimpleDesign(
             name = 'combine',
             module = None,
-            algorithm = 'CombineCleaves')
-        super().draft()
+            algorithm = 'CombineCleaves')}
+        
         return self
 
 

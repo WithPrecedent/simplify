@@ -8,13 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.chef.composer import ChefAlgorithm as Algorithm
-from simplify.chef.composer import ChefComposer as Composer
-from simplify.chef.composer import ChefTechnique as Technique
+from simplify.core.step import SimpleStep
+from simplify.core.step import SimpleDesign
 
 
 @dataclass
-class Scaler(Composer):
+class Scaler(SimpleStep):
     """Scales numerical data in a DataFrame stored in Ingredients instance.
     
     Args: 
@@ -34,59 +33,60 @@ class Scaler(Composer):
         return self
 
     def draft(self):
-        self.bins = Technique(
-            name = 'bins',
-            module = 'sklearn.preprocessing',
-            algorithm = 'KBinsDiscretizer',
-            default_parameters = {
-                'encode': 'ordinal',
-                'strategy': 'uniform',
-                'n_bins': 5},
-            selected_parameters = True)
-        # self.gauss = Technique(
-        #     name = 'gauss',
-        #     module = None,
-        #     algorithm = Gaussify,
-        #     default_parameters = {'standardize': False, 'copy': False},
-        #     extra_parameters = {'rescaler': self.standard},
-        #     selected_parameters = True)
-        self.maxabs = Technique(
-            name = 'maxabs',
-            module = 'sklearn.preprocessing',
-            algorithm = 'MaxAbsScaler',
-            default_parameters = {'copy': False},
-            selected_parameters = True)
-        self.minmax = Technique(
-            name = 'minmax',
-            module = 'sklearn.preprocessing',
-            algorithm = 'MinMaxScaler',
-            default_parameters = {'copy': False},
-            selected_parameters = True)
-        self.normalize = Technique(
-            name = 'normalize',
-            module = 'sklearn.preprocessing',
-            algorithm = 'Normalizer',
-            default_parameters = {'copy': False},
-            selected_parameters = True)
-        self.quantile = Technique(
-            name = 'quantile',
-            module = 'sklearn.preprocessing',
-            algorithm = 'QuantileTransformer',
-            default_parameters = {'copy': False},
-            selected_parameters = True)
-        self.robust = Technique(
-            name = 'robust',
-            module = 'sklearn.preprocessing',
-            algorithm = 'RobustScaler',
-            default_parameters = {'copy': False},
-            selected_parameters = True)
-        self.standard = Technique(
-            name = 'standard',
-            module = 'sklearn.preprocessing',
-            algorithm = 'StandardScaler',
-            default_parameters = {'copy': False},
-            selected_parameters = True)
         super().draft()
+        self.options = {
+            'bins' : SimpleDesign(
+                name = 'bins',
+                module = 'sklearn.preprocessing',
+                algorithm = 'KBinsDiscretizer',
+                default_parameters = {
+                    'encode': 'ordinal',
+                    'strategy': 'uniform',
+                    'n_bins': 5},
+                selected_parameters = True),
+            # 'gauss' : SimpleDesign(
+            #     name = 'gauss',
+            #     module = None,
+            #     algorithm = Gaussify,
+            #     default_parameters = {'standardize': False, 'copy': False},
+            #     extra_parameters = {'rescaler': self.standard},
+            #     selected_parameters = True),
+            'maxabs' : SimpleDesign(
+                name = 'maxabs',
+                module = 'sklearn.preprocessing',
+                algorithm = 'MaxAbsScaler',
+                default_parameters = {'copy': False},
+                selected_parameters = True),
+            'minmax' : SimpleDesign(
+                name = 'minmax',
+                module = 'sklearn.preprocessing',
+                algorithm = 'MinMaxScaler',
+                default_parameters = {'copy': False},
+                selected_parameters = True),
+            'normalize' : SimpleDesign(
+                name = 'normalize',
+                module = 'sklearn.preprocessing',
+                algorithm = 'Normalizer',
+                default_parameters = {'copy': False},
+                selected_parameters = True),
+            'quantile' : SimpleDesign(
+                name = 'quantile',
+                module = 'sklearn.preprocessing',
+                algorithm = 'QuantileTransformer',
+                default_parameters = {'copy': False},
+                selected_parameters = True),
+            'robust' : SimpleDesign(
+                name = 'robust',
+                module = 'sklearn.preprocessing',
+                algorithm = 'RobustScaler',
+                default_parameters = {'copy': False},
+                selected_parameters = True),
+            'standard' : SimpleDesign(
+                name = 'standard',
+                module = 'sklearn.preprocessing',
+                algorithm = 'StandardScaler',
+                default_parameters = {'copy': False},
+                selected_parameters = True)}
         return self
 
 
