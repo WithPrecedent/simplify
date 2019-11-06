@@ -20,8 +20,7 @@ from simplify.core.utilities import listify
 
 @dataclass
 class SimplePlanner(SimpleClass):
-    """Base class for building and controlling iterable techniques and/or
-    other packages.
+    """Base class for building and controlling iterable techniques.
 
     This class adds methods useful to create iterators and iterate over passed
     arguments based upon user-selected options. SimplePackage subclasses

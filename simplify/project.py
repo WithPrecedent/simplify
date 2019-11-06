@@ -20,11 +20,12 @@ from simplify.core.base import SimpleClass
 from simplify.core.depot import Depot
 from simplify.core.idea import Idea
 from simplify.core.ingredients import Ingredients
+from simplify.core.planner import SimplePlanner
 
 
 @timer('siMpLify project')
 @dataclass
-class Project(SimpleClass):
+class Project(SimplePlanner):
     """Controller class for siMpLify projects.
 
     Args:
@@ -63,7 +64,7 @@ class Project(SimpleClass):
     idea: Union[Idea, str] = None
     depot: Union[Depot, str, None] = None
     ingredients: Union[Ingredients, pd.DataFrame, pd.Series, np.ndarray, str,
-                  None] = None
+                       None] = None
     steps: Union[List[str], str] = None
 
     def __post_init__(self) -> None:
@@ -195,13 +196,11 @@ class Project(SimpleClass):
             'actuary': ('ingredients'),
             'critic': ('ingredients', 'chef.recipes'),
             'artist': ('ingredients', 'chef.recipes', 'critic.reviews')}
-        self.steps = self.simpify_steps
-        print('finished draft', self.steps)
         return self
 
     def publish(self, ingredients: [Ingredients, pd.DataFrame, pd.Series,
                                     np.ndarray, str, None] = None) -> None:
-        """Implements 'steps' in order.
+        """Applies steps in 'order' to 'ingredients'.
 
         Args:
             ingredients (Ingredients, DataFrame, Series, ndarray, or str): an
@@ -218,11 +217,10 @@ class Project(SimpleClass):
         if ingredients:
             self.ingredients = ingredients
             self._check_ingredients()
-        print(steps, self.steps)
-        for step in self.steps:
-            setattr(self, step, getattr(
-                import_module(self.options[step][0]),
-                self.options[step][1])())
+        for step in self.order:
+            technique =
+            self.add_techniques(techniques = self._import_option(
+                settings = self.options[step])()
             parameters = self._get_parameters(step = step)
             self.ingredients = getattr(self, step).publish(**parameters)
         return self

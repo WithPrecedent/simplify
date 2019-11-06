@@ -313,21 +313,30 @@ class SimpleClass(ABC):
     """ Composite Management Methods """
 
     def add_techniques(self,
-            techniques: Union[List['SimpleClass'], 'SimpleClass']) -> None:
+            techniques: Union[List['SimpleClass'], Dict[str: 'SimpleClass'],
+                              'SimpleClass'],
+            names: Union[List[str], str] = None) -> None:
         """Adds technique class instances to class instance.
 
         Args:
-            techniques (SimpleClass or list(SimpleClass)): technique class instances
-                to be linked to the current class instance.
+
 
         """
-        for technique in listify(techniques, use_null = True):
-            self._techniques.append(technique)
-            technique.container = self
+        try:
+            for key, technique in techniques.items():
+                technique.container = self
+                self._techniques[key] = technique
+        except TypeError:
+            for i, technique in enumerate(techniques):
+                technique.container = self
+                if names is not None:
+                    self._techniques[names[i]] = technique
+                else:
+                    self._techniques[technique.name] = technique
         return self
 
     def inject_techniques(self, attribute: str,
-                        instance: 'SimpleClass' = None) -> None:
+            instance: 'SimpleClass' = None) -> None:
         """Adds 'instance' to technique classes at named 'attribute'.
 
         Args:
@@ -335,12 +344,12 @@ class SimpleClass(ABC):
             instance (SimpleClass): instance to be stored in technique classes.
 
         """
-        for technique in self._techniques:
+        for technique in self._techniques.values():
             setattr(technique, attribute, instance)
         return self
 
     def inject_container(self, attribute: str,
-                      instance: 'SimpleClass' = None) -> None:
+            instance: 'SimpleClass' = None) -> None:
         """Adds 'instance' to container class at named 'attribute'.
 
         Args:
@@ -356,13 +365,13 @@ class SimpleClass(ABC):
         """Removes technique class instances from class instance.
 
         Args:
-            techniques (SimpleClass or list(SimpleClass)): technique class instances
-                to be delinked from the current class instance.
+            techniques (SimpleClass or list(SimpleClass)): technique class
+                instances to be delinked from the current class instance.
 
         """
         for technique in listify(techniques):
-            self._techniques.remove(technique)
-            technique.container = None
+            self._techniques[technique].container = None
+            del self._techniques[technique]
         return self
 
     """ Core siMpLify Methods """
@@ -418,7 +427,7 @@ class SimpleClass(ABC):
         """
         return self
 
-    """ Properties """
+    """ Options Properties """
 
     @property
     def all(self) -> List[str]:
@@ -440,6 +449,8 @@ class SimpleClass(ABC):
         self._default = listify(techniques, use_null = True)
         return self
 
+    """ Composite Structure Properties """
+
     @property
     def container(self) -> 'SimpleClass':
         try:
@@ -454,7 +465,7 @@ class SimpleClass(ABC):
         return self
 
     @property
-    def techniques(self) -> List['SimpleClass']:
+    def techniques(self) -> Dict[str: 'SimpleClass']:
         try:
             return self._techniques
         except AttributeError:
@@ -462,12 +473,11 @@ class SimpleClass(ABC):
             return self._techniques
 
     @techniques.setter
-    def techniques(self,
-            techniques: Union[List['SimpleClass'], 'SimpleClass']) -> None:
-        self._techniques = {}
-        for technique in listify(techniques, use_null = True):
-            self._techniques.update({technique.name: technique})
+    def techniques(self, techniques: Dict[str: 'SimpleClass']) -> None:
+        self._techniques = techniques
         return self
+
+    """ State Properties """
 
     @property
     def stage(self) -> 'Stage':
