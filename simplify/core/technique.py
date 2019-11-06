@@ -18,8 +18,24 @@ from simplify.core.base import SimpleClass
 from simplify.core.decorators import numpy_shield
 from simplify.core.decorators import XxYy
 from simplify.core.ingredients import Ingredients
-from simplify.core.step import SimpleDesign
 
+
+@dataclass
+class SimpleDesign(object):
+    """Contains settings for creating a SimpleAlgorithm and SimpleParameters."""
+
+    name: str = 'simple_design'
+    step: str = ''
+    module: str = None
+    algorithm: str = None
+    default: Dict[str: Any] = None
+    required: Dict[str: Any] = None
+    runtime: Dict[str: str] = None
+    data_dependent: Dict[str: str] = None
+    selected: Union[bool, List[str]] = False
+    conditional: bool = False
+    hyperparameter_search: bool = False
+    
 
 @dataclass
 class SimpleComposer(SimpleClass):
@@ -50,14 +66,14 @@ class SimpleComposer(SimpleClass):
     """ Private Methods """
 
     def _build_technique(self, technique: str, data: SimpleClass,
-                         step: SimpleClass) -> SimpleDesign:
+                         step: SimpleClass) -> 'SimpleDesign':
         """Builds technique settings in 'options'.
 
         Returns:
             algorithm object configured appropriately.
 
         """
-        design = self.container.options[technique]
+        design = self.options[technique]
         algorithm = self.algorithm_builder.publish(
             design = design,
             data = data)
@@ -69,6 +85,22 @@ class SimpleComposer(SimpleClass):
             algorithm = algorithm,
             parameters = parameters)
 
+    def _get_conditional(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Modifies 'parameters' based upon various conditions.
+
+        A subclass should have its own '_get_conditional' method for this
+        method to modify 'parameters'. That method should have a 'parameters'
+        argument and return the modified 'parameters'.
+
+        Args:
+            parameters (Dict): a dictionary of parameters.
+
+        Returns:
+            parameters (Dict): altered parameters based on condtions.
+
+        """
+        pass
+    
     """ Core siMpLify Methods """
 
     def draft(self):
@@ -76,8 +108,7 @@ class SimpleComposer(SimpleClass):
         self.algorithm_builder = SimpleAlgorithm()
         return self
 
-    def publish(self, technique: str, data: SimpleClass,
-                step: SimpleClass) -> 'SimpleTechnique':
+    def publish(self, technique: str, data: SimpleClass) -> 'SimpleTechnique':
         """
         Args:
             technique (str): name of technique for appropriate methods and
@@ -91,8 +122,7 @@ class SimpleComposer(SimpleClass):
             # Builds technique and returns it
             return self._build_technique(
                 technique = technique,
-                data = data,
-                step = step)
+                data = data)
 
 
 @dataclass

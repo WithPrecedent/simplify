@@ -241,7 +241,7 @@ class Modeler(SimpleStep):
                 data_dependent = 'scale_pos_weight')}
         return self
 
-    def _get_conditionals(self, technique: str, parameters: dict):
+    def _get_conditional(self, technique: str, parameters: dict):
         if technique in ['xgboost'] and self.gpu:
             parameters.update({'tree_method': 'gpu_exact'})
         elif technique in ['tensorflow']:

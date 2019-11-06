@@ -98,7 +98,7 @@ class Review(SimplePackage):
             if self.verbose:
                 print('Reviewing', recipe.name, str(number))
             step_reviews = {}
-            for step in self.order:
+            for step in self.steps:
                 getattr(self, step).implement(recipe = recipe)
                 self._infuse_return_variables(instance = getattr(self, step))
                 if step in ['score']:
@@ -127,13 +127,13 @@ class Narrative(SimplePlan):
         super().draft()
         if not self.options:
             self.options = DEFAULT_OPTIONS
-        self.order_setting = 'critic_techniques'
+        self.steps_setting = 'critic_techniques'
         self.is_comparer = True
         return self
 
     def implement(self, recipe):
         """Applies the recipe techniques to the passed ingredients."""
-        for step in self.order:
+        for step in self.steps:
             if step in ['summary']:
                 pass
             elif step in ['prediction', 'probabilities', 'explanation']:
@@ -220,12 +220,12 @@ class Article(SimpleClass):
     def _set_columns(self, recipe):
         self.required_columns = {
             'recipe_number': 'number',
-            'options': 'order',
+            'options': 'steps',
             'seed': 'seed',
             'validation_set': 'using_val_set'}
         self.columns = list(self.required_columns.keys())
-        self.columns.extend(recipe.order)
-        for step in self.order:
+        self.columns.extend(recipe.steps)
+        for step in self.steps:
             if (hasattr(getattr(self, step), 'columns')
                     and getattr(self, step).name != 'summarize'):
                 self.columns.extend(getattr(self, step).columns)

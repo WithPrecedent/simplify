@@ -1,6 +1,6 @@
 """
 .. module:: base
-:synopsis: abstract base class for siMpLify package
+:synopsis: abstract base class for siMpLify project
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -27,7 +27,7 @@ class SimpleClass(ABC):
 
     SimpleClass creates a code structure patterned after the writing process.
     It divides processes into three stages which are the names or prefixes to
-    the core methods used throughout the siMpLify package:
+    the core methods used throughout the siMpLify project:
 
         1) draft: sets default attributes (required).
         2) edit: makes any desired changes to the default attributes (optional).
@@ -39,12 +39,12 @@ class SimpleClass(ABC):
 
     Args:
         These arguments and attributes are not required for any SimpleClass, but
-        are commonly used throughout the package. Brief descriptions are
+        are commonly used throughout the project. Brief descriptions are
         included here:
 
         name (str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
-            throughout the siMpLify package. If subclassing siMpLify classes,
+            throughout the siMpLify project. If subclassing siMpLify classes,
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
@@ -56,7 +56,7 @@ class SimpleClass(ABC):
         depot (Depot or str): an instance of Depot or a string containing the
             full path of where the root folder should be located for file
             output. A Depot instance contains all file path and import/export
-            methods for use throughout the siMpLify package. Once a Depot
+            methods for use throughout the siMpLify project. Once a Depot
             instance is created, it is automatically an attribute of all other
             SimpleClass subclasses that are instanced in the future.
         ingredients (Ingredients, DataFrame, ndarray, or str): an instance of
@@ -185,7 +185,7 @@ class SimpleClass(ABC):
         """Converts 'all', 'default', or 'none' values to a list of items.
 
         Args:
-            value (str or list(str)): name(s) of techniques or packages.
+            value (str or list(str)): name(s) of techniques or projects.
 
         Returns:
             If 'all', either the 'all' property or all keys listed in 'options'
@@ -324,11 +324,11 @@ class SimpleClass(ABC):
         """
         try:
             for key, technique in techniques.items():
-                technique.container = self
+                technique.project = self
                 self._techniques[key] = technique
         except TypeError:
             for i, technique in enumerate(techniques):
-                technique.container = self
+                technique.project = self
                 if names is not None:
                     self._techniques[names[i]] = technique
                 else:
@@ -348,16 +348,16 @@ class SimpleClass(ABC):
             setattr(technique, attribute, instance)
         return self
 
-    def inject_container(self, attribute: str,
+    def inject_project(self, attribute: str,
             instance: 'SimpleClass' = None) -> None:
-        """Adds 'instance' to container class at named 'attribute'.
+        """Adds 'instance' to project class at named 'attribute'.
 
         Args:
             attribute (str): name of attribute for 'instance' to be stored.
-            instance (SimpleClass): instance to be stored in container class.
+            instance (SimpleClass): instance to be stored in project class.
 
         """
-        setattr(container, attribute, instance)
+        setattr(project, attribute, instance)
         return self
 
     def remove_techniques(self,
@@ -370,7 +370,7 @@ class SimpleClass(ABC):
 
         """
         for technique in listify(techniques):
-            self._techniques[technique].container = None
+            self._techniques[technique].project = None
             del self._techniques[technique]
         return self
 
@@ -395,7 +395,7 @@ class SimpleClass(ABC):
             keys (str or List[str]): name or list of names for keys to be added
                 to 'options'. 'keys' should be the same length as 'values'.
                 Default is None.
-            values (Any): options which can be integrated in the package
+            values (Any): options which can be integrated in the project
                 framework. 'values' should be same length as 'keys'. Default is
                 None.
             options (Dict[str: SimpleClass]): a dictionary with string keys to
@@ -452,16 +452,16 @@ class SimpleClass(ABC):
     """ Composite Structure Properties """
 
     @property
-    def container(self) -> 'SimpleClass':
+    def project(self) -> 'SimpleClass':
         try:
-            return self._container
+            return self._project
         except AttributeError:
-            self._container = None
-            return self._container
+            self._project = None
+            return self._project
 
-    @container.setter
-    def container(self, container: 'SimpleClass') -> None:
-        self._container = container
+    @project.setter
+    def project(self, project: 'SimpleClass') -> None:
+        self._project = project
         return self
 
     @property
@@ -481,7 +481,7 @@ class SimpleClass(ABC):
 
     @property
     def stage(self) -> 'Stage':
-        """Returns the shared stage for the overall siMpLify package.
+        """Returns the shared stage for the overall siMpLify project.
 
         Returns:
             str: active state.
@@ -495,7 +495,7 @@ class SimpleClass(ABC):
 
     @stage.setter
     def stage(self, new_stage: str) -> None:
-        """Sets the shared stage for the overall siMpLify package
+        """Sets the shared stage for the overall siMpLify project
 
         Args:
             new_stage (str): active state.
@@ -516,7 +516,7 @@ class Stage(SimpleClass):
     Args:
         name (str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
-            throughout the siMpLify package. If subclassing siMpLify classes,
+            throughout the siMpLify project. If subclassing siMpLify classes,
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.

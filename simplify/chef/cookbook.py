@@ -57,7 +57,7 @@ class Cookbook(SimplePackage):
                 name = 'recipe')
             if self.export_all_recipes:
                 self.save_recipes(recipes = plan)
-            if 'reduce' in self.order and plan.steps['reduce'] != 'none':
+            if 'reduce' in self.steps and plan.steps['reduce'] != 'none':
                 data.save_dropped(folder = self.depot.recipe)
             else:
                 data.save_dropped(folder = self.depot.experiment)
