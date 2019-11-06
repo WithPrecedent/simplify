@@ -45,18 +45,18 @@ class Project(SimpleClass):
             methods for use throughout the siMpLify package. Once a Depot
             instance is created, it is automatically an attribute of all other
             SimpleClass subclasses that are instanced in the future.
-        ingredients (Ingredients, DataFrame, Series, ndarray, or str): an 
-            instance of Ingredients, a string containing the full file path of 
-            where a data file for a pandas DataFrame or Series is located, a 
-            string containing a,file name in the default data folder, as defined 
-            in the shared Depot instance, a DataFrame, a Series, or numpy 
-            ndarray. If a DataFrame, ndarray, or string is provided, the 
-            resultant DataFrame is stored at the 'df' attribute in a new 
+        ingredients (Ingredients, DataFrame, Series, ndarray, or str): an
+            instance of Ingredients, a string containing the full file path of
+            where a data file for a pandas DataFrame or Series is located, a
+            string containing a,file name in the default data folder, as defined
+            in the shared Depot instance, a DataFrame, a Series, or numpy
+            ndarray. If a DataFrame, ndarray, or string is provided, the
+            resultant DataFrame is stored at the 'df' attribute in a new
             Ingredients instance.
-        steps (list): names of all subpackages to be used from the siMpLify
-            package. This argument only needs to be passed if the subpackages
-            to be used are different than those listed in 'idea'. This can be
-            useful in running tests with one particular subpackage.
+        steps (List[str], or str): names of all subpackages to be used from the
+            siMpLify package. This argument only needs to be passed if the
+            subpackages to be used are different than those listed in 'idea'.
+            This can be useful in running tests with a particular subpackage.
 
     """
     name: str = 'simplify'
@@ -64,7 +64,7 @@ class Project(SimpleClass):
     depot: Union[Depot, str, None] = None
     ingredients: Union[Ingredients, pd.DataFrame, pd.Series, np.ndarray, str,
                   None] = None
-    steps: List = None
+    steps: Union[List[str], str] = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -102,7 +102,7 @@ class Project(SimpleClass):
     def _draft_idea(self) -> None:
         """Completes an Idea instance for the 'idea' attribute.
 
-        If a file path is passed to 'idea', an Idea instance is created from 
+        If a file path is passed to 'idea', an Idea instance is created from
         that file.
 
         If a completed Idea instance was passed, it is left intact.
@@ -199,21 +199,21 @@ class Project(SimpleClass):
         print('finished draft', self.steps)
         return self
 
-    def publish(self, ingredients: [Ingredients, pd.DataFrame, pd.Series, 
+    def publish(self, ingredients: [Ingredients, pd.DataFrame, pd.Series,
                                     np.ndarray, str, None] = None) -> None:
         """Implements 'steps' in order.
 
         Args:
-            ingredients (Ingredients, DataFrame, Series, ndarray, or str): an 
-                instance of Ingredients, a string containing the full file path 
-                of where a data file for a pandas DataFrame or Series is 
-                located, a string containing a,file name in the default data 
-                folder, as defined in the shared Depot instance, a DataFrame, a 
-                Series, or numpy ndarray. If a DataFrame, ndarray, or string is 
-                provided, the resultant DataFrame is stored at the 'df' 
-                attribute in a new Ingredients instance. If Ingredients is not 
+            ingredients (Ingredients, DataFrame, Series, ndarray, or str): an
+                instance of Ingredients, a string containing the full file path
+                of where a data file for a pandas DataFrame or Series is
+                located, a string containing a,file name in the default data
+                folder, as defined in the shared Depot instance, a DataFrame, a
+                Series, or numpy ndarray. If a DataFrame, ndarray, or string is
+                provided, the resultant DataFrame is stored at the 'df'
+                attribute in a new Ingredients instance. If Ingredients is not
                 passed, then the local 'ingredients' attribute will be used.
-            
+
         """
         if ingredients:
             self.ingredients = ingredients

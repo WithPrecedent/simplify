@@ -44,41 +44,41 @@ class SimpleStep(SimpleClass):
     """
     name: str = 'simple_step'
     techniques: object = None
-    
+
     def __post_init__(self) -> None:
         super().__post_init__()
         return self
-    
+
     """ Private Methods """
-    
-    def _get_conditional(self, parameters: Dict) -> Dict:
+
+    def _get_conditional(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Modifies 'parameters' based upon various conditions.
 
         A subclass should have its own '_get_conditional' method for this
         method to modify 'parameters'. That method should have a 'parameters'
         argument and return the modified 'parameters'.
-        
+
         Args:
             parameters (Dict): a dictionary of parameters.
-            
+
         Returns:
             parameters (Dict): altered parameters based on condtions.
 
         """
         pass
-        
+
     """ Core siMpLify Methods """
-        
-    def draft(self):
+
+    def draft(self) -> None:
         """ Subclass should provide their own 'options' stored in this format:
-    
+
             self.options = {string_key, SimpleDesign}
-            
+
         """
         super().draft()
         return self
-    
-    def publish(self, data: Union[Ingredients, Tuple]):
+
+    def publish(self, data: Union[Ingredients, Tuple]) -> None:
         self.composer = SimpleComposer(
             options = self.options,
             techniques = self.techniques)

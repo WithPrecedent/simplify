@@ -12,6 +12,7 @@ from itertools import product
 from typing import Any, List, Dict, Union, Tuple
 
 from simplify.core.base import SimpleClass
+from simplify.core.ingredients import Ingredients
 from simplify.core.step import SimpleStep
 from simplify.core.technique import SimpleTechnique
 from simplify.core.utilities import listify
@@ -33,41 +34,43 @@ class SimplePackage(SimpleClass):
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-        techniques (List[str] or str): names of techniques to be applied. These 
-            names should match keys in the 'options' attribute.
+        order (List[str] or str): names of techniques to be applied. These
+            names should match keys in the 'options' attribute. If using the
+            Idea instance settings, this argument should not be passed.
 
     It is also a child class of SimpleClass. So, its documentation applies as
     well.
 
     """
     name: str = 'simple_package'
-    techniques: Union[List[str], str] = None
+    order: Union[List[str], str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
     """ Dunder Methods """
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable:
         try:
             return self.plans.items()
         except AttributeError:
-            pass
+            return {}
 
     """ Private Methods """
 
     def _draft_steps(self) -> None:
-        """Creates 'steps' dict from 'techniques' and 'options'."""
+        """Creates 'steps' dict from 'order' and 'options'."""
+        if self.order is None:
+            self.order = getattr(self, '_'.join(step, 'techniques'))
         self.steps = {}
-        for step in listify(self.techniques):
+        for step in listify(self.order):
             try:
-                self.steps[step] = getattr(
-                    import_module(self.options[step][0]), 
-                    self.options[step][1])(techniques = getattr(
-                        self, '_'.join(step, 'techniques')))
+                instance = self._import_option(
+                    settings = self.options[step])(order = self.order)
+                self.add_techniques(techniques = instance)
             except KeyError:
-                error = ' '.join([step, 
+                error = ' '.join([step,
                                   'does not match an option in', self.name])
                 raise KeyError(error)
         return self
@@ -82,7 +85,21 @@ class SimplePackage(SimpleClass):
                 plans.append(['none'])
         self.plans = list(map(list, product(*plans)))
         return self
-           
+
+    def _import_option(self, settings: Tuple[str: str]) -> object:
+        """Lazily loads object from siMpLify module.
+
+        Args:
+            settings (Tuple[str: str]): first item in settings is the module to
+                import from and the second is the object in that module to
+                import.
+
+        Returns:
+            imported object.
+
+        """
+        return getattr(import_module(settings[0]), settings[1])
+
     def _publish_steps(self, data: Union[Ingredients, Tuple]) -> None:
         """Finalizes all prepared SimpleTechniques stored in SimpleSteps."""
         new_steps = {}
@@ -91,7 +108,7 @@ class SimplePackage(SimpleClass):
             new_steps[step] = instance
         self.steps = new_steps
         return self
-    
+
     def _publish_plans(self) -> None:
         """Converts 'plans' from list of lists to SimplePlan(s)."""
         new_plans = {}

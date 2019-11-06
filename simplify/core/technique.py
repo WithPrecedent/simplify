@@ -24,7 +24,7 @@ from simplify.core.step import SimpleDesign
 @dataclass
 class SimpleComposer(SimpleClass):
     """Constructs techniques for use in SimplePlan.
-    
+
     This class is a complex builder which constructs finalized algorithms with
     matching parameters. Because of the variance of supported packages and the
     nature of parameters involved (particularly data-dependent ones), the final
@@ -33,20 +33,14 @@ class SimpleComposer(SimpleClass):
 
     Args:
 
-        options (dict[str, object]): contains string name keys to previously 
-            loaded objects with algorithms.
-        techniques (dict[str, SimpleDesign]): contains string name keys
-            and SimpleDesign objects used to create SimpleTechniques.
         name (str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
             throughout the siMpLify package. If subclassing siMpLify classes,
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-            
+
     """
-    options: Dict
-    techniques: Dict
     name: str = 'simple_composer'
 
     def __post_init__(self) -> None:
@@ -54,16 +48,16 @@ class SimpleComposer(SimpleClass):
         return self
 
     """ Private Methods """
-    
-    def _build_technique(self, technique: str, data: SimpleClass, 
+
+    def _build_technique(self, technique: str, data: SimpleClass,
                          step: SimpleClass) -> SimpleDesign:
         """Builds technique settings in 'options'.
-        
+
         Returns:
             algorithm object configured appropriately.
 
         """
-        design = self.options[technique]
+        design = self.container.options[technique]
         algorithm = self.algorithm_builder.publish(
             design = design,
             data = data)
@@ -72,24 +66,24 @@ class SimpleComposer(SimpleClass):
             data = data)
         return SimpleTechnique(
             name = design.name,
-            algorithm = algorithm, 
+            algorithm = algorithm,
             parameters = parameters)
-              
+
     """ Core siMpLify Methods """
-    
+
     def draft(self):
         self.parameters_builder = SimpleParameters()
         self.algorithm_builder = SimpleAlgorithm()
         return self
-    
-    def publish(self, technique: str, data: SimpleClass, 
+
+    def publish(self, technique: str, data: SimpleClass,
                 step: SimpleClass) -> 'SimpleTechnique':
         """
         Args:
             technique (str): name of technique for appropriate methods and
                 parameters to be returned. This name should match the name of
                 a SimpleDesign class stored in 'options'.
-        
+
         """
         if technique in ['none', 'None', None]:
             return None
@@ -104,14 +98,14 @@ class SimpleComposer(SimpleClass):
 @dataclass
 class SimpleTechnique(SimpleClass):
     """Container for SimpleAlgorithm, SimpleParameters, and finalized algorithm.
-    
+
     This is the primary mechanism for storing techniques in siMpLify. The
     SimpleComposer directs the building of the requisite algorithm and
     parameters to be injected into this technique. When possible, these
     techniques are made to be scikit-learn compatible using the included
     'fit', 'transform', and 'fit_transform' methods. The techniques can also
     be applied to data using the normal siMpLify 'publish' method.
-    
+
     Args:
         name (str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
@@ -158,14 +152,14 @@ class SimpleTechnique(SimpleClass):
 
     def draft(self) -> None:
         """Attaches 'parameters' to the 'algorithm'.
-        
+
         """
         try:
             self.algorithm = self.algorithm(**self.parameters)
         except AttributeError:
             self.algorithm = self.algorithm(self.parameters)
-        return self        
-        
+        return self
+
     @numpy_shield
     def publish(self,
             data: Union[Ingredients, Tuple]) -> Union[Ingredients, Tuple, None]:
@@ -256,7 +250,7 @@ class SimpleTechnique(SimpleClass):
         elif data is not None:
             return self.transform(ingredients = ingredients)
         else:
-            error = ' '.join([self.name, 
+            error = ' '.join([self.name,
                               'algorithm has no fit_transform method'])
             raise TypeError(error)
 
@@ -365,9 +359,9 @@ class SimpleParameters(SimpleClass):
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-            
+
     Attributes:
-        bunch (dict): actual parameters dict. Returned by '__str__' and 
+        bunch (dict): actual parameters dict. Returned by '__str__' and
             '__repr__' methods.
 
     """
@@ -398,7 +392,7 @@ class SimpleParameters(SimpleClass):
 
     def _get_idea(self, design: SimpleDesign) -> None:
         """Acquires parameters from Idea instance.
-        
+
         Args:
             design (SimpleDesign): settings for parameters to be built.
 
@@ -426,7 +420,7 @@ class SimpleParameters(SimpleClass):
 
         If 'design.selected' is a list of parameter keys, then only those
         parameters are selected for the final returned parameters.
-        
+
         Args:
             design (SimpleDesign): settings for parameters to be built.
 
@@ -444,8 +438,8 @@ class SimpleParameters(SimpleClass):
         return self
 
     def _get_required(self, design: SimpleDesign) -> None:
-        """Adds required parameters (mandatory additions) to 'parameters'.   
-             
+        """Adds required parameters (mandatory additions) to 'parameters'.
+
         Args:
             design (SimpleDesign): settings for parameters to be built.
 
@@ -457,8 +451,8 @@ class SimpleParameters(SimpleClass):
         return self
 
     def _get_search(self, design: SimpleDesign) -> None:
-        """Separates variables with multiple options to search parameters.   
-             
+        """Separates variables with multiple options to search parameters.
+
         Args:
             design (SimpleDesign): settings for parameters to be built.
 
@@ -489,7 +483,7 @@ class SimpleParameters(SimpleClass):
         The runtime variables should be stored as attributes in the subclass so
         that the values listed in design.runtimes match those attributes to
         be added to parameters.
-        
+
         Args:
             design (SimpleDesign): settings for parameters to be built.
 
@@ -512,7 +506,7 @@ class SimpleParameters(SimpleClass):
         A step class should have its own '_get_conditional' method for this
         method to modify 'parameters'. That method should have a 'parameters'
         and 'technique' (str) argument and return the modified 'parameters'.
-        
+
         Args:
             design (SimpleDesign): settings for parameters to be built.
 
@@ -528,8 +522,8 @@ class SimpleParameters(SimpleClass):
 
     def _get_data_dependent(self, design: SimpleDesign,
                             data: SimpleClass) -> None:
-        """Adds data-derived parameters to parameters 'bunch'.        
-        
+        """Adds data-derived parameters to parameters 'bunch'.
+
         Args:
             design (SimpleDesign): settings for parameters to be built.
 
@@ -570,11 +564,11 @@ class SimpleParameters(SimpleClass):
         for parameter_type in self.parameter_types:
             if parameter_type in ['conditional', 'runtime']:
                 getattr(self, '_'.join(['_get', parameter_type]))(
-                    design = design, 
+                    design = design,
                     step = step)
             elif parameter_type == 'data_dependent':
                 getattr(self, '_'.join(['_get', parameter_type]))(
-                    design = design, 
+                    design = design,
                     data = data)
             else:
                 getattr(self, '_'.join(['_get', parameter_type]))(

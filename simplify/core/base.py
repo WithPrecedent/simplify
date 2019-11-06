@@ -180,7 +180,7 @@ class SimpleClass(ABC):
         return self
 
     """ Private Methods """
- 
+
     def _convert_wildcards(self, value: Union[str, List[str]]) -> List[str]:
         """Converts 'all', 'default', or 'none' values to a list of items.
 
@@ -204,7 +204,7 @@ class SimpleClass(ABC):
             return ['none']
         else:
             return value
-        
+
     def _exists(self, attribute: str) -> bool:
         """Returns if attribute exists in subclass and is not None.
 
@@ -312,57 +312,57 @@ class SimpleClass(ABC):
 
     """ Composite Management Methods """
 
-    def add_children(self,
-            children: Union[List['SimpleClass'], 'SimpleClass']) -> None:
-        """Adds child class instances to class instance.
+    def add_techniques(self,
+            techniques: Union[List['SimpleClass'], 'SimpleClass']) -> None:
+        """Adds technique class instances to class instance.
 
         Args:
-            children (SimpleClass or list(SimpleClass)): child class instances
+            techniques (SimpleClass or list(SimpleClass)): technique class instances
                 to be linked to the current class instance.
 
         """
-        for child in listify(children, use_null = True):
-            self._children.append(child)
-            child.parent = self
+        for technique in listify(techniques, use_null = True):
+            self._techniques.append(technique)
+            technique.container = self
         return self
 
-    def inject_children(self, attribute: str,
+    def inject_techniques(self, attribute: str,
                         instance: 'SimpleClass' = None) -> None:
-        """Adds 'instance' to child classes at named 'attribute'.
+        """Adds 'instance' to technique classes at named 'attribute'.
 
         Args:
             attribute (str): name of attribute for 'instance' to be stored.
-            instance (SimpleClass): instance to be stored in child classes.
+            instance (SimpleClass): instance to be stored in technique classes.
 
         """
-        for child in self._children:
-            setattr(child, attribute, instance)
+        for technique in self._techniques:
+            setattr(technique, attribute, instance)
         return self
 
-    def inject_parent(self, attribute: str,
+    def inject_container(self, attribute: str,
                       instance: 'SimpleClass' = None) -> None:
-        """Adds 'instance' to parent class at named 'attribute'.
+        """Adds 'instance' to container class at named 'attribute'.
 
         Args:
             attribute (str): name of attribute for 'instance' to be stored.
-            instance (SimpleClass): instance to be stored in parent class.
+            instance (SimpleClass): instance to be stored in container class.
 
         """
-        setattr(parent, attribute, instance)
+        setattr(container, attribute, instance)
         return self
 
-    def remove_children(self,
-            children: Union[List['SimpleClass'], 'SimpleClass']) -> None:
-        """Removes child class instances from class instance.
+    def remove_techniques(self,
+            techniques: Union[List['SimpleClass'], 'SimpleClass']) -> None:
+        """Removes technique class instances from class instance.
 
         Args:
-            children (SimpleClass or list(SimpleClass)): child class instances
+            techniques (SimpleClass or list(SimpleClass)): technique class instances
                 to be delinked from the current class instance.
 
         """
-        for child in listify(children):
-            self._children.remove(child)
-            child.parent = None
+        for technique in listify(techniques):
+            self._techniques.remove(technique)
+            technique.container = None
         return self
 
     """ Core siMpLify Methods """
@@ -378,20 +378,20 @@ class SimpleClass(ABC):
         return self
 
     def edit(self, keys: Union[str, List[str]] = None,
-             values: Union[str, List[str]] = None,
-             options: Dict = None) -> 'SimpleClass':
+            values: Any = None,
+            options: Dict[str, 'SimpleClass'] = None) -> 'SimpleClass':
         """Updates 'options' dictionary with passed arguments.
 
         Args:
-            keys (str or list): a string name or list of names for keys in the
-                'options' dict.
-            values (object or list(object)): siMpLify compatible objects which
-                can be integrated in the package framework. If they are custom
-                algorithms, they should be subclassed from SimpleAlgorithm to
-                ensure compatibility.
-            options (dict): a dictionary with keys of techniques and values of
-                algorithms. This should be passed if the user has already
-                combined some or all 'techniques' and 'algorithms' into a dict.
+            keys (str or List[str]): name or list of names for keys to be added
+                to 'options'. 'keys' should be the same length as 'values'.
+                Default is None.
+            values (Any): options which can be integrated in the package
+                framework. 'values' should be same length as 'keys'. Default is
+                None.
+            options (Dict[str: SimpleClass]): a dictionary with string keys to
+                different siMpLify compatible options. Default is None.
+
         """
         try:
             self.options.update(options)
@@ -399,10 +399,11 @@ class SimpleClass(ABC):
             self.options = options
         except TypeError:
             pass
-        try:
-            self.options.update(dict(zip(keys, values)))
-        except TypeError:
-            pass
+        if len(keys) == len(values):
+            try:
+                self.options.update(dict(zip(keys, values)))
+            except TypeError:
+                pass
         return self
 
     @abstractmethod
@@ -428,20 +429,6 @@ class SimpleClass(ABC):
             return []
 
     @property
-    def children(self) -> List['SimpleClass']:
-        try:
-            return self._children
-        except AttributeError:
-            self._children = []
-            return self._children
-
-    @children.setter
-    def children(self, children: Union[List['SimpleClass'], 'SimpleClass']) -> (
-        None):
-        self._children = listify(children, use_null = True)
-        return self
-
-    @property
     def default(self) -> List[str]:
         try:
             return self._default
@@ -454,20 +441,36 @@ class SimpleClass(ABC):
         return self
 
     @property
-    def parent(self) -> 'SimpleClass':
+    def container(self) -> 'SimpleClass':
         try:
-            return self._parent
+            return self._container
         except AttributeError:
-            self._parent = None
-            return self._parent
+            self._container = None
+            return self._container
 
-    @parent.setter
-    def parent(self, parent: 'SimpleClass') -> None:
-        self._parent = parent
+    @container.setter
+    def container(self, container: 'SimpleClass') -> None:
+        self._container = container
         return self
 
     @property
-    def stage(self) -> str:
+    def techniques(self) -> List['SimpleClass']:
+        try:
+            return self._techniques
+        except AttributeError:
+            self._techniques = {}
+            return self._techniques
+
+    @techniques.setter
+    def techniques(self,
+            techniques: Union[List['SimpleClass'], 'SimpleClass']) -> None:
+        self._techniques = {}
+        for technique in listify(techniques, use_null = True):
+            self._techniques.update({technique.name: technique})
+        return self
+
+    @property
+    def stage(self) -> 'Stage':
         """Returns the shared stage for the overall siMpLify package.
 
         Returns:
@@ -532,7 +535,7 @@ class Stage(SimpleClass):
         """Determines list of possible stages.
 
         Returns:
-            list: states possible based upon user selections.
+            List[str]: states possible based upon user selections.
 
         """
         states = []
@@ -566,6 +569,7 @@ class Stage(SimpleClass):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
+        """Initializes state machine."""
         # Sets list of possible states based upon Idea instance options.
         self.states = self._set_states()
         # Sets initial state.
