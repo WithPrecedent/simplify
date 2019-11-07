@@ -8,12 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.package import SimplePackage
-from simplify.core.package import SimplePlan
+from simplify.core.planner import SimplePlanner
+from simplify.core.planner import SimplePlan
 
 
 @dataclass
-class Cookbook(SimplePackage):
+class Cookbook(SimplePlanner):
     """Dynamically creates recipes for staging, machine learning, and data
     analysis using a unified interface and architecture.
 

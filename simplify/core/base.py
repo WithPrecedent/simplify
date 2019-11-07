@@ -75,9 +75,6 @@ class SimpleClass(ABC):
             self.name = self.__class__.__name__.lower()
         # Sets initial values for subclass.
         self.draft()
-        # Injects appropriate settings from shared Idea instance.
-        if self.name != 'idea':
-            self._inject_idea()
         return self
 
     """ Dunder Methods """
@@ -313,7 +310,7 @@ class SimpleClass(ABC):
     """ Composite Management Methods """
 
     def add_techniques(self,
-            techniques: Union[List['SimpleClass'], Dict[str: 'SimpleClass'],
+            techniques: Union[List['SimpleClass'], Dict[str, 'SimpleClass'],
                               'SimpleClass'],
             names: Union[List[str], str] = None) -> None:
         """Adds technique class instances to class instance.
@@ -324,11 +321,11 @@ class SimpleClass(ABC):
         """
         try:
             for key, technique in techniques.items():
-                technique.project = self
+                technique.planner = self
                 self._techniques[key] = technique
         except TypeError:
             for i, technique in enumerate(techniques):
-                technique.project = self
+                technique.planner = self
                 if names is not None:
                     self._techniques[names[i]] = technique
                 else:
@@ -348,16 +345,16 @@ class SimpleClass(ABC):
             setattr(technique, attribute, instance)
         return self
 
-    def inject_project(self, attribute: str,
+    def inject_planner(self, attribute: str,
             instance: 'SimpleClass' = None) -> None:
-        """Adds 'instance' to project class at named 'attribute'.
+        """Adds 'instance' to planner class at named 'attribute'.
 
         Args:
             attribute (str): name of attribute for 'instance' to be stored.
-            instance (SimpleClass): instance to be stored in project class.
+            instance (SimpleClass): instance to be stored in planner class.
 
         """
-        setattr(project, attribute, instance)
+        setattr(planner, attribute, instance)
         return self
 
     def remove_techniques(self,
@@ -370,7 +367,7 @@ class SimpleClass(ABC):
 
         """
         for technique in listify(techniques):
-            self._techniques[technique].project = None
+            self._techniques[technique].planner = None
             del self._techniques[technique]
         return self
 
@@ -398,7 +395,7 @@ class SimpleClass(ABC):
             values (Any): options which can be integrated in the project
                 framework. 'values' should be same length as 'keys'. Default is
                 None.
-            options (Dict[str: SimpleClass]): a dictionary with string keys to
+            options (Dict[str, SimpleClass]): a dictionary with string keys to
                 different siMpLify compatible options. Default is None.
 
         """
@@ -452,20 +449,20 @@ class SimpleClass(ABC):
     """ Composite Structure Properties """
 
     @property
-    def project(self) -> 'SimpleClass':
+    def planner(self) -> 'SimpleClass':
         try:
-            return self._project
+            return self._planner
         except AttributeError:
-            self._project = None
-            return self._project
+            self._planner = None
+            return self._planner
 
-    @project.setter
-    def project(self, project: 'SimpleClass') -> None:
-        self._project = project
+    @planner.setter
+    def planner(self, planner: 'SimpleClass') -> None:
+        self._planner = planner
         return self
 
     @property
-    def techniques(self) -> Dict[str: 'SimpleClass']:
+    def techniques(self) -> Dict[str, 'SimpleClass']:
         try:
             return self._techniques
         except AttributeError:
@@ -473,7 +470,7 @@ class SimpleClass(ABC):
             return self._techniques
 
     @techniques.setter
-    def techniques(self, techniques: Dict[str: 'SimpleClass']) -> None:
+    def techniques(self, techniques: Dict[str, 'SimpleClass']) -> None:
         self._techniques = techniques
         return self
 

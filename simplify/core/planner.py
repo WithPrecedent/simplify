@@ -1,16 +1,17 @@
 """
-.. module:: package
-:synopsis: controller and entry point base class
+.. module:: planner
+:synopsis: iterable builders and containers
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
 
+
 from dataclasses import dataclass
 from importlib import import_module
 from itertools import product
 import os
-from typing import Any, List, Dict, Union, Tuple
+from typing import Any, List, Dict, Iterable, Optional, Tuple, Union
 import warnings
 
 import numpy as np
@@ -21,14 +22,12 @@ from simplify.core.base import SimpleClass
 from simplify.core.depot import Depot
 from simplify.core.idea import Idea
 from simplify.core.ingredients import Ingredients
-from simplify.core.step import SimpleStep
 from simplify.core.technique import SimpleTechnique
 from simplify.core.utilities import listify
 
 
-@timer('siMpLify project')
 @dataclass
-class SimplePackage(SimpleClass):
+class SimplePlanner(SimpleClass):
     """Base class for building and controlling iterable techniques.
 
     This class adds methods useful to create iterators and iterate over passed
@@ -79,7 +78,6 @@ class SimplePackage(SimpleClass):
     ingredients: Union[Ingredients, pd.DataFrame, pd.Series, np.ndarray, str,
                        None] = None
     steps: Union[List[str], str] = None
-    name: str = 'simple_package' 
     
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -97,17 +95,12 @@ class SimplePackage(SimpleClass):
     
     def _draft_depot(self) -> None:
         """Completes a Depot instance for the 'depot' attribute.
-
         If a file path is passed to 'depot', a Depot instance is created with
         that folder as 'root_folder'.
-
         If 'depot' is None, a Depot instance is created with default options.
-
         If a completed Depot instance was passed, it is left intact.
-
         Raises:
             TypeError: if 'depot' is neither a str, None, nor Depot instance.
-
         """
         if self.depot is None:
             self.depot = Depot()
@@ -124,15 +117,11 @@ class SimplePackage(SimpleClass):
 
     def _draft_idea(self) -> None:
         """Completes an Idea instance for the 'idea' attribute.
-
         If a file path is passed to 'idea', an Idea instance is created from
         that file.
-
         If a completed Idea instance was passed, it is left intact.
-
         Raises:
             TypeError: if 'idea' is neither a str nor Idea instance.
-
         """
         if isinstance(self.idea, str):
             self.idea = Idea(options = self.idea)
@@ -147,18 +136,15 @@ class SimplePackage(SimpleClass):
 
     def _draft_ingredients(self) -> None:
         """Completes an Ingredients instance for the 'ingredients' attribute.
-
         If 'ingredients' is a data container, it is assigned to 'df' in a new
             instance of Ingredients.
         If 'ingredients' is a file path, the file is loaded into a DataFrame
             and assigned to 'df' in a new Ingredients instance.
         If 'ingredients' is None, a new Ingredients instance is created and
             assigned to 'ingreidents' with no attached DataFrames.
-
         Raises:
             TypeError: if 'ingredients' is neither a str, None, DataFrame,
                 Series, numpy array, or Ingredients instance.
-
         """
         if self.ingredients is None:
             self.ingredients = Ingredients()
@@ -182,9 +168,10 @@ class SimplePackage(SimpleClass):
     
     def _draft_steps(self) -> None:
         """Gets 'steps' from injected Idea setting or sets to empty dict."""
+        print(self.idea)
         if self.steps is None:
             try:
-                self.steps = getattr(self, '_'.join(self.name, 'techniques'))
+                self.steps = getattr(self, '_'.join([self.name, 'techniques']))
             except AttributeError:
                 self.steps = {}
         return self
@@ -213,7 +200,7 @@ class SimplePackage(SimpleClass):
         self.plans = list(map(list, product(*plans)))
         return self
 
-    def _import_option(self, settings: Tuple[str: str]) -> object:
+    def _import_option(self, settings: Tuple[str, str]) -> object:
         """Lazily loads object from siMpLify module.
 
         Args:
@@ -290,7 +277,9 @@ class SimplePackage(SimpleClass):
     def draft(self):
         """Creates initial settings for class based upon Idea settings."""
         super().draft()
-        self.steps = {}
+        core_attributes = ('idea', 'depot', 'ingredients')
+        for attribute in core_attributes:
+            getattr(self, '_'.join(['_draft', attribute]))()
         self._draft_steps()
         self._draft_techniques()
         self._draft_plans()
@@ -351,8 +340,8 @@ class SimplePlan(SimpleClass):
 
     """
     name: str = 'generic_plan'
-    metadata: Dict[str: Any] = None
-    steps: Dict[str: SimpleClass] = None
+    metadata: Dict[str, Any] = None
+    steps: Dict[str, SimpleClass] = None
 
     def __post_init__(self) -> None:
         if self.steps is None:
@@ -361,7 +350,7 @@ class SimplePlan(SimpleClass):
 
     """ Dunder Methods """
 
-    def __add__(self, steps: Dict[str: SimpleClass]) -> None:
+    def __add__(self, steps: Dict[str, SimpleClass]) -> None:
         """Adds step(s) at the end of 'steps'.
 
         Args:
@@ -371,7 +360,7 @@ class SimplePlan(SimpleClass):
         self.add(steps = steps)
         return self
 
-    def __iadd__(self, steps: Dict[str: SimpleClass]) -> None:
+    def __iadd__(self, steps: Dict[str, SimpleClass]) -> None:
         """Adds step(s) at the end of 'steps'.
 
         Args:
@@ -432,7 +421,7 @@ class SimplePlan(SimpleClass):
 
     """ Steps Methods """
 
-    def add(self, steps: Dict[str: SimpleClass]) -> None:
+    def add(self, steps: Dict[str, SimpleClass]) -> None:
         """Adds step(s) at the end of 'steps'.
 
         Args:
@@ -445,7 +434,7 @@ class SimplePlan(SimpleClass):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        pass
+        return self
 
     def publish(self, data: SimpleClass, **kwargs) -> None:
         """Applies 'steps' to passed 'data'.

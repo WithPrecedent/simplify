@@ -28,10 +28,10 @@ class SimpleDesign(object):
     step: str = ''
     module: str = None
     algorithm: str = None
-    default: Dict[str: Any] = None
-    required: Dict[str: Any] = None
-    runtime: Dict[str: str] = None
-    data_dependent: Dict[str: str] = None
+    default: Dict[str, Any] = None
+    required: Dict[str, Any] = None
+    runtime: Dict[str, str] = None
+    data_dependent: Dict[str, str] = None
     selected: Union[bool, List[str]] = False
     conditional: bool = False
     hyperparameter_search: bool = False

@@ -430,12 +430,12 @@ class Idea(SimpleClass):
         self._add_settings()
         self._infer_types()
         super().draft()
+        self.publish()
         return self
 
     def publish(self) -> None:
         """Finalizes Idea and calls siMpLify controller."""
         self = self.inject(instance = self, sections = ['general'])
-        super().publish()
         return self
 
     """ Python Dictionary Compatibility Methods """

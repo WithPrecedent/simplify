@@ -1,16 +1,13 @@
-name: model
+name: simplify
 channels:
 - conda-forge
 - districtdatalabs
 dependencies:
-- python>=3.6
+- python>=3.7
 - category_encoders
 - configparser
 - cython
-- dataclasses
 - eli5
-- flit
-- git
 - glob2
 - imbalanced-learn
 - ipykernel
