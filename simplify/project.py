@@ -21,6 +21,7 @@ from simplify.core.depot import Depot
 from simplify.core.idea import Idea
 from simplify.core.ingredients import Ingredients
 from simplify.core.planner import SimplePlanner
+from simplify.core.utilities import listify
 
 
 @dataclass
@@ -28,7 +29,6 @@ class Project(SimplePlanner):
     """Controller class for siMpLify projects.
 
     Args:
-
         idea (Idea or str): an instance of Idea or a string containing the file
             path or file name (in the current working directory) where a
             supoorted settings file for an Idea instance is located. Once an
@@ -77,6 +77,18 @@ class Project(SimplePlanner):
         super().__post_init__()
         return self
 
+    def _draft_techniques(self) -> None:
+        """Creates 'techniques' containing technique builder instances."""
+        for step in listify(self.steps):
+            try:
+                instance = self._import_option(settings = self.options[step])()
+                self.add_techniques(techniques = instance)
+            except KeyError:
+                error = ' '.join([step,
+                                  'does not match an option in', self.name])
+                raise KeyError(error)
+        return self
+    
     """ Core siMpLify Methods """
 
     def draft(self):

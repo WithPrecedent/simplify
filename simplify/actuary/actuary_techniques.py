@@ -11,7 +11,7 @@ from collections import namedtuple
 fields = [
     'name', 'module', 'algorithm', 'default_parameters', 'extra_parameters',
     'runtime_parameters', 'selected_parameters', 'conditional_parameters',
-    'data_parameters']
+    'data_dependent']
 Technique = namedtuple('technique', fields, default = (None,) * len(fields))
 
 """ Summary Techniques """

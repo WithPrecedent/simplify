@@ -8,13 +8,11 @@
 
 from dataclasses import dataclass
 
-from simplify.core.decorators import localize
-from simplify.core.package import SimplePackage
-
+from simplify.core.planner import SimplePlanner
 
 
 @dataclass
-class Canvas(SimplePackage):
+class Canvas(SimplePlanner):
     """Builds tools for data visualization.
 
     Args:

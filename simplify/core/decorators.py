@@ -128,7 +128,6 @@ def XxYy(truncate = False):
         return wrapper    
     return shell_converter
         
-        
 def choose_df(method):
     """Substitutes the default DataFrame or Series if one is not passed to the
     decorated method.

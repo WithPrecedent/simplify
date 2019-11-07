@@ -48,10 +48,10 @@ class Style(SimpleIterable):
         colorblind_colors = [[0,0,0], [230/255,159/255,0],
                              [86/255,180/255,233/255], [0,158/255,115/255],
                              [213/255,94/255,0], [0,114/255,178/255]]
-        plt.style.use(style = self.plot_style)
-        plt.rcParams['font.family'] = self.plot_font
         sns.set_style(style = self.seaborn_style)
         sns.set_context(context = self.seaborn_context)
+        plt.style.use(style = self.plot_style)
+        plt.rcParams['font.family'] = self.plot_font
         if self.seaborn_palette == 'colorblind':
             sns.set_palette(color_codes = colorblind_colors)
         else:

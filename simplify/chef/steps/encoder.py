@@ -8,12 +8,12 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
-from simplify.core.step import SimpleDesign
+from simplify.core.technique import SimpleComposer
+from simplify.core.technique import SimpleDesign
 
 
 @dataclass
-class Encoder(SimpleStep):
+class Encoder(SimpleComposer):
     """Transforms categorical data to numerical data.
     
     Args: 
@@ -40,70 +40,70 @@ class Encoder(SimpleStep):
                 name = 'backward',
                 module = 'category_encoders',
                 algorithm = 'BackwardDifferenceEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'basen': SimpleDesign(
                 name = 'basen',
                 module = 'category_encoders',
                 algorithm = 'BaseNEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'binary': SimpleDesign(
                 name = 'binary',
                 module = 'category_encoders',
                 algorithm = 'BinaryEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'dummy': SimpleDesign(
                 name = 'dummy',
                 module = 'category_encoders',
                 algorithm = 'OneHotEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'hashing': SimpleDesign(
                 name = 'hashing',
                 module = 'category_encoders',
                 algorithm = 'HashingEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'helmert': SimpleDesign(
                 name = 'helmert',
                 module = 'category_encoders',
                 algorithm = 'HelmertEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'james_stein': SimpleDesign(
                 name = 'james_stein',
                 module = 'category_encoders',
                 algorithm = 'JamesSteinEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'loo': SimpleDesign(
                 name = 'loo',
                 module = 'category_encoders',
                 algorithm = 'LeaveOneOutEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'm_estimate': SimpleDesign(
                 name = 'm_estimate',
                 module = 'category_encoders',
                 algorithm = 'MEstimateEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'ordinal': SimpleDesign(
                 name = 'ordinal',
                 module = 'category_encoders',
                 algorithm = 'OrdinalEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'polynomial': SimpleDesign(
                 name = 'polynomial_encoder',
                 module = 'category_encoders',
                 algorithm = 'PolynomialEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'sum': SimpleDesign(
                 name = 'sum',
                 module = 'category_encoders',
                 algorithm = 'SumEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'target': SimpleDesign(
                 name = 'target',
                 module = 'category_encoders',
                 algorithm = 'TargetEncoder',
-                data_parameters = {'cols': 'categoricals'}),
+                data_dependent = {'cols': 'categoricals'}),
             'woe': SimpleDesign(
                 name = 'weight_of_evidence',
                 module = 'category_encoders',
                 algorithm = 'WOEEncoder',
-                data_parameters = {'cols': 'categoricals'})}
+                data_dependent = {'cols': 'categoricals'})}
         return self

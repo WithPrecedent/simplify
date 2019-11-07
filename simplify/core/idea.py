@@ -408,7 +408,6 @@ class Idea(SimpleClass):
         for section in listify(sections):
             try:
                 for key, value in self.options[section].items():
-                    print(instance.name, key)
                     # if not instance.exists(key) or override:
                     setattr(instance, key, value)
             except KeyError:

@@ -7,7 +7,9 @@
 """
 
 from dataclasses import dataclass
+from typing import Any, List, Dict, Iterable, Optional, Tuple, Union
 
+from simplify.core.base import SimpleClass
 from simplify.core.planner import SimplePlanner
 from simplify.core.planner import SimplePlan
 

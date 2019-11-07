@@ -168,7 +168,6 @@ class SimplePlanner(SimpleClass):
     
     def _draft_steps(self) -> None:
         """Gets 'steps' from injected Idea setting or sets to empty dict."""
-        print(self.idea)
         if self.steps is None:
             try:
                 self.steps = getattr(self, '_'.join([self.name, 'techniques']))
@@ -280,6 +279,7 @@ class SimplePlanner(SimpleClass):
         core_attributes = ('idea', 'depot', 'ingredients')
         for attribute in core_attributes:
             getattr(self, '_'.join(['_draft', attribute]))()
+        self._inject_idea()
         self._draft_steps()
         self._draft_techniques()
         self._draft_plans()

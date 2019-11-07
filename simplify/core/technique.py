@@ -25,7 +25,6 @@ class SimpleDesign(object):
     """Contains settings for creating a SimpleAlgorithm and SimpleParameters."""
 
     name: str = 'simple_design'
-    step: str = ''
     module: str = None
     algorithm: str = None
     default: Dict[str, Any] = None
