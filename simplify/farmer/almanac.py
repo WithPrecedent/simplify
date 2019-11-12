@@ -13,10 +13,10 @@ from simplify.core.package import SimplePackage
 from simplify.core.technique import FarmerTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleComposite
 subclass because siMpLify uses a lazy importing system. This locates the
 potential module importations in roughly the same place as normal module-level
-import commands. A SimpleClass subclass will, by default, add the
+import commands. A SimpleComposite subclass will, by default, add the
 DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
@@ -59,7 +59,7 @@ class Almanac(SimplePackage):
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
 
-    Since this class is a subclass to SimplePackage and SimpleClass, all
+    Since this class is a subclass to SimplePackage and SimpleComposite, all
     documentation for those classes applies as well.
 
     """
@@ -72,7 +72,7 @@ class Almanac(SimplePackage):
     auto_draft: bool = True
     auto_publish: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Sets up the core attributes of Harvest."""
         super().__post_init__()
         return self
@@ -99,7 +99,7 @@ class Almanac(SimplePackage):
                 self.sections = {}
         return self
 
-    def _publish_draft(self):
+    def _publish_draft(self) -> None:
         """Initializes the step classes for use by the Harvest."""
         self.drafts = []
         for step in self.techniques:
@@ -151,7 +151,7 @@ class Almanac(SimplePackage):
         self.columns.update(dict.fromkeys(self.columns, str))
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         """ Declares default step names and classes in an Harvest."""
         super().draft()
         self.draft_class = Almanac
@@ -171,7 +171,7 @@ class Almanac(SimplePackage):
             self._set_folders()
         return self
 
-    def implement(self, ingredients = None):
+    def publish(self, ingredients = None):
         """Completes an iteration of an Harvest."""
         if not ingredients:
             ingredients = self.ingredients

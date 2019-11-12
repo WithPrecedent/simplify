@@ -8,32 +8,32 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
-from simplify.core.step import SimpleDesign
+from simplify.core.technique import SimpleComposer
+from simplify.core.technique import SimpleDesign
 from simplify.core.decorators import numpy_shield
 
 
 @dataclass
-class Reducer(SimpleStep):
+class Reducer(SimpleComposer):
     """Reduces features through various techniques.
-    
-    Args: 
+
+    Args:
         name (str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
             throughout the siMpLify package. If subclassing siMpLify classes,
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-            
+
     """
     name: str = 'reducer'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         super().draft()
         self.options = {
             'kbest': SimpleDesign(
@@ -80,7 +80,7 @@ class Reducer(SimpleStep):
                 default = {'n_features_to_select': 10, 'step': 1},
                 runtime = {'estimator': 'estimator'},
                 selected = True)}
-        
+
 #        self.scorers = {'f_classif': f_classif,
 #                        'chi2': chi2,
 #                        'mutual_class': mutual_info_classif,
@@ -133,22 +133,22 @@ class Reducer(SimpleStep):
                         columns = columns,
                         **kwargs)
         return ingredients
-    
+
     # def _set_parameters(self, estimator):
 #        if self.technique in ['rfe', 'rfecv']:
-#            self.default_parameters = {'n_features_to_select': 10,
+#            self.default = {'n_features_to_select': 10,
 #                                       'step': 1}
 #            self.runtime_parameters = {'estimator': estimator}
 #        elif self.technique == 'kbest':
-#            self.default_parameters = {'k': 10,
+#            self.default = {'k': 10,
 #                                       'score_func': f_classif}
 #            self.runtime_parameters = {}
 #        elif self.technique in ['fdr', 'fpr']:
-#            self.default_parameters = {'alpha': 0.05,
+#            self.default = {'alpha': 0.05,
 #                                       'score_func': f_classif}
 #            self.runtime_parameters = {}
 #        elif self.technique == 'custom':
-#            self.default_parameters = {'threshold': 'mean'}
+#            self.default = {'threshold': 'mean'}
 #            self.runtime_parameters = {'estimator': estimator}
 #        self._publish_parameters()
 #        self._select_parameters()

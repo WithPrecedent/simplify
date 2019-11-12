@@ -8,13 +8,13 @@
 
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Any, List, Dict, Union, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
 
-from simplify.core.base import SimpleClass
+from simplify.core.base import SimpleComposite
 from simplify.core.decorators import numpy_shield
 from simplify.core.decorators import XxYy
 from simplify.core.ingredients import Ingredients
@@ -24,20 +24,20 @@ from simplify.core.ingredients import Ingredients
 class SimpleDesign(object):
     """Contains settings for creating a SimpleAlgorithm and SimpleParameters."""
 
-    name: str = 'simple_design'
-    module: str = None
-    algorithm: str = None
-    default: Dict[str, Any] = None
-    required: Dict[str, Any] = None
-    runtime: Dict[str, str] = None
-    data_dependent: Dict[str, str] = None
-    selected: Union[bool, List[str]] = False
-    conditional: bool = False
-    hyperparameter_search: bool = False
-    
+    name: Optional[str] = 'simple_design'
+    module: Optional[str] = None
+    algorithm: Optional[str] = None
+    default: Optional[Dict[str, Any]] = None
+    required: Optional[Dict[str, Any]] = None
+    runtime: Optional[Dict[str, str]] = None
+    data_dependent: Optional[Dict[str, str]] = None
+    selected: Optional[Union[bool, List[str]]] = False
+    conditional: Optional[bool] = False
+    hyperparameter_search: Optional[bool] = False
+
 
 @dataclass
-class SimpleComposer(SimpleClass):
+class SimpleComposer(SimpleComposite):
     """Constructs techniques for use in SimplePlan.
 
     This class is a complex builder which constructs finalized algorithms with
@@ -56,16 +56,30 @@ class SimpleComposer(SimpleClass):
             classes.
 
     """
-    name: str = 'simple_composer'
+    name: Optional[str] = 'simple_composer'
 
     def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
+    """ Dunder Methods """
+
+    def __contains__(self, item: str) -> bool:
+        """Checks if item is in 'options' attribute.
+
+        Args:
+            item (str): item to be searched for in 'options' keys.
+
+        Returns:
+            bool: True, if 'item' in 'options' - otherwise False.
+
+        """
+        return item in self.options
+
     """ Private Methods """
 
-    def _build_technique(self, technique: str, data: SimpleClass,
-                         step: SimpleClass) -> 'SimpleDesign':
+    def _build_technique(self, technique: str, data: 'SimpleComposite',
+                         step: 'SimpleComposite') -> 'SimpleDesign':
         """Builds technique settings in 'options'.
 
         Returns:
@@ -99,15 +113,15 @@ class SimpleComposer(SimpleClass):
 
         """
         pass
-    
+
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         self.parameters_builder = SimpleParameters()
         self.algorithm_builder = SimpleAlgorithm()
         return self
 
-    def publish(self, technique: str, data: SimpleClass) -> 'SimpleTechnique':
+    def publish(self, technique: str, data: 'SimpleComposite') -> 'SimpleTechnique':
         """
         Args:
             technique (str): name of technique for appropriate methods and
@@ -125,7 +139,7 @@ class SimpleComposer(SimpleClass):
 
 
 @dataclass
-class SimpleTechnique(SimpleClass):
+class SimpleTechnique(SimpleComposite):
     """Container for SimpleAlgorithm, SimpleParameters, and finalized algorithm.
 
     This is the primary mechanism for storing techniques in siMpLify. The
@@ -217,9 +231,9 @@ class SimpleTechnique(SimpleClass):
 
     @XxYy(truncate = True)
     @numpy_shield
-    def fit(self, x: Union[pd.DataFrame, np.ndarray] = None,
-            y: Union[pd.Series, np.ndarray] = None,
-            data: Ingredients = None) -> None:
+    def fit(self, x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+            y: Optional[Union[pd.Series, np.ndarray]] = None,
+            data: Optional[Ingredients] = None) -> None:
         """Generic fit method for partial compatibility to sklearn.
 
         Args:
@@ -253,9 +267,10 @@ class SimpleTechnique(SimpleClass):
 
     @XxYy(truncate = True)
     @numpy_shield
-    def fit_transform(self, x: Union[pd.DataFrame, np.ndarray] = None,
-            y: Union[pd.Series, np.ndarray] = None,
-            data: Ingredients = None) -> Union[pd.DataFrame, Ingredients]:
+    def fit_transform(self, x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+            y: Optional[Union[pd.Series, np.ndarray]] = None,
+            data: Optional[Ingredients] = None) -> (
+                Union[pd.DataFrame, Ingredients]):
         """Generic fit_transform method for partial compatibility to sklearn
 
         Args:
@@ -285,9 +300,10 @@ class SimpleTechnique(SimpleClass):
 
     @XxYy(truncate = True)
     @numpy_shield
-    def transform(self, x: Union[pd.DataFrame, np.ndarray] = None,
-            y: Union[pd.Series, np.ndarray] = None,
-            data: Ingredients = None) -> Union[pd.DataFrame, Ingredients]:
+    def transform(self, x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+            y: Optional[Union[pd.Series, np.ndarray]] = None,
+            data: Optional[Ingredients] = None) -> (
+                Union[pd.DataFrame, Ingredients]):
         """Generic transform method for partial compatibility to sklearn.
 
         Args:
@@ -321,7 +337,7 @@ class SimpleTechnique(SimpleClass):
 
 
 @dataclass
-class SimpleAlgorithm(SimpleClass):
+class SimpleAlgorithm(SimpleComposite):
     """Finalizes an algorithm with parameters.
 
     Args:
@@ -333,9 +349,9 @@ class SimpleAlgorithm(SimpleClass):
             classes.
 
     """
-    name: str = 'simple_algorithm'
+    name: Optional[str] = 'simple_algorithm'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
@@ -364,7 +380,7 @@ class SimpleAlgorithm(SimpleClass):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         return self
 
     def publish(self, design: SimpleDesign) -> None:
@@ -378,7 +394,7 @@ class SimpleAlgorithm(SimpleClass):
 
 
 @dataclass
-class SimpleParameters(SimpleClass):
+class SimpleParameters(SimpleComposite):
     """Creates and stores parameter sets for SimpleDesigns.
 
     Args:
@@ -394,7 +410,7 @@ class SimpleParameters(SimpleClass):
             '__repr__' methods.
 
     """
-    name: str = 'parameters_builder'
+    name: Optional[str] = 'parameters_builder'
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -429,14 +445,9 @@ class SimpleParameters(SimpleClass):
         if self.initial_parameters is None:
             self.bunch = {}
             try:
-                self.bunch.update(
-                    self.idea['_'.join([design.name, 'parameters'])])
-            except KeyError:
-                try:
-                    self.bunch.update(
-                        self.idea['_'.join([design.step, 'parameters'])])
-                except KeyError:
-                    pass
+                self.bunch.update(self.idea_parameters)
+            except AttributeError:
+                pass
         else:
              self.bunch = self.initial_parameters
         return self
@@ -503,7 +514,7 @@ class SimpleParameters(SimpleClass):
         return self
 
     def _get_runtime(self, design: SimpleDesign,
-                     step: SimpleClass) -> None:
+                     step: 'SimpleComposite') -> None:
         """Adds parameters that are determined at runtime.
 
         The primary example of a runtime parameter throughout siMpLify is the
@@ -529,7 +540,7 @@ class SimpleParameters(SimpleClass):
             pass
         return self
 
-    def _get_conditional(self, design: SimpleDesign, step: SimpleClass) -> None:
+    def _get_conditional(self, design: SimpleDesign, step: 'SimpleComposite') -> None:
         """Modifies 'parameters' based upon various conditions.
 
         A step class should have its own '_get_conditional' method for this
@@ -550,7 +561,7 @@ class SimpleParameters(SimpleClass):
         return self
 
     def _get_data_dependent(self, design: SimpleDesign,
-                            data: SimpleClass) -> None:
+                            data: 'SimpleComposite') -> None:
         """Adds data-derived parameters to parameters 'bunch'.
 
         Args:
@@ -566,7 +577,7 @@ class SimpleParameters(SimpleClass):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         """Declares parameter_types."""
         self.parameter_types = [
             'idea',
@@ -578,14 +589,14 @@ class SimpleParameters(SimpleClass):
             'data_dependent']
         return self
 
-    def publish(self, design: SimpleDesign, data: SimpleClass = None,
-                step: SimpleClass = None) -> None:
+    def publish(self, design: SimpleDesign, data: Optional['SimpleComposite'] = None,
+                step: Optional['SimpleComposite'] = None) -> None:
         """Finalizes parameter 'bunch'.
 
         Args:
-            step (SimpleClass): step which contains a '_get_condtional' method,
+            step (SimpleComposite): step which contains a '_get_condtional' method,
                 if applicable.
-            data (SimpleClass): data container (Ingredients, Review, etc.) that
+            data (SimpleComposite): data container (Ingredients, Review, etc.) that
                 has attributes matching any items stored in
                 'design.data_dependent'.
 

@@ -6,152 +6,57 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass, field
-from typing import Dict
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
+from simplify.core.base import SimpleComposite
 from simplify.core.decorators import numpy_shield
-from simplify.core.base import SimpleClass
-from simplify.core.package import SimplePackage
-from simplify.core.plans import SimplePlan
-from simplify.core.technique import CriticTechnique
-
-
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
-subclass because siMpLify uses a lazy importing system. This locates the
-potential module importations in roughly the same place as normal module-level
-import commands. A SimpleClass subclass will, by default, add the
-DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
-to use another set of 'options' for a subclass, they just need to pass
-'options' when the class is instanced.
-"""
-DEFAULT_OPTIONS = {
-    'summary': ['simplify.critic.techniques.summarize', 'Summarize'],
-    'explanation': ['simplify.critic.techniques.explain', 'Explain'],
-    'prediction': ['simplify.critic.techniques.predict', 'Predict'],
-    'probabilities': ['simplify.critic.techniques.probability', 'Probability'],
-    'ranking': ['simplify.critic.techniques.rank', 'Rank'],
-    'metrics': ['simplify.critic.techniques.metrics', 'Metrics'],
-    'test': ['simplify.critic.techniques.test', 'Test'],
-    'report': ['simplify.critic.techniques.report', 'Report']}
+from simplify.core.options import SimpleOptions
+from simplify.core.plan import SimplePlan
+from simplify.core.planner import SimplePlanner
+from simplify.core.technique import SimpleComposer
 
 
 @dataclass
-class Review(SimplePackage):
+class Review(SimplePlanner):
     """Builds tools for evaluating, explaining, and creating predictions from
     data and machine learning models.
 
     Args:
-        techniques(dict(str: CriticTechnique)): names and related CriticTechnique
-            classes for analyzing fitted models.
-        name(str): designates the name of the class which is used throughout
-            siMpLify to match methods and settings with this class.
-        auto_draft(bool): whether to call the 'publish' method when the
-            class is instanced.
-        auto_publish(bool): whether to call the 'publish' method when the
-            class is instanced.
 
-    Since this class is a subclass to SimplePackage and SimpleClass, all
-    documentation for those classes applies as well.
 
     """
-    techniques: object = None
-    name: str = 'critic'
-    auto_draft: bool = True
-    auto_publish: bool = False
-    options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
+    name: Optional[str] = 'critic'
+    techniques: Optional[Dict[str, SimpleComposite]] = None
 
-    def __post_init__(self):
-        self.idea_sections = ['chef']
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
     """ Core siMpLify methods """
 
-    def draft(self):
+    def draft(self) -> None:
         """Sets default options for the Critic's analysis."""
-        # Sets comparer class for storing parallel plans
-        self.comparer = Narrative
-        self.comparer_iterable = 'narratives'
-        # Locks 'step' attribute at 'critic' for state dependent methods.
-        self.depot.step = 'critic'
-        super().draft()
-        return self
-
-    def implement(self, recipes = None):
-        """Evaluates recipe with various tools and publishs report.
-
-        Args:
-            recipes(dict(str: Recipe) or Recipe): a Recipe or a dict of Recipes.
-                The recipes included should have fit models for this class's
-                methods to work.
-        """
-        if not isinstance(recipes, dict):
-            recipes = {recipes.number: recipes}
-        self.recipes = recipes
-        # Initializes comparative model report with set columns.
-        if not self._exists('article'):
-            self.article = Article()
-        # Iterates through 'recipes' to gather review information.
-        for number, recipe in self.recipes.items():
-            if self.verbose:
-                print('Reviewing', recipe.name, str(number))
-            step_reviews = {}
-            for step in self.steps:
-                getattr(self, step).implement(recipe = recipe)
-                self._infuse_return_variables(instance = getattr(self, step))
-                if step in ['score']:
-                    print('score_report', self.score.report)
-                    self._add_row(recipe = recipe, report = self.score.report)
-                    self.check_best()
+        options = {
+            'explanation': ('simplify.critic.techniques.explain', 'Explain'),
+            'prediction': ('simplify.critic.techniques.predict', 'Predict'),
+            'probabilities': ('simplify.critic.techniques.probability',
+                              'Probability'),
+            'ranking': ('simplify.critic.techniques.rank', 'Rank'),
+            'metrics': ('simplify.critic.techniques.metrics', 'Metrics'),
+            'reports': ('simplify.critic.techniques.reports', 'Reports')}
+        self.options = SimpleOptions(options = options, parent = self)
+        # Sets plan container
+        self.plan_container = SimplePlan
         return self
 
 
 @dataclass
-class Narrative(SimplePlan):
+class Article(SimpleComposite):
 
-    number: int = 0
-    techniques: object = None
-    name: str = 'narrative'
-    auto_draft: bool = True
-
-    def __post_init__(self):
-        self.idea_sections = ['critic']
-        super().__post_init__()
-        return self
-
-    """ Core siMpLify Methods """
-
-    def draft(self):
-        super().draft()
-        if not self.options:
-            self.options = DEFAULT_OPTIONS
-        self.steps_setting = 'critic_techniques'
-        self.is_comparer = True
-        return self
-
-    def implement(self, recipe):
-        """Applies the recipe techniques to the passed ingredients."""
-        for step in self.steps:
-            if step in ['summary']:
-                pass
-            elif step in ['prediction', 'probabilities', 'explanation']:
-                getattr(self, step).implement(
-                       recipe = recipe)
-            elif step in ['ranking', 'score']:
-                getattr(self, step).implement(
-                       recipe = recipe,
-                       prediction = self.prediction)
-            if self.export_results:
-                pass
-        return self
-
-
-@dataclass
-class Article(SimpleClass):
-
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
@@ -254,7 +159,7 @@ class Article(SimpleClass):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         super().draft()
         return self
 

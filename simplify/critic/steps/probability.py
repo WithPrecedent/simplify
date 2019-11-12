@@ -12,10 +12,10 @@ from typing import Dict
 from simplify.critic.review import CriticTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleComposite
 subclass because siMpLify uses a lazy importing system. This locates the
 potential module importations in roughly the same place as normal module-level
-import commands. A SimpleClass subclass will, by default, add the
+import commands. A SimpleComposite subclass will, by default, add the
 DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
@@ -47,7 +47,7 @@ class Probability(CriticTechnique):
     auto_draft: bool = True
     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
@@ -107,7 +107,7 @@ class Probability(CriticTechnique):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         super().draft()
         return self
 

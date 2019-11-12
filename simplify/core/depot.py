@@ -1,27 +1,29 @@
 """
 .. module:: depot
-:synopsis: contains class for file management of siMpLify package.
+:synopsis: file management for siMpLify.
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
 
 import csv
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import datetime
 import glob
 import os
 import pickle
-from typing import Dict
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.base import SimpleClass
+from simplify.core.distributor import SimpleDistributor
+from simplify.core.ingredients import Ingredients
+from simplify.core.plan import SimplePlan
 from simplify.core.types import FileTypes
 
 
 @dataclass
-class Depot(SimpleClass):
+class Depot(SimpleDistributor):
     """Manages files and folders for the siMpLify package.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -29,44 +31,56 @@ class Depot(SimpleClass):
     and numpy objects in set folders.
 
     Args:
-        name (str): designates the name of the class which should match the
-            section of settings in the Idea instance and other methods
+        name (Optional[str]): designates the name of the class which should
+            match the section of settings in the Idea instance and other methods
             throughout the siMpLify package. If subclassing siMpLify classes,
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
-            classes.
-        root_folder(str): the complete path from which the other paths and
-            folders used by Depot should be created.
-        data_folder(str): the data subfolder name or a complete path if the
-            'data_folder' is not off of 'root_folder'.
-        results_folder(str): the results subfolder name or a complete path if
-            the 'results_folder' is not off of 'root_folder'.
-        datetime_naming(bool): whether the date and time should be used to
-            create experiment subfolders (so that prior results are not
-            overwritten).
+            classes. Defaults to 'depot'.
+        root_folder (Optional[str]): the complete path from which the other
+            paths and folders used by Depot should be created. Defaults to ''
+        data_folder (Optional[str]): the data subfolder name or a complete path
+            if the 'data_folder' is not off of 'root_folder'. Defaults to
+            'data'.
+        results_folder (Optional[str]): the results subfolder name or a complete
+            path if the 'results_folder' is not off of 'root_folder'. Defaults
+            to 'results'.
+        datetime_naming (Optional[bool]): whether the date and time should be
+            used to create experiment subfolders (so that prior results are not
+            overwritten). Defaults to True.
 
     """
-    name: str = 'depot'
-    root_folder: str = ''
-    data_folder: str = 'data'
-    results_folder: str = 'results'
-    datetime_naming: bool = True
+    name: Optional[str] = 'depot'
+    root_folder: Optional[str] = ''
+    data_folder: Optional[str] = 'data'
+    results_folder: Optional[str] = 'results'
+    datetime_naming: Optional[bool] = True
 
-    def __post_init__(self):
-        # Adds additional section of idea to be injected as local attributes.
-        self.idea_sections = ['files']
-        super().__post_init__()
+    def __post_init__(self) -> None:
+        if isinstance(self.root_folder, Depot):
+            self = self.root_folder
+        else:
+            self.idea_sections = ['files']
+            self.root_folder = self.root_folder or ''
+            super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _add_branch(self, root_folder, subfolders):
-        """Creates a branch of a folder tree and stores each folder name as
-        a local variable containing the path to that folder.
+    def _add_branch(self,
+            root_folder: str,
+            subfolders: Union[List[str], str]) -> None:
+        """Creates a branch of a folder tree.
+
+        Each created folder name is also stored as a local attribute with the
+        same name as the created folder.
+
         Args:
-            root_folder(str): the folder from which the tree branch should be
+            root_folder (str): the folder from which the tree branch should be
                 created.
-            subfolders(str or list): subfolder names to form the tree branch.
+            subfolders (Union[List[str], str]): subfolder names to form the tree
+                branch.
+
         """
         for subfolder in listify(subfolders):
             temp_folder = self.create_folder(folder = root_folder,
@@ -75,32 +89,38 @@ class Depot(SimpleClass):
             root_folder = temp_folder
         return self
 
-    def _check_boolean_out(self, variable):
-        """Either leaves boolean values as True/False or changes values to 1/0
-        based on user settings.
+    def _check_boolean_out(self,
+            data: Union[pd.Series, pd.DataFrame]) -> (
+                Union[pd.Series, pd.DataFrame]):
+        """Converts bool to 1/0 if 'boolean_out' is False.
+
         Args:
-            variable(DataFrame or Series): pandas DataFrame or Series with some
-                boolean values.
+            data (Union[DataFrame, Series]): pandas object with some boolean
+                values.
+
         Returns:
-            variable(DataFrame or Series): either the original pandas data or
+            data (Union[DataFrame, Series]): either the original pandas data or
                 the dataset with True/False converted to 1/0.
+
         """
         # Checks whether True/False should be exported in data files. If
         # 'boolean_out' is set to False, 1/0 are used instead.
         if hasattr(self, 'boolean_out') and self.boolean_out == False:
-            variable.replace({True: 1, False: 0}, inplace = True)
-        return variable
+            data.replace({True: 1, False: 0}, inplace = True)
+        return data
 
-    def _check_file_name(self, file_name, io_status = None):
-        """Checks passed file_name to see if it exists. If not, depending
-        upon the io_status, a default file_name is returned.
+    def _check_file_name(self, file_name: str, io_status: str) -> str:
+        """Selects 'file_name' or default values.
+
         Args:
-            file_name(str): file name (without extension).
-            io_status(str): either 'import' or 'export' based upon whether the
+            file_name (str): file name (without extension).
+            io_status (str): either 'import' or 'export' based upon whether the
                 user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
+
         Returns:
-            string containing file name.
+            str containing file name.
+
         """
         if file_name:
             return file_name
@@ -108,18 +128,18 @@ class Depot(SimpleClass):
             return self.data_file_names[self.step][
                 self.settings_index[io_status]]
 
-    def _check_file_format(self, file_format = None, io_status = None):
-        """Checks value of local file_format variable. If not supplied, the
-        default from the Idea instance is used based upon whether import or
-        export methods are being used. If the Idea options don't exist,
-        '.csv' is returned.
+    def _check_file_format(self, file_format: str, io_status: str) -> str:
+        """Selects 'file_format' or default value.
+
         Args:
-            file_format(str): one of the supported file types in 'extensions'.
-            io_status(str): either 'import' or 'export' based upon whether the
-            user is seeking the appropriate file type based upon whether the
+            file_format (str): one of the supported file types in 'extensions'.
+            io_status (str): either 'import' or 'export' based upon whether the
+                user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
+
         Returns:
             str containing file format.
+
         """
         if file_format:
             return file_format
@@ -127,17 +147,19 @@ class Depot(SimpleClass):
             return getattr(self, self.data_file_formats[self.step][
                 self.settings_index[io_status]])
 
-    def _check_folder(self, folder, io_status = None):
-        """Checks if folder is a full path or string matching an attribute.
-        If no folder name is provided, a default value is used.
+    def _check_folder(self, folder: str, io_status: str) -> str:
+        """Selects 'folder' or default value.
+
         Args:
             folder: a string either containing a folder path or the name of an
                 attribute containing a folder path.
-            io_status(str): either 'import' or 'export' based upon whether the
-            user is seeking the appropriate file type based upon whether the
+            io_status (str): either 'import' or 'export' based upon whether the
+                user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
+
         Returns:
             str containing file folder path.
+
         """
         if folder and os.path.isdir(folder):
             return folder
@@ -146,14 +168,20 @@ class Depot(SimpleClass):
         else:
             return self.data_folders[self.step][self.settings_index[io_status]]
 
-    def _check_kwargs(self, variables_to_check, passed_kwargs):
-        """Checks kwargs to see which ones are required for the particular
-        method and/or substitutes default values if needed.
+    def _check_kwargs(self,
+            variables_to_check: List[str],
+            passed_kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        """Selects kwargs for particular methods.
+
+        If a needed argument was not passed, default values are used.
+
         Args:
-            variables_to_check(list): variables to check for values.
-            passed_kwargs(dict): kwargs passed to method.
+            variables_to_check (List[str]): variables to check for values.
+            passed_kwargs (Dict[str, Any]): kwargs passed to method.
+
         Returns:
-            new_kwargs(dict): kwargs with only relevant parameters.
+            new_kwargs (Dict[str, Any]): kwargs with only relevant parameters.
+
         """
         new_kwargs = passed_kwargs
         for variable in variables_to_check:
@@ -165,7 +193,7 @@ class Depot(SimpleClass):
                     new_kwargs.update({variable: getattr(self, variable)})
         return new_kwargs
 
-    def _check_root_folder(self):
+    def _check_root_folder(self) -> None:
         """Checks if 'root_folder' exists on disc. If not, it is created."""
         if self.root_folder:
             if os.path.isdir(self.root_folder):
@@ -176,26 +204,32 @@ class Depot(SimpleClass):
             self.root = os.path.join('..', '..')
         return self
 
-    def _get_file_format(self, io_status):
+    def _get_file_format(self, io_status) -> str:
         """Returns appropriate file format based on 'step' and 'io_status'.
+
         Args:
-            io_status(str): either 'import' or 'export' based upon whether the
-            user is seeking the appropriate file type based upon whether the
+            io_status (str): either 'import' or 'export' based upon whether the
+                user is seeking the appropriate file type based upon whether the
                 file in question is being imported or exported.
+
         Returns:
             str containing file format.
+
         """
         if io_status == 'import':
             return self.state_machine.format_in
         else:
             return self.state_machine.format_out
 
-    def _load_csv(self, file_path, **kwargs):
+    def _load_csv(self, file_path: str, **kwargs) -> pd.DataFrame:
         """Loads csv file into a pandas DataFrame.
+
         Args:
-            file_path(str): complete file path of file.
+            file_path (str): complete file path of file.
+
         Returns:
-            variable(DataFrame): data loaded from disc.
+            variable (str): string loaded from disc.
+
         """
         additional_kwargs = ['encoding', 'index_col', 'header', 'usecols',
                              'low_memory']
@@ -206,12 +240,15 @@ class Depot(SimpleClass):
         variable = pd.read_csv(file_path, **kwargs)
         return variable
 
-    def _load_excel(self, file_path, **kwargs):
+    def _load_excel(self, file_path: str, **kwargs) -> pd.DataFrame:
         """Loads Excel file into a pandas DataFrame.
+
         Args:
-            file_path(str): complete file path of file.
+            file_path (str): complete file path of file.
+
         Returns:
-            variable(DataFrame): data loaded from disc.
+            variable (str): string loaded from disc.
+
         """
         additional_kwargs = ['index_col', 'header', 'usecols']
         kwargs = self._check_kwargs(variables_to_check = additional_kwargs,
@@ -221,30 +258,39 @@ class Depot(SimpleClass):
         variable = pd.read_excel(file_path, **kwargs)
         return variable
 
-    def _load_feather(self, file_path, **kwargs):
+    def _load_feather(self, file_path: str, **kwargs):
         """Loads feather file into pandas DataFrame.
+
         Args:
-            file_path(str): complete file path of file.
+            file_path (str): complete file path of file.
+
         Returns:
-            variable(DataFrame): data loaded from disc.
+            variable (str): string loaded from disc.
+
         """
         return pd.read_feather(file_path, nthreads = -1, **kwargs)
 
-    def _load_h5(self, file_path, **kwargs):
+    def _load_h5(self, file_path: str, **kwargs) -> pd.DataFrame:
         """Loads hdf5 with '.h5' extension into pandas DataFrame.
+
         Args:
-            file_path(str): complete file path of file.
+            file_path (str): complete file path of file.
+
         Returns:
-            variable(DataFrame): data loaded from disc.
+            variable (str): string loaded from disc.
+
         """
         return self._load_hdf(file_path, **kwargs)
 
-    def _load_hdf(self, file_path, **kwargs):
+    def _load_hdf(self, file_path: str, **kwargs) -> pd.DataFrame:
         """Loads hdf5 file into pandas DataFrame.
+
         Args:
-            file_path(str): complete file path of file.
+            file_path (str): complete file path of file.
+
         Returns:
-            variable(DataFrame): data loaded from disc.
+            variable (str): string loaded from disc.
+
         """
         additional_kwargs = ['columns']
         kwargs = self._check_kwargs(variables_to_check = additional_kwargs,
@@ -256,12 +302,15 @@ class Depot(SimpleClass):
             kwargs.pop('usecols')
         return pd.read_hdf(file_path, **kwargs)
 
-    def _load_json(self, file_path, **kwargs):
+    def _load_json(self, file_path: str, **kwargs) -> pd.DataFrame:
         """Loads json file into pandas DataFrame.
+
         Args:
-            file_path(str): complete file path of file.
+            file_path (str): complete file path of file.
+
         Returns:
-            variable(DataFrame): data loaded from disc.
+            variable (str): string loaded from disc.
+
         """
         additional_kwargs = ['encoding', 'columns']
         kwargs = self._check_kwargs(variables_to_check = additional_kwargs,
@@ -273,57 +322,72 @@ class Depot(SimpleClass):
             kwargs.pop('usecols')
         return pd.read_json(file_path = file_path, **kwargs)
 
-    def _load_pickle(self, file_path, **kwargs):
+    def _load_pickle(self, file_path: str, **kwargs) -> object:
         """Returns an unpickled python object.
+
         Args:
-            file_path: complete file path of file.
+            file_path (str): complete file path of file.
+
         Returns:
-            variable(object): pickled object loaded from disc.
+            variable (str): string loaded from disc.
+
         """
         return pickle.load(open(file_path, 'rb'))
 
-    def _load_png(self, file_path, **kwargs):
+    def _load_png(self, file_path: str, **kwargs) -> NotImplementedError:
         """Although png files are saved by siMpLify, they cannot be loaded.
+
         Raises:
             NotImplementedError: if called.
+
         """
         error = 'loading .png files is not supported'
         raise NotImplementedError(error)
 
-    def _load_text(self, file_path, **kwargs):
+    def _load_text(self, file_path: str, **kwargs) -> str:
         """Loads text file with python reader.
+
         Args:
-            file_path(str): complete file path of file.
+            file_path (str): complete file path of file.
+
         Returns:
-            variable(str): string loaded from disc.
+            variable (str): string loaded from disc.
+
         """
         return self._load_txt(file_path = file_path, **kwargs)
 
-    def _load_txt(self, file_path, **kwargs):
+    def _load_txt(self, file_path: str, **kwargs) -> str:
         """Loads text file with python reader.
+
         Args:
-            file_path(str): complete file path of file.
+            file_path (str): complete file path of file.
+
         Returns:
-            variable(str): string loaded from disc.
+            variable (str): string loaded from disc.
+
         """
         with open(file_path, mode = 'r', errors = 'ignore',
                   encoding = self.file_encoding) as a_file:
             return a_file.read()
 
-    def _make_folder(self, folder):
+    def _make_folder(self, folder: str) -> None:
         """Creates folder if it doesn't already exist.
+
         Args:
-            folder(str): the path of the folder.
+            folder (str): the path of the folder.
+
         """
         if not os.path.exists(folder):
              os.makedirs(folder)
         return self
 
-    def _save_csv(self, variable, file_path, **kwargs):
-        """Saves csv file to disc.
+    def _save_csv(self, variable: pd.Series, file_path: str, **kwargs) -> None:
+        """Saves pandas Series to disc as .csv file.
+
         Args:
-            variable(Series): variable to be saved to disc.
-            file_path(str): complete file path of file.
+            variable (Series): variable to be saved to disc.
+            file_path (str): complete file path of file.
+
         """
         if isinstance(variable, pd.DataFrame):
             additional_kwargs = ['index', 'header', 'encoding', 'float_format']
@@ -334,11 +398,16 @@ class Depot(SimpleClass):
             self.writer.writerow(variable)
         return
 
-    def _save_excel(self, variable, file_path, **kwargs):
-        """Saves Excel file to disc.
+    def _save_excel(self,
+            variable: Union[pd.DataFrame, pd.Series],
+            file_path: str,
+            **kwargs) -> None:
+        """Saves pandas data object to disc as an Excel file.
+
         Args:
-            variable(DataFrame or Series): variable to be saved to disc.
-            file_path(str): complete file path of file.
+            variable (DataFrame or Series): variable to be saved to disc.
+            file_path (str): complete file path of file.
+
         """
         if isinstance(variable, pd.DataFrame):
             additional_kwargs = ['index', 'header', 'encoding', 'float_format']
@@ -349,82 +418,103 @@ class Depot(SimpleClass):
             self.writer.writerow(variable)
         return
 
-    def _save_feather(self, variable, file_path, **kwargs):
-        """Saves feather file to disc.
+    def _save_feather(self,
+            variable: Union[pd.DataFrame, pd.Series],
+            file_path: str,
+            **kwargs) -> None:
+        """Saves pandas data object to disc as a feather file.
+
         Args:
-            variable(DataFrame or Series): variable to be saved to disc.
-            file_path(str): complete file path of file.
+            variable (DataFrame or Series): variable to be saved to disc.
+            file_path (str): complete file path of file.
+
         """
         variable.reset_index(inplace = True)
         variable.to_feather(file_path, **kwargs)
         return
 
-    def _save_h5(self, variable, file_path, **kwargs):
-        """Saves hdf file with .h5 extension to disc.
+    def _save_h5(self,
+            variable: Union[pd.DataFrame, pd.Series],
+            file_path: str,
+            **kwargs) -> None:
+        """Saves pandas data object to disc as a hdf file with .h5 extension.
+
         Args:
-            variable(DataFrame or Series): variable to be saved to disc.
-            file_path(str): complete file path of file.
+            variable (DataFrame or Series): variable to be saved to disc.
+            file_path (str): complete file path of file.
+
         """
         variable.to_hdf(file_path, **kwargs)
         return
 
-    def _save_hdf(self, variable, file_path, **kwargs):
-        """Saves hdf file to disc.
+    def _save_hdf(self,
+            variable: Union[pd.DataFrame, pd.Series],
+            file_path: str,
+            **kwargs) -> None:
+        """Saves pandas data object to disc as a hdf file.
+
         Args:
-            variable(DataFrame or Series): variable to be saved to disc.
-            file_path(str): complete file path of file.
+            variable (DataFrame or Series): variable to be saved to disc.
+            file_path (str): complete file path of file.
+
         """
         variable.to_hdf(file_path, **kwargs)
         return
 
-    def _save_json(self, variable, file_path, **kwargs):
-        """Saves json file to disc.
+    def _save_json(self,
+            variable: Union[pd.DataFrame, pd.Series],
+            file_path: str,
+            **kwargs) -> None:
+        """Saves pandas data object to disc as an json file.
+
         Args:
-            variable(DataFrame or Series): variable to be saved to disc.
-            file_path(str): complete file path of file.
+            variable (DataFrame or Series): variable to be saved to disc.
+            file_path (str): complete file path of file.
+
         """
         variable.to_json(file_path, **kwargs)
         return
 
-    def _save_pickle(self, variable, file_path, **kwargs):
+    def _save_pickle(self, variable: object, file_path: str, **kwargs):
         """Pickles file and saves it to disc.
         Args:
-            variable(object): variable to be saved to disc.
-            file_path(str): complete file path of file.
+            variable (object): variable to be saved to disc.
+            file_path (str): complete file path of file.
         """
         pickle.dump(variable, open(file_path, 'wb'))
         return
 
-    def _save_png(self, variable, file_path, **kwargs):
+    def _save_png(self, variable: object, file_path: str, **kwargs) -> None:
         """Saves png file to disc.
         Args:
-            variable(matplotlib object): variable to be saved to disc.
-            file_path(str): complete file path of file.
+            variable (matplotlib object): variable to be saved to disc.
+            file_path (str): complete file path of file.
         """
         variable.savefig(file_path, bbox_inches = 'tight')
         variable.close()
         return
 
-    def _set_experiment_folder(self):
-        """Sets the experiment folder and corresponding attributes based upon
-        user settings.
-        """
+    def _set_experiment_folder(self) -> None:
+        """Sets the experiment folder and corresponding attribute."""
         if self.datetime_naming:
-            subfolder = ('experiment_'
-                         + datetime.datetime.now().strftime('%Y-%m-%d_%H-%M'))
+            subfolder = '_'.join(['experiment_',
+                    datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
         else:
             subfolder = 'experiment'
         self.experiment = self.create_folder(folder = self.results,
                                              subfolder = subfolder)
         return self
 
-    def _set_plan_folder(self, iterable, name = None):
+    def _set_plan_folder(self,
+            plan: SimplePlan,
+            name: Optional[str] = None) -> None:
         """Creates folder path for iterable-specific exports.
 
         Args:
-            iterable(SimplePackage): an instance of SimplePackage.
-            name(string): name of attribute for the folder path to be stored
+            plan (SimplePlan): an instance of SimplePackage.
+            name (string): name of attribute for the folder path to be stored
                 and the prefix of the folder to be created on disc.
+
         """
         if name:
             subfolder = name + '_'
@@ -435,47 +525,58 @@ class Depot(SimpleClass):
                 subfolder += getattr(iterable, step).technique + '_'
         subfolder += str(iterable.number)
         setattr(self, name, self.create_folder(folder = self.experiment,
-                                               subfolder = subfolder))
+                subfolder = subfolder))
         return self
 
     """ Public Tool Methods """
 
-    def add_tree(self, folder_tree):
-        """Adds a folder tree to disc with corresponding attributes to the
-        Depot instance.
+    def add_tree(self, folder_tree: Dict[str, str]) -> None:
+        """Adds folder tree to disc and adds corresponding attributes.
+
         Args:
-            folder_tree(dict): a folder tree to be created with corresponding
-            attributes to the Depot instance.
+            folder_tree (Dict[str, str]): a folder tree to be created with
+                corresponding attributes to the Depot instance.
+
         """
         for folder, subfolders in folder_tree.items():
             self._add_branch(root_folder = folder, subfolders = subfolders)
         return self
 
-    def create_batch(self, folder = None, file_format = None,
-                    include_subfolders = True):
+    def create_batch(self,
+            folder: Optional[str] = None,
+            file_format: Optional[str] = None,
+            include_subfolders: Optional[bool] = True) -> Iterable[str]:
         """Creates a list of paths in 'folder_in' based upon 'file_format'.
+
         If 'include_subfolders' is True, subfolders are searched as well for
         matching 'file_format' files.
+
         Args:
-            folder(str): path of folder or string corresponding to class
-                attribute with path.
-            file_format(str): file format name.
-            include_subfolders(bool):  whether to include files in subfolders
-                when creating a batch.
+            folder (Optional[str]): path of folder or string corresponding to
+                class attribute with path.
+            file_format (Optional[str]): file format name.
+            include_subfolders (Optional[bool]):  whether to include files in
+                subfolders when creating a batch.
+
         """
         folder = self._check_folder(folder = folder)
         file_format = self._check_file_format(file_format = file_format,
                                               io_status = 'import')
         extension = self.extensions[file_format]
         return glob.glob(os.path.join(folder, '**', '*' + extension),
-                         recursive = include_subfolders)
+                recursive = include_subfolders)
 
-    def create_folder(self, folder, subfolder = None):
+    def create_folder(self,
+            folder: str,
+            subfolder: Optional[str] = None) -> None:
         """Creates folder path from component parts.
+
         Args:
-            folder(str): path of folder or string corresponding to class
+            folder (str): path of folder or string corresponding to class
                 attribute containing folder path.
-            subfolder(str): subfolder name to be created off of folder.
+            subfolder (Optional[str]): subfolder name to be created off of
+                'folder'.
+
         """
         if subfolder:
             if folder and os.path.isdir(folder):
@@ -485,17 +586,23 @@ class Depot(SimpleClass):
         self._make_folder(folder = folder)
         return folder
 
-    def create_path(self, folder = None, file_name = None, file_format = None,
-                    io_status = None):
+    def create_path(self,
+            folder: Optional[str] = None,
+            file_name: Optional[str] = None,
+            file_format: Optional[str] = None,
+            io_status: Optional[str] = None):
         """Creates file path from component parts.
+
         Args:
-            folder(str): path of folder or string corresponding to class
-                attribute containing folder path.
-            file_name(str): file name without extension.
-            file_format(str): file format name from 'extensions' dict.
-            io_status: 'import' or 'export' indicating which direction the path
-                is used for storing files (only needed to use defaults when
-                other parameters are not provided).
+            folder (Optional[str]): path of folder or string corresponding to
+                class attribute containing folder path.
+            file_name (Optional[str]): file name without extension.
+            file_format (Optional[str]): file format name from 'extensions'
+                dict.
+            io_status (Optional[str]): 'import' or 'export' indicating which
+                direction the path is used for storing files (only needed to
+                use defaults when other parameters are not provided).
+
             """
         folder = self._check_folder(folder = folder,
                                     io_status = io_status)
@@ -511,15 +618,21 @@ class Depot(SimpleClass):
             file_path = os.path.join(folder, file_name) + extension
         return file_path
 
-    def initialize_writer(self, file_path, columns, encoding = None,
-                          dialect = 'excel'):
+    def initialize_writer(self,
+            file_path: str,
+            columns: List[str],
+            encoding: Optional[str] = None,
+            dialect: Optional[str] = 'excel'):
         """Initializes writer object for line-by-line exporting to a .csv file.
+
         Args:
-            file_path(str): a complete path to the file being written to.
-            columns(list): column names to be added to the first row of the
-                file as column headers.
-            encoding(str): a python encoding type.
-            dialect(str): the specific type of csv file created.
+            file_path (str): a complete path to the file being written to.
+            columns (List[str]): column names to be added to the first row of
+                the file as column headers.
+            encoding (str): a python encoding type.
+            dialect (str): the specific type of csv file created. Defaults to
+                'excel'.
+
         """
         if not columns:
             error = 'initialize_writer requires columns as a list type'
@@ -530,32 +643,10 @@ class Depot(SimpleClass):
             self.writer.writerow(columns)
         return self
 
-    def inject(self, instance, sections, override = True):
-        """Stores the default paths in the passed instance.
-        Args:
-            instance(object): either a class instance or class to which
-                attributes should be added.
-            sections(list): attributes to be added to passed class. Data import
-                and export paths are automatically added.
-            override(bool): if True, existing attributes in instance will be
-                replaced by items from this class.
-        Returns:
-            No value is returned, but passed instance is now injected with
-            selected attributes.
-        """
-        instance.data_in = self.create_path(io_status = 'import')
-        instance.data_out = self.create_path(io_status = 'export')
-        for section in listify(sections):
-            if hasattr(self, section + '_in') and override:
-                setattr(instance, section + '_in',
-                        getattr(self, section + '_in'))
-                setattr(instance, section + '_out',
-                        getattr(self, section + '_out'))
-            elif override:
-                setattr(instance, section, getattr(self, section))
-        return
-
-    def iterate(self, plans, ingredients = None, return_ingredients = True):
+    def iterate(self,
+            plans: List[str],
+            ingredients: Ingredients = None,
+            return_ingredients: Optional[bool] = True):
         """Iterates through a list of files contained in self.batch and
         applies the plans created by a Planner method (or subclass).
         Args:
@@ -584,77 +675,103 @@ class Depot(SimpleClass):
 
     """ Public Import/Export Methods """
 
-    def load(self, file_path = None, folder = None, file_name = None,
-             file_format = None, **kwargs):
-        """Imports file by calling appropriate method based on file_format. If
-        the various arguments are not passed, default values are used. If
+    def load(self,
+            file_path: Optional[str] = None,
+            folder: Optional[str] = None,
+            file_name: Optional[str] = None,
+            file_format: Optional[str] = None,
+            **kwargs):
+        """Imports file by calling appropriate method based on file_format.
+
+        If needed arguments are not passed, default values are used. If
         file_path is passed, folder and file_name are ignored.
+
         Args:
-            file_path(str): a complete file path for the file to be loaded.
-            folder(str): a path to the folder from where file is located
-                (not used if file_path is passed).
-            file_name(str): contains the name of the file to be loaded
-                without the file extension (not used if file_path is passed).
-            file_format(str): a string matching one the file formats in
-                'extensions'.
+            file_path (Optional[str]): a complete file path for the file to be
+                loaded.
+            folder (Optional[str]: a path to the folder from where file is
+                located (not used if file_path is passed).
+            file_name (Optional[str]): contains the name of the file to be
+                loaded without the file extension (not used if file_path is
+                passed).
+            file_format (Optional[str]): a string matching one the file formats
+                in 'extensions'.
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
+
         Returns:
             Depending upon method used for appropriate file format, a new
                 variable of a supported type is returned.
+
         Raises:
             TypeError: if file_path is not a string (likely a glob list)
+
         """
-        file_format = self._check_file_format(file_format = file_format,
-                                              io_status = 'import')
+        file_format = self._check_file_format(
+            file_format = file_format,
+            io_status = 'import')
         if not file_path:
-            file_path = self.create_path(folder = folder,
-                                         file_name = file_name,
-                                         file_format = file_format,
-                                         io_status = 'import')
+            file_path = self.create_path(
+                folder = folder,
+                file_name = file_name,
+                file_format = file_format,
+                io_status = 'import')
         if isinstance(file_path, str):
-            return getattr(self, '_load_' + file_format)(file_path = file_path,
-                                                         **kwargs)
+            return getattr(self, '_load_' + file_format)(
+                file_path = file_path,
+                **kwargs)
         elif isinstance(file_path, list):
             error = 'file_path is a glob list - use iterate instead'
             raise TypeError(error)
         else:
             return None
 
-    def save(self, variable, file_path = None, folder = None, file_name = None,
-             file_format = None, **kwargs):
-        """Exports file by calling appropriate method based on file_format. If
-        the various arguments are not passed, default values are used. If
+    def save(self,
+            variable: Any,
+            file_path: Optional[str] = None,
+            folder: Optional[str] = None,
+            file_name: Optional[str] = None,
+            file_format: Optional[str] = None,
+            **kwargs) -> None:
+        """Exports file by calling appropriate method based on file_format.
+
+        If needed arguments are not passed, default values are used. If
         file_path is passed, folder and file_name are ignored.
+
         Args:
-            variable(any): the variable being exported.
-            file_path(str): a complete file path for the file to be saved.
-            folder(Str): path to the folder where the file should be saved (not
-                used if file_path is passed).
-            file_name(str): a string containing the name of the file to be saved
-                without the file extension (not used if file_path is passed).
-            file_format(str): a string matching one the file formats in
-                'extensions'.
+            variable (Any): the variable being exported.
+            file_path (Optional[str]): a complete file path for the file to be
+                saved.
+            folder (Optional[str]): path to the folder where the file should be
+                saved (not used if file_path is passed).
+            file_name (Optional[str]): a string containing the name of the file
+                to be saved without the file extension (not used if file_path is
+                passed).
+            file_format (Optional[str]): a string matching one the file formats
+                in 'extensions'.
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
+
         """
         # Changes boolean values to 1/0 if self.boolean_out = False
         variable = self._check_boolean_out(variable = variable)
         file_format = self._check_file_format(file_format = file_format,
                                               io_status = 'export')
         if not file_path:
-            file_path = self.create_path(folder = folder,
-                                         file_name = file_name,
-                                         file_format = file_format,
-                                         io_status = 'export')
-        getattr(self, '_save_' + file_format)(variable, file_path, **kwargs)
-        return
+            file_path = self.create_path(
+                folder = folder,
+                file_name = file_name,
+                file_format = file_format,
+                io_status = 'export')
+        getattr(self, '_'.join(['_save_', file_format]))(
+            variable, file_path, **kwargs)
+        return self
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         """Creates default folder and file settings."""
-        # Calls SimpleClass draft for initial baseline settings.
+        # Calls SimpleComposite draft for initial baseline settings.
         super().draft()
         self._check_root_folder()
         # Creates dict with file format names and file extensions.
@@ -708,29 +825,45 @@ class Depot(SimpleClass):
         self.results_folders = {
             'isolated': 'recipe',
             'comparative': 'experiment'}
+        self._check_root_folder()
+        self.edit_folders(
+            root_folder = self.root,
+            subfolders = [self.data_folder, self.results_folder])
+        self.edit_folders(
+            root_folder = self.data,
+            subfolders = self.data_subfolders)
         return self
 
-    def edit_default_kwargs(self, kwargs, settings):
-        """Adds or replaces default keys and values for kwargs for load/save
-        methods.
+    def edit_default_kwargs(self,
+            kwargs_keys: Union[List[str], str],
+            settings: Union[List[str], str]) -> None:
+        """Adds or replaces default keys and values for kwargs.
 
         Args:
-            kwargs(str or list(str)): key(s) to change in 'default_kwargs'.
-            settings(str or list(str)): values(s) to change in 'default_kwargs'.
+            kwargs_keys (Union[List[str], str]): key(s) to change in
+                'default_kwargs'.
+            settings (Union[List[str], str]): values(s) to change in
+                'default_kwargs'.
+
         """
         self.default_kwargs(dict(zip(kwargs, settings)))
         return self
 
-    def edit_file_formats(self, file_format, extension, load_method,
-                          save_method):
+    def edit_file_formats(self,
+            file_format: str,
+            extension: str,
+            load_method: Callable,
+            save_method: Callable) -> None:
         """Adds or replaces a file extension option.
+
         Args:
-            file_format(str): string name of the file_format.
-            extension(str): file extension (without period) to be used.
-            load_method(object): a method to be used when loading files of the
+            file_format (str): string name of the file_format.
+            extension (str): file extension (without period) to be used.
+            load_method (Callable): a method to be used when loading files of
+                the passed file_format.
+            save_method (Callable): a method to be used when saving files of the
                 passed file_format.
-            save_method(object): a method to be used when saving files of the
-                passed file_format.
+
         """
         self.extensions.update({file_format: extension})
         if isinstance(load_method, str):
@@ -743,40 +876,50 @@ class Depot(SimpleClass):
             setattr(self, '_save_' + file_format, save_method)
         return self
 
-    def edit_file_names(self, techniques, file_names):
+    def edit_file_names(self,
+            techniques: Union[List[str], str],
+            file_names: Union[List[str], str]) -> None:
         """Adds data file names for specific techniques.
 
         Args:
-            techniques(str or list(str)): step or step names
-            file_names(str or list(str)): file name or file names (without
-                extension(s))
+            techniques(Union[List[str], str]): step or step names.
+            file_names(Union[List[str], str]): file name or file names (without
+                extension(s)).
+
         """
         self.file_names.update(dict(zip(techniques, file_names)))
         return self
 
-    def edit_folders(self, root_folder, subfolders):
+    def edit_folders(self,
+            subfolders: Union[List[str], str],
+            root_folder: Optional[str] = None) -> None:
         """Adds a list of subfolders to an existing root_folder.
+
         Args:
-            root_folder(str): path of folder where subfolders should be created.
-            subfolders(str or list): subfolder names to be created.
+            subfolders(Union[List[str], str]): subfolder names to be created.
+            root_folder (Optional[str]): path of folder where subfolders should
+                be created.
+
         """
+        if root_folder is None:
+            root_folder = self.root_folder
         for subfolder in listify(subfolders):
-            temp_folder = self.create_folder(folder = root_folder,
-                                             subfolder = subfolder)
+            temp_folder = self.create_folder(
+                folder = root_folder,
+                subfolder = subfolder)
             setattr(self, subfolder, temp_folder)
         return self
 
-    def publish(self):
-        """Creates data and results folders as well as other default subfolders.
+    def publish(self, instance: 'SimpleComposite') -> 'SimpleComposite':
+        """Injects Depot instance into passed instance.
+
+        Args:
+            instance (SimpleComposite): a class instance to which attributes should
+                be added.
+
+        Returns:
+            SimpleComposite: instance with attribute(s) added.
+
         """
-        super().publish()
-        self._check_root_folder()
-        self.edit_folders(
-            root_folder = self.root,
-            subfolders = [self.data_folder, self.results_folder])
-        self.edit_folders(
-            root_folder = self.data,
-            subfolders = self.data_subfolders)
-        # Injects Depot instance into base SimpleClass
-        self._inject_base(attribute = 'depot')
-        return self
+        instance.depot = self
+        return instance

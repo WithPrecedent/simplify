@@ -30,12 +30,12 @@ class Supplement(FarmerTechnique):
     name: str = 'supplementer'
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         self.options = {}
         return self
 
-    def implement(self, ingredients, sources):
+    def publish(self, ingredients, sources):
         return ingredients

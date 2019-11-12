@@ -47,7 +47,7 @@ class SimpleType(ABC):
 
     options: object = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.draft()
         self._create_reversed()
         return self
@@ -135,7 +135,7 @@ class SimpleType(ABC):
     """ Public Methods """
 
     @abstractmethod
-    def draft(self):
+    def draft(self) -> None:
         """Required method that sets default values for a subclass."""
         pass
         return self
@@ -164,11 +164,11 @@ class DataTypes(SimpleType):
     methods and consistent naming structure throughout the package.
 
     """
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         """Sets default values related to datatypes."""
         # Sets string names of various datatypes available.
         self.options = {
@@ -232,11 +232,11 @@ class DataTypes(SimpleType):
 class FileTypes(SimpleType):
     """Stores dictionaries related to file types used by siMpLify package."""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         """Sets default values related to filetypes."""
         # Sets string names of various datatypes available.
         self.options = {

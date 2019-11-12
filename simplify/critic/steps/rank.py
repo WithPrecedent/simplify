@@ -32,7 +32,7 @@ class Rank(CriticTechnique):
     auto_draft: bool = True
     auto_publish: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.idea_sections = ['critic']
         super().__post_init__()
         return self
@@ -75,7 +75,7 @@ class Rank(CriticTechnique):
 
     """ Core siMpLify Public Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         super().draft()
         self.order_setting = 'ranking_techniques'
         return self
@@ -102,10 +102,10 @@ class RankSelect(CriticTechnique):
     name: str = 'rank'
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         self.options = {}
         return self

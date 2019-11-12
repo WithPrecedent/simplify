@@ -7,16 +7,17 @@
 """
 
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.step import SimpleStep
-from simplify.core.step import SimpleDesign
+from simplify.core.technique import SimpleComposer
+from simplify.core.technique import SimpleDesign
 
 
 @dataclass
-class Scaler(SimpleStep):
+class Scaler(SimpleComposer):
     """Scales numerical data in a DataFrame stored in Ingredients instance.
-    
-    Args: 
+
+    Args:
         name (str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
             throughout the siMpLify package. If subclassing siMpLify classes,
@@ -27,71 +28,71 @@ class Scaler(SimpleStep):
 
     name: str = 'scaler'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         super().draft()
         self.options = {
             'bins' : SimpleDesign(
                 name = 'bins',
                 module = 'sklearn.preprocessing',
                 algorithm = 'KBinsDiscretizer',
-                default_parameters = {
+                default = {
                     'encode': 'ordinal',
                     'strategy': 'uniform',
                     'n_bins': 5},
-                selected_parameters = True),
+                selected = True),
             # 'gauss' : SimpleDesign(
             #     name = 'gauss',
             #     module = None,
             #     algorithm = Gaussify,
-            #     default_parameters = {'standardize': False, 'copy': False},
-            #     extra_parameters = {'rescaler': self.standard},
-            #     selected_parameters = True),
+            #     default = {'standardize': False, 'copy': False},
+            #     required = {'rescaler': self.standard},
+            #     selected = True),
             'maxabs' : SimpleDesign(
                 name = 'maxabs',
                 module = 'sklearn.preprocessing',
                 algorithm = 'MaxAbsScaler',
-                default_parameters = {'copy': False},
-                selected_parameters = True),
+                default = {'copy': False},
+                selected = True),
             'minmax' : SimpleDesign(
                 name = 'minmax',
                 module = 'sklearn.preprocessing',
                 algorithm = 'MinMaxScaler',
-                default_parameters = {'copy': False},
-                selected_parameters = True),
+                default = {'copy': False},
+                selected = True),
             'normalize' : SimpleDesign(
                 name = 'normalize',
                 module = 'sklearn.preprocessing',
                 algorithm = 'Normalizer',
-                default_parameters = {'copy': False},
-                selected_parameters = True),
+                default = {'copy': False},
+                selected = True),
             'quantile' : SimpleDesign(
                 name = 'quantile',
                 module = 'sklearn.preprocessing',
                 algorithm = 'QuantileTransformer',
-                default_parameters = {'copy': False},
-                selected_parameters = True),
+                default = {'copy': False},
+                selected = True),
             'robust' : SimpleDesign(
                 name = 'robust',
                 module = 'sklearn.preprocessing',
                 algorithm = 'RobustScaler',
-                default_parameters = {'copy': False},
-                selected_parameters = True),
+                default = {'copy': False},
+                selected = True),
             'standard' : SimpleDesign(
                 name = 'standard',
                 module = 'sklearn.preprocessing',
                 algorithm = 'StandardScaler',
-                default_parameters = {'copy': False},
-                selected_parameters = True)}
+                default = {'copy': False},
+                selected = True)}
         return self
 
 
 # @dataclass
-# class Gaussify(ChefAlgorithm):
+# class Gaussify(SimpleAlgorithm):
 #     """Transforms data columns to more gaussian distribution.
 
 #     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'
@@ -111,12 +112,12 @@ class Scaler(SimpleStep):
 #     parameters: object = None
 #     name: str = 'gaussifier'
 
-#     def __post_init__(self):
+#     def __post_init__(self) -> None:
 #         self.idea_sections = ['chef']
 #         super().__post_init__()
 #         return self
 
-#     def draft(self):
+#     def draft(self) -> None:
 #         self.rescaler = self.parameters['rescaler'](
 #                 copy = self.parameters['copy'])
 #         del self.parameters['rescaler']

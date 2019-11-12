@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 from simplify.core.technique import ArtistTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleComposite
 subclass because siMpLify uses a lazy importing system. This locates the
 potential module importations in roughly the same place as normal module-level
-import commands. A SimpleClass subclass will, by default, add the
+import commands. A SimpleComposite subclass will, by default, add the
 DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
@@ -45,7 +45,7 @@ class Illustrate(SimpleIterable):
     auto_draft: bool = True
     auto_publish: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
@@ -70,7 +70,7 @@ class Illustrate(SimpleIterable):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         self.options =
         return self
 
@@ -78,7 +78,7 @@ class Illustrate(SimpleIterable):
         return self
 
     #@localize
-    def implement(self, recipes = None, reviews = None):
+    def publish(self, recipes = None, reviews = None):
         for step in self.techniques:
             getattr(self, step)()
         return self

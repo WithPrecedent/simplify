@@ -31,7 +31,7 @@ class Convert(FarmerTechnique):
     name: str = 'converter'
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
@@ -44,7 +44,7 @@ class Convert(FarmerTechnique):
         self.file_path_out = self.make_path(self.file_out)
         return self
 
-    def implement(self, ingredients):
+    def publish(self, ingredients):
         converted = self.method(file_path = self.file_path_in)
         self.depot.save_df(converted, file_path = self.file_path_out)
         return self

@@ -7,11 +7,16 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, List, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.base import SimpleClass
+import numpy as np
+import pandas as pd
+
+from simplify.core.base import SimpleComposite
+from simplify.core.options import SimpleOptions
+from simplify.core.plan import SimplePlan
 from simplify.core.planner import SimplePlanner
-from simplify.core.planner import SimplePlan
+from simplify.core.technique import SimpleTechnique
 
 
 @dataclass
@@ -26,32 +31,32 @@ class Cookbook(SimplePlanner):
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-        recipes (Recipe or list(Recipe)): Ordinarily, 'recipes' is not passed
+        recipes (Recipe or List(Recipe)): Ordinarily, 'recipes' is not passed
             when Cookbook is instanced, but the argument is included if the
             user wishes to reexamine past recipes or manually create new
             recipes.
-        techniques (dict): keys are names of techniques to be applied and 
-            values are the siMpLify-compatible python objects applying those 
+        techniques (dict): keys are names of techniques to be applied and
+            values are the siMpLify-compatible python objects applying those
             techniques.
 
-    Since this class is a subclass to SimplePackage and SimpleClass, 
+    Since this class is a subclass to SimplePackage and SimpleComposite,
     documentation for those classes applies as well.
 
     """
-    name: str = 'chef'
-    recipes: object = None
-    techniques: object = None
+    name: Optional[str] = 'chef'
+    recipes: Optional[List['Recipe']] = None
+    techniques: Optional[Dict[str, SimpleTechnique]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _extra_processing(self, plan: SimpleClass,
-            data: SimpleClass) -> Tuple[SimpleClass, SimpleClass]:
-        """Tests all 'recipes'."""
-        recipe.using_val_set = self.using_val_set
+    def _extra_processing(self,
+            plan: SimplePlan,
+            data: SimpleComposite) -> Tuple[SimplePlan, SimpleComposite]:
+        """Extra actions to take for each recipe."""
         if self.export_results:
             self.depot._set_experiment_folder()
             self.depot._set_plan_folder(
@@ -67,7 +72,10 @@ class Cookbook(SimplePlanner):
 
     """ Public Tool Methods """
 
-    def add_cleaves(self, cleave_group, prefixes = None, columns = None):
+    def add_cleaves(self,
+            cleave_group: str,
+            prefixes: Union[List[str], str] = None,
+            columns: Union[List[str], str] = None) -> None:
         """Adds cleaves to the list of cleaves.
 
         Args:
@@ -75,28 +83,35 @@ class Cookbook(SimplePlanner):
             prefixes: list or string of prefixes for columns to be included
                 within the cleave.
             columns: list or string of columns to be included within the
-                cleave."""
-        if not hasattr(self, 'cleaves') or self.cleaves is None:
+                cleave.
+
+        """
+        if not self.exists('cleaves'):
             self.cleaves = []
-        columns = self.ingredients.create_column_list(prefixes = prefixes,
-                                                      columns = columns)
-        self.options['cleave'].edit(cleave_group = cleave_group,
-                    columns = columns)
+        columns = self.ingredients.create_column_list(
+            prefixes = prefixes,
+            columns = columns)
+        self.options['cleaver'].edit(
+            cleave_group = cleave_group,
+            columns = columns)
         self.cleaves.append(cleave_group)
         return self
 
     """ Public Import/Export Methods """
 
-    def load_recipe(self, file_path):
+    def load_recipe(self, file_path: str) -> None:
         """Imports a single recipe from disc and adds it to the class iterable.
 
         Args:
             file_path: a path where the file to be loaded is located.
+
         """
         self.load_plan(file_path = file_path)
         return self
 
-    def save_recipes(self, recipes, file_path = None):
+    def save_recipes(self,
+            recipes: Optional[Union[List[SimplePlan], str]] = None,
+            file_path: Optional[str] = None) -> None:
         """Exports a recipe or recipes to disc.
 
         Args:
@@ -123,43 +138,43 @@ class Cookbook(SimplePlanner):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         """Sets default options for the Chef's cookbook."""
+        self.plan_container = Recipe
+        options = {
+            'scaler': ('simplify.chef.steps.scaler', 'Scaler'),
+            'splitter': ('simplify.chef.steps.splitter', 'Splitter'),
+            'encoder': ('simplify.chef.steps.encoder', 'Encoder'),
+            'mixer': ('simplify.chef.steps.mixer', 'Mixer'),
+            'cleaver': ('simplify.chef.steps.cleaver', 'Cleaver'),
+            'sampler': ('simplify.chef.steps.sampler', 'Sampler'),
+            'reducer': ('simplify.chef.steps.reducer', 'Reducer'),
+            'modeler': ('simplify.chef.steps.modeler', 'Modeler')}
+        self.options = SimpleOptions(options = options, parent = self)
         super().draft()
-        self.options = {
-            'scaler': ('simplify.chef.techniques.scale', 'Scale'),
-            'splitter': ('simplify.chef.techniques.split', 'Split'),
-            'encoder': ('simplify.chef.techniques.encode', 'Encode'),
-            'mixer': ('simplify.chef.techniques.mix', 'Mix'),
-            'cleaver': ('simplify.chef.techniques.cleave', 'Cleave'),
-            'sampler': ('simplify.chef.techniques.sample', 'Sample'),
-            'reducer': ('simplify.chef.techniques.reduce', 'Reduce'),
-            'modeler': ('simplify.chef.techniques.model', 'Model')}
-        # Locks 'stage' attribute at 'chef' for state dependent methods.
-        self.stage.change('chef')
         return self
 
-    def edit_recipes(self, recipes):
+    def edit_recipes(self,
+            recipes: Union[List[SimplePlan], SimplePlan]) -> None:
         """Adds a recipe or list of recipes to 'recipes' attribute.
         Args:
             recipes (dict(str/int: Recipe or list(dict(str/int: Recipe)):
                 recipe(s) to be added to 'recipes'.
-                
+
         """
         self.edit_plans(plans = recipes)
         return self
 
-    def publish(self, ingredients = None):
+    def publish(self, ingredients: 'Ingredients') -> None:
         """Completes an iteration of a Cookbook.
 
         Args:
-            ingredients (Ingredients): If passed, it will be assigned to the
+            data (Ingredients or None): If passed, it will be assigned to the
                 local 'ingredients' attribute. If not passed, and if it already
                 exists, the local 'ingredients' will be used.
 
         """
-        if ingredients:
-            self.ingredients = ingredients
+        self.ingredients = ingredients
         if 'train_test_val' in self.data_to_use:
             self.ingredients.state = 'train_test'
             ingredients = super().publish(data = self.ingredients)
@@ -176,22 +191,13 @@ class Cookbook(SimplePlanner):
         return self
 
     """ Properties """
-    
+
     @property
-    def comparer(self):
-        return Recipe
-    
-    @comparer.setter
-    def comparer(self, comparer: SimplePlan):
-        self.comparer = comparer
-        return self
-    
-    @property
-    def recipes(self):
+    def recipes(self) -> Dict[str, SimplePlan]:
         return self.plans
 
     @recipes.setter
-    def recipes(self, plans: dict):
+    def recipes(self, plans: Dict[str, SimplePlan]) -> None:
         self.plans = plans
         return self
 
@@ -209,32 +215,32 @@ class Recipe(SimplePlan):
             classes.
         number (int): number of plan in a sequence - used for recordkeeping
             purposes.
-        steps (dict(str: str)): keys are names of steps and values are 
+        steps (dict(str: str)): keys are names of steps and values are
             algorithms to be applied.
 
-    It is also a child class of SimpleClass and Simple. So, documentation for
+    It is also a child class of SimpleComposite and Simple. So, documentation for
     those classes applies as well.
 
     """
-    name: str = 'recipe'
-    number: int = 0
-    steps: object = None
+    steps: Dict[str, SimpleComposite]
+    name: Optional[str] = 'recipe'
+    metadata: Optional[Dict[str, Any]] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _calculate_hyperparameters(self):
+    def _calculate_hyperparameters(self) -> None:
         """Computes hyperparameters that can be determined by the source data
         (without creating data leakage problems).
 
         This method currently only support xgboost's scale_pos_weight
         parameter. Future hyperparameter computations will be added as they
         are discovered.
-        
+
         """
         if self.techniques['model'] in ['xgboost']:
             # Model class is injected with scale_pos_weight for algorithms that
@@ -243,5 +249,3 @@ class Recipe(SimplePlan):
                     len(self.ingredients.y.index) /
                     ((self.ingredients.y == 1).sum())) - 1
         return self
-
-    """ Core siMpLify Methods """

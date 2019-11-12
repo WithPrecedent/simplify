@@ -32,7 +32,7 @@ class Combine(FarmerTechnique):
     name: str = 'combiner'
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init()
         return self
 
@@ -54,7 +54,7 @@ class Combine(FarmerTechnique):
                         self.method))
         return ingredients
 
-    def draft(self):
+    def draft(self) -> None:
         self.options = {'all': self._combine_all,
                         'any': self._combine_any,
                         'dict': self._dict}
@@ -64,6 +64,6 @@ class Combine(FarmerTechnique):
             self.algorithm = self._dict
         return self
 
-    def implement(self, ingredients):
+    def publish(self, ingredients):
         self.ingredients = self.algorithm(ingredients)
         return ingredients

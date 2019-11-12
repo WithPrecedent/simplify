@@ -33,7 +33,7 @@ class Reshape(FarmerTechnique):
     name: str = 'scaler'
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         return self
 
     def _long(self, df):
@@ -57,6 +57,6 @@ class Reshape(FarmerTechnique):
         return df
 
 
-    def implement(self, ingredients):
+    def publish(self, ingredients):
         ingredients.df = getattr(self, '_' + self.shape_type)(ingredients.df)
         return ingredients

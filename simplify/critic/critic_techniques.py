@@ -9,8 +9,8 @@
 from collections import namedtuple
 
 fields = [
-    'name', 'module', 'algorithm', 'default_parameters', 'extra_parameters',
-    'runtime_parameters', 'selected_parameters', 'conditional_parameters',
+    'name', 'module', 'algorithm', 'default', 'required',
+    'runtime_parameters', 'selected', 'conditional_parameters',
     'data_dependent']
 Technique = namedtuple('technique', fields, default = (None,) * len(fields))
 
@@ -145,12 +145,12 @@ metrics_f1_weighted = Technique(
     name = 'f1_weighted',
     module = 'sklearn.metrics',
     algorithm = 'f1_score',
-    extra_parameters = {'average': 'weighted'})
+    required = {'average': 'weighted'})
 metrics_fbeta = Technique(
     name = 'fbeta',
     module = 'sklearn.metrics',
     algorithm = 'fbeta_score',
-    extra_parameters = {'beta': 1})
+    required = {'beta': 1})
 metrics_fowlkes = Technique(
     name = 'fowlkes_mallows',
     module = 'sklearn.metrics',
@@ -215,7 +215,7 @@ metrics_precision_weighted = Technique(
     name = 'precision_weighted',
     module = 'sklearn.metrics',
     algorithm = 'precision_score',
-    extra_parameters = {'average': 'weighted'})
+    required = {'average': 'weighted'})
 metrics_r2 = Technique(
     name = 'r2',
     module = 'sklearn.metrics',
@@ -228,7 +228,7 @@ metrics_recall_weighted = Technique(
     name = 'recall_weighted',
     module = 'sklearn.metrics',
     algorithm = 'recall_score',
-    extra_parameters = {'average': 'weighted'})
+    required = {'average': 'weighted'})
 metrics_roc_auc = Technique(
     name = 'roc_auc',
     module = 'sklearn.metrics',

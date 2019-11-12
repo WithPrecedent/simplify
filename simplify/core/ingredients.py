@@ -8,19 +8,23 @@
 
 from dataclasses import dataclass
 import os
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleClass
-from simplify.core.decorators import choose_df, combine_lists
+from simplify.core.base import SimpleComposite
+from simplify.core.distributor import SimpleDistributor
+from simplify.core.decorators import choose_df
+from simplify.core.decorators import combine_lists
+from simplify.core.options import SimpleOptions
 from simplify.core.types import DataTypes
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Ingredients(SimpleClass):
+class Ingredients(SimpleDistributor):
     """Stores pandas DataFrames and Series with related information about those
     data containers.
 
@@ -46,8 +50,8 @@ class Ingredients(SimpleClass):
             is located. This argument should be passed if the user has a
             pre-existing dataset and is not creating a new dataset with Farmer.
         _x, _y, _x_train, _y_train, _x_test, _y_test, _x_val, _y_val
-            (DataFrames, Series, or file paths): These need not be passed when
-            the class is instanced. They are merely listed for users who already
+            (DataFrames, Series, or str): These need not be passed when the
+            class is instanced. They are merely listed for users who already
             have divided datasets and still wish to use the siMpLify package.
         datatypes (dict): contains column names as keys and datatypes for values
             for columns in a DataFrames or Series. Ingredients assumes that all
@@ -58,32 +62,35 @@ class Ingredients(SimpleClass):
             that all data containers within the instance are related and share a
             pool of column names and types.
 
-    Since this class is a subclass to SimpleClass, all of its documentation
+    Since this class is a subclass to SimpleComposite, all of its documentation
     applies as well.
 
     """
-    name: str = 'ingredients'
-    df: object = None
-    default_df: str = 'df'
-    _x: object = None
-    _y: object = None
-    _x_train: object = None
-    _y_train: object = None
-    _x_test: object = None
-    _y_test: object = None
-    _x_val: object = None
-    _y_val: object = None
-    datatypes: object = None
-    prefixes: object = None
+    name: Optional[str] = 'ingredients'
+    df: Optional[pd.DataFrame] = None
+    default_df: Optional[str] = 'df'
+    _x: Optional[pd.DataFrame] = None
+    _y: Optional[pd.DataFrame] = None
+    _x_train: Optional[pd.DataFrame] = None
+    _y_train: Optional[pd.DataFrame] = None
+    _x_test: Optional[pd.DataFrame] = None
+    _y_test: Optional[pd.DataFrame] = None
+    _x_val: Optional[pd.DataFrame] = None
+    _y_val: Optional[pd.DataFrame] = None
+    datatypes: Optional[Union[Dict[str, str]]] = None
+    prefixes: Optional[Union[Dict[str, str]]] = None
 
-    def __post_init__(self):
-        super().__post_init__()
-        self.publish()
+    def __post_init__(self) -> None:
+        if isinstance(self.df, Ingredients):
+            self = self.df
+        else:
+            super().__post_init__()
+            self.draft()
         return self
 
     """ Dunder Methods """
 
-    def __getattr__(self, attribute):
+    def __getattr__(self, attribute: str) -> Any:
         # Returns appropriate DataFrame based upon 'stage' attribute.
         if attribute in ['x_train', 'y_train', 'x_test', 'y_test']:
             prefix, suffix = attribute.split('_')
@@ -103,7 +110,7 @@ class Ingredients(SimpleClass):
         elif attribute in ['numerics']:
             return self.floats + self.integers
 
-    def __setattr__(self, attribute, value):
+    def __setattr__(self, attribute: str, value: Any) -> None:
         # Sets appropriate DataFrame based upon 'stage' attribute.
         if attribute in ['x_train', 'y_train', 'x_test', 'y_test']:
             prefix, suffix = attribute.split('_')
@@ -118,10 +125,9 @@ class Ingredients(SimpleClass):
             self.__dict__[attribute] = value
         return self
 
-
     """ Private Methods """
 
-    def _check_columns(self, columns = None):
+    def _check_columns(self, columns: Optional[List[str]] = None) -> bool:
         """Returns self.datatypes if columns doesn't exist.
 
         Args:
@@ -135,7 +141,7 @@ class Ingredients(SimpleClass):
         return columns or list(self.datatypes.keys())
 
     @choose_df
-    def _crosscheck_columns(self, df = None):
+    def _crosscheck_columns(self, df: Optional[pd.DataFrame] = None) -> None:
         """Removes any columns in datatypes dictionary, but not in df.
 
         Args:
@@ -150,7 +156,48 @@ class Ingredients(SimpleClass):
                 pass
         return self
 
-    def _get_columns_by_type(self, datatype):
+    def _draft_data(self) -> None:
+        """Completes an Ingredients instance.
+
+        This method checks all attributes listed in 'dataframes' and converts
+        them, when possible, to pandas data containers.
+
+        If a 'dataframe' is a pandas data container or is None, no action is
+            taken.
+        If a 'dataframe' is a file path, the file is loaded into a DataFrame and
+            assigned to 'df'.
+        If a 'dataframe' is a file folder, a glob in 'depot' is created.
+        If a 'dataframe' is a numpy array, it is converted to a pandas
+            DataFrame.
+
+        Raises:
+            TypeError: if 'dataframe' is neither a file path, file folder, None,
+                DataFrame, Series, or numpy array.
+
+        """
+        for df in self.dataframes:
+            if (getattr(self, df) is None
+                    or isinstance(getattr(self, df), pd.Series)
+                    or isinstance(getattr(self, df), pd.DataFrame)):
+                pass
+            elif isinstance(self.df, np.ndarray):
+                setattr(self, df, pd.DataFrame(data = getattr(self, df)))
+            else:
+                try:
+                    setattr(self, df, self.depot.load(
+                        folder = self.depot.data,
+                        file_name = getattr(self, df)))
+                except FileNotFoundError:
+                    try:
+                        self.depot.create_glob(folder = getattr(self, df))
+                    except TypeError:
+                        error = ' '.join(
+                            ['df must be a file path, file folder, DataFrame',
+                             'Series, None, or numpy array'])
+                        raise TypeError(error)
+        return self
+
+    def _get_columns_by_type(self, datatype: str) -> List[str]:
         """Returns list of columns of the specified datatype.
 
         Args:
@@ -163,7 +210,9 @@ class Ingredients(SimpleClass):
         return [k for k, v in self.datatypes.items() if v == datatype]
 
     @choose_df
-    def _get_indices(self, df = None, columns = None):
+    def _get_indices(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Optional[Union[List[str], str]] = None) -> List[bool]:
         """Gets column indices for a list of column names.
 
         Args:
@@ -179,7 +228,7 @@ class Ingredients(SimpleClass):
         return [df.columns.get_loc(column) for column in listify(columns)]
 
     @choose_df
-    def _initialize_datatypes(self, df = None):
+    def _initialize_datatypes(self, df: Optional[pd.DataFrame] = None) -> None:
         """Initializes datatypes for columns of pandas DataFrame or Series if
         not already provided.
 
@@ -197,8 +246,10 @@ class Ingredients(SimpleClass):
     """ Public Tool Methods """
 
     @choose_df
-    def add_unique_index(self, df = None, column = 'index_universal',
-                         make_index = False):
+    def add_unique_index(self,
+            df: Optional[pd.DataFrame] = None,
+            column: Optional[str] = 'index_universal',
+            make_index: Optional[bool] = False) -> None:
         """Creates a unique integer index for each row.
 
         Args:
@@ -223,7 +274,10 @@ class Ingredients(SimpleClass):
         return self
 
     @choose_df
-    def apply(self, df = None, func = None, **kwargs):
+    def apply(self,
+            df: Optional[pd.DataFrame] = None,
+            func: Optional[object] = None,
+            **kwargs) -> None:
         """Allows users to pass a function to Ingredients instance which will
         be applied to the passed DataFrame (or uses default_df if none is
         passed).
@@ -238,7 +292,10 @@ class Ingredients(SimpleClass):
 
     @combine_lists
     @choose_df
-    def auto_categorize(self, df = None, columns = None, threshold = 10):
+    def auto_categorize(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Optional[Union[List[str], str]] = None,
+            threshold: int = 10) -> None:
         """Automatically assesses each column to determine if it has less than
         threshold unique values and is not boolean. If so, that column is
         converted to category type.
@@ -269,7 +326,10 @@ class Ingredients(SimpleClass):
 
     @combine_lists
     @choose_df
-    def change_datatype(self, df = None, columns = None, datatype = None):
+    def change_datatype(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Union[List[str], str] = None,
+            datatype: str = None) -> None:
         """Changes column datatypes of columns passed or columns with the
         prefixes passed.
 
@@ -290,7 +350,9 @@ class Ingredients(SimpleClass):
         return self
 
     @choose_df
-    def convert_column_datatypes(self, df = None, raise_errors = False):
+    def convert_column_datatypes(self,
+            df: Optional[pd.DataFrame] = None,
+            raise_errors: Optional[bool] = False) -> None:
         """Attempts to convert all column data to the match the datatypes in
         'datatypes' dictionary.
 
@@ -319,7 +381,10 @@ class Ingredients(SimpleClass):
 
     @combine_lists
     @choose_df
-    def convert_rare(self, df = None, columns = None, threshold = 0):
+    def convert_rare(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Optional[Union[List[str], str]] = None,
+            threshold: Optional[float] = 0) -> None:
         """Converts categories rarely appearing within categorical columns
         to empty string if they appear below the passed threshold.
 
@@ -353,8 +418,11 @@ class Ingredients(SimpleClass):
         return self
 
     @choose_df
-    def create_column_list(self, df = None, columns = None, prefixes = None,
-                           mask = None):
+    def create_column_list(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Optional[Union[List[str], str]] = None,
+            prefixes: Optional[Union[List[str], str]] = None,
+            mask: Optional[Union[List[bool]]] = None) -> None:
         """Dynamically creates a new column list from a list of columns, lists
         of prefixes, and/or boolean mask.
 
@@ -396,7 +464,9 @@ class Ingredients(SimpleClass):
         return deduplicate(iterable = column_names)
 
     @combine_lists
-    def create_series(self, columns = None, return_series = True):
+    def create_series(self,
+            columns: Optional[Union[List[str], str]] = None,
+            return_series: Optional[bool] = True) -> None:
         """Creates a Series (row) with the 'datatypes' dict.
 
         Default values are added to each item in the series so that pandas does
@@ -425,7 +495,10 @@ class Ingredients(SimpleClass):
 
     @combine_lists
     @choose_df
-    def decorrelate(self, df = None, columns = None, threshold = 0.95):
+    def decorrelate(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Optional[Union[List[str], str]] = None,
+            threshold: Optional[float] = 0.95) -> None:
         """Drops all but one column from highly correlated groups of columns.
 
         The threshold is based upon the .corr() method in pandas. 'columns' can
@@ -453,7 +526,10 @@ class Ingredients(SimpleClass):
 
     @combine_lists
     @choose_df
-    def downcast(self, df = None, columns = None, allow_unsigned = True):
+    def downcast(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Optional[Union[List[str], str]] = None,
+            allow_unsigned: Optional[bool] = True) -> None:
         """Decreases memory usage by downcasting datatypes.
 
         For numerical datatypes, the method attempts to cast the data to
@@ -504,7 +580,9 @@ class Ingredients(SimpleClass):
 
     @combine_lists
     @choose_df
-    def drop_columns(self, df = None, columns = None):
+    def drop_columns(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Optional[Union[List[str], str]] = None) -> None:
         """Drops list of columns and columns with prefixes listed.
 
         Args:
@@ -520,7 +598,10 @@ class Ingredients(SimpleClass):
 
     @combine_lists
     @choose_df
-    def drop_infrequent(self, df = None, columns = None, threshold = 0):
+    def drop_infrequent(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Optional[Union[List[str], str]] = None,
+            threshold: Optional[float] = 0) -> None:
         """Drops boolean columns that rarely are True.
 
         This differs from the sklearn VarianceThreshold class because it is only
@@ -550,7 +631,8 @@ class Ingredients(SimpleClass):
         return self
 
     @choose_df
-    def infer_datatypes(self, df = None):
+    def infer_datatypes(self,
+            df: Optional[pd.DataFrame] = None) -> None:
         """Infers column datatypes and adds those datatypes to types.
 
         This method is an alternative to default pandas methods which can use
@@ -573,8 +655,10 @@ class Ingredients(SimpleClass):
                 dict.fromkeys(type_columns, self.all_datatypes[datatype]))
         return self
 
-    def save_dropped(self, folder = 'experiment', file_name = 'dropped_columns',
-                     file_format = 'csv'):
+    def save_dropped(self,
+            folder: Optional[str] = 'experiment',
+            file_name: Optional[str] = 'dropped_columns',
+            file_format: Optional[str] = 'csv') -> None:
         """Saves 'dropped_columns' into a file.
 
         Args:
@@ -597,7 +681,9 @@ class Ingredients(SimpleClass):
 
     @combine_lists
     @choose_df
-    def smart_fill(self, df = None, columns = None):
+    def smart_fill(self,
+            df: Optional[pd.DataFrame] = None,
+            columns: Optional[Union[List[str], str]] = None) -> None:
         """Fills na values in a DataFrame with defaults based upon the datatype
         listed in 'all_datatypes'.
 
@@ -620,7 +706,7 @@ class Ingredients(SimpleClass):
                 raise KeyError(error)
         return self
 
-    def split_xy(self, label = 'label'):
+    def split_xy(self, label: Optional[str] = 'label') -> None:
         """Splits df into 'x' and 'y' based upon the label ('y' column) passed.
 
         Args:
@@ -637,7 +723,7 @@ class Ingredients(SimpleClass):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         """Sets defaults for Ingredients when class is instanced."""
         # Creates object for all available datatypes.
         self.all_datatypes = DataTypes()
@@ -648,18 +734,32 @@ class Ingredients(SimpleClass):
         self.state = DataState()
         # Creates naming suffix convention for use by __getattr__ and
         # __setattr__ that change dataset mapping based upon 'state'.
-        self.options = {
-            'unsplit': {'train': '', 'test': None},
-            'train_test': {'train': '_train', 'test': '_test'},
-            'train_val': {'train': '_train', 'test': '_val'},
-            'full': {'train': '', 'test': ''}}
-        return self
-
-    def publish(self):
-        """Finalizes Ingredients class instance."""
+        self.options = SimpleOptions(
+            options = {
+                'unsplit': {'train': '', 'test': None},
+                'train_test': {'train': '_train', 'test': '_test'},
+                'train_val': {'train': '_train', 'test': '_val'},
+                'full': {'train': '', 'test': ''}},
+            parent = self)
+        self.dataframes = [
+            'df',
+            '_x',
+            '_y',
+            '_x_train',
+            '_y_train',
+            '_x_test',
+            '_y_test',
+            '_x_val',
+            '_y_val']
+        # Converts dataframes to appropriate forms.
+        self._draft_data()
         # If datatypes passed, checks to see if columns are in 'df'. Otherwise,
         # datatypes are inferred.
         self._initialize_datatypes()
+        return self
+
+    def publish(self, instance: 'SimpleComposite') -> None:
+        setattr(instance, self.name, self)
         return self
 
     """ Properties """
@@ -670,42 +770,42 @@ class Ingredients(SimpleClass):
 
 
 @dataclass
-class DataState(SimpleClass):
+class DataState(SimpleComposite):
 
-    state: str = 'train'
+    state: str = 'unsplit'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.draft()
         return self
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Returns string name of 'state'."""
         return self.__str__()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Returns string name of 'state'."""
         return self.state
 
-    def change(self, new_state):
+    def change(self, new_state: str) -> None:
         """Changes 'state' to 'new_state'.
 
         Args:
-            new_state(str): name of new state matching a string in 'states'.
+            new_state(str): name of new state matching a string in 'options'.
 
         Raises:
             TypeError: if new_state is not in 'states'.
 
         """
-        if new_state in self.states:
+        if new_state in self.options:
             self.state = new_state
         else:
             error = new_state + ' is not a recognized data state'
             raise TypeError(error)
 
-    def draft(self):
+    def draft(self) -> None:
         # Sets possible states
-        self.states = ['unsplit', 'train_test', 'train_val', 'full']
+        self.options = ['unsplit', 'train_test', 'train_val', 'full']
         return self
 
-    def publish(self):
+    def publish(self) -> str:
         return self.state

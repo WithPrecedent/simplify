@@ -28,7 +28,7 @@ class SearchComposer(ChefComposer):
     algorithm_class: object = SearchAlgorithm
     technique_class: object = SearchTechnique
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
@@ -67,10 +67,10 @@ class SearchComposer(ChefComposer):
         search.space = self.space
         search.estimator = self.algorithm
         return search.publish(ingredients = ingredients)
-    
+
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         self.bayes = Technique(
             name = 'bayes',
             module = 'bayes_opt',
@@ -114,7 +114,7 @@ class SearchAlgorithm(SimpleAlgorithm):
     space: object = None
     name: str = 'search'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 

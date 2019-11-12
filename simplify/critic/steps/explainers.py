@@ -36,13 +36,13 @@ class Eli5Explain(CriticTechnique):
     auto_draft: bool = True
     options: Dict = field(default_factory = lambda: ELI5_DEFAULT_OPTIONS)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         super().draft()
         self.models = {
             'baseline': 'none',
@@ -61,7 +61,7 @@ class Eli5Explain(CriticTechnique):
             'xgboost': 'specific'}
         return self
 
-    def implement(self, recipe):
+    def publish(self, recipe):
         base_score, score_decreases = get_score_importances(score_func, X, y)
         feature_importances = np.mean(score_decreases, axis=0)
         from eli5 import show_weights
@@ -93,7 +93,7 @@ class ShapExplain(CriticTechnique):
     auto_draft: bool = True
     options: Dict = field(default_factory = lambda: SHAP_DEFAULT_OPTIONS)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
@@ -111,7 +111,7 @@ class ShapExplain(CriticTechnique):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         self.models = {
             'baseline': 'none',
             'catboost': 'tree',
@@ -129,7 +129,7 @@ class ShapExplain(CriticTechnique):
             'xgboost': 'tree'}
         return self
 
-    def implement(self, recipe):
+    def publish(self, recipe):
         """Applies shap evaluator to data based upon type of model used."""
         if self.technique != 'none':
             self._set_method()
@@ -170,9 +170,9 @@ class SkaterExplain(CriticTechnique):
     auto_draft: bool = True
     options: Dict = field(default_factory = lambda: SKATER_DEFAULT_OPTIONS)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         return self

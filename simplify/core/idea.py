@@ -11,14 +11,16 @@ from dataclasses import dataclass
 from importlib import import_module
 import os
 import re
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.base import SimpleClass
+from simplify.core.distributor import SimpleDistributor
+from simplify.core.options import SimpleOptions
+from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Idea(SimpleClass):
+class Idea(SimpleDistributor):
     """Converts a data science idea into python.
 
     If 'options' are imported from a file, Idea creates a nested dictionary,
@@ -104,15 +106,13 @@ class Idea(SimpleClass):
                             all return 43.
 
     Within the siMpLify ecosystem, settings of two types take on particular
-    importance and are automatically injected to certain classes:
+    importance:
         'parameters': sections with the suffix '_parameters' are automatically
-            added to classes where the prefix matches the class's 'name' or
+            linked to classes where the prefix matches the class's 'name' or
             'technique'.
-        'techniques': settings with the suffix '_techniques' are automatically
-            added to classes with the prefix as the name of the attribute.
-            These techniques are stored in lists used to create the
-            permutations and/or sequences of possible techniques in subclasses
-            of SimplePlan.
+        'techniques': settings with the suffix '_techniques' are used to create
+            iterable lists of actions to be taken (whether in parallel or
+            serial).
 
     Because Idea uses ConfigParser, it only allows 2-level dictionaries. The
     desire for accessibility and simplicity dictated this limitation.
@@ -121,7 +121,7 @@ class Idea(SimpleClass):
         name (str): as with other classes in siMpLify, the name is used for
             coordinating between classes. If Idea is subclassed, it is
             generally a good idea to keep the 'name' attribute as 'idea'.
-        options (str or dict): either a file path, file name, or two-level
+        configuration (str, dict): either a file path, file name, or two-level
             nested dictionary storing settings. If a file path is provided, a
             nested dict will automatically be created from the file and stored
             in 'options'. If a file name is provided, Idea will look for
@@ -132,26 +132,16 @@ class Idea(SimpleClass):
             other datatypes (True) or left as strings (False).
 
     """
-    name: str = 'idea'
-    options: object = None
-    infer_types: bool = True
+    configuration: Dict[str, Any]
+    name: Optional[str] = 'idea'
+    infer_types: Optional[bool] = True
 
     def __post_init__(self) -> None:
         super().__post_init__()
+        self.draft()
         return self
 
     """ Dunder Methods """
-
-    def __add__(self, other: Union[Dict, str, 'Idea']) -> None:
-        """Adds new settings using the 'update' method.
-
-        Args:
-            other (Idea, dict, or str): an Idea instance, a nested dictionary,
-                or a file path to a configparser-compatible file.
-
-        """
-        self.update(new_settings = other)
-        return self
 
     def __contains__(self, item: str) -> bool:
         """Returns whether item is in 'options'.
@@ -163,29 +153,57 @@ class Idea(SimpleClass):
         return item in self.options
 
     def __delitem__(self, key: str) -> None:
-        """Removes a dictionary section if 'key' matches the name of a section.
-
-        Otherwise, it will remove all entries with 'key' inside the various
-        sections of the 'options' dictionary.
+        """Removes a dict section or key if 'key' matches section or key.
 
         Args:
             key (str): the name of the dictionary key or section to be deleted.
 
         Raises:
             KeyError: if 'key' not in 'options'.
+
         """
         try:
             del self.options[key]
         except KeyError:
+            found_match = False
             for section in list(self.options.keys()):
                 try:
                     del section[key]
+                    found_match = True
                 except KeyError:
-                    error = key + ' not found in Idea options dictionary'
-                    raise KeyError(error)
+                    pass
+        if not found_match:
+            error = ' '.join([key, 'not found in', self.parent.name, 'options'])
+            raise KeyError(error)
         return self
 
-    def __getitem__(self, key: str) -> Any:
+    # def __getattr__(self, attribute: str) -> Any:
+    #     """Intercepts dict methods and applies them to the 'options' attribute.
+
+    #     Also, 'default' and 'all' are defacto properties which either return
+    #     an appropriate list of options.
+
+    #     Args:
+    #         attribute (str): attribute sought.
+
+    #     Returns:
+    #         dict method applied to 'options' or attribute, if attribute exists.
+
+    #     Raises:
+    #         AttributeError: if attribute  does not exist.
+
+    #     """
+    #     # Intecepts dict methods and applies them to 'options'.
+    #     if attribute in [
+    #             'clear', 'items', 'pop', 'keys', 'values', 'get', 'fromkeys',
+    #             'setdefault', 'popitem', 'copy']:
+    #         return getattr(self.options, attribute)
+    #     else:
+    #         error = ' '.join([attribute, 'not found in', self.parent.name,
+    #                           'options'])
+    #         raise AttributeError(error)
+
+    def __getitem__(self, key: str) -> Union[Dict[str, Any], Any]:
         """Returns a section of 'options' or key within a section.
 
         Args:
@@ -193,10 +211,12 @@ class Idea(SimpleClass):
                 sought.
 
         Returns:
-            dict if 'key' matches a section in 'options'. If 'key'
-                matches a key within a section, the value, which can be any of
-                the supported datatypes is returned. If no match is found an
-                empty dict is returned.
+            Union[Dict[str, Any], Any]: dict if 'key' matches a section in
+                'options'. If 'key' matches a key within a section, the value,
+                which can be any of the supported datatypes is returned.
+
+        Raises:
+            KeyError: if 'key' not in 'options'.
 
         """
         try:
@@ -207,32 +227,17 @@ class Idea(SimpleClass):
                     return section[key]
                     break
                 except KeyError:
-                    continue
-            return {}
+                    pass
+            error = ' '.join(
+                [key, 'not found in', self.parent.name, 'options'])
+            raise KeyError(error)
 
-    def __iadd__(self, other: Union[Dict, str, 'Idea']) -> None:
-        """Adds new settings using the 'update' method.
 
-        Args:
-            other (Idea, dict, or str): an Idea instance, a nested dictionary,
-                or a file path to a configparser-compatible file.
+    # def __repr__(self) -> Dict[str, Any]:
+    #     """Returns 'options' dict."""
+    #     return self.__str__()
 
-        """
-        self.update(new_settings = other)
-        return self
-
-    def __radd__(self, other: Union[Dict, str, 'Idea']) -> None:
-        """Adds new settings using the 'update' method.
-
-        Args:
-            other (Idea, dict, or str): an Idea instance, a nested dictionary,
-                or a file path to a configparser-compatible file.
-
-        """
-        self.update(new_settings = other)
-        return self
-
-    def __setitem__(self, section: str, dictionary: Dict) -> None:
+    def __setitem__(self, section: str, dictionary: Dict[str, Any]) -> None:
         """Creates new key/value pair(s) in a specified section of
         'options'.
 
@@ -253,205 +258,115 @@ class Idea(SimpleClass):
                 try:
                     self.options[section] = dictionary
                 except TypeError:
-                    error = ''.join('section must be str and dictionary must',
-                                    ' be dict type')
+                    error = ' '.join(['section must be str and dictionary',
+                                     'must be dict type'])
                     raise TypeError(error)
         return self
 
+    # def __str__(self) -> Dict[str, Any]:
+    #     """Returns 'options' dict."""
+    #     return self.options
+
     """ Private Methods """
 
-    def _add_settings(self, settings: Union[Dict, str, 'Idea'] = None) -> None:
-        """Adds new settings to the options dictionary.
+    def _are_parameters(self, instance: 'SimpleComposite', section: str) -> bool:
+        """Returns whether value stores matching parameters for instance.
 
         Args:
-           settings (dict, str, or Idea): can either be a dict or Idea
-               object containing new key/value pairs, or a str containing a
-               file path from which new options options can be found.
-
-        Raises:
-            TypeError: if 'new_settings' is neither a dict, str, or Idea
-                instance.
-
-        """
-        if settings is None:
-            settings = self.options
-        try:
-            self.options.update(settings)
-        except AttributeError:
-            if settings.endswith('.ini'):
-                technique = self._load_from_ini
-            elif settings.endswith('.py'):
-                technique = self._load_from_py
-            technique(file_path = settings)
-        except TypeError:
-            try:
-                self.options.update(settings.options)
-            except TypeError:
-                error = 'options settings must be dict, Idea, or file path'
-                raise TypeError(error)
-        return self
-
-    def _infer_types(self, settings: Dict = None) -> None:
-        """If 'infer_types' is True, values in 'options' are converted to
-        the appropriate datatype.
-        """
-        if self.infer_types:
-            if settings is None:
-                settings = self.options
-            for section, dictionary in settings.items():
-                for key, value in dictionary.items():
-                    self.options[section][key] = self._typify(value)
-        return self
-
-    def _load_from_ini(self, file_path: str = None) -> None:
-        """Creates a options dictionary from an .ini file.
-
-        Args:
-            file_path (str): path to configparser-compatible .ini file.
-
-        """
-        try:
-            options = ConfigParser(dict_type = dict)
-            options.optionxform = lambda option: option
-            options.read(file_path)
-            self.options = dict(options._sections)
-        except FileNotFoundError:
-            error = 'options file ' + file_path + ' not found'
-            raise FileNotFoundError(error)
-        return self
-
-    def _load_from_py(self, file_path: str = None) -> None:
-        """Creates a options dictionary from an .py file.
-
-        Args:
-            file_path (str): path to python module with 'options' dict defined.
-
-        """
-        try:
-            self.options = getattr(import_module(file_path), 'options')
-        except FileNotFoundError:
-            error = 'options file ' + file_path + ' not found'
-            raise FileNotFoundError(error)
-        return self
-
-    @staticmethod
-    def _numify(variable: str) -> Union[int, float, str]:
-        """Attempts to convert 'variable' to a numeric type.
-
-        Args:
-            variable (str): variable to be converted.
-
-        Returns
-            variable (int, float, str) converted to numeric type, if possible.
-
-        """
-        try:
-            return int(variable)
-        except ValueError:
-            try:
-                return float(variable)
-            except ValueError:
-                return variable
-
-    def _typify(self, variable: str) -> Union[List, int, float, bool, str]:
-        """Converts stingsr to appropriate, supported datatypes.
-
-        The method converts strings to list (if ', ' is present), int, float,
-        or bool datatypes based upon the content of the string. If no
-        alternative datatype is found, the variable is returned in its original
-        form.
-
-        Args:
-            variable (str): string to be converted to appropriate datatype.
+            instance (SimpleComposite): a class instance to which attributes should
+                be added.
+            section (str): name of a section of the configuration settings.
 
         Returns:
-            variable (str, list, int, float, or bool): converted variable.
+            bool: whether the section includes parameters and if those
+                parameters correspond to the class name or technique name.
+
         """
-        if ', ' in variable:
-            variable = variable.split(', ')
-            return [self._numify(v) for v in variable]
-        elif re.search('\d', variable):
-            return self._numify(variable)
-        elif variable in ['True', 'true', 'TRUE']:
-            return True
-        elif variable in ['False', 'false', 'FALSE']:
+        if '_parameters' in section:
+            try:
+                return (instance.name == '_'.join(
+                    [instance.name, '_parameters']))
+            except AttributeError:
+                try:
+                    return (instance.technique == '_'.join(
+                        [instance.technique, '_parameters']))
+                except AttributeError:
+                    pass
             return False
-        elif variable in ['None', 'none', 'NONE']:
-            return None
         else:
-            return variable
+            return False
 
-    """ Public Tool Methods """
-
-    def inject(self, instance: SimpleClass, sections: Union[List[str], str], 
-               override: bool = False) -> SimpleClass:
-        """Stores the section or sections of the 'options' dictionary in
-        the passed class instance as attributes to that class instance.
-
-        Wildcard values of 'all', 'default', and 'none' are appropriately
-        changed with the '_convert_wildcards' method.
+    def _set_sections(self,
+            instance: 'SimpleComposite',
+            sections: Optional[Union[List[str], str]]) -> List[str]:
+        """Finalizes list of sections to be injected into class.
 
         Args:
-            instance (object): a class instance to which attributes should be
-                added.
-            sections (str or list(str)): the sections of 'options' which
-                should be added to the instance.
-            override (bool): if True, even existing attributes in instance will
-                be replaced by 'options' key/value pairs. If False,
-                current values in those similarly-named attributes will be
-                maintained (unless they are None).
-
-        Returns:
-            instance with attribute(s) added.
+            instance (SimpleComposite): a class instance to which attributes should
+                be added.
+            sections (Optional[Union[List[str], str]]): the sections of the
+                configuration that should be stored as local attributes in the
+                passed instance.
 
         """
-        for section in listify(sections):
-            try:
-                for key, value in self.options[section].items():
-                    # if not instance.exists(key) or override:
-                    setattr(instance, key, value)
-            except KeyError:
-                pass
-        return instance
+        if sections is None:
+            sections = []
+        sections.append('general')
+        try:
+            sections.extend(listify(instance.idea_sections))
+        except AttributeError:
+            pass
+        try:
+            sections.append(instance.planner.name)
+        except AttributeError:
+            pass
+        sections.append(instance.name)
+        return deduplicate(sections)
 
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        """Creates 'options' dictionary and core attributes for Idea instance.
-
-        Raises:
-            AttributeError: if 'options' is None.
-            TypeError: if 'options' is a path to a file that neither has an
-                'ini' nor 'py' extension or if 'options' is neither a str nor a
-                dict.
-
-        """
-        self._add_settings()
-        self._infer_types()
-        super().draft()
-        self.publish()
+        """Creates 'options' dictionary for Idea instance."""
+        self.options = SimpleOptions(
+            options = self.configuration,
+            parent = self,
+            infer_types = self.infer_types)
         return self
 
-    def publish(self) -> None:
-        """Finalizes Idea and calls siMpLify controller."""
-        self = self.inject(instance = self, sections = ['general'])
-        return self
-
-    """ Python Dictionary Compatibility Methods """
-
-    def update(self, new_settings: Union[Dict, str, 'Idea']) -> None:
-        """Adds new settings to the options dictionary.
+    def publish(self,
+            instance: 'SimpleComposite',
+            sections: Optional[Union[List[str], str]] = None,
+            override: Optional[bool] = False) -> 'SimpleComposite':
+        """Injects attributes from configuration settings into passed instance.
 
         Args:
-           new_settings (dict, str, or Idea): can either be a dict or Idea
-               object containing new key/value pairs, or a str containing a
-               file path from which new options options can be found.
+            instance (SimpleComposite): a class instance to which attributes should
+                be added.
+            sections (Optional[Union[List[str], str]]): the sections of the
+                configuration that should be stored as local attributes in the
+                passed instance. Defaults to None.
+            override (Optional[bool]): if True, even existing attributes in
+                instance will be replaced by 'options' key/value pairs. If
+                False, current values in those similarly-named attributes will
+                be maintained (unless they are None). Defaults to False.
 
-        Raises:
-            TypeError: if 'new_settings' is neither a dict, str, or Idea
-                instance.
+        Returns:
+            SimpleComposite: instance with attribute(s) added.
 
         """
-        self._add_settings(settings = new_settings)
-        self._infer_types()
-        return self
+        # Every class that accepts an Idea, gets a local attribute of it.
+        instance.idea = self
+        self._set_sections(instance = instance, sections = sections)
+        if sections:
+            for section in listify(sections):
+                if self._are_parameters(instance = instance, section = section):
+                    instance.idea_parameters = self.options[section]
+                else:
+                    print('test', self.options.options)
+                    try:
+                        for key, value in self.options[section].items():
+                            if not instance._exists(key) or override:
+                                setattr(instance, key, value)
+                    except KeyError:
+                        pass
+        return instance

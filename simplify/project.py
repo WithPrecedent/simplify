@@ -9,23 +9,21 @@
 from dataclasses import dataclass
 from importlib import import_module
 import os
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import warnings
 
 import numpy as np
 import pandas as pd
 
 from simplify import timer
-from simplify.core.base import SimpleClass
 from simplify.core.depot import Depot
 from simplify.core.idea import Idea
 from simplify.core.ingredients import Ingredients
-from simplify.core.planner import SimplePlanner
-from simplify.core.utilities import listify
 
 
+@timer('simplify project')
 @dataclass
-class Project(SimplePlanner):
+class Project(object):
     """Controller class for siMpLify projects.
 
     Args:
@@ -33,15 +31,15 @@ class Project(SimplePlanner):
             path or file name (in the current working directory) where a
             supoorted settings file for an Idea instance is located. Once an
             Idea instance is createds, it is automatically an attribute to all
-            other SimpleClass subclasses that are instanced in the future.
+            other SimpleComposite subclasses that are instanced in the future.
             Required.
         depot (Depot or str): an instance of Depot or a string containing the
             full path of where the root folder should be located for file
             output. A Depot instance contains all file path and import/export
             methods for use throughout the siMpLify package. Once a Depot
             instance is created, it is automatically an attribute of all other
-            SimpleClass subclasses that are instanced in the future. Default is
-            None.
+            SimpleComposite subclasses that are instanced in the future. Default
+            is None.
         ingredients (Ingredients, DataFrame, Series, ndarray, or str): an
             instance of Ingredients, a string containing the full file path of
             where a data file for a pandas DataFrame or Series is located, a
@@ -61,37 +59,59 @@ class Project(SimplePlanner):
             as the base class for effective coordination between siMpLify
             classes. Default is 'simple_package', but should be overwritten to
             match settings in the Idea instance.
-            
-    It is also a child class of SimpleClass and SimpleProject. So, its 
-    documentation applies as well.
 
     """
     idea: Union[Idea, str]
-    depot: Union[Depot, str, None] = None
-    ingredients: Union[Ingredients, pd.DataFrame, pd.Series, np.ndarray, str,
-                       None] = None
-    steps: Union[List[str], str] = None
-    name: str = 'simplify' 
+    depot: Optional[Union[Depot, str]] = None
+    ingredients: Optional[Union[Ingredients, pd.DataFrame, pd.Series,
+                                np.ndarray, str]] = None
+    steps: Optional[Union[List[str], str]] = None
+    name: Optional[str] = 'simplify'
 
     def __post_init__(self) -> None:
-        super().__post_init__()
+        # Removes various python warnings from console output.
+        warnings.filterwarnings('ignore')
+        self.draft()
         return self
 
-    def _draft_techniques(self) -> None:
-        """Creates 'techniques' containing technique builder instances."""
-        for step in listify(self.steps):
+    """ Private Methods """
+
+    def _draft_steps(self) -> None:
+        for step, planner in self.steps.items():
+            if self.idea['general']['verbose']:
+                print('Initializing', step)
+            setattr(self, step, planner())
+            getattr(self, step).research(distributors = [self.idea, self.depot])
+            getattr(self, step).draft()
+        return self
+
+    def _get_parameters(self, step: str) -> Dict[str, 'SimplePlanner']:
+        parameters = []
+        for parameter in self.publish_paramters[step]:
+            parameters.append(getattr(self, parameter))
+        return parameters
+
+    def _set_steps(self) -> None:
+        """Creates 'steps' containing technique builder classes."""
+        if self.steps is None:
+            self.steps = self.idea['simplify']['simplify_steps']
+        new_steps = {}
+        for step in self.steps:
             try:
-                instance = self._import_option(settings = self.options[step])()
-                self.add_techniques(techniques = instance)
+                step_class = getattr(import_module(
+                    self.options[step][0]),
+                        self.options[step][1])
+                new_steps[step] = step_class
             except KeyError:
                 error = ' '.join([step,
                                   'does not match an option in', self.name])
                 raise KeyError(error)
+        self.steps = new_steps
         return self
-    
+
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         # Sets step options with information for module importation.
         self.options = {
             'farmer': ('simplify.farmer', 'Almanac'),
@@ -103,8 +123,23 @@ class Project(SimplePlanner):
         self.publish_parameters = {
             'farmer': (),
             'chef': ('ingredients'),
-            'actuary': ('ingredients'),
-            'critic': ('ingredients', 'chef.recipes'),
-            'artist': ('ingredients', 'chef.recipes', 'critic.reviews')}
-        super().draft()
+            'actuary': ('chef.ingredients'),
+            'critic': ('chef.ingredients', 'chef.recipes'),
+            'artist': ('critic.ingredients', 'chef.recipes', 'critic.reviews')}
+        # Completes an Idea instance.
+        self.idea = Idea(configuration = self.idea)
+        # Completes a Depot instance.
+        self.depot = Depot(root_folder = self.depot)
+        # Completes an Ingredients instance.
+        self.ingredients = Ingredients(df = self.ingredients)
+        # Finalizes 'steps' attribute.
+        self._set_steps()
+        self._draft_steps()
+        return self
+
+    def publish(self) -> None:
+        """Applies 'steps' to 'ingredients'."""
+        for step in self.steps.keys():
+            parameters = self._get_parameters(step = step)
+            setattr(self, step, getattr(self, step).publish(*parameters))
         return self

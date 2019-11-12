@@ -7,7 +7,10 @@
 """
 
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+from simplify.core.options import SimpleOptions
+from simplify.core.plan import SimplePlan
 from simplify.core.planner import SimplePlanner
 
 
@@ -35,7 +38,7 @@ class Canvas(SimplePlanner):
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
 
-    Since this class is a subclass to SimpleIterable and SimpleClass, all
+    Since this class is a subclass to SimpleIterable and SimpleComposite, all
     documentation for those classes applies as well.
 
     """
@@ -48,7 +51,7 @@ class Canvas(SimplePlanner):
     auto_draft: bool = True
     auto_publish: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.styler = []
         super().__post_init__()
         return self
@@ -108,24 +111,13 @@ class Canvas(SimplePlanner):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         """Sets default styles, options, and plots."""
-        self.checks = ['model_type']
-        # Locks 'step' attribute at 'artist' for conform methods in package.
-        self.step = 'artist'
-        # Sets 'iterable_type' so that proper parent methods are used.
-        self.iterable_type = 'serial'
-        # Sets 'iterable_class' to allow use of parent methods.
-        self.iterator = 'depictions'
-        return self
 
-    def publish(self):
         self._set_styler()
-        super().publish()
         return self
 
-    @localize
-    def implement(self, ingredients = None, recipes = None, reviews = None):
+    def publish(self, ingredients = None, recipes = None, reviews = None):
         if self.ingredients is None:
             self.ingredients = self.recipes.ingredients
         for name, step  in self.techniques:

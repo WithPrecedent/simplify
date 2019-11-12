@@ -32,14 +32,14 @@ class Download(FarmerTechnique):
     name: str = 'downloader'
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
     def publish(self):
         return self
 
-    def implement(self, ingredients):
+    def publish(self, ingredients):
         """Downloads file from a URL if the file is available."""
         file_path = os.path.join(self.depot.external,
                                  self.file_name)

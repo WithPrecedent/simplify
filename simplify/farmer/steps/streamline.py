@@ -32,9 +32,9 @@ class Streamline(FarmerTechnique):
     name: str = 'scaler'
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         return self
 
-    def implement(self, ingredients):
+    def publish(self, ingredients):
         ingredients = self.method(ingredients)
         return ingredients

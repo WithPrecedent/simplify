@@ -8,33 +8,33 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
-from simplify.core.step import SimpleDesign
+from simplify.core.technique import SimpleComposer
+from simplify.core.technique import SimpleDesign
 
 
 @dataclass
-class Modeler(SimpleStep):
+class Modeler(SimpleComposer):
     """Splits data into training, testing, and/or validation datasets.
-    
-    Args: 
+
+    Args:
         name (str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
             throughout the siMpLify package. If subclassing siMpLify classes,
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-            
+
     """
     name: str = 'modeler'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _add_gpu_techniques_classify(self):
+    def _add_gpu_techniques_classify(self) -> None:
         self.options.update({
             'forest_inference': SimpleDesign(
                 name = 'forest_inference',
@@ -50,7 +50,7 @@ class Modeler(SimpleStep):
                 algorithm = 'LogisticRegression')})
         return self
 
-    def _add_gpu_techniques_cluster(self):
+    def _add_gpu_techniques_cluster(self) -> None:
         self.options.update({
             'dbscan': SimpleDesign(
                 name = 'dbscan',
@@ -62,7 +62,7 @@ class Modeler(SimpleStep):
                 algorithm = 'KMeans')})
         return self
 
-    def _add_gpu_techniques_regress(self):
+    def _add_gpu_techniques_regress(self) -> None:
         self.options.update({
             'lasso': SimpleDesign(
                 name = 'lasso',
@@ -78,7 +78,7 @@ class Modeler(SimpleStep):
                 algorithm = 'RidgeRegression')})
         return self
 
-    def _draft_classify(self):
+    def _draft_classify(self) -> None:
         self.options = {
             'adaboost': SimpleDesign(
                 name = 'adaboost',
@@ -131,8 +131,8 @@ class Modeler(SimpleStep):
                 data_dependent = 'scale_pos_weight')}
         return self
 
-    def _draft_cluster(self):
-        self.options = {    
+    def _draft_cluster(self) -> None:
+        self.options = {
             'affinity': SimpleDesign(
                 name = 'affinity',
                 module = 'sklearn.cluster',
@@ -179,7 +179,7 @@ class Modeler(SimpleStep):
                 algorithm = 'OneClassSVM')}
         return self
 
-    def _draft_regress(self):
+    def _draft_regress(self) -> None:
         self.options = {
             'adaboost': SimpleDesign(
                 name = 'adaboost',
@@ -241,7 +241,10 @@ class Modeler(SimpleStep):
                 data_dependent = 'scale_pos_weight')}
         return self
 
-    def _get_conditional(self, technique: str, parameters: dict):
+    def _get_conditional(self,
+            technique: str,
+            parameters: Dict[str, Any]) -> None:
+        
         if technique in ['xgboost'] and self.gpu:
             parameters.update({'tree_method': 'gpu_exact'})
         elif technique in ['tensorflow']:
@@ -252,7 +255,7 @@ class Modeler(SimpleStep):
 
     """ Core siMpLify Methods """
 
-    def draft(self):
+    def draft(self) -> None:
         super().draft()
         getattr(self, ''.join('_draft_', self.model_type))()
         if self.gpu:
@@ -260,7 +263,7 @@ class Modeler(SimpleStep):
         return self
 
 
-def create_tensorflow_model(technique: Technique, parameters: dict):
+def create_tensorflow_model(technique: Technique, parameters: dict) -> None:
     algorithm = None
     return algorithm
 
@@ -322,12 +325,12 @@ def create_tensorflow_model(technique: Technique, parameters: dict):
 
 
 
-def create_torch_model(technique: Technique, parameters: dict):
+def create_torch_model(technique: Technique, parameters: dict) -> None:
     algorithm = None
     return algorithm
 
 
-def create_stan_model(technique: Technique, parameters: dict):
+def create_stan_model(technique: Technique, parameters: dict) -> None:
     algorithm = None
     return algorithm
 

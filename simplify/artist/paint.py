@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 from simplify.core.technique import ArtistTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleClass
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleComposite
 subclass because siMpLify uses a lazy importing system. This locates the
 potential module importations in roughly the same place as normal module-level
-import commands. A SimpleClass subclass will, by default, add the
+import commands. A SimpleComposite subclass will, by default, add the
 DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
@@ -65,11 +65,11 @@ class Paint(SimpleIterable):
     name: str = 'paint'
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
@@ -113,7 +113,7 @@ class Paint(SimpleIterable):
         self.save(file_name)
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         """Sets available plots dictionary."""
         return self
 
@@ -265,7 +265,7 @@ class Paint(SimpleIterable):
         self.save(file_name)
         return self
 
-    def implement(self, recipes, reviews):
+    def publish(self, recipes, reviews):
         if ('shap' in self.explainers
             and self.presentation_options == 'default'):
             self.plots.extend(['shap_heat_map', 'shap_summary'])

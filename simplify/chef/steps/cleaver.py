@@ -8,27 +8,27 @@
 
 from dataclasses import dataclass
 
-from simplify.core.step import SimpleStep
-from simplify.core.step import SimpleDesign
+from simplify.core.technique import SimpleComposer
+from simplify.core.technique import SimpleDesign
 
 
 @dataclass
-class Cleaver(SimpleClass):
+class Cleaver(SimpleComposite):
     """Divides features for comparison or recombination.
-    
-    Args: 
+
+    Args:
         name (str): designates the name of the class which should match the
             section of settings in the Idea instance and other methods
             throughout the siMpLify package. If subclassing siMpLify classes,
             it is often a good idea to maintain to the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes.
-            
+
     """
 
     name: str = 'cleaver'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
@@ -59,7 +59,7 @@ class Cleaver(SimpleClass):
     #     self.options.update({cleave_group: columns})
     #     return self
 
-    def draft(self):
+    def draft(self) -> None:
         super().draft()
         self.options = {
         'compare': SimpleDesign(
@@ -70,7 +70,7 @@ class Cleaver(SimpleClass):
             name = 'combine',
             module = None,
             algorithm = 'CombineCleaves')}
-        
+
         return self
 
 
@@ -87,7 +87,7 @@ class CompareCleaves(Algorithm):
     parameters: object
     space: object
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.idea_sections = ['chef']
         super().__post_init__()
         return self
@@ -106,6 +106,6 @@ class CombineCleaves(Algorithm):
     parameters: object
     space: object
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self

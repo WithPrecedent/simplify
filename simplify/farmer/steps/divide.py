@@ -31,9 +31,9 @@ class Divide(FarmerTechnique):
     name: str = 'converter'
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
-    def implement(self, ingredients):
+    def publish(self, ingredients):
         return self

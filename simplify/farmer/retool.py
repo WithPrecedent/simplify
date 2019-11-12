@@ -11,7 +11,7 @@
 ReTool provides fast, easy-to-use tools for using regular expressions on
 pandas Series and DataFrames.
 
-The ReTool class is the controller class which assembles the proper 
+The ReTool class is the controller class which assembles the proper
 classes and methods to address the specified goals based upon the
 arguments passed.
 """
@@ -21,11 +21,11 @@ import numpy as np
 import pandas as pd
 import re
 
-from simplify.core.base import SimpleClass
+from simplify.core.base import SimpleComposite
 
 
 @dataclass
-class ReTool(SimpleClass):
+class ReTool(SimpleComposite):
     """Contains shared methods for regex tools in the ReTool package.
 
     ReTool aims to simplify and speed up creating expressions tables (pseudo-
@@ -57,7 +57,7 @@ class ReTool(SimpleClass):
     edit_prefixes: bool = True
     auto_draft: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.draft()
         if self.auto_draft:
             self.publish()
@@ -110,7 +110,7 @@ class ReTool(SimpleClass):
                 self.keys).to_dict()[self.values])
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         # Sets str names for corresponding regex compiling flags.
         self.flag_options = {'ignorecase': re.IGNORECASE,
                              'dotall': re.DOTALL,
@@ -166,7 +166,7 @@ class ReTool(SimpleClass):
         self._set_matcher()
         return self
 
-    def implement(self, ingredients = None, df = None, source = None,
+    def publish(self, ingredients = None, df = None, source = None,
               remove_from_source = True):
         df, source = self._check_ingredients(ingredients = ingredients,
                                              df = df,
@@ -195,7 +195,7 @@ class ReBuild(object):
     section_prefix: str = 'section'
     flag_options: object = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.auto_draft:
             self.publish()
         return self
@@ -227,7 +227,7 @@ class ReLoad(object):
     section_prefix: str = 'section'
     flag_options: object = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.auto_draft:
             self.publish()
         return self
@@ -259,7 +259,7 @@ class ReLoad(object):
 @dataclass
 class ReMatch(object):
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         return self
 
     def _set_out_column(self):
@@ -276,7 +276,7 @@ class ReMatch(object):
             self.source = self.value
         return self
 
-    def implement(self, df):
+    def publish(self, df):
         for self.key, self.value in self.expressions.items():
             self._set_source()
             self.section = self.sections[self.value]
@@ -319,7 +319,7 @@ class ReFrame(ReMatch):
     edit_prefixes: bool = True
     section_prefix: str = 'section'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         return self
 
     def _boolean(self, df):
@@ -375,7 +375,7 @@ class ReSearch(ReMatch):
     edit_prefixes: bool = True
     section_prefix: str = 'section'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
@@ -449,10 +449,10 @@ class ReOrganize(ReMatch):
     edit_prefixes: bool = True
     section_prefix: str = 'section'
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         return self
 
-    def implement(self, df, source):
+    def publish(self, df, source):
         for self.key, self.value in self.expressions.items():
             self._set_out_column()
             if re.search(self.key, source):
@@ -462,18 +462,18 @@ class ReOrganize(ReMatch):
             else:
                 df[self.out_column] = self.default_values['string']
         return df, source
-    
-    
+
+
 @dataclass
 class ReTypes(SimpleType):
     """Stores dictionaries related to specialized types used by the ReTool
     subpackage.
     """
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
-    def draft(self):
+    def draft(self) -> None:
         """Sets default attributes related to ReTool datatypes."""
         # Sets string names for python and special datatypes.
         self.name_to_type = {'boolean': bool,
