@@ -134,7 +134,8 @@ class Outline(object):
     selected: Optional[Union[bool, List[str]]] = False
     conditional: Optional[bool] = False
     hyperparameter_search: Optional[bool] = False
-
+    critic_dependent: Optional[Dict[str, str]] = None
+    export_file: Optional[str] = None
 
 @dataclass
 class Algorithm(SimpleContributor):

@@ -18,113 +18,87 @@ class Canvas(Book):
     """Builds tools for data visualization.
 
     Args:
-        ingredients(Ingredients): an instance of Ingredients. This argument need
-            not be passed when the class is instanced. It can be passed directly
-            to the 'publish' method as well.
-        steps(dict(str: ArtistTechnique)): names and related ArtistTechnique
-            classes for analyzing fitted models.
-        recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
-            This argument need not be passed when the class is instanced. It
-            can be passed directly to the 'publish' method as well.
-        reviews(Review): an instance of Review containing all metrics and
-            evaluation results.This argument need not be passed when the class
-            is instanced. It can be passed directly to the 'publish' method as
-            well.
-        name(str): designates the name of the class which should be identical
-            to the section of the idea configuration with relevant settings.
-        auto_draft (bool): whether to call the 'publish' method when the
-            class is instanced.
-        auto_publish (bool): whether to call the 'publish' method when the
-            class is instanced.
-
-    Since this class is a subclass to SimpleIterable and SimpleContributor, all
-    documentation for those classes applies as well.
+        idea (Union[Idea, str]): an instance of Idea or a string containing the
+            file path or file name (in the current working directory) where a
+            file of a supoorted file type with settings for an Idea instance is
+            located.
+        library (Optional[Union['Library', str]]): an instance of
+            library or a string containing the full path of where the root
+            folder should be located for file output. A library instance
+            contains all file path and import/export methods for use throughout
+            the siMpLify package. Default is None.
+        ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
+            np.ndarray, str]]): an instance of Ingredients, a string containing
+            the full file path where a data file for a pandas DataFrame or
+            Series is located, a string containing a file name in the default
+            data folder, as defined in the shared Library instance, a
+            DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
+            string is provided, the resultant DataFrame is stored at the 'df'
+            attribute in a new Ingredients instance. Default is None.
+        steps (Optional[Union[List[str], str]]): ordered names of Book
+            subclasses to include. These names should match keys in the
+            'options' attribute. If using the Idea instance settings, this
+            argument should not be passed. Default is None.
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            a subclass is instanced. For auto_publish to have an effect,
+            'ingredients' must also be passed. Defaults to True.
 
     """
-
-    ingredients: object = None
-    steps: object = None
-    recipes: object = None
-    reviews: object = None
-    name: str = 'canvas'
-    auto_draft: bool = True
-    auto_publish: bool = True
+    idea: Union['Idea', str]
+    library: Optional[Union['Library', str]] = None
+    ingredients: Optional[Union[
+        'Ingredients',
+        pd.DataFrame,
+        pd.Series,
+        np.ndarray,
+        str]] = None
+    steps: Optional[Union[List[str], str]] = None
+    name: Optional[str] = 'simplify'
+    auto_publish: Optional[bool] = True
 
     def __post_init__(self) -> None:
-        self.styler = []
         super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _check_model_type(self):
-        """Sets default paintings, animations, and any other added options if
-        user selects 'default' as the option for the respective option.
-        """
-        for key in self.options.keys():
-            if not hasattr(self, key) and getattr(self, key) == 'default':
-                setattr(self, key, getattr(
-                    self, '_default_' + self.model_type + 'key')())
+    def _draft_options(self) -> None:
+        self.options = {
+            'styler': ('simplify.artist.steps.styler', 'Styler'),
+            'painter': ('simplify.artist.steps.paint', 'Painter'),
+            'animator': ('simplify.artist.steps.animator', 'Animator')}
         return self
 
-    def _default_classifier_animations(self):
-        """Returns list of default animations for classifier algorithms."""
-        return []
-
-    def _default_classifier_paintings(self):
-        """Returns list of default plots for classifier algorithms."""
-        return ['confusion', 'heat_map', 'ks_statistic', 'pr_curve',
-                'roc_curve']
-
-    def _default_cluster_animations(self):
-        """Returns list of default animations for cluster algorithms."""
-        return []
-
-    def _default_cluster_paintings(self):
-        """Returns list of default plots for cluster algorithms."""
-        return ['cluster_tree', 'elbow', 'silhouette']
-
-    def _default_regressor_animations(self):
-        """Returns list of default animations for regressor algorithms."""
-        return []
-
-    def _default_regressor_paintings(self):
-        """Returns list of default plots for regressor algorithms."""
-        return ['heat_map', 'linear', 'residuals']
-
-    def _get_ingredients(self, recipe = None):
-        """
-        """
-        if recipe:
-            return recipe.ingredients
-        elif self.ingredients is not None:
-            return self.ingredients
-        else:
-            error = 'implement method requires Ingredients or Recipe instance'
-            raise TypeError(error)
-
-    def _set_styler(self):
+    def _draft_styler(self) -> None:
         if 'styler' not in self.steps:
             self.steps = ['styler'] + self.steps
         return self
 
     """ Core siMpLify Methods """
 
+
     def draft(self) -> None:
-        """Sets default styles, options, and plots."""
-
-        self._set_styler()
-        return self
-
-    def publish(self, data = None, recipes = None, reviews = None):
-        if self.ingredients is None:
-            self.data = self.recipes.ingredients
-        for name, step  in self.steps:
-            for recipe in listify(self.recipes):
-                if self.verbose:
-                    print('Visualizing', recipe.name + recipe.number)
-                for step, step in getattr(self, self.iterator).items():
-                    step.implement(recipe = recipe, review = reviews)
+        """Creates initial attributes."""
+        self.parent_type = 'project'
+        self.child_types = 'chapters'
+        # 'options' should be created before this loop.
+        for method in (
+                'attributes',
+                'options',
+                'steps',
+                'styler',
+                'contributors',
+                'plans',
+                'chapters'):
+            getattr(self, '_'.join(['_draft', method]))()
         return self
 
 

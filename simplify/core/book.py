@@ -47,7 +47,40 @@ class SimpleManuscript(ABC):
         self.draft()
         return self
 
+    """ Dunder Methods """
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable 'children'."""
+        try:
+            return iter(self.children)
+        except AttributeError:
+            return iter()
+
     """ Private Methods """
+
+    def _convert_wildcards(self, value: Union[str, List[str]]) -> List[str]:
+        """Converts 'all', 'default', or 'none' values to a list of items.
+
+        Args:
+            value (Union[str, List[str]]): name(s) of pages.
+
+        Returns:
+            If 'all', either the 'all' property or all keys listed in 'options'
+                dictionary are returned.
+            If 'default', either the 'defaults' property or all keys listed in
+                'options' dictionary are returned.
+            If some variation of 'none', 'none' is returned.
+            Otherwise, 'value' is returned intact.
+
+        """
+        if value in ['all', ['all']]:
+            return self.all
+        elif value in ['default', ['default']]:
+            self.default
+        elif value in ['none', ['none'], 'None', ['None'], None]:
+            return ['none']
+        else:
+            return listify(value)
 
     def _draft_options(self) -> None:
         """Declares 'options' dict.
@@ -327,40 +360,7 @@ class Book(SimpleManuscript):
             self.publish(data = self.ingredients)
         return self
 
-    """ Dunder Methods """
-
-    def __iter__(self) -> Iterable:
-        """Returns iterable 'chapters'."""
-        try:
-            return iter(self.chapters)
-        except AttributeError:
-            return iter()
-
     """ Private Methods """
-
-    def _convert_wildcards(self, value: Union[str, List[str]]) -> List[str]:
-        """Converts 'all', 'default', or 'none' values to a list of items.
-
-        Args:
-            value (Union[str, List[str]]): name(s) of pages.
-
-        Returns:
-            If 'all', either the 'all' property or all keys listed in 'options'
-                dictionary are returned.
-            If 'default', either the 'defaults' property or all keys listed in
-                'options' dictionary are returned.
-            If some variation of 'none', 'none' is returned.
-            Otherwise, 'value' is returned intact.
-
-        """
-        if value in ['all', ['all']]:
-            return self.all
-        elif value in ['default', ['default']]:
-            self.default
-        elif value in ['none', ['none'], 'None', ['None'], None]:
-            return ['none']
-        else:
-            return listify(value)
 
     def _draft_attributes(self):
         """Conforms passed arguments to proper types."""
@@ -459,16 +459,7 @@ class Book(SimpleManuscript):
 
         """
         return chapter
-
-    def _publish_steps(self, data: Optional['Ingredients'] = None) -> None:
-        """Subclasses should provide their own method, if needed.
-
-        Args:
-            data (Optional['Ingredients']): an Ingredients instance.
-
-        """
-        return self
-
+    
     def _publish_contributors(self,
             data: Optional['Ingredients'] = None) -> None:
         """Converts contributor classes into class instances.
@@ -484,23 +475,6 @@ class Book(SimpleManuscript):
             instance.publish(data = data)
             new_contributors[key] = instance
         self.contributors = new_contributors
-        return self
-
-    def _publish_plans(self, data: Optional['Ingredients'] = None) -> None:
-        """Subclasses should provide their own method, if needed.
-
-        Args:
-            data (Optional['Ingredients']): an Ingredients instance.
-
-        """
-        plans = []
-        for step in self.steps:
-            try:
-                key = '_'.join([step, 'techniques'])
-                plans.append(listify(self.idea[self.name][key]))
-            except AttributeError:
-                plans.append(['none'])
-        self.plans = list(map(list, product(*plans)))
         return self
 
     def _publish_chapters(self, data: Optional['Ingredients'] = None) -> None:

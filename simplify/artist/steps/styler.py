@@ -1,5 +1,5 @@
 """
-.. module:: style
+.. module:: styler
 :synopsis: sets universal data visualization style
 :author: Corey Rayburn Yung
 :copyright: 2019
@@ -7,40 +7,38 @@
 """
 
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from simplify.core.contributor import ArtistTechnique
-
-
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleContributor
-subclass because siMpLify uses a lazy importing system. This locates the
-potential module importations in roughly the same place as normal module-level
-import commands. A SimpleContributor subclass will, by default, add the
-DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
-to use another set of 'options' for a subclass, they just need to pass
-'options' when the class is instanced.
-"""
-DEFAULT_OPTIONS = {}
+from simplify.core.contributor import SimpleContributor
+from simplify.core.contributor import Outline
 
 
 @dataclass
-class Style(SimpleIterable):
+class Styler(SimpleIterable):
+    """Sets data visualization style.
 
-    step: object = None
-    parameters: object = None
-    name: str = 'style'
-    auto_draft: bool = True
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
+
+    """
+    name: str = 'styler'
 
     def __post_init__(self) -> None:
         super().__post_init__()
         return self
 
-
-    def _set_style(self):
-        """Sets fonts, colors, and styles for plots that do not have set
-        styles.
+    def draft(self) -> None:
+        """Sets fonts, colors, and styles for plots that do not have set styles.
         """
         # List of colorblind colors obtained from here:
         # https://www.dataquest.io/blog/making-538-plots/.
