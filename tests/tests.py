@@ -17,7 +17,7 @@ algorithm, parameters = builder.create(
     configuration = {'general': {'gpu': True, 'seed': 4}},
     package = 'chef',
     step = 'scale',
-    technique = 'normalize',
+    step = 'normalize',
     parameters = {'copy': False})
 
 print(algorithm, parameters)

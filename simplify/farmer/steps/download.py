@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import os
 import requests
 
-from simplify.core.technique import FarmerTechnique
+from simplify.core.contributor import FarmerTechnique
 
 
 @dataclass
@@ -18,7 +18,7 @@ class Download(FarmerTechnique):
     """Acquires data from an online source.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): name of class for matching settings in the Idea instance
@@ -27,7 +27,7 @@ class Download(FarmerTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'downloader'
     auto_draft: bool = True
@@ -41,7 +41,7 @@ class Download(FarmerTechnique):
 
     def publish(self, ingredients):
         """Downloads file from a URL if the file is available."""
-        file_path = os.path.join(self.depot.external,
+        file_path = os.path.join(self.library.external,
                                  self.file_name)
         file_response = requests.get(self.file_url)
         with open(file_path, 'wb') as file:

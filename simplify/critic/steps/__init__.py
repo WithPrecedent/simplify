@@ -1,6 +1,6 @@
 """
-.. module:: siMpLify critic techniques
-:synopsis: model evaluation made simple
+.. module:: siMpLify critic steps
+:synopsis: model evaluation workflow
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0

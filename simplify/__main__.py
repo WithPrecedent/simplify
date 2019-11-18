@@ -8,14 +8,15 @@
 
 import os
 import sys
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+from simplify.core.library import Library
 from simplify.core.idea import Idea
-from simplify.core.depot import Depot
 from simplify.core.ingredients import Ingredients
 from simplify.project import Project
 
 
-def _args_to_dict():
+def _args_to_dict() -> Dict[str, str]:
     """Converts command line arguments into 'arguments' dict.
 
     The dictionary conversion is more forgiving than the typical argparse
@@ -39,23 +40,23 @@ def _args_to_dict():
             arguments[key] = value
     return arguments
 
-def _get_depot(arguments):
-    """Creates Depot instance from command line or default options.
+def _get_library(arguments: Dict[str, str]):
+    """Creates Library instance from command line or default options.
 
         Args:
             arguments(dict): command line options dictionary.
 
         Returns:
-            depot(Depot): instance of Depot with root folder set to the argument
-                passed or default option
+            library(Library): instance of library with root folder
+                set to the argument passed or default option.
 
     """
     try:
-        return Depot(root_folder = arguments['-depot'])
+        return Library(root_folder = arguments['-library'])
     except KeyError:
-        return Depot(root_folder = os.path.join('..', '..'))
+        return Library(root_folder = os.path.join('..', '..'))
 
-def _get_idea(arguments):
+def _get_idea(arguments: Dict[str, str]):
     """Creates Idea instance from command line or default options.
 
         Args:
@@ -71,11 +72,11 @@ def _get_idea(arguments):
 
     """
     try:
-        return Idea(options = arguments['-idea'])
+        return Idea(configuration = arguments['-idea'])
     except KeyError:
-        return Idea(options = os.path.join(os.getcwd, 'settings.ini'))
+        return Idea(configuration = os.path.join(os.getcwd, 'settings.ini'))
 
-def _get_ingredients(arguments):
+def _get_ingredients(arguments: Dict[str, str]):
     """Creates Ingredients instance with or without command line options.
 
         Args:
@@ -94,13 +95,16 @@ def _get_ingredients(arguments):
     except KeyError:
         return Ingredients()
 
-def main(idea, depot, ingredients):
+def main(idea, library, ingredients):
     print('Starting siMpLify')
-    return Project(idea = idea, depot = depot, ingredients = ingredients)
+    return Project(
+        idea = idea,
+        library = library,
+        ingredients = ingredients)
 
 if __name__ == '__main__':
     arguments = _args_to_dict()
     idea = _get_idea(arguments = arguments)
-    depot = _get_depot(arguments = arguments)
+    library = _get_library(arguments = arguments)
     ingredients = _get_ingredients(arguments = arguments)
-    main(idea = idea, depot = depot, ingredients = ingredients)
+    main(idea = idea, library = library, ingredients = ingredients)

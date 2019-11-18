@@ -7,72 +7,74 @@
 """
 
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.technique import SimpleComposer
-from simplify.core.technique import SimpleDesign
+from simplify.core.contributor import SimpleContributor
+from simplify.core.contributor import Outline
 
 
 @dataclass
-class Modeler(SimpleComposer):
-    """Splits data into training, testing, and/or validation datasets.
+class Modeler(SimpleContributor):
+    """Applies machine learning or statistical model to data.
 
     Args:
-        name (str): designates the name of the class which should match the
-            section of settings in the Idea instance and other methods
-            throughout the siMpLify package. If subclassing siMpLify classes,
-            it is often a good idea to maintain to the same 'name' attribute
-            as the base class for effective coordination between siMpLify
-            classes.
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
 
     """
     name: str = 'modeler'
 
     def __post_init__(self) -> None:
-        self.idea_sections = ['chef']
         super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _add_gpu_techniques_classify(self) -> None:
+    def _add_gpu_steps_classify(self) -> None:
         self.options.update({
-            'forest_inference': SimpleDesign(
+            'forest_inference': Outline(
                 name = 'forest_inference',
                 module = 'cuml',
                 algorithm = 'ForestInference'),
-            'random_forest': SimpleDesign(
+            'random_forest': Outline(
                 name = 'random_forest',
                 module = 'cuml',
                 algorithm = 'RandomForestClassifier'),
-            'logit': SimpleDesign(
+            'logit': Outline(
                 name = 'logit',
                 module = 'cuml',
                 algorithm = 'LogisticRegression')})
         return self
 
-    def _add_gpu_techniques_cluster(self) -> None:
+    def _add_gpu_steps_cluster(self) -> None:
         self.options.update({
-            'dbscan': SimpleDesign(
+            'dbscan': Outline(
                 name = 'dbscan',
                 module = 'cuml',
                 algorithm = 'DBScan'),
-            'kmeans': SimpleDesign(
+            'kmeans': Outline(
                 name = 'kmeans',
                 module = 'cuml',
                 algorithm = 'KMeans')})
         return self
 
-    def _add_gpu_techniques_regress(self) -> None:
+    def _add_gpu_steps_regress(self) -> None:
         self.options.update({
-            'lasso': SimpleDesign(
+            'lasso': Outline(
                 name = 'lasso',
                 module = 'cuml',
                 algorithm = 'Lasso'),
-            'ols': SimpleDesign(
+            'ols': Outline(
                 name = 'ols',
                 module = 'cuml',
                 algorithm = 'LinearRegression'),
-            'ridge': SimpleDesign(
+            'ridge': Outline(
                 name = 'ridge',
                 module = 'cuml',
                 algorithm = 'RidgeRegression')})
@@ -80,51 +82,51 @@ class Modeler(SimpleComposer):
 
     def _draft_classify(self) -> None:
         self.options = {
-            'adaboost': SimpleDesign(
+            'adaboost': Outline(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',
                 algorithm = 'AdaBoostClassifier'),
-            'baseline_classifier': SimpleDesign(
+            'baseline_classifier': Outline(
                 name = 'baseline_classifier',
                 module = 'sklearn.dummy',
                 algorithm = 'DummyClassifier',
                 required = {'strategy': 'most_frequent'}),
-            'logit': SimpleDesign(
+            'logit': Outline(
                 name = 'logit',
                 module = 'sklearn.linear_model',
                 algorithm = 'LogisticRegression'),
-            'random_forest': SimpleDesign(
+            'random_forest': Outline(
                 name = 'random_forest',
                 module = 'sklearn.ensemble',
                 algorithm = 'RandomForestClassifier'),
-            'svm_linear': SimpleDesign(
+            'svm_linear': Outline(
                 name = 'svm_linear',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'linear', 'probability': True}),
-            'svm_poly': SimpleDesign(
+            'svm_poly': Outline(
                 name = 'svm_poly',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'poly', 'probability': True}),
-            'svm_rbf': SimpleDesign(
+            'svm_rbf': Outline(
                 name = 'svm_rbf',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'rbf', 'probability': True}),
-            'svm_sigmoid': SimpleDesign(
+            'svm_sigmoid': Outline(
                 name = 'svm_sigmoid ',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'sigmoid', 'probability': True}),
-            'tensorflow': SimpleDesign(
+            'tensorflow': Outline(
                 name = 'tensorflow',
                 module = 'tensorflow',
                 algorithm = None,
                 default = {
                     'batch_size': 10,
                     'epochs': 2}),
-            'xgboost': SimpleDesign(
+            'xgboost': Outline(
                 name = 'xgboost',
                 module = 'xgboost',
                 algorithm = 'XGBClassifier',
@@ -133,47 +135,47 @@ class Modeler(SimpleComposer):
 
     def _draft_cluster(self) -> None:
         self.options = {
-            'affinity': SimpleDesign(
+            'affinity': Outline(
                 name = 'affinity',
                 module = 'sklearn.cluster',
                 algorithm = 'AffinityPropagation'),
-            'agglomerative': SimpleDesign(
+            'agglomerative': Outline(
                 name = 'agglomerative',
                 module = 'sklearn.cluster',
                 algorithm = 'AgglomerativeClustering'),
-            'birch': SimpleDesign(
+            'birch': Outline(
                 name = 'birch',
                 module = 'sklearn.cluster',
                 algorithm = 'Birch'),
-            'dbscan': SimpleDesign(
+            'dbscan': Outline(
                 name = 'dbscan',
                 module = 'sklearn.cluster',
                 algorithm = 'DBSCAN'),
-            'kmeans': SimpleDesign(
+            'kmeans': Outline(
                 name = 'kmeans',
                 module = 'sklearn.cluster',
                 algorithm = 'KMeans'),
-            'mean_shift': SimpleDesign(
+            'mean_shift': Outline(
                 name = 'mean_shift',
                 module = 'sklearn.cluster',
                 algorithm = 'MeanShift'),
-            'spectral': SimpleDesign(
+            'spectral': Outline(
                 name = 'spectral',
                 module = 'sklearn.cluster',
                 algorithm = 'SpectralClustering'),
-            'svm_linear': SimpleDesign(
+            'svm_linear': Outline(
                 name = 'svm_linear',
                 module = 'sklearn.cluster',
                 algorithm = 'OneClassSVM'),
-            'svm_poly': SimpleDesign(
+            'svm_poly': Outline(
                 name = 'svm_poly',
                 module = 'sklearn.cluster',
                 algorithm = 'OneClassSVM'),
-            'svm_rbf': SimpleDesign(
+            'svm_rbf': Outline(
                 name = 'svm_rbf',
                 module = 'sklearn.cluster',
                 algorithm = 'OneClassSVM,'),
-            'svm_sigmoid': SimpleDesign(
+            'svm_sigmoid': Outline(
                 name = 'svm_sigmoid',
                 module = 'sklearn.cluster',
                 algorithm = 'OneClassSVM')}
@@ -181,60 +183,60 @@ class Modeler(SimpleComposer):
 
     def _draft_regress(self) -> None:
         self.options = {
-            'adaboost': SimpleDesign(
+            'adaboost': Outline(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',
                 algorithm = 'AdaBoostRegressor'),
-            'baseline_regressor': SimpleDesign(
+            'baseline_regressor': Outline(
                 name = 'baseline_regressor',
                 module = 'sklearn.dummy',
                 algorithm = 'DummyRegressor',
                 required = {'strategy': 'mean'}),
-            'bayes_ridge': SimpleDesign(
+            'bayes_ridge': Outline(
                 name = 'bayes_ridge',
                 module = 'sklearn.linear_model',
                 algorithm = 'BayesianRidge'),
-            'lasso': SimpleDesign(
+            'lasso': Outline(
                 name = 'lasso',
                 module = 'sklearn.linear_model',
                 algorithm = 'Lasso'),
-            'lasso_lars': SimpleDesign(
+            'lasso_lars': Outline(
                 name = 'lasso_lars',
                 module = 'sklearn.linear_model',
                 algorithm = 'LassoLars'),
-            'ols': SimpleDesign(
+            'ols': Outline(
                 name = 'ols',
                 module = 'sklearn.linear_model',
                 algorithm = 'LinearRegression'),
-            'random_forest': SimpleDesign(
+            'random_forest': Outline(
                 name = 'random_forest',
                 module = 'sklearn.ensemble',
                 algorithm = 'RandomForestRegressor'),
-            'ridge': SimpleDesign(
+            'ridge': Outline(
                 name = 'ridge',
                 module = 'sklearn.linear_model',
                 algorithm = 'Ridge'),
-            'svm_linear': SimpleDesign(
+            'svm_linear': Outline(
                 name = 'svm_linear',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'linear', 'probability': True}),
-            'svm_poly': SimpleDesign(
+            'svm_poly': Outline(
                 name = 'svm_poly',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'poly', 'probability': True}),
-            'svm_rbf': SimpleDesign(
+            'svm_rbf': Outline(
                 name = 'svm_rbf',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'rbf', 'probability': True}),
-            'svm_sigmoid': SimpleDesign(
+            'svm_sigmoid': Outline(
                 name = 'svm_sigmoid ',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'sigmoid', 'probability': True}),
-            'xgboost': SimpleDesign(
+            'xgboost': Outline(
                 name = 'xgboost',
                 module = 'xgboost',
                 algorithm = 'XGBRegressor',
@@ -242,14 +244,14 @@ class Modeler(SimpleComposer):
         return self
 
     def _get_conditional(self,
-            technique: str,
+            step: str,
             parameters: Dict[str, Any]) -> None:
-        
-        if technique in ['xgboost'] and self.gpu:
+
+        if step in ['xgboost'] and self.gpu:
             parameters.update({'tree_method': 'gpu_exact'})
-        elif technique in ['tensorflow']:
+        elif step in ['tensorflow']:
             algorithm = create_tensorflow_model(
-                technique = technique,
+                step = step,
                 parameters = parameters)
         return parameters
 
@@ -257,13 +259,13 @@ class Modeler(SimpleComposer):
 
     def draft(self) -> None:
         super().draft()
-        getattr(self, ''.join('_draft_', self.model_type))()
+        getattr(self, ''.join(['_draft_', self.model_type]))()
         if self.gpu:
-            getattr(self, ''.join('_add_gpu_techniques_', self.model_type))()
+            getattr(self, ''.join('_add_gpu_steps_', self.model_type))()
         return self
 
 
-def create_tensorflow_model(technique: Technique, parameters: dict) -> None:
+def create_tensorflow_model(step: 'Page', parameters: dict) -> None:
     algorithm = None
     return algorithm
 
@@ -325,12 +327,12 @@ def create_tensorflow_model(technique: Technique, parameters: dict) -> None:
 
 
 
-def create_torch_model(technique: Technique, parameters: dict) -> None:
+def create_torch_model(step: 'Page', parameters: dict) -> None:
     algorithm = None
     return algorithm
 
 
-def create_stan_model(technique: Technique, parameters: dict) -> None:
+def create_stan_model(step: 'Page', parameters: dict) -> None:
     algorithm = None
     return algorithm
 

@@ -63,8 +63,8 @@ To understand a typical use-case for siMplify, let's examine a project that omit
 
 As an example of siMpLify's functionality, let's review the Chef subpackage. It allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling ingredients based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
 
-By default, the Chef divides the feature engineering and modeling process into eight major techniques that can be sequenced in different orders (or supplemented with
-custom techniques and techniques):
+By default, the Chef divides the feature engineering and modeling process into eight major steps that can be sequenced in different orders (or supplemented with
+custom steps and steps):
 
 * Scale: converts numerical features into a common scale, using scikit-learn methods.
 * Split: divides data into train, test, and/or validation sets once or iteratively through k-folds cross-validation.
@@ -82,7 +82,7 @@ As part of any machine learning workflow, assessment of prepared models is an es
 * Summarize: building beyond the pandas describe method, this step includes a wide number of summary statistics for the user data, appropriately calculated based upon the data type of a particular variable.
 * Score: automatically determining the compatibility of various scikit-learn and/or user-provided metrics, results for each recipe are calcuated.
 * Evaluate: using explainers from shap, skater, and eli5, the various recipes are evaluated, feature importances calculated, and cumulative comparisons are made.
-* Report: the above stages are compiled into appropriate reports which are exported to disc or, in some cases, outputted to the terminal.
+* Report: the above stages are compiled into appropriate reports which are exported to disk or, in some cases, outputted to the terminal.
 
 ### siMpLify Artist
 
@@ -101,7 +101,7 @@ For example, using the settings file, a user could create a cookbook of recipes 
     calculate_hyperparameters = True
     naming_classes = model, cleaver
     export_all_recipes = True
-    cookbook_techniques = scaler, splitter, encoder, mixer, cleaver, sampler, reducer,   model
+    cookbook_steps = scaler, splitter, encoder, mixer, cleaver, sampler, reducer,   model
     scaler = normalizer, minmax
     splitter = train_test
     encoder = target
@@ -140,7 +140,7 @@ The examples folder, from which the above settings are taken, currently shows ho
     import numpy as np
     from sklearn.datasets import load_breast_cancer
 
-    from simplify import Idea, Depot, Ingredients
+    from simplify import Idea, library, Ingredients
     from simplify.chef import Cookbook
 
     # Loads cancer data and converts from numpy arrays to pandas dataframe.
@@ -150,7 +150,7 @@ The examples folder, from which the above settings are taken, currently shows ho
     # Initializes core simplify classes.
     idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
                                             'cancer_settings.ini'))
-    depot = Depot(root_folder = os.path.join('..', '..'))
+    library = library(root_folder = os.path.join('..', '..'))
     ingredients = Ingredients(df = df)
     # Converts label to boolean type - conversion from numpy arrays leaves all
     # columns as float type.

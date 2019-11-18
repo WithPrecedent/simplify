@@ -13,18 +13,16 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleComposite
-from simplify.core.distributor import SimpleDistributor
-from simplify.core.decorators import choose_df
-from simplify.core.decorators import combine_lists
-from simplify.core.options import SimpleOptions
+from simplify.core.utilities import choose_df
+from simplify.core.utilities import combine_lists
+from simplify.core.states import DataState
 from simplify.core.types import DataTypes
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Ingredients(SimpleDistributor):
+class Ingredients(object):
     """Stores pandas DataFrames and Series with related information about those
     data containers.
 
@@ -34,7 +32,7 @@ class Ingredients(SimpleDistributor):
     using the 'load' and 'save' methods in a class instance.
 
     Ingredients adds easy-to-use methods for common feature engineering
-    techniques. In addition, any user function can be applied to a DataFrame
+    steps. In addition, any user function can be applied to a DataFrame
     or Series contained in Ingredients by using the 'apply' method (mirroring
     the functionality of the pandas method).
 
@@ -62,10 +60,9 @@ class Ingredients(SimpleDistributor):
             that all data containers within the instance are related and share a
             pool of column names and types.
 
-    Since this class is a subclass to SimpleComposite, all of its documentation
-    applies as well.
-
     """
+    idea: 'Idea'
+    library: 'Library'
     name: Optional[str] = 'ingredients'
     df: Optional[pd.DataFrame] = None
     default_df: Optional[str] = 'df'
@@ -84,7 +81,6 @@ class Ingredients(SimpleDistributor):
         if isinstance(self.df, Ingredients):
             self = self.df
         else:
-            super().__post_init__()
             self.draft()
         return self
 
@@ -166,7 +162,7 @@ class Ingredients(SimpleDistributor):
             taken.
         If a 'dataframe' is a file path, the file is loaded into a DataFrame and
             assigned to 'df'.
-        If a 'dataframe' is a file folder, a glob in 'depot' is created.
+        If a 'dataframe' is a file folder, a glob in 'library' is created.
         If a 'dataframe' is a numpy array, it is converted to a pandas
             DataFrame.
 
@@ -184,12 +180,12 @@ class Ingredients(SimpleDistributor):
                 setattr(self, df, pd.DataFrame(data = getattr(self, df)))
             else:
                 try:
-                    setattr(self, df, self.depot.load(
-                        folder = self.depot.data,
+                    setattr(self, df, self.library.load(
+                        folder = self.library.data,
                         file_name = getattr(self, df)))
                 except FileNotFoundError:
                     try:
-                        self.depot.create_glob(folder = getattr(self, df))
+                        self.library.create_glob(folder = getattr(self, df))
                     except TypeError:
                         error = ' '.join(
                             ['df must be a file path, file folder, DataFrame',
@@ -670,7 +666,7 @@ class Ingredients(SimpleDistributor):
         if self.dropped_columns:
             if self.verbose:
                 print('Exporting dropped feature list')
-            self.depot.save(
+            self.library.save(
                 variable = self.dropped_columns,
                 folder = folder,
                 file_name = file_name,
@@ -734,13 +730,11 @@ class Ingredients(SimpleDistributor):
         self.state = DataState()
         # Creates naming suffix convention for use by __getattr__ and
         # __setattr__ that change dataset mapping based upon 'state'.
-        self.options = SimpleOptions(
-            options = {
-                'unsplit': {'train': '', 'test': None},
-                'train_test': {'train': '_train', 'test': '_test'},
-                'train_val': {'train': '_train', 'test': '_val'},
-                'full': {'train': '', 'test': ''}},
-            parent = self)
+        self.options = {
+            'unsplit': {'train': '', 'test': None},
+            'train_test': {'train': '_train', 'test': '_test'},
+            'train_val': {'train': '_train', 'test': '_val'},
+            'full': {'train': '', 'test': ''}}
         self.dataframes = [
             'df',
             '_x',
@@ -758,7 +752,7 @@ class Ingredients(SimpleDistributor):
         self._initialize_datatypes()
         return self
 
-    def publish(self, instance: 'SimpleComposite') -> None:
+    def publish(self, instance: 'SimpleContributor') -> None:
         setattr(instance, self.name, self)
         return self
 
@@ -768,44 +762,3 @@ class Ingredients(SimpleDistributor):
     def dropped_columns(self):
         return self._start_columns - self.x_train.columns.values
 
-
-@dataclass
-class DataState(SimpleComposite):
-
-    state: str = 'unsplit'
-
-    def __post_init__(self) -> None:
-        self.draft()
-        return self
-
-    def __repr__(self) -> str:
-        """Returns string name of 'state'."""
-        return self.__str__()
-
-    def __str__(self) -> str:
-        """Returns string name of 'state'."""
-        return self.state
-
-    def change(self, new_state: str) -> None:
-        """Changes 'state' to 'new_state'.
-
-        Args:
-            new_state(str): name of new state matching a string in 'options'.
-
-        Raises:
-            TypeError: if new_state is not in 'states'.
-
-        """
-        if new_state in self.options:
-            self.state = new_state
-        else:
-            error = new_state + ' is not a recognized data state'
-            raise TypeError(error)
-
-    def draft(self) -> None:
-        # Sets possible states
-        self.options = ['unsplit', 'train_test', 'train_val', 'full']
-        return self
-
-    def publish(self) -> str:
-        return self.state

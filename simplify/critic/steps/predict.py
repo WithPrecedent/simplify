@@ -9,13 +9,13 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
-from simplify.critic.review import CriticTechnique
+from simplify.critic.collection import CriticTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleComposite
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleContributor
 subclass because siMpLify uses a lazy importing system. This locates the
 potential module importations in roughly the same place as normal module-level
-import commands. A SimpleComposite subclass will, by default, add the
+import commands. A SimpleContributor subclass will, by default, add the
 DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
@@ -32,7 +32,7 @@ class Predict(CriticTechnique):
     """Creates predictions from fitted models for out-of-sample data.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): designates the name of the class which is used throughout
@@ -42,7 +42,7 @@ class Predict(CriticTechnique):
             the class is instanced. This should generally be set to True.
 
     """
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'prediction'
     auto_draft: bool = True
@@ -70,7 +70,7 @@ class Predict(CriticTechnique):
         else:
             if self.verbose:
                 print('predict method does not exist for',
-                      recipe.model.technique.name)
+                      recipe.model.step.name)
             return None
 
     def _get_shap_predictions(self, recipe):

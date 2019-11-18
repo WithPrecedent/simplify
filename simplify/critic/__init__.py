@@ -6,10 +6,10 @@
 :license: Apache-2.0
 """
 
-from .review import Review
+from .collection import Collection
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = ['Review']
+__all__ = ['Collection']

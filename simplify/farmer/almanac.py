@@ -8,15 +8,15 @@
 
 from dataclasses import dataclass
 
-from simplify.core.decorators import local_backups
+from simplify.core.utilities import local_backups
 from simplify.core.package import SimplePackage
-from simplify.core.technique import FarmerTechnique
+from simplify.core.contributor import FarmerTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleComposite
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleContributor
 subclass because siMpLify uses a lazy importing system. This locates the
 potential module importations in roughly the same place as normal module-level
-import commands. A SimpleComposite subclass will, by default, add the
+import commands. A SimpleContributor subclass will, by default, add the
 DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
@@ -38,13 +38,13 @@ class Almanac(SimplePackage):
         idea(Idea or str): an instance of Idea or a string containing the file
             path or file name (in the current working directory) where a
             supoorted settings file for an Idea instance is located.
-        depot(Depot): an instance of Depot.
+        library(library): an instance of library.
         ingredients(Ingredients or str): an instance of Ingredients or a string
             with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced.
-        techniques(dict(str: FarmerTechnique)): techniques to be completed in order. This
+        steps(dict(str: FarmerTechnique)): steps to be completed in order. This
             argument should only be passed if the user wishes to override the
-            techniques listed in the Idea settings or if the user is not using the
+            steps listed in the Idea settings or if the user is not using the
             Idea class.
         plans(SimplePackage): instanced subclasses of SimplePackage for
             prepared tools for the Almanac.
@@ -52,21 +52,21 @@ class Almanac(SimplePackage):
             to the section of the idea configuration with relevant settings.
         auto_draft(bool): whether to call the 'publish' method when the
             class is instanced. If you do not plan to make any
-            adjustments to the techniques, techniques, or algorithms beyond the
+            adjustments to the steps, steps, or algorithms beyond the
             Idea configuration, this option should be set to True. If you plan
             to make such changes, 'publish' should be called when those
             changes are complete.
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
 
-    Since this class is a subclass to SimplePackage and SimpleComposite, all
+    Since this class is a subclass to SimplePackage and SimpleContributor, all
     documentation for those classes applies as well.
 
     """
     idea: object = None
-    depot: object = None
+    library: object = None
     ingredients: object = None
-    techniques: object = None
+    steps: object = None
     plans: object = None
     name: str = 'chef'
     auto_draft: bool = True
@@ -102,34 +102,34 @@ class Almanac(SimplePackage):
     def _publish_draft(self) -> None:
         """Initializes the step classes for use by the Harvest."""
         self.drafts = []
-        for step in self.techniques:
+        for step in self.steps:
             step_instance = self.draft_class(name = step,
                                             index_column = self.index_column)
-            for technique in listify(getattr(self, step + '_techniques')):
-                tool_instance = self.edit_technique(
+            for step in listify(getattr(self, step + '_steps')):
+                tool_instance = self.edit_step(
                         step = step,
-                        technique = technique,
-                        parameters = listify(getattr(self, technique)))
-                step_instance.techniques.append(tool_instance)
+                        step = step,
+                        parameters = listify(getattr(self, step)))
+                step_instance.steps.append(tool_instance)
             step_instance.publish()
             self.drafts.append(step_instance)
         return self
 
     def _implement_file(self, ingredients):
         with open(
-                self.depot.path_in, mode = 'r', errors = 'ignore',
+                self.library.path_in, mode = 'r', errors = 'ignore',
                 encoding = self.idea['files']['file_encoding']) as a_file:
             ingredients.source = a_file.implement()
-            for technique in self.techniques:
-                ingredients = technique.implement(ingredients = ingredients)
-            self.depot.save(variable = ingredients.df)
+            for step in self.steps:
+                data = step.implement(data = ingredients)
+            self.library.save(variable = ingredients.df)
         return ingredients
 
     def _implement_glob(self, ingredients):
-        self.depot.initialize_writer(
-                file_path = self.depot.path_out)
+        self.library.initialize_writer(
+                file_path = self.library.path_out)
         ingredients.create_series()
-        for file_num, a_path in enumerate(self.depot.path_in):
+        for file_num, a_path in enumerate(self.library.path_in):
             if (file_num + 1) % 100 == 0 and self.verbose:
                 print(file_num + 1, 'files parsed')
             with open(
@@ -138,9 +138,9 @@ class Almanac(SimplePackage):
                 ingredients.source = a_file.implement()
                 print(ingredients.df)
                 ingredients.df[self.index_column] = file_num + 1
-                for technique in self.techniques:
-                    ingredients = technique.implement(ingredients = ingredients)
-                self.depot.save(variable = ingredients.df)
+                for step in self.steps:
+                    data = step.implement(data = ingredients)
+                self.library.save(variable = ingredients.df)
         return ingredients
 
     def _set_columns(self, organizer):
@@ -159,31 +159,31 @@ class Almanac(SimplePackage):
         return self
 
     def publish(self):
-        """Creates a Harvest with all sequenced techniques applied at each
+        """Creates a Harvest with all sequenced steps applied at each
         step. Each set of methods is stored in a list within a Almanac instance.
         """
         if self.verbose:
             print('Preparing Harvest')
         self._publish_draft_class()
-        self._publish_techniques()
+        self._publish_steps()
         self._publish_draft()
         if hasattr(self, '_set_folders'):
             self._set_folders()
         return self
 
-    def publish(self, ingredients = None):
+    def publish(self, data = None):
         """Completes an iteration of an Harvest."""
         if not ingredients:
-            ingredients = self.ingredients
+            data = self.ingredients
         for draft in self.drafts:
             self.step = draft.name
             # Adds initial columns dictionary to ingredients instance.
             if (self.step in ['reap']
-                    and 'organize' in self.reap_techniques):
+                    and 'organize' in self.reap_steps):
                 self._set_columns(organizer = draft)
                 ingredients.columns = self.columns
             self.conform(step = self.step)
-            self.ingredients = draft.implement(ingredients = self.ingredients)
-            self.depot.save(variable = self.ingredients,
+            self.data = draft.implement(data = self.ingredients)
+            self.library.save(variable = self.ingredients,
                                 file_name = self.step + '_ingredients')
         return self

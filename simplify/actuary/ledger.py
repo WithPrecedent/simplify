@@ -11,15 +11,14 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.base import SimpleComposite
-from simplify.core.decorators import numpy_shield
-from simplify.core.plan import SimplePlan
-from simplify.core.planner import SimplePlanner
-from simplify.core.technique import SimpleComposer
+from simplify.core.contributor import SimpleContributor
+from simplify.core.chapter import Chapter
+from simplify.core.book import Book
+from simplify.core.contributor import SimpleContributor
 
 
 @dataclass
-class Ledger(SimplePlanner):
+class Ledger(Book):
     """
 
     Args:
@@ -27,7 +26,7 @@ class Ledger(SimplePlanner):
 
     """
     name: Optional[str] = 'actuary'
-    techniques: Optional[Dict[str, SimpleComposite]] = None
+    steps: Optional[Dict[str, 'SimpleContributor']] = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -90,21 +89,28 @@ class Ledger(SimplePlanner):
         self.columns = ['variable'] + (list(self.options.keys()))
         self.report = pd.DataFrame(columns = self.columns)
         return self
-    
+
     """ Core siMpLify methods """
 
     def draft(self) -> None:
         """Sets default options for the Actuary's analysis."""
-        options = {
+        self.options = {
             'summary': ('simplify.actuary.steps.summarize', 'Summarize'),
             'test': ('simplify.actuary.steps.test', 'Test')}
-        self.options = SimpleOptions(options = options, parent = self)
         # Sets plan container
-        self.plan_container = SimplePlan
+        self.chapter_type = Chapter
         return self
 
     def publish(self, ingredients: ['Ingredients']) -> None:
         """
         """
-        super().publish(ingredients = ingredients)
+        super().publish(data = ingredients)
+        return self
+
+
+@dataclass
+class Summary(Chapter):
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
         return self

@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.technique import FarmerTechnique
+from simplify.core.contributor import FarmerTechnique
 
 
 @dataclass
@@ -16,7 +16,7 @@ class Merge(FarmerTechnique):
     """Merges data sources together.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): name of class for matching settings in the Idea instance
@@ -25,7 +25,7 @@ class Merge(FarmerTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'encoder'
     auto_draft: bool = True

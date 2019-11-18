@@ -21,11 +21,11 @@ import numpy as np
 import pandas as pd
 import re
 
-from simplify.core.base import SimpleComposite
+from simplify.core.contributor import SimpleContributor
 
 
 @dataclass
-class ReTool(SimpleComposite):
+class ReTool(SimpleContributor):
     """Contains shared methods for regex tools in the ReTool package.
 
     ReTool aims to simplify and speed up creating expressions tables (pseudo-
@@ -44,7 +44,7 @@ class ReTool(SimpleComposite):
     is with a very large dataframe and a relatively small (< 500 rows)
     expressions dictionary.
     """
-    technique: str
+    step: str
     keys: str = 'keys'
     values: str = 'values'
     sections: str = 'sections'
@@ -131,7 +131,7 @@ class ReTool(SimpleComposite):
                       'datatypes': self.datatypes,
                       'edit_prefixes': self.edit_prefixes,
                       'section_prefix': self.section_prefix}
-        self.matcher = self.options[self.technique](**parameters)
+        self.matcher = self.options[self.step](**parameters)
         self.matcher.default_values = self.default_values
         return self
 
@@ -166,9 +166,9 @@ class ReTool(SimpleComposite):
         self._set_matcher()
         return self
 
-    def publish(self, ingredients = None, df = None, source = None,
+    def publish(self, data = None, df = None, source = None,
               remove_from_source = True):
-        df, source = self._check_ingredients(ingredients = ingredients,
+        df, source = self._check_ingredients(data = ingredients,
                                              df = df,
                                              source = source)
         if remove_from_source:

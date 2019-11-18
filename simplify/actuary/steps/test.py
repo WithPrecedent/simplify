@@ -9,12 +9,12 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.technique import SimpleComposer
-from simplify.core.technique import SimpleDesign
+from simplify.core.contributor import SimpleContributor
+from simplify.core.contributor import Outline
 
 
 @dataclass
-class Test(SimpleComposer):
+class Test(SimpleContributor):
     """Applies statistical tests to data.
 
     Args:

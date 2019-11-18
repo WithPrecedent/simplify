@@ -1,6 +1,6 @@
 """
-.. module:: critic techniques
-:synopsis: default techniques for chef subpackage
+.. module:: critic steps
+:synopsis: default steps for chef subpackage
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -12,7 +12,7 @@ fields = [
     'name', 'module', 'algorithm', 'default', 'required',
     'runtime_parameters', 'selected', 'conditional_parameters',
     'data_dependent']
-Technique = namedtuple('technique', fields, default = (None,) * len(fields))
+Technique = namedtuple('step', fields, default = (None,) * len(fields))
 
 """ Explanation Techniques """
 
@@ -85,12 +85,12 @@ rank_shap = Technique(
 """ Metrics Techniques """
 
 def _get_brier_score_loss_parameters(self, parameters, recipe = None):
-    if self.technique in 'brier_score_loss':
+    if self.step in 'brier_score_loss':
         parameters = {
             'y_true': getattr(recipe.ingredients,
                                 'y_' + self.data_to_review),
             'y_prob': recipe.probabilities[:, 1)
-    elif self.technique in ['roc_auc']:
+    elif self.step in ['roc_auc']:
             parameters = {
                 'y_true': getattr(recipe.ingredients,
                                 'y_' + self.data_to_review),

@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import load_breast_cancer
 
-import simplify
+from simplify import Project
 
 # Loads cancer data and converts from numpy arrays to a pandas DataFrame.
 cancer = load_breast_cancer()
@@ -24,9 +24,9 @@ idea = os.path.join(os.getcwd(), 'examples', 'cancer_settings.ini')
 
 # Creates siMpLify project, automatically configuring the process based upon
 # settings in the 'idea_file'.
-cancer_project = simplify.project(
+cancer_project = Project(
     idea = idea,
-    depot = root_folder,
+    library = root_folder,
     ingredients = df)
 # Converts label to boolean type to correct numpy default above.
 cancer_project.ingredients.change_datatype(columns = 'target',

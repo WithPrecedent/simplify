@@ -12,12 +12,12 @@ from scipy.stats import randint, uniform
 
 from simplify.chef.chef_composer import (ChefAlgorithm, ChefComposer,
                                          ChefTechnique)
-from simplify.core.decorators import numpy_shield
+from simplify.core.utilities import numpy_shield
 
 
 @dataclass
 class SearchComposer(ChefComposer):
-    """Searches for optimal model hyperparameters using specified technique.
+    """Searches for optimal model hyperparameters using specified step.
 
     Args:
 
@@ -26,7 +26,7 @@ class SearchComposer(ChefComposer):
     """
     name: str = 'search_composer'
     algorithm_class: object = SearchAlgorithm
-    technique_class: object = SearchTechnique
+    step_class: object = SearchTechnique
 
     def __post_init__(self) -> None:
         self.idea_sections = ['chef']
@@ -35,18 +35,18 @@ class SearchComposer(ChefComposer):
 
     """ Private Methods """
 
-    def _get_conditional(self, technique: ChefTechnique, parameters: dict):
+    def _get_conditional(self, step: ChefTechnique, parameters: dict):
         """[summary]
 
         Args:
-            technique (namedtuple): [description]
+            step (namedtuple): [description]
             parameters (dict): [description]
         """
         if 'refit' in parameters and isinstance(parameters['scoring'], list):
             parameters['scoring'] = parameters['scoring'][0]
         return parameters
         self.space = {}
-        if technique.hyperparameter_search:
+        if step.hyperparameter_search:
             new_parameters = {}
             for parameter, values in parameters.items():
                 if isinstance(values, list):
@@ -66,7 +66,7 @@ class SearchComposer(ChefComposer):
         search = SearchComposer()
         search.space = self.space
         search.estimator = self.algorithm
-        return search.publish(ingredients = ingredients)
+        return search.publish(data = ingredients)
 
     """ Core siMpLify Methods """
 
@@ -100,13 +100,13 @@ class SearchComposer(ChefComposer):
 
 
 @dataclass
-class SearchAlgorithm(SimpleAlgorithm):
+class SearchAlgorithm(Algorithm):
     """[summary]
 
     Args:
         object ([type]): [description]
     """
-    technique: str
+    step: str
     algorithm: object
     parameters: object
     data_dependents: object = None
@@ -126,7 +126,7 @@ class SearchAlgorithm(SimpleAlgorithm):
             ingredients ([type]): [description]
             data_to_use ([type]): [description]
         """
-        if self.technique in ['random', 'grid']:
+        if self.step in ['random', 'grid']:
             return self.algorithm.fit(
                 X = getattr(ingredients, ''.join(['x_', data_to_use])),
                 Y = getattr(ingredients, ''.join(['y_', data_to_use])),

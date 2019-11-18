@@ -12,8 +12,8 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
-from simplify.core.technique import CriticTechnique
-from simplify.critic.review import CriticTechnique
+from simplify.core.contributor import CriticTechnique
+from simplify.critic.collection import CriticTechnique
 
 
 @dataclass
@@ -26,7 +26,7 @@ class Rank(CriticTechnique):
     Returns:
         [type]: [description]
     """
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'importances'
     auto_draft: bool = True
@@ -40,8 +40,8 @@ class Rank(CriticTechnique):
     """ Private Methods """
 
     def _get_permutation_importances(self, recipe):
-        scorer = listify(self.metrics_techniques)[0]
-        base_score, score_decreases = self.options[self.technique](
+        scorer = listify(self.metrics_steps)[0]
+        base_score, score_decreases = self.options[self.step](
                 score_func = scorer,
                 x = getattr(recipe.ingredients, 'x_' + self.data_to_review),
                 y = getattr(recipe.ingredients, 'y_' + self.data_to_review))
@@ -77,7 +77,7 @@ class Rank(CriticTechnique):
 
     def draft(self) -> None:
         super().draft()
-        self.order_setting = 'ranking_techniques'
+        self.order_setting = 'ranking_steps'
         return self
 
 
@@ -86,7 +86,7 @@ class RankSelect(CriticTechnique):
     """Uses feature importances for feature reduction in Chef package.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): designates the name of the class which is used throughout
@@ -97,7 +97,7 @@ class RankSelect(CriticTechnique):
 
     """
 
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'rank'
     auto_draft: bool = True

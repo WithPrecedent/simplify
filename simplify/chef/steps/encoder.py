@@ -7,101 +7,103 @@
 """
 
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.technique import SimpleComposer
-from simplify.core.technique import SimpleDesign
+from simplify.core.contributor import SimpleContributor
+from simplify.core.contributor import Outline
 
 
 @dataclass
-class Encoder(SimpleComposer):
+class Encoder(SimpleContributor):
     """Transforms categorical data to numerical data.
-    
-    Args: 
-        name (str): designates the name of the class which should match the
-            section of settings in the Idea instance and other methods
-            throughout the siMpLify package. If subclassing siMpLify classes,
-            it is often a good idea to maintain to the same 'name' attribute
-            as the base class for effective coordination between siMpLify
-            classes.
-            
+
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
+
     """
 
     name: str = 'encoder'
 
     def __post_init__(self) -> None:
-        self.idea_sections = ['chef']
         super().__post_init__()
         return self
 
     def draft(self) -> None:
         super().draft()
         self.options = {
-            'backward': SimpleDesign(
+            'backward': Outline(
                 name = 'backward',
                 module = 'category_encoders',
                 algorithm = 'BackwardDifferenceEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'basen': SimpleDesign(
+            'basen': Outline(
                 name = 'basen',
                 module = 'category_encoders',
                 algorithm = 'BaseNEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'binary': SimpleDesign(
+            'binary': Outline(
                 name = 'binary',
                 module = 'category_encoders',
                 algorithm = 'BinaryEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'dummy': SimpleDesign(
+            'dummy': Outline(
                 name = 'dummy',
                 module = 'category_encoders',
                 algorithm = 'OneHotEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'hashing': SimpleDesign(
+            'hashing': Outline(
                 name = 'hashing',
                 module = 'category_encoders',
                 algorithm = 'HashingEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'helmert': SimpleDesign(
+            'helmert': Outline(
                 name = 'helmert',
                 module = 'category_encoders',
                 algorithm = 'HelmertEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'james_stein': SimpleDesign(
+            'james_stein': Outline(
                 name = 'james_stein',
                 module = 'category_encoders',
                 algorithm = 'JamesSteinEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'loo': SimpleDesign(
+            'loo': Outline(
                 name = 'loo',
                 module = 'category_encoders',
                 algorithm = 'LeaveOneOutEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'm_estimate': SimpleDesign(
+            'm_estimate': Outline(
                 name = 'm_estimate',
                 module = 'category_encoders',
                 algorithm = 'MEstimateEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'ordinal': SimpleDesign(
+            'ordinal': Outline(
                 name = 'ordinal',
                 module = 'category_encoders',
                 algorithm = 'OrdinalEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'polynomial': SimpleDesign(
+            'polynomial': Outline(
                 name = 'polynomial_encoder',
                 module = 'category_encoders',
                 algorithm = 'PolynomialEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'sum': SimpleDesign(
+            'sum': Outline(
                 name = 'sum',
                 module = 'category_encoders',
                 algorithm = 'SumEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'target': SimpleDesign(
+            'target': Outline(
                 name = 'target',
                 module = 'category_encoders',
                 algorithm = 'TargetEncoder',
                 data_dependent = {'cols': 'categoricals'}),
-            'woe': SimpleDesign(
+            'woe': Outline(
                 name = 'weight_of_evidence',
                 module = 'category_encoders',
                 algorithm = 'WOEEncoder',

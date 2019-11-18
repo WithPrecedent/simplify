@@ -11,12 +11,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.technique import SimpleComposer
-from simplify.core.technique import SimpleDesign
+from simplify.core.contributor import SimpleContributor
+from simplify.core.contributor import Outline
 
 
 @dataclass
-class Summarize(SimpleComposer):
+class Summarize(SimpleContributor):
     """Summarizes data.
 
     Args:
@@ -41,95 +41,94 @@ class Summarize(SimpleComposer):
     def draft(self) -> None:
         """Sets options for Summarize class."""
         super().draft()
-        options = {
-            'count': SimpleDesign(
+        self.options = {
+            'count': Outline(
                 name = 'count',
                 module = 'numpy.ndarray',
                 algorithm = 'size'),
-            'min': SimpleDesign(
+            'min': Outline(
                 name = 'minimum',
                 module = 'numpy',
                 algorithm = 'nanmin'),
-            'q1': SimpleDesign(
+            'q1': Outline(
                 name = 'quantile1',
                 module = 'numpy',
                 algorithm = 'nanquantile',
                 required = {'q': 0.25}),
-            'median': SimpleDesign(
+            'median': Outline(
                 name = 'median',
                 module = 'numpy',
                 algorithm = 'nanmedian'),
-            'q3': SimpleDesign(
+            'q3': Outline(
                 name = 'quantile3',
                 module = 'numpy',
                 algorithm = 'nanquantile',
                 required = {'q': 0.25}),
-            'max': SimpleDesign(
+            'max': Outline(
                 name = '',
                 module = 'numpy',
                 algorithm = 'nanmax'),
-            'mad': SimpleDesign(
+            'mad': Outline(
                 name = 'median absoluate deviation',
                 module = 'scipy.stats',
                 algorithm = 'median_absolute_deviation',
                 required = {'nan_policy': 'omit'}),
-            'mean': SimpleDesign(
+            'mean': Outline(
                 name = 'mean',
                 module = 'numpy',
                 algorithm = 'nanmean'),
-            'std': SimpleDesign(
+            'std': Outline(
                 name = 'standard deviation',
                 module = 'numpy',
                 algorithm = 'nanstd'),
-            'standard_error': SimpleDesign(
+            'standard_error': Outline(
                 name = 'standard_error',
                 module = 'scipy.stats',
                 algorithm = 'sem',
                 required = {'nan_policy': 'omit'}),
-            'geometric_mean': SimpleDesign(
+            'geometric_mean': Outline(
                 name = 'geometric_mean',
                 module = 'scipy.stats',
                 algorithm = 'gmean'),
-            'geometric_std': SimpleDesign(
+            'geometric_std': Outline(
                 name = 'geometric_standard_deviation',
                 module = 'scipy.stats',
                 algorithm = 'gstd'),
-            'harmonic_mean': SimpleDesign(
+            'harmonic_mean': Outline(
                 name = 'harmonic_mean',
                 module = 'scipy.stats',
                 algorithm = 'hmean'),
-            'mode': SimpleDesign(
+            'mode': Outline(
                 name = 'mode',
                 module = 'scipy.stats',
                 algorithm = 'mode',
                 required = {'nan_policy': 'omit'}),
-            'sum': SimpleDesign(
+            'sum': Outline(
                 name = 'sum',
                 module = 'numpy',
                 algorithm = 'nansum'),
-            'kurtosis': SimpleDesign(
+            'kurtosis': Outline(
                 name = 'kurtosis',
                 module = 'scipy.stats',
                 algorithm = 'kurtosis',
                 required = {'nan_policy': 'omit'}),
-            'skew': SimpleDesign(
+            'skew': Outline(
                 name = 'skew',
                 module = 'scipy.stats',
                 algorithm = 'skew',
                 required = {'nan_policy': 'omit'}),
-            'variance': SimpleDesign(
+            'variance': Outline(
                 name = 'variance',
                 module = 'numpy',
                 algorithm = 'nanvar'),
-            'variation': SimpleDesign(
+            'variation': Outline(
                 name = 'variation',
                 module = 'scipy.stats',
                 algorithm = 'variation',
                 required = {'nan_policy': 'omit'}),
-            'unique': SimpleDesign(
+            'unique': Outline(
                 name = 'unique_values',
                 module = 'numpy',
                 algorithm = 'nunique')}
-        self.options = SimpleOptions(options = options, parent = self)
         return self
 

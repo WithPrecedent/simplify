@@ -11,7 +11,7 @@ from typing import Dict
 
 import numpy as np
 
-from simplify.critic.review import CriticTechnique
+from simplify.critic.collection import CriticTechnique
 
 
 @dataclass
@@ -19,7 +19,7 @@ class Eli5Explain(CriticTechnique):
     """Explains fit model with eli5 package.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): designates the name of the class which is used throughout
@@ -30,7 +30,7 @@ class Eli5Explain(CriticTechnique):
 
     """
 
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'eli5'
     auto_draft: bool = True
@@ -76,7 +76,7 @@ class ShapExplain(CriticTechnique):
     """Explains fit model with shap package.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): designates the name of the class which is used throughout
@@ -87,7 +87,7 @@ class ShapExplain(CriticTechnique):
 
     """
 
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'shap_explanation'
     auto_draft: bool = True
@@ -100,8 +100,8 @@ class ShapExplain(CriticTechnique):
     """ Private Methods """
 
     def _set_method(self, recipe):
-        if self.technique in self.models:
-            self.method = self.options[self.models[self.technique]]
+        if self.step in self.models:
+            self.method = self.options[self.models[self.step]]
         else:
             self.method = self.options['kernel']
         self.evaluator = self.method(
@@ -131,7 +131,7 @@ class ShapExplain(CriticTechnique):
 
     def publish(self, recipe):
         """Applies shap evaluator to data based upon type of model used."""
-        if self.technique != 'none':
+        if self.step != 'none':
             self._set_method()
             setattr(recipe, self.name + '_values', self.evaluator.shap_values(
                     getattr(recipe.ingredients, 'x_' + self.data_to_review)))
@@ -153,7 +153,7 @@ class SkaterExplain(CriticTechnique):
     """Explains fit model with skater package.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): designates the name of the class which is used throughout
@@ -164,7 +164,7 @@ class SkaterExplain(CriticTechnique):
 
     """
 
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'skater'
     auto_draft: bool = True

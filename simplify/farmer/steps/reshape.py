@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.technique import FarmerTechnique
+from simplify.core.contributor import FarmerTechnique
 
 
 @dataclass
@@ -19,7 +19,7 @@ class Reshape(FarmerTechnique):
     """Reshapes a DataFrame to wide or long form.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): name of class for matching settings in the Idea instance and
@@ -28,7 +28,7 @@ class Reshape(FarmerTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'scaler'
     auto_draft: bool = True

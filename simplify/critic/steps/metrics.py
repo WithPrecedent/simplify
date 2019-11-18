@@ -11,13 +11,13 @@ from typing import Dict
 
 import pandas as pd
 
-from simplify.critic.review import CriticTechnique
+from simplify.critic.collection import CriticTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleComposite
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleContributor
 subclass because siMpLify uses a lazy importing system. This locates the
 potential module importations in roughly the same place as normal module-level
-import commands. A SimpleComposite subclass will, by default, add the
+import commands. A SimpleContributor subclass will, by default, add the
 DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
@@ -66,7 +66,7 @@ class Metrics(CriticTechnique):
     """Measures model performance.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): designates the name of the class which is used throughout
@@ -76,7 +76,7 @@ class Metrics(CriticTechnique):
             the class is instanced. This should generally be set to True.
 
     """
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'metrics'
     auto_draft: bool = True
@@ -87,12 +87,12 @@ class Metrics(CriticTechnique):
         return self
 
     def _get_conditional_parameters(self, parameters, recipe = None):
-        if self.technique in 'brier_score_loss':
+        if self.step in 'brier_score_loss':
             parameters = {
                 'y_true': getattr(recipe.ingredients,
                                   'y_' + self.data_to_review),
                 'y_prob': recipe.probabilities[:, 1]}
-        elif self.technique in ['roc_auc']:
+        elif self.step in ['roc_auc']:
              parameters = {
                  'y_true': getattr(recipe.ingredients,
                                    'y_' + self.data_to_review),

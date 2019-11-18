@@ -7,63 +7,65 @@
 """
 
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.technique import SimpleComposer
-from simplify.core.technique import SimpleDesign
+from simplify.core.contributor import SimpleContributor
+from simplify.core.contributor import Outline
 
 
 @dataclass
-class Splitter(SimpleComposer):
+class Splitter(SimpleContributor):
     """Splits data into training, testing, and/or validation datasets.
 
     Args:
-        name (str): designates the name of the class which should match the
-            section of settings in the Idea instance and other methods
-            throughout the siMpLify package. If subclassing siMpLify classes,
-            it is often a good idea to maintain to the same 'name' attribute
-            as the base class for effective coordination between siMpLify
-            classes.
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
 
     """
     name: str = 'splitter'
 
     def __post_init__(self) -> None:
-        self.idea_sections = ['chef']
         super().__post_init__()
         return self
 
     def draft(self) -> None:
         super().draft()
         self.options = {
-            'group_kfold': SimpleDesign(
+            'group_kfold': Outline(
                 name = 'group_kfold',
                 module = 'sklearn.model_selection',
                 algorithm = 'GroupKFold',
                 default = {'n_splits': 5},
                 runtime = {'random_state': 'seed'},
                 selected = True),
-            'kfold': SimpleDesign(
+            'kfold': Outline(
                 name = 'kfold',
                 module = 'sklearn.model_selection',
                 algorithm = 'KFold',
                 default = {'n_splits': 5, 'shuffle': False},
                 runtime = {'random_state': 'seed'},
                 selected = True),
-            'stratified': SimpleDesign(
+            'stratified': Outline(
                 name = 'stratified',
                 module = 'sklearn.model_selection',
                 algorithm = 'StratifiedKFold',
                 default = {'n_splits': 5, 'shuffle': False},
                 runtime = {'random_state': 'seed'},
                 selected = True),
-            'time': SimpleDesign(
+            'time': Outline(
                 name = 'time',
                 module = 'sklearn.model_selection',
                 algorithm = 'TimeSeriesSplit',
                 default = {'n_splits': 5},
                 runtime = {'random_state': 'seed'},
                 selected = True),
-            'train_test': SimpleDesign(
+            'train_test': Outline(
                 name = 'train_test',
                 module = 'sklearn.model_selection',
                 algorithm = 'ShuffleSplit',

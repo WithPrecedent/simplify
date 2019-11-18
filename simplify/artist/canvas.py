@@ -9,20 +9,19 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.options import SimpleOptions
-from simplify.core.plan import SimplePlan
-from simplify.core.planner import SimplePlanner
+from simplify.core.chapter import Chapter
+from simplify.core.book import Book
 
 
 @dataclass
-class Canvas(SimplePlanner):
+class Canvas(Book):
     """Builds tools for data visualization.
 
     Args:
         ingredients(Ingredients): an instance of Ingredients. This argument need
             not be passed when the class is instanced. It can be passed directly
             to the 'publish' method as well.
-        techniques(dict(str: ArtistTechnique)): names and related ArtistTechnique
+        steps(dict(str: ArtistTechnique)): names and related ArtistTechnique
             classes for analyzing fitted models.
         recipes(Recipe or list(Recipe)): a list or single Recipe to be reviewed.
             This argument need not be passed when the class is instanced. It
@@ -38,13 +37,13 @@ class Canvas(SimplePlanner):
         auto_publish (bool): whether to call the 'publish' method when the
             class is instanced.
 
-    Since this class is a subclass to SimpleIterable and SimpleComposite, all
+    Since this class is a subclass to SimpleIterable and SimpleContributor, all
     documentation for those classes applies as well.
 
     """
 
     ingredients: object = None
-    techniques: object = None
+    steps: object = None
     recipes: object = None
     reviews: object = None
     name: str = 'canvas'
@@ -105,8 +104,8 @@ class Canvas(SimplePlanner):
             raise TypeError(error)
 
     def _set_styler(self):
-        if 'styler' not in self.techniques:
-            self.techniques = ['styler'] + self.techniques
+        if 'styler' not in self.steps:
+            self.steps = ['styler'] + self.steps
         return self
 
     """ Core siMpLify Methods """
@@ -117,13 +116,21 @@ class Canvas(SimplePlanner):
         self._set_styler()
         return self
 
-    def publish(self, ingredients = None, recipes = None, reviews = None):
+    def publish(self, data = None, recipes = None, reviews = None):
         if self.ingredients is None:
-            self.ingredients = self.recipes.ingredients
-        for name, step  in self.techniques:
+            self.data = self.recipes.ingredients
+        for name, step  in self.steps:
             for recipe in listify(self.recipes):
                 if self.verbose:
                     print('Visualizing', recipe.name + recipe.number)
-                for step, technique in getattr(self, self.iterator).items():
-                    technique.implement(recipe = recipe, review = reviews)
+                for step, step in getattr(self, self.iterator).items():
+                    step.implement(recipe = recipe, review = reviews)
+        return self
+
+
+@dataclass
+class Illustration(Chapter):
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
         return self

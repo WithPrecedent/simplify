@@ -9,23 +9,25 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.technique import SimpleComposer
-from simplify.core.technique import SimpleDesign
+from simplify.core.contributor import SimpleContributor
+from simplify.core.contributor import Outline
 
 
 @dataclass
-class Scaler(SimpleComposer):
+class Scaler(SimpleContributor):
     """Scales numerical data in a DataFrame stored in Ingredients instance.
 
     Args:
-        name (str): designates the name of the class which should match the
-            section of settings in the Idea instance and other methods
-            throughout the siMpLify package. If subclassing siMpLify classes,
-            it is often a good idea to maintain to the same 'name' attribute
-            as the base class for effective coordination between siMpLify
-            classes.
-    """
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
 
+    """
     name: str = 'scaler'
 
     def __post_init__(self) -> None:
@@ -36,7 +38,7 @@ class Scaler(SimpleComposer):
     def draft(self) -> None:
         super().draft()
         self.options = {
-            'bins' : SimpleDesign(
+            'bins' : Outline(
                 name = 'bins',
                 module = 'sklearn.preprocessing',
                 algorithm = 'KBinsDiscretizer',
@@ -45,44 +47,44 @@ class Scaler(SimpleComposer):
                     'strategy': 'uniform',
                     'n_bins': 5},
                 selected = True),
-            # 'gauss' : SimpleDesign(
+            # 'gauss' : Outline(
             #     name = 'gauss',
             #     module = None,
             #     algorithm = Gaussify,
             #     default = {'standardize': False, 'copy': False},
             #     required = {'rescaler': self.standard},
             #     selected = True),
-            'maxabs' : SimpleDesign(
+            'maxabs' : Outline(
                 name = 'maxabs',
                 module = 'sklearn.preprocessing',
                 algorithm = 'MaxAbsScaler',
                 default = {'copy': False},
                 selected = True),
-            'minmax' : SimpleDesign(
+            'minmax' : Outline(
                 name = 'minmax',
                 module = 'sklearn.preprocessing',
                 algorithm = 'MinMaxScaler',
                 default = {'copy': False},
                 selected = True),
-            'normalize' : SimpleDesign(
+            'normalize' : Outline(
                 name = 'normalize',
                 module = 'sklearn.preprocessing',
                 algorithm = 'Normalizer',
                 default = {'copy': False},
                 selected = True),
-            'quantile' : SimpleDesign(
+            'quantile' : Outline(
                 name = 'quantile',
                 module = 'sklearn.preprocessing',
                 algorithm = 'QuantileTransformer',
                 default = {'copy': False},
                 selected = True),
-            'robust' : SimpleDesign(
+            'robust' : Outline(
                 name = 'robust',
                 module = 'sklearn.preprocessing',
                 algorithm = 'RobustScaler',
                 default = {'copy': False},
                 selected = True),
-            'standard' : SimpleDesign(
+            'standard' : Outline(
                 name = 'standard',
                 module = 'sklearn.preprocessing',
                 algorithm = 'StandardScaler',
@@ -92,14 +94,14 @@ class Scaler(SimpleComposer):
 
 
 # @dataclass
-# class Gaussify(SimpleAlgorithm):
+# class Gaussify(Algorithm):
 #     """Transforms data columns to more gaussian distribution.
 
 #     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'
 #     based on whether the particular data column has values below zero.
 
 #     Args:
-#         technique(str): name of technique used.
+#         step(str): name of step used.
 #         parameters(dict): dictionary of parameters to pass to selected
 #             algorithm.
 #         name(str): name of class for matching settings in the Idea instance
@@ -108,7 +110,7 @@ class Scaler(SimpleComposer):
 #             the class is instanced. This should generally be set to True.
 #     """
 
-#     technique: str = 'box-cox and yeo-johnson'
+#     step: str = 'box-cox and yeo-johnson'
 #     parameters: object = None
 #     name: str = 'gaussifier'
 

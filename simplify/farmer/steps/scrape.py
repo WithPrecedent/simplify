@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.technique import FarmerTechnique
+from simplify.core.contributor import FarmerTechnique
 
 
 @dataclass
@@ -17,7 +17,7 @@ class Scrape(FarmerTechnique):
     """Scrapes data from a website.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): name of class for matching settings in the Idea instance
@@ -26,7 +26,7 @@ class Scrape(FarmerTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'converter'
     auto_draft: bool = True
@@ -37,5 +37,5 @@ class Scrape(FarmerTechnique):
 
 
     def publish(self, ingredients):
-        file_path = os.path.join(self.depot.external, self.file_name)
+        file_path = os.path.join(self.library.external, self.file_name)
         return self

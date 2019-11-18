@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from simplify.core.technique import FarmerTechnique
+from simplify.core.contributor import FarmerTechnique
 
 
 @dataclass
@@ -18,7 +18,7 @@ class Combine(FarmerTechnique):
     """Combines features into new features.
 
     Args:
-        technique(str): name of technique.
+        step(str): name of step.
         parameters(dict): dictionary of parameters to pass to selected
             algorithm.
         name(str): name of class for matching settings in the Idea instance
@@ -27,7 +27,7 @@ class Combine(FarmerTechnique):
             the class is instanced. This should generally be set to True.
     """
 
-    technique: object = None
+    step: object = None
     parameters: object = None
     name: str = 'combiner'
     auto_draft: bool = True
@@ -65,5 +65,5 @@ class Combine(FarmerTechnique):
         return self
 
     def publish(self, ingredients):
-        self.ingredients = self.algorithm(ingredients)
+        self.data = self.algorithm(ingredients)
         return ingredients

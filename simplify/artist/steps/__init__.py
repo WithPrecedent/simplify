@@ -1,6 +1,6 @@
 """
-.. module:: farmer steps
-:synopsis: data processing workflow
+.. module:: siMpLify artist steps
+:synopsis: data visualization workflow
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
