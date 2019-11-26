@@ -59,58 +59,57 @@ def backup_df(return_df: Optional[bool] = False) -> Callable:
         return wrapper
     return shell_backup_df
 
-def make_columns_parameter(method: Callable) -> Callable:
-    """Decorator which creates a complete column list from passed arguments.
+# def make_columns_parameter(method: Callable, *args, **kwargs) -> Callable:
+#     """Decorator which creates a complete column list from passed arguments.
 
-    If 'prefixes', 'suffixes', or 'mask' are passed to the wrapped method, they
-    are combined with any passed 'columns' to form a list of 'columns' that are
-    ultimately passed to the wrapped method.
+#     If 'prefixes', 'suffixes', or 'mask' are passed to the wrapped method, they
+#     are combined with any passed 'columns' to form a list of 'columns' that are
+#     ultimately passed to the wrapped method.
 
-    Args:
-        method (method): wrapped method.
+#     Args:
+#         method (method): wrapped method.
 
-    Returns:
-        Callable:  with 'columns' parameter that combines items from 'columns',
-            'prefixes', 'suffixes', and 'mask' parameters into a single list
-            of column names using the 'create_column_list' method.
+#     Returns:
+#         Callable:  with 'columns' parameter that combines items from 'columns',
+#             'prefixes', 'suffixes', and 'mask' parameters into a single list
+#             of column names using the 'create_column_list' method.
 
-    """
-
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        new_arguments = {}
-        call_signature = signature(method)
-        parameters = dict(call_signature.parameters)
-        arguments = dict(call_signature.bind(*args, **kwargs).arguments)
-        unpassed = list(parameters.keys() - arguments.keys())
-        if 'columns' in unpassed:
-            columns = []
-        else:
-            columns = listify(arguments['columns'])
-        try:
-            columns.extend(
-                self.create_column_list(prefixes = arguments['prefixes']))
-            del arguments['prefixes']
-        except KeyError:
-            pass
-        try:
-            columns.extend(
-                self.create_column_list(suffixes = arguments['suffixes']))
-            del arguments['suffixes']
-        except KeyError:
-            pass
-        try:
-            columns.extend(
-                self.create_column_list(mask = arguments['mask']))
-            del arguments['mask']
-        except KeyError:
-            pass
-        if not columns:
-            columns = list(self.datatypes.keys())
-        arguments['columns'] = deduplicate(columns)
-        method.__signature__ = Signature(arguments)
-        return method(self, **arguments)
-    return wrapper
+#     """
+#     call_signature = signature(method)
+#     @wraps(method)
+#     def wrapper(self, *args, **kwargs):
+#         new_arguments = {}
+#         parameters = dict(call_signature.parameters)
+#         arguments = dict(call_signature.bind(*args, **kwargs).arguments)
+#         unpassed = list(parameters.keys() - arguments.keys())
+#         if 'columns' in unpassed:
+#             columns = []
+#         else:
+#             columns = listify(arguments['columns'])
+#         try:
+#             columns.extend(
+#                 self.create_column_list(prefixes = arguments['prefixes']))
+#             del arguments['prefixes']
+#         except KeyError:
+#             pass
+#         try:
+#             columns.extend(
+#                 self.create_column_list(suffixes = arguments['suffixes']))
+#             del arguments['suffixes']
+#         except KeyError:
+#             pass
+#         try:
+#             columns.extend(
+#                 self.create_column_list(mask = arguments['mask']))
+#             del arguments['mask']
+#         except KeyError:
+#             pass
+#         if not columns:
+#             columns = list(self.datatypes.keys())
+#         arguments['columns'] = deduplicate(columns)
+#         # method.__signature__ = Signature(arguments)
+#         return method(self, **arguments)
+#     return wrapper
 
 
 """ Ingredients Class """
@@ -380,7 +379,7 @@ class Ingredients(object):
         df = func(df, **kwargs)
         return self
 
-    @make_columns_parameter
+    # @make_columns_parameter
     @backup_df
     def auto_categorize(self,
             df: Optional[pd.DataFrame] = None,
@@ -415,12 +414,12 @@ class Ingredients(object):
         return self
 
 
-    @make_columns_parameter
-    @backup_df
+    # @make_columns_parameter
+    # @backup_df
     def change_datatype(self,
-            df: Optional[pd.DataFrame] = None,
-            columns: Union[List[str], str] = None,
-            datatype: str = None) -> None:
+            columns: [Union[List[str], str]],
+            datatype: str,
+            df: Optional[pd.DataFrame] = None) -> None:
         """Changes column datatypes of columns passed or columns with the
         prefixes passed.
 
@@ -470,7 +469,7 @@ class Ingredients(object):
         self.downcast(df = df)
         return self
 
-    @make_columns_parameter
+    # @make_columns_parameter
     @backup_df
     def convert_rare(self,
             df: Optional[pd.DataFrame] = None,
@@ -563,7 +562,7 @@ class Ingredients(object):
             pass
         return deduplicate(iterable = column_names)
 
-    @make_columns_parameter
+    # @make_columns_parameter
     def create_series(self,
             columns: Optional[Union[List[str], str]] = None,
             return_series: Optional[bool] = True) -> None:
@@ -593,7 +592,7 @@ class Ingredients(object):
             setattr(self, self.default_df, row)
             return self
 
-    @make_columns_parameter
+    # @make_columns_parameter
     @backup_df
     def decorrelate(self,
             df: Optional[pd.DataFrame] = None,
@@ -624,7 +623,7 @@ class Ingredients(object):
         self.drop_columns(columns = corrs)
         return self
 
-    @make_columns_parameter
+    # @make_columns_parameter
     @backup_df
     def downcast(self,
             df: Optional[pd.DataFrame] = None,
@@ -678,7 +677,7 @@ class Ingredients(object):
                 raise KeyError(error)
         return self
 
-    @make_columns_parameter
+    # @make_columns_parameter
     @backup_df
     def drop_columns(self,
             df: Optional[pd.DataFrame] = None,
@@ -696,7 +695,7 @@ class Ingredients(object):
             df.drop(columns, inplace = True)
         return self
 
-    @make_columns_parameter
+    # @make_columns_parameter
     @backup_df
     def drop_infrequent(self,
             df: Optional[pd.DataFrame] = None,
@@ -782,7 +781,7 @@ class Ingredients(object):
             print('No features were dropped during preprocessing.')
         return
 
-    @make_columns_parameter
+    # @make_columns_parameter
     @backup_df
     def smart_fill(self,
             df: Optional[pd.DataFrame] = None,
