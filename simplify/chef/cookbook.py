@@ -23,9 +23,23 @@ class Cookbook(Book):
     """Creates recipes for staging, machine learning, and data analysis.
 
     Args:
-        idea ('Idea'): an instance of Idea with user settings.
-        library ('Library'): an instance of Library with information about
-            folder and file management.
+        idea (Union[Idea, str]): an instance of Idea or a string containing the
+            file path or file name (in the current working directory) where a
+            file of a supoorted file type with settings for an Idea instance is
+            located.
+        library (Optional[Union['Library', str]]): an instance of
+            library or a string containing the full path of where the root
+            folder should be located for file output. A library instance
+            contains all file path and import/export methods for use throughout
+            the siMpLify package. Default is None.
+        ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
+            np.ndarray, str]]): an instance of Ingredients, a string containing
+            the full file path where a data file for a pandas DataFrame or
+            Series is located, a string containing a file name in the default
+            data folder, as defined in the shared Library instance, a
+            DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
+            string is provided, the resultant DataFrame is stored at the 'df'
+            attribute in a new Ingredients instance. Default is None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -44,8 +58,14 @@ class Cookbook(Book):
             recipes.
 
     """
-    idea: 'Idea'
-    library: 'Library'
+    idea: Union['Idea', str]
+    library: Optional[Union['Library', str]] = None
+    ingredients: Optional[Union[
+        'Ingredients',
+        pd.DataFrame,
+        pd.Series,
+        np.ndarray,
+        str]] = None
     name: Optional[str] = 'chef'
     steps: Optional[Dict[str, 'Page']] = None
     recipes: Optional[List['Recipe']] = None
@@ -55,6 +75,18 @@ class Cookbook(Book):
         return self
 
     """ Private Methods """
+
+    def _draft_options(self) -> None:
+        self.options = {
+            'scaler': ('simplify.chef.steps.scaler', 'Scaler'),
+            'splitter': ('simplify.chef.steps.splitter', 'Splitter'),
+            'encoder': ('simplify.chef.steps.encoder', 'Encoder'),
+            'mixer': ('simplify.chef.steps.mixer', 'Mixer'),
+            'cleaver': ('simplify.chef.steps.cleaver', 'Cleaver'),
+            'sampler': ('simplify.chef.steps.sampler', 'Sampler'),
+            'reducer': ('simplify.chef.steps.reducer', 'Reducer'),
+            'modeler': ('simplify.chef.steps.modeler', 'Modeler')}
+        return self
 
     def _extra_processing(self,
             chapter: 'Chapter',
@@ -148,16 +180,8 @@ class Cookbook(Book):
 
     def draft(self) -> None:
         """Sets default options for the Chef's cookbook."""
-        self.chapter_type = Recipe
-        self.options = {
-            'scaler': ('simplify.chef.steps.scaler', 'Scaler'),
-            'splitter': ('simplify.chef.steps.splitter', 'Splitter'),
-            'encoder': ('simplify.chef.steps.encoder', 'Encoder'),
-            'mixer': ('simplify.chef.steps.mixer', 'Mixer'),
-            'cleaver': ('simplify.chef.steps.cleaver', 'Cleaver'),
-            'sampler': ('simplify.chef.steps.sampler', 'Sampler'),
-            'reducer': ('simplify.chef.steps.reducer', 'Reducer'),
-            'modeler': ('simplify.chef.steps.modeler', 'Modeler')}
+        self.parent_type = 'project'
+        self.children_type = 'recipes'
         super().draft()
         return self
 

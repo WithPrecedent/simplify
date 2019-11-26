@@ -88,10 +88,9 @@ class Canvas(Book):
     def draft(self) -> None:
         """Creates initial attributes."""
         self.parent_type = 'project'
-        self.child_types = 'chapters'
+        self.children_type = 'chapters'
         # 'options' should be created before this loop.
         for method in (
-                'attributes',
                 'options',
                 'steps',
                 'styler',

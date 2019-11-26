@@ -10,12 +10,12 @@ from configparser import ConfigParser
 from dataclasses import dataclass
 from importlib import import_module
 import os
-from pathlib import Path
 import re
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
+from simplify import factory
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
@@ -132,14 +132,19 @@ class Idea(object):
             sections with individual settings in key/value pairs.
         infer_types (bool): whether values in 'configuration' are converted to
             other datatypes (True) or left as strings (False).
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            a class is instanced.
 
     """
     configuration: Union[Dict[str, Any], str]
     name: Optional[str] = 'idea'
     infer_types: Optional[bool] = True
+    auto_publish: Optional[bool] = True
 
     def __post_init__(self) -> None:
         self.draft()
+        if self.auto_publish:
+            self.publish()
         return self
 
     """ Dunder Methods """
@@ -369,8 +374,7 @@ class Idea(object):
                     new_configuration[section] = {key: self._typify(value)}
         return new_configuration
 
-    @staticmethod
-    def _numify(variable: str) -> Union[int, float, str]:
+    def _numify(self, variable: str) -> Union[int, float, str]:
         """Attempts to convert 'variable' to a numeric type.
 
         Args:
@@ -386,65 +390,7 @@ class Idea(object):
             try:
                 return float(variable)
             except ValueError:
-                return variable
-
-    def _load_from_csv(self, file_path: str) -> Dict[str, Any]:
-        """Creates a configuration dict from an .csv file.
-
-        Args:
-            file_path (str): path to .csv file.
-
-        Returns:
-            Dict[str, Any] of settings.
-
-        Raises:
-            FileNotFoundError: if the file_path does not correspond to a file.
-
-        """
-        configuration = pd.read_csv(file_path, dtype = 'str')
-        return configuration.to_dict(orient = 'list')
-
-    def _load_from_ini(self, file_path: str) -> Dict[str, Any]:
-        """Creates a configuration dict from an .ini file.
-
-        Args:
-            file_path (str): path to configparser-compatible .ini file.
-
-        Returns:
-            Dict[str, Any] of configuration.
-
-        Raises:
-            FileNotFoundError: if the file_path does not correspond to a file.
-
-        """
-        try:
-            configuration = ConfigParser(dict_type = dict)
-            configuration.optionxform = lambda option: option
-            configuration.read(file_path)
-            configuration = dict(configuration._sections)
-        except FileNotFoundError:
-            error = ' '.join(['configuration file ', file_path, ' not found'])
-            raise FileNotFoundError(error)
-        return configuration
-
-    def _load_from_py(self, file_path: str) -> Dict[str, Any]:
-        """Creates a configuration dictionary from an .py file.
-
-        Args:
-            file_path (str): path to python module with '__dict__' dict defined.
-
-        Returns:
-            Dict[str, Any] of configuration.
-
-        Raises:
-            FileNotFoundError: if the file_path does not correspond to a file.
-
-        """
-        try:
-            return getattr(import_module(file_path), '__dict__')
-        except FileNotFoundError:
-            error = ' '.join(['configuration file ', file_path, ' not found'])
-            raise FileNotFoundError(error)
+                raise TypeError
 
     def _typify(self, variable: str) -> Union[List, int, float, bool, str]:
         """Converts stingsr to appropriate, supported datatypes.
@@ -460,12 +406,16 @@ class Idea(object):
         Returns:
             variable (str, list, int, float, or bool): converted variable.
         """
-        if (', ') in variable:
+        try:
             variable = variable.split(', ')
             return [self._numify(v) for v in variable]
-        elif re.search('\d', variable):
+        except (AttributeError, TypeError):
+            pass
+        try:
             return self._numify(variable)
-        elif variable in ['True', 'true', 'TRUE']:
+        except TypeError:
+            pass
+        if variable in ['True', 'true', 'TRUE']:
             return True
         elif variable in ['False', 'false', 'FALSE']:
             return False
@@ -525,39 +475,26 @@ class Idea(object):
                 instance.
 
         """
-        try:
-            self.configuration.update(configuration)
-        except (ValueError, TypeError):
-            try:
-                self.configuration.update(configuration.configuration)
-            except AttributeError:
-                try:
-                    extension = str(Path(configuration).suffix)[1:]
-                    self.configuration.update(getattr(self,
-                            '_'.join(['_load_from', extension]))(
-                                file_path = configuration))
-                except TypeError:
-                    error = 'configuration must be dict, str, or Idea'
-                    raise TypeError(error)
-                except AttributeError:
-                    error = ' '.join(
-                        [extension, 'is not a supported file type for Idea'])
-                    raise TypeError(error)
+        new_idea = factory.create_idea(idea = configuration)
+        self.configuration.update(new_idea.configuration)
         return self
 
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        """Creates 'configuration' dictionary from passed 'configuration'."""
-        new_configuration = self.configuration
-        self.configuration = {}
-        self.update(configuration = new_configuration)
+        """Validates instance construction."""
+        if not isinstance(self.configuration, dict):
+            self = factory.create_idea(idea = self.configuration)
+        return self
+
+    def publish(self) -> None:
+        """Creates 'configuration' dictionary from 'passed_configuration'."""
         if self.infer_types:
-            self.update(configuration = self._infer_types(
+            self.configuration.update(self._infer_types(
                 configuration = self.configuration))
         return self
 
-    def publish(self,
+    def apply(self,
             instance: 'SimpleContributor',
             sections: Optional[Union[List[str], str]] = None,
             override: Optional[bool] = False) -> 'SimpleContributor':

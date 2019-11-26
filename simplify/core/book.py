@@ -17,9 +17,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify.core.library import Library
-from simplify.core.idea import Idea
-from simplify.core.ingredients import Ingredients
+from simplify import factory
+from simplify.core.utilities import create_proxies
 from simplify.core.utilities import listify
 from simplify.core.utilities import numpy_shield
 from simplify.core.utilities import XxYy
@@ -27,7 +26,7 @@ from simplify.core.utilities import XxYy
 
 @dataclass
 class SimpleManuscript(ABC):
-    """Base class for siMpLify controller classes.
+    """Base class for data processing classes.
 
     SimpleManuscript implements a modified composite tree pattern for organizing
     Projects, Books, Chapters, and Pages. The hierarchy between each level is
@@ -41,10 +40,12 @@ class SimpleManuscript(ABC):
         if not hasattr(self, 'name'):
             self.name = self.__class__.__name__.lower()
         try:
-            self = self.idea.publish(instance = self)
+            self = self.idea.apply(instance = self)
         except AttributeError:
             pass
         self.draft()
+        if hasattr(self, 'proxies'):
+            self = create_proxies(instance = self, proxies = self.proxies)
         return self
 
     """ Dunder Methods """
@@ -249,6 +250,7 @@ class SimpleManuscript(ABC):
         """
         return self
 
+    @abstractmethod
     def apply(self, data: 'Ingredients', **kwargs) -> None:
         """Applies created objects to passed 'data'.
 
@@ -263,16 +265,12 @@ class SimpleManuscript(ABC):
     """ Properties """
 
     @property
-    def all(self):
+    def all(self) -> List[str]:
         """Returns list of all 'options'."""
-        try:
-            return list(options.keys())
-        except AttributeError:
-            self.options = {}
-            return []
+        return list(options.keys())
 
     @property
-    def defaults(self):
+    def defaults(self) -> List[str]:
         """Returns default 'options'.
 
         If no default options have been set, 'all' is returned.
@@ -284,7 +282,7 @@ class SimpleManuscript(ABC):
             return self.all
 
     @defaults.setter
-    def defaults(self, defaults):
+    def defaults(self, defaults: List[str]) -> None:
         """Sets default 'options'."""
         self._defaults = defaults
         return self
@@ -344,38 +342,28 @@ class Book(SimpleManuscript):
     steps: Optional[Union[List[str], str]] = None
     name: Optional[str] = 'simplify'
     auto_publish: Optional[bool] = True
+    file_format: str = 'pickle'
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
         self.parent_type = 'project'
-        self.children_types = 'chapters'
+        self.children_type = 'chapters'
         try:
-            self = self.idea.publish(instance = self)
+            self = self.idea.apply(instance = self)
         except AttributeError:
             pass
+        self.idea, self.library, self.ingredients = factory.startup(
+            idea = self.idea,
+            library = self.library,
+            ingredients = self.ingredients)
         self.draft()
         if self.auto_publish and self.ingredients is not None:
             self.publish(data = self.ingredients)
         return self
 
     """ Private Methods """
-
-    def _draft_attributes(self):
-        """Conforms passed arguments to proper types."""
-        # Completes an Idea instance.
-        self.idea = Idea(configuration = self.idea)
-        # Injects needed attributes from 'idea'.
-        self = self.idea.publish(instance = self)
-        # Completes a Library instance.
-        self.library = Library(root_folder = self.library, idea = self.idea)
-        # Completes an Ingredients instance.
-        self.ingredients = Ingredients(
-            idea = self.idea,
-            library = self.library,
-            df = self.ingredients)
-        return self
 
     def _draft_steps(self) -> None:
         """If 'steps' is not passed, gets 'steps' from Idea settings.
@@ -429,7 +417,7 @@ class Book(SimpleManuscript):
         for i, plan in enumerate(self.plans):
             pages = dict(zip(self.steps, plan))
             metadata = self._draft_chapter_metadata(number = i)
-            self.add_chapter(name = str(i), pages = pages, metadata = metadata)
+            self.add_children(name = str(i), pages = pages, metadata = metadata)
         return self
 
     def _draft_chapter_metadata(self, number: int) -> Dict[str, Any]:
@@ -459,7 +447,7 @@ class Book(SimpleManuscript):
 
         """
         return chapter
-    
+
     def _publish_contributors(self,
             data: Optional['Ingredients'] = None) -> None:
         """Converts contributor classes into class instances.
@@ -555,11 +543,12 @@ class Book(SimpleManuscript):
 
     def draft(self) -> None:
         """Creates initial attributes."""
-        self.parent_type = 'project'
-        self.child_types = 'chapters'
+        if not hasattr(self, 'parent_type'):
+            self.parent_type = 'project'
+        if not hasattr(self, 'children_type'):
+            self.children_type = 'chapters'
         # 'options' should be created before this loop.
         for method in (
-                'attributes',
                 'options',
                 'steps',
                 'contributors',
@@ -645,6 +634,7 @@ class Chapter(SimpleManuscript):
     pages: Dict[str, str]
     metadata: Optional[Dict[str, Any]] = None
     name: Optional[str] = 'chapter'
+    file_format: str = 'pickle'
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -655,7 +645,7 @@ class Chapter(SimpleManuscript):
     def _get_page(self,
             key: str,
             technique: str,
-            ingredients: 'Ingredients') -> 'Algorithm':
+            ingredients: 'Ingredients') -> 'Page':
         return self.book.contributors[key].publish(
             page = technique,
             data = ingredients)
@@ -857,6 +847,7 @@ class Page(SimpleManuscript):
     algorithm: 'Algorithm'
     parameters: Optional['Parameters'] = None
     name: str = 'page'
+    file_format: str = 'pickle'
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -884,18 +875,6 @@ class Page(SimpleManuscript):
     #         return self.algorithm
     #     except AttributeError:
     #         return None
-
-    """ Composite Management Methods """
-
-    def add_chapter(self, chapter: 'Chapter') -> None:
-        """Sets 'chapter' attribute to 'chapter'."""
-        self.chapter = chapter
-        return self
-
-    def remove_chapter(self) -> None:
-        """Sets 'chapter' to None."""
-        self.chapter = None
-        return self
 
     """ Core siMpLify Methods """
 

@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.types import FileTypes
+from simplify.core.typesetter import FileTypes
 from simplify.core.utilities import listify
 
 
@@ -129,7 +129,7 @@ class Library(Distributor):
             self = self.root_folder
         else:
             self.idea_sections = ['files']
-            self = self.idea.publish(instance = self)
+            self = self.idea.apply(instance = self)
             self.root = self.root_folder or ''
             self.draft()
         return self
@@ -703,8 +703,6 @@ class Importer(Distributor):
         with open(file_path, mode = 'r', errors = 'ignore',
                   encoding = self.file_encoding) as a_file:
             return a_file.read()
-
-
 
     def create_batch(self,
             folder: Optional[str] = None,

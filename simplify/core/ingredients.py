@@ -7,19 +7,113 @@
 """
 
 from dataclasses import dataclass
+from functools import wraps
+from inspect import signature, Signature
 import os
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from simplify.core.utilities import choose_df
-from simplify.core.utilities import combine_lists
 from simplify.core.states import DataState
-from simplify.core.types import DataTypes
+from simplify.core.typesetter import DataTypes
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
+
+""" Ingredients Decorators """
+
+def backup_df(return_df: Optional[bool] = False) -> Callable:
+    """Substitutes the default DataFrame or Series if 'df' is not passed.
+
+    Args:
+        return_df (Optional[bool]): whether to return_df when 'df' was not
+            passed. Defaults to False.
+
+    Returns:
+        If 'df' is passed, a pandads DataFrame or Series is returned.
+        If 'df' is not passed, the local attribute in the class named the value
+            in 'default_df' is changed and 'self' is returned.
+
+    """
+    def shell_backup_df(method: Callable, *args, **kwargs):
+        def wrapper(self, *args, **kwargs):
+            call_signature = signature(method)
+            parameters = dict(call_signature.parameters)
+            arguments = dict(call_signature.bind(*args, **kwargs).arguments)
+            unpassed = list(parameters.keys() - arguments.keys())
+            if 'df' in unpassed:
+                arguments.update({'df': getattr(self, self.default_df)})
+                method.__signature__ = Signature(arguments)
+                if return_df:
+                    df = method(self, **arguments)
+                    return df
+                else:
+                    setattr(self,
+                        getattr(self, self.default_df),
+                        method(self, **arguments))
+                    return self
+            else:
+                df = method(self, **arguments)
+                return df
+        return wrapper
+    return shell_backup_df
+
+def make_columns_parameter(method: Callable) -> Callable:
+    """Decorator which creates a complete column list from passed arguments.
+
+    If 'prefixes', 'suffixes', or 'mask' are passed to the wrapped method, they
+    are combined with any passed 'columns' to form a list of 'columns' that are
+    ultimately passed to the wrapped method.
+
+    Args:
+        method (method): wrapped method.
+
+    Returns:
+        Callable:  with 'columns' parameter that combines items from 'columns',
+            'prefixes', 'suffixes', and 'mask' parameters into a single list
+            of column names using the 'create_column_list' method.
+
+    """
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        new_arguments = {}
+        call_signature = signature(method)
+        parameters = dict(call_signature.parameters)
+        arguments = dict(call_signature.bind(*args, **kwargs).arguments)
+        unpassed = list(parameters.keys() - arguments.keys())
+        if 'columns' in unpassed:
+            columns = []
+        else:
+            columns = listify(arguments['columns'])
+        try:
+            columns.extend(
+                self.create_column_list(prefixes = arguments['prefixes']))
+            del arguments['prefixes']
+        except KeyError:
+            pass
+        try:
+            columns.extend(
+                self.create_column_list(suffixes = arguments['suffixes']))
+            del arguments['suffixes']
+        except KeyError:
+            pass
+        try:
+            columns.extend(
+                self.create_column_list(mask = arguments['mask']))
+            del arguments['mask']
+        except KeyError:
+            pass
+        if not columns:
+            columns = list(self.datatypes.keys())
+        arguments['columns'] = deduplicate(columns)
+        method.__signature__ = Signature(arguments)
+        return method(self, **arguments)
+    return wrapper
+
+
+""" Ingredients Class """
 
 @dataclass
 class Ingredients(object):
@@ -136,7 +230,7 @@ class Ingredients(object):
         """
         return columns or list(self.datatypes.keys())
 
-    @choose_df
+    @backup_df
     def _crosscheck_columns(self, df: Optional[pd.DataFrame] = None) -> None:
         """Removes any columns in datatypes dictionary, but not in df.
 
@@ -205,7 +299,7 @@ class Ingredients(object):
         """
         return [k for k, v in self.datatypes.items() if v == datatype]
 
-    @choose_df
+    @backup_df
     def _get_indices(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None) -> List[bool]:
@@ -223,7 +317,7 @@ class Ingredients(object):
         """
         return [df.columns.get_loc(column) for column in listify(columns)]
 
-    @choose_df
+    @backup_df
     def _initialize_datatypes(self, df: Optional[pd.DataFrame] = None) -> None:
         """Initializes datatypes for columns of pandas DataFrame or Series if
         not already provided.
@@ -241,7 +335,7 @@ class Ingredients(object):
 
     """ Public Tool Methods """
 
-    @choose_df
+    @backup_df
     def add_unique_index(self,
             df: Optional[pd.DataFrame] = None,
             column: Optional[str] = 'index_universal',
@@ -269,7 +363,7 @@ class Ingredients(object):
             TypeError(error)
         return self
 
-    @choose_df
+    @backup_df
     def apply(self,
             df: Optional[pd.DataFrame] = None,
             func: Optional[object] = None,
@@ -286,8 +380,8 @@ class Ingredients(object):
         df = func(df, **kwargs)
         return self
 
-    @combine_lists
-    @choose_df
+    @make_columns_parameter
+    @backup_df
     def auto_categorize(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None,
@@ -320,8 +414,9 @@ class Ingredients(object):
                 raise KeyError(error)
         return self
 
-    @combine_lists
-    @choose_df
+
+    @make_columns_parameter
+    @backup_df
     def change_datatype(self,
             df: Optional[pd.DataFrame] = None,
             columns: Union[List[str], str] = None,
@@ -345,7 +440,7 @@ class Ingredients(object):
         self.convert_column_datatypes(df = df)
         return self
 
-    @choose_df
+    @backup_df
     def convert_column_datatypes(self,
             df: Optional[pd.DataFrame] = None,
             raise_errors: Optional[bool] = False) -> None:
@@ -375,8 +470,8 @@ class Ingredients(object):
         self.downcast(df = df)
         return self
 
-    @combine_lists
-    @choose_df
+    @make_columns_parameter
+    @backup_df
     def convert_rare(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None,
@@ -413,11 +508,12 @@ class Ingredients(object):
             df.drop('value_freq', axis = 'columns', inplace = True)
         return self
 
-    @choose_df
+    @backup_df
     def create_column_list(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None,
             prefixes: Optional[Union[List[str], str]] = None,
+            suffixes: Optional[Union[List[str], str]] = None,
             mask: Optional[Union[List[bool]]] = None) -> None:
         """Dynamically creates a new column list from a list of columns, lists
         of prefixes, and/or boolean mask.
@@ -431,6 +527,7 @@ class Ingredients(object):
             df (DataFrame): pandas object.
             columns (list or str): column names to be included.
             prefixes (list or str): list of prefixes for columns to be included.
+            suffixes (list or str): list of suffixes for columns to be included.
             mask (numpy array, list, or Series, of booleans): mask for columns
                 to be included.
 
@@ -454,12 +551,19 @@ class Ingredients(object):
         except TypeError:
             pass
         try:
+            temp_list = []
+            for prefix in listify(suffixes, use_null = True):
+                temp_list = [col for col in df if col.endswith(suffix)]
+                column_names.extend(temp_list)
+        except TypeError:
+            pass
+        try:
             column_names.extend(listify(columns, use_null = True))
         except TypeError:
             pass
         return deduplicate(iterable = column_names)
 
-    @combine_lists
+    @make_columns_parameter
     def create_series(self,
             columns: Optional[Union[List[str], str]] = None,
             return_series: Optional[bool] = True) -> None:
@@ -489,8 +593,8 @@ class Ingredients(object):
             setattr(self, self.default_df, row)
             return self
 
-    @combine_lists
-    @choose_df
+    @make_columns_parameter
+    @backup_df
     def decorrelate(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None,
@@ -520,8 +624,8 @@ class Ingredients(object):
         self.drop_columns(columns = corrs)
         return self
 
-    @combine_lists
-    @choose_df
+    @make_columns_parameter
+    @backup_df
     def downcast(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None,
@@ -574,8 +678,8 @@ class Ingredients(object):
                 raise KeyError(error)
         return self
 
-    @combine_lists
-    @choose_df
+    @make_columns_parameter
+    @backup_df
     def drop_columns(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None) -> None:
@@ -592,8 +696,8 @@ class Ingredients(object):
             df.drop(columns, inplace = True)
         return self
 
-    @combine_lists
-    @choose_df
+    @make_columns_parameter
+    @backup_df
     def drop_infrequent(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None,
@@ -626,7 +730,7 @@ class Ingredients(object):
         self.drop_columns(columns = infrequents)
         return self
 
-    @choose_df
+    @backup_df
     def infer_datatypes(self,
             df: Optional[pd.DataFrame] = None) -> None:
         """Infers column datatypes and adds those datatypes to types.
@@ -644,11 +748,14 @@ class Ingredients(object):
             df (DataFrame): pandas object for datatypes to be inferred.
 
         """
-        for datatype in self.all_datatypes.options.values():
-            type_columns = df.select_dtypes(
-                include = [datatype]).columns.to_list()
-            self.datatypes.update(
-                dict.fromkeys(type_columns, self.all_datatypes[datatype]))
+        try:
+            for datatype in self.all_datatypes.options.values():
+                type_columns = df.select_dtypes(
+                    include = [datatype]).columns.to_list()
+                self.datatypes.update(
+                    dict.fromkeys(type_columns, self.all_datatypes[datatype]))
+        except AttributeError:
+            pass
         return self
 
     def save_dropped(self,
@@ -675,8 +782,8 @@ class Ingredients(object):
             print('No features were dropped during preprocessing.')
         return
 
-    @combine_lists
-    @choose_df
+    @make_columns_parameter
+    @backup_df
     def smart_fill(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None) -> None:

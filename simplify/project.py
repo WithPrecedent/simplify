@@ -76,6 +76,16 @@ class Project(Book):
 
     """ Private Methods """
 
+    def _draft_options(self) -> None:
+        """Sets step options with information for module importation."""
+        self.options = {
+            'farmer': ('simplify.farmer', 'Almanac'),
+            'chef': ('simplify.chef', 'Cookbook'),
+            'actuary': ('simplify.actuary', 'Ledger'),
+            'critic': ('simplify.critic', 'Collection'),
+            'artist': ('simplify.artist', 'Canvas')}
+        return self
+
     def _draft_books(self) -> None:
         """Creates 'books' from 'steps' and 'options'."""
         self.books = {}
@@ -86,8 +96,11 @@ class Project(Book):
                     self.options[step][1])
                 if self.verbose:
                     print('Drafting', self.options[step][1].lower())
-                instance = book(idea = self.idea, library = self.library)
-                instance.project = self
+                instance = book(
+                    idea = self.idea,
+                    library = self.library,
+                    ingredients = self.ingredients)
+                instance.parent = self
                 self.books[step] = instance
             except KeyError:
                 error = ' '.join(
@@ -119,7 +132,6 @@ class Project(Book):
             book ([type]): a Book class (not instance).
 
         """
-
         try:
             self.books[name] = book
         except (AttributeError, TypeError):
@@ -144,15 +156,8 @@ class Project(Book):
 
     def draft(self) -> None:
         """Creates initial attributes."""
-        # Sets step options with information for module importation.
-        self.options = {
-            'farmer': ('simplify.farmer', 'Almanac'),
-            'chef': ('simplify.chef', 'Cookbook'),
-            'actuary': ('simplify.actuary', 'Ledger'),
-            'critic': ('simplify.critic', 'Collection'),
-            'artist': ('simplify.artist', 'Canvas')}
         # Finalizes core attributes.
-        for method in ('attributes', 'steps', 'books'):
+        for method in ('options', 'steps', 'books'):
             getattr(self, '_'.join(['_draft', method]))()
         return self
 

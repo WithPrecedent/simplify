@@ -5,15 +5,11 @@
 :copyright: 2019
 :license: Apache-2.0
 """
-
 import os
 import sys
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.library import Library
-from simplify.core.idea import Idea
-from simplify.core.ingredients import Ingredients
-from simplify.project import Project
+from simplify import factory
 
 
 def _args_to_dict() -> Dict[str, str]:
@@ -40,71 +36,33 @@ def _args_to_dict() -> Dict[str, str]:
             arguments[key] = value
     return arguments
 
-def _get_library(arguments: Dict[str, str]):
-    """Creates Library instance from command line or default options.
+def main(
+    idea: 'Idea',
+    library: 'Library',
+    ingredients: 'Ingredients') -> 'Project':
+    """Creates Project from idea, library, and ingredients
 
-        Args:
-            arguments(dict): command line options dictionary.
+    Args:
+        idea ('Idea'): an Idea instance.
+        library ('Library'): a Library instance.
+        ingredients ('Ingredients'): an Ingredients instance.
 
-        Returns:
-            library(Library): instance of library with root folder
-                set to the argument passed or default option.
-
-    """
-    try:
-        return Library(root_folder = arguments['-library'])
-    except KeyError:
-        return Library(root_folder = os.path.join('..', '..'))
-
-def _get_idea(arguments: Dict[str, str]):
-    """Creates Idea instance from command line or default options.
-
-        Args:
-            arguments(dict): command line options dictionary.
-
-        Returns:
-            idea(Idea): instance of Idea with settings loaded from a file.
-
-        Raises:
-            FileNotFoundError if passed string for '-idea' option is not found
-                or the default file 'settings.ini' is not found in the current
-                working folder.
+    Returns:
+        Project based upon passed attributes.
 
     """
-    try:
-        return Idea(configuration = arguments['-idea'])
-    except KeyError:
-        return Idea(configuration = os.path.join(os.getcwd, 'settings.ini'))
-
-def _get_ingredients(arguments: Dict[str, str]):
-    """Creates Ingredients instance with or without command line options.
-
-        Args:
-            arguments(dict): command line options dictionary.
-
-        Returns:
-            ingredients(Ingredients): instance of Ingredients with loaded
-                pandas DataFrame as 'df' attribute if '-ingredients' option
-                passed and the file was found. Otherwise, Ingredients is
-                instanced with no DataFrame (which is the normal case for
-                projects using siMpLify to gather data).
-
-    """
-    try:
-        return Ingredients(df = _get_file(arguments['-ingredients']))
-    except KeyError:
-        return Ingredients()
-
-def main(idea, library, ingredients):
-    print('Starting siMpLify')
-    return Project(
+    return factory.create_project(
         idea = idea,
         library = library,
         ingredients = ingredients)
 
 if __name__ == '__main__':
+    # Gets command line arguments and converts them to dict.
     arguments = _args_to_dict()
-    idea = _get_idea(arguments = arguments)
-    library = _get_library(arguments = arguments)
-    ingredients = _get_ingredients(arguments = arguments)
+    # Creates Idea, Library, and Ingredients instances from passed arguments.
+    idea = factory.startup(
+        idea = arguments.get['idea'],
+        library = arguments.get('-library'),
+        ingredients = arguments.get('-ingredients'))
+    # Calls 'main' function to return Project.
     main(idea = idea, library = library, ingredients = ingredients)

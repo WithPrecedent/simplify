@@ -43,7 +43,6 @@ class SimpleContributor(ABC):
             folder and file management.
 
     """
-
     idea: 'Idea'
     library: 'Library'
 
@@ -52,7 +51,7 @@ class SimpleContributor(ABC):
         # Sets default 'name' attribute if none exists.
         if not hasattr(self, 'name'):
             self.name = self.__class__.__name__.lower()
-        self = self.idea.publish(instance = self)
+        self = self.idea.apply(instance = self)
         self.draft()
         return self
 
