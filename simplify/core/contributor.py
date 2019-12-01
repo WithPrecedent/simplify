@@ -6,21 +6,21 @@
 :license: Apache-2.0
 """
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
 
 from simplify.core.book import Page
+from simplify.core.typesetter import SimpleBuilder
 from simplify.core.utilities import listify
 
 
 @dataclass
-class SimpleContributor(ABC):
+class SimpleContributor(SimpleBuilder):
     """Constructs pages from Outline instances for use in a Chapter.
 
     This class is a complex builder which constructs finalized algorithms with
@@ -123,7 +123,7 @@ class SimpleContributor(ABC):
 class Outline(object):
     """Contains settings for creating a Algorithm and Parameters."""
 
-    name: Optional[str] = 'simple_design'
+    name: Optional[str] = 'outline'
     module: Optional[str] = None
     algorithm: Optional[str] = None
     default: Optional[Dict[str, Any]] = None
@@ -136,13 +136,10 @@ class Outline(object):
     critic_dependent: Optional[Dict[str, str]] = None
     export_file: Optional[str] = None
 
+
 @dataclass
 class Algorithm(SimpleContributor):
-    """Finalizes an algorithm with parameters.
-
-
-    """
-
+    """Finalizes an algorithm with parameters."""
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -151,23 +148,23 @@ class Algorithm(SimpleContributor):
     """ Dunder Methods """
 
     # def __repr__(self) -> Union[object, None]:
-    #     """Returns '_gizmo' if it exists. Otherwise, returns None.
+    #     """Returns 'process' if it exists. Otherwise, returns None.
 
     #     Returns:
-    #         '_gizmo' (object): algorithm, if it exists.
+    #         'process' (object): algorithm, if it exists.
 
     #     """
     #     return self.__str__()
 
     # def __str__(self) -> Union[object, None]:
-    #     """Returns '_gizmo' if it exists. Otherwise, returns None.
+    #     """Returns 'process' if it exists. Otherwise, returns None.
 
     #     Returns:
-    #         '_gizmo' (object): algorithm, if it exists.
+    #         'process' (object): algorithm, if it exists.
 
     #     """
     #     try:
-    #         return self._gizmo
+    #         return self.process
     #     except AttributeError:
     #         return None
 

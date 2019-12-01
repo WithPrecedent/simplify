@@ -7,7 +7,7 @@
 """
 import os
 import sys
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify import factory
 

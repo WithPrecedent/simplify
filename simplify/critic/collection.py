@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
@@ -56,7 +56,7 @@ class Review(Chapter):
         super().__post_init__()
         return self
 
-    
+
 @dataclass
 class Article(SimpleContributor):
 

@@ -49,7 +49,7 @@ Any new subpackages, Books, Chapters, and Pages should follow a similar template
 
     Chapters should not require an module importation.
 
-3. siMpLify favors coomposition over inheritance and makes extensive use of the composite and builder design patterns. Inheritance is used, and only allowed from the abstract base classes that define a particular grouping of classes. For example, the Book, Chapter, and Page classes inherit from SimpleManuscript to allow for sharing of common methods.
+3. siMpLify favors coomposition over inheritance and makes extensive use of the composite and builder design patterns. Inheritance is used, and only allowed from the abstract base classes that define a particular grouping of classes. For example, the Book, Chapter, and Page classes inherit from SimpleComposite to allow for sharing of common methods.
 
 4. When composing objects through a loosely coupled hierarchy, it is important to provide connections in both directions. For example, the Chapter class has methods to 'add_page' and 'add_book' which automatically change local attributes ('pages' and 'book') accordingly. This is done so that any class in a composite tree can access attributes from other classes in that tree without passing numerous arguments.
 

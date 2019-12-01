@@ -110,7 +110,7 @@ class SearchAlgorithm(Algorithm):
     algorithm: object
     parameters: object
     data_dependents: object = None
-    hyperparameter_search : bool = False
+    hyperparameter_search: bool = False
     space: object = None
     name: str = 'search'
 

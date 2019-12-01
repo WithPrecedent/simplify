@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.contributor import SimpleContributor
 from simplify.core.contributor import Outline
@@ -86,7 +86,7 @@ class Sampler(SimpleContributor):
                 default = {'sampling_strategy': 'auto'},
                 runtime = {'random_state': 'seed'},
                 data_dependent = {
-                    'categorical_features' : 'categoricals_indices'}),
+                    'categorical_features': 'categoricals_indices'}),
             'smoteenn': Outline(
                 name = 'smoteenn',
                 module = 'imblearn.combine',

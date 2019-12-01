@@ -29,14 +29,13 @@ cancer_project = Project(
     library = root_folder,
     ingredients = df)
 # Converts label to boolean type to correct numpy default above.
-print('test ingredients df', cancer_project.ingredients.df)
 cancer_project.ingredients.change_datatype(columns = 'target',
                                            datatype = 'boolean')
 # Fills missing data with appropriate default values based on column datatype.
 cancer_project.ingredients.smart_fill()
 # Iterates through every recipe and exports plots, explainers, and other
 # metrics from each recipe.
-cancer_project.publish()
+cancer_project.apply()
 # Outputs information about the best recipe to the terminal.
 #cancer_project.critic.print_best()
 # Saves ingredients file with predictions or predicted probabilities added

@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 from importlib import import_module
 import os
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -176,7 +176,7 @@ class Project(Book):
         self._publish_books(data = data)
         return self
 
-    def apply(self, data: 'Ingredients', **kwargs) -> None:
+    def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
         """Applies created objects to passed 'data'.
 
         Args:
@@ -185,6 +185,8 @@ class Project(Book):
                 as well.
 
         """
+        if not data:
+            data = self.ingredients
         for step in self.steps:
-            getattr(self, step).apply(data = self.ingredients)
+            getattr(self, step).apply(data = data)
         return self

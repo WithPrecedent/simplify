@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.contributor import SimpleContributor
 from simplify.core.contributor import Outline
@@ -38,7 +38,7 @@ class Scaler(SimpleContributor):
     def draft(self) -> None:
         super().draft()
         self.options = {
-            'bins' : Outline(
+            'bins': Outline(
                 name = 'bins',
                 module = 'sklearn.preprocessing',
                 algorithm = 'KBinsDiscretizer',
@@ -47,44 +47,44 @@ class Scaler(SimpleContributor):
                     'strategy': 'uniform',
                     'n_bins': 5},
                 selected = True),
-            # 'gauss' : Outline(
+            # 'gauss': Outline(
             #     name = 'gauss',
             #     module = None,
             #     algorithm = Gaussify,
             #     default = {'standardize': False, 'copy': False},
             #     required = {'rescaler': self.standard},
             #     selected = True),
-            'maxabs' : Outline(
+            'maxabs': Outline(
                 name = 'maxabs',
                 module = 'sklearn.preprocessing',
                 algorithm = 'MaxAbsScaler',
                 default = {'copy': False},
                 selected = True),
-            'minmax' : Outline(
+            'minmax': Outline(
                 name = 'minmax',
                 module = 'sklearn.preprocessing',
                 algorithm = 'MinMaxScaler',
                 default = {'copy': False},
                 selected = True),
-            'normalize' : Outline(
+            'normalize': Outline(
                 name = 'normalize',
                 module = 'sklearn.preprocessing',
                 algorithm = 'Normalizer',
                 default = {'copy': False},
                 selected = True),
-            'quantile' : Outline(
+            'quantile': Outline(
                 name = 'quantile',
                 module = 'sklearn.preprocessing',
                 algorithm = 'QuantileTransformer',
                 default = {'copy': False},
                 selected = True),
-            'robust' : Outline(
+            'robust': Outline(
                 name = 'robust',
                 module = 'sklearn.preprocessing',
                 algorithm = 'RobustScaler',
                 default = {'copy': False},
                 selected = True),
-            'standard' : Outline(
+            'standard': Outline(
                 name = 'standard',
                 module = 'sklearn.preprocessing',
                 algorithm = 'StandardScaler',

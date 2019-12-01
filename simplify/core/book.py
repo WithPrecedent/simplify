@@ -1,23 +1,26 @@
 """
 .. module:: book
-:synopsis: iterable builder, container, and steps
+:synopsis: composite builder, container, and steps
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from importlib import import_module
 from itertools import product
 import os
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import warnings
 
 import numpy as np
 import pandas as pd
 
 from simplify import factory
+from simplify.core.typesetter import SimpleFile
+from simplify.core.typesetter import SimpleComposite
+from simplify.core.typesetter import SimpleOptions
+from simplify.core.typesetter import SimpleState
 from simplify.core.utilities import create_proxies
 from simplify.core.utilities import listify
 from simplify.core.utilities import numpy_shield
@@ -25,271 +28,7 @@ from simplify.core.utilities import XxYy
 
 
 @dataclass
-class SimpleManuscript(ABC):
-    """Base class for data processing classes.
-
-    SimpleManuscript implements a modified composite tree pattern for organizing
-    Projects, Books, Chapters, and Pages. The hierarchy between each level is
-    fixed, but the core methods are shared by all of the levels in that
-    hierarchy.
-
-    """
-    def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
-        # Sets default 'name' attribute if none exists.
-        if not hasattr(self, 'name'):
-            self.name = self.__class__.__name__.lower()
-        try:
-            self = self.idea.apply(instance = self)
-        except AttributeError:
-            pass
-        self.draft()
-        if hasattr(self, 'proxies'):
-            self = create_proxies(instance = self, proxies = self.proxies)
-        return self
-
-    """ Dunder Methods """
-
-    def __iter__(self) -> Iterable:
-        """Returns iterable 'children'."""
-        try:
-            return iter(self.children)
-        except AttributeError:
-            return iter()
-
-    """ Private Methods """
-
-    def _convert_wildcards(self, value: Union[str, List[str]]) -> List[str]:
-        """Converts 'all', 'default', or 'none' values to a list of items.
-
-        Args:
-            value (Union[str, List[str]]): name(s) of pages.
-
-        Returns:
-            If 'all', either the 'all' property or all keys listed in 'options'
-                dictionary are returned.
-            If 'default', either the 'defaults' property or all keys listed in
-                'options' dictionary are returned.
-            If some variation of 'none', 'none' is returned.
-            Otherwise, 'value' is returned intact.
-
-        """
-        if value in ['all', ['all']]:
-            return self.all
-        elif value in ['default', ['default']]:
-            self.default
-        elif value in ['none', ['none'], 'None', ['None'], None]:
-            return ['none']
-        else:
-            return listify(value)
-
-    def _draft_options(self) -> None:
-        """Declares 'options' dict.
-
-        Subclasses should provide their own '_draft_options' method, if needed.
-
-        """
-        self.options = {}
-        return self
-
-    """ Import/Export Methods """
-
-    def load(self,
-            name: Optional[str] = None,
-            file_path: Optional[str] = None,
-            folder: Optional[str] = None,
-            file_name: Optional[str] = None,
-            file_format: Optional[str] = None) -> None:
-        """Loads object from file into the subclass attribute 'name'.
-
-        For any arguments not passed, default values stored in the shared
-        Library instance will be used based upon the current 'stage' of the
-        siMpLify project.
-
-        Args:
-            name (Optional[str]): name of attribute for the file contents to be
-                stored. Defaults to None.
-            file_path (Optional[str]): a complete file path for the file to be
-                loaded. Defaults to None.
-            folder (Optional[str]): a path to the folder where the file should
-                be loaded from (not used if file_path is passed). Defaults to
-                None.
-            file_name (Optional[str]): contains the name of the file to be
-                loaded without the file extension (not used if file_path is
-                passed). Defaults to None.
-            file_format (Optional[str]): name of file format in
-                library.extensions. Defaults to None.
-
-        """
-        setattr(self, name, self.library.load(
-            file_path = file_path,
-            folder = folder,
-            file_name = file_name,
-            file_format = file_format))
-        return self
-
-    def save(self,
-            variable: Optional[Union['SimpleManuscript', str]] = None,
-            file_path: Optional[str] = None,
-            folder: Optional[str] = None,
-            file_name: Optional[str] = None,
-            file_format: Optional[str] = None) -> None:
-        """Exports a variable or attribute to disk.
-
-        If 'variable' is not passed, 'self' will be used.
-
-        For other arguments not passed, default values stored in the shared
-        library instance will be used based upon the current 'stage' of the
-        siMpLify project.
-
-        Args:
-            variable (Optional[Union['SimpleManuscript'], str]): a python object
-                or a string corresponding to a subclass attribute which should
-                be saved to disk. Defaults to None.
-            file_path (Optional[str]): a complete file path for the file to be
-                saved. Defaults to None.
-            folder (Optional[str]): a path to the folder where the file should
-                be saved (not used if file_path is passed). Defaults to None.
-            file_name (Optional[str]): contains the name of the file to be saved
-                without the file extension (not used if file_path is passed).
-                Defaults to None.
-            file_format (Optional[str]): name of file format in
-                library.extensions. Defaults to None.
-
-        """
-        # If variable is not passed, the subclass instance is saved.
-        if variable is None:
-            variable = self
-        # If a string, 'variable' is converted to a local attribute with the
-        # string as its name.
-        else:
-            try:
-                variable = getattr(self, variable)
-            except TypeError:
-                pass
-        self.library.save(
-            variable = variable,
-            file_path = file_path,
-            folder = folder,
-            file_name = file_name,
-            file_format = file_format)
-        return self
-
-    """ Composite Management Methods """
-
-    def add_parent(self, parent: 'SimpleManuscript') -> None:
-        """Sets 'parent' attribute to 'SimpleManuscript'.
-
-        Setting 'parent' allows different SimpleManuscript instances to access
-        attributes from other SimpleManuscript instances that are connected
-        through parent and/or child relationships.
-
-        Args:
-            parent ('SimpleManuscript'): SimpleManuscript subclass above another
-                SimpleManuscript subclass instance in the composite tree.
-
-        """
-        self.parent = parent
-        return self
-
-    def remove_parent(self) -> None:
-        """Sets 'parent' to None."""
-        self.parent = None
-        return self
-
-    def add_child(self, name: str, child: 'SimpleManuscript') -> None:
-        """Adds 'child' instance to 'children'.
-
-        Args:
-            name (str): key name for child instance to be accessed from
-                'children' dict.
-            child ('SimpleManuscript'): SimpleManuscript subclass below another
-                SimpleManuscript subclass instance in the composite tree.
-
-        """
-        try:
-            self.children[name] = child
-        except (AttributeError, TypeError):
-            self.children = {}
-            self.children[name] = child
-        return self
-
-    def remove_child(self, name: str) -> None:
-        """Removes a child instance link from 'children'.
-
-        Args:
-            name (str): key name of child instance to remove.
-
-        """
-        try:
-            del self.children[name]
-        except KeyError:
-            pass
-        return self
-
-    """ Core siMpLify Methods """
-
-    @abstractmethod
-    def draft(self) -> None:
-        """Required method that sets default values.
-
-        Subclasses should provide their own 'draft' method.
-
-        """
-        return self
-
-    @abstractmethod
-    def publish(self, data: Optional['Ingredients'] = None) -> None:
-        """Required method which applies methods to passed data.
-
-        Subclasses should provide their own 'publish' method.
-
-        Args:
-            data (Optional['Ingredients']): an Ingredients instance.
-
-        """
-        return self
-
-    @abstractmethod
-    def apply(self, data: 'Ingredients', **kwargs) -> None:
-        """Applies created objects to passed 'data'.
-
-        Subclasses should provide their own 'apply' method, if needed.
-
-        Args:
-            data (Ingredients): data object for methods to be applied.
-
-        """
-        return self
-
-    """ Properties """
-
-    @property
-    def all(self) -> List[str]:
-        """Returns list of all 'options'."""
-        return list(options.keys())
-
-    @property
-    def defaults(self) -> List[str]:
-        """Returns default 'options'.
-
-        If no default options have been set, 'all' is returned.
-
-        """
-        try:
-            self._defaults
-        except AttributeError:
-            return self.all
-
-    @defaults.setter
-    def defaults(self, defaults: List[str]) -> None:
-        """Sets default 'options'."""
-        self._defaults = defaults
-        return self
-
-
-@dataclass
-class Book(SimpleManuscript):
+class Book(SimpleComposite, SimpleOptions):
     """Builds and controls Chapters.
 
     This class contains methods useful to create iterators and iterate over
@@ -329,6 +68,8 @@ class Book(SimpleManuscript):
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. For auto_publish to have an effect,
             'ingredients' must also be passed. Defaults to True.
+        file_format (Optional[str]): name of file format for object to be
+            serialized. Defaults to 'pickle'.
 
     """
     idea: Union['Idea', str]
@@ -343,6 +84,7 @@ class Book(SimpleManuscript):
     name: Optional[str] = 'simplify'
     auto_publish: Optional[bool] = True
     file_format: str = 'pickle'
+    export_folder: str = 'book'
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods."""
@@ -590,28 +332,9 @@ class Book(SimpleManuscript):
         self.chapters = new_chapters
         return self
 
-    """ Properties """
-
-    @property
-    def project(self) -> None:
-        return self.parent
-
-    @project.setter
-    def project(self, project: 'SimpleManuscript') -> None:
-        self.parent = project
-        return self
-
-    @property
-    def chapters(self) -> None:
-        return self.children
-
-    @chapters.setter
-    def chapters(self, chapters: Dict[str, 'SimpleManuscript']) -> None:
-        self.children = chapters
-        return self
 
 @dataclass
-class Chapter(SimpleManuscript):
+class Chapter(SimpleComposite, SimpleOptions):
     """Iterator for a siMpLify process.
 
     Args:
@@ -629,12 +352,15 @@ class Chapter(SimpleManuscript):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
+        file_format (Optional[str]): name of file format for object to be
+            serialized. Defaults to 'pickle'.
 
     """
     pages: Dict[str, str]
     metadata: Optional[Dict[str, Any]] = None
     name: Optional[str] = 'chapter'
     file_format: str = 'pickle'
+    export_folder: str = 'chapter'
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -649,62 +375,6 @@ class Chapter(SimpleManuscript):
         return self.book.contributors[key].publish(
             page = technique,
             data = ingredients)
-
-    """ Import/Export Methods """
-
-    def load(self,
-            file_path: Optional[str] = None,
-            folder: Optional[str] = None,
-            file_name: Optional[str] = None) -> None:
-        """Loads 'pages' from disk.
-
-        For any arguments not passed, default values stored in the shared
-        Library instance will be used based upon the current 'stage' of the
-        siMpLify project.
-
-        Args:
-            file_path (Optional[str]): a complete file path for the file to be
-                loaded.
-            folder (Optional[str]): a path to the folder where the file should
-                be loaded from (not used if file_path is passed).
-            file_name (Optional[str]): contains the name of the file to be
-                loaded without the file extension (not used if 'file_path' is
-                passed).
-
-        """
-        self.pages = self.library.load(
-            file_path = file_path,
-            folder = folder,
-            file_name = file_name,
-            file_format = 'pickle')
-        return self
-
-    def save(self,
-            file_path: Optional[str] = None,
-            folder: Optional[str]  = None,
-            file_name: Optional[str]  = None) -> None:
-        """Exports 'pages' to disk.
-
-        For any arguments not passed, default values stored in the shared
-        Library instance will be used based upon the current 'stage' of the
-        siMpLify project.
-
-        Args:
-            file_path (Optional[str]): a complete file path for the file to be
-                saved.
-            folder (Optional[str]): a path to the folder where the file should
-                be saved (not used if file_path is passed).
-            file_name (Optional[str]): contains the name of the file to be saved
-                without the file extension (not used if file_path is passed).
-
-        """
-        self.library.save(
-            variable = self.pages,
-            file_path = file_path,
-            folder = folder,
-            file_name = file_name,
-            file_format = 'pickle')
-        return self
 
     """ Composite Management Methods """
 
@@ -800,29 +470,9 @@ class Chapter(SimpleManuscript):
                 **kwargs))
         return self
 
-    """ Properties """
-
-    @property
-    def book(self) -> None:
-        return self.parent
-
-    @book.setter
-    def book(self, book: 'SimpleManuscript') -> None:
-        self.parent = book
-        return self
-
-    @property
-    def pages(self) -> None:
-        return self.pages
-
-    @pages.setter
-    def pages(self, pages: Dict[str, 'SimpleManuscript']) -> None:
-        self.pages = pages
-        return self
-
 
 @dataclass
-class Page(SimpleManuscript):
+class Page(SimpleComposite, SimpleOptions):
     """Stores, combines, and applies Algorithm and Parameters instances.
 
     A SimpleContributor directs the building of the requisite algorithm and
@@ -842,39 +492,19 @@ class Page(SimpleManuscript):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
+        file_format (Optional[str]): name of file format for object to be
+            serialized. Defaults to 'pickle'.
 
     """
     algorithm: 'Algorithm'
     parameters: Optional['Parameters'] = None
     name: str = 'page'
     file_format: str = 'pickle'
+    export_folder: str = 'chapter'
 
     def __post_init__(self) -> None:
         super().__post_init__()
         return self
-
-    """ Dunder Methods """
-
-    # def __repr__(self) -> Union[object, None]:
-    #     """Returns 'algorithm'.
-
-    #     Returns:
-    #         'algorithm' (object): finalized algorithm.
-
-    #     """
-    #     return self.__str__()
-
-    # def __str__(self) -> Union[object, None]:
-    #     """Returns 'algorithm'.
-
-    #     Returns:
-    #         'algorithm' (object): finalized algorithm.
-
-    #     """
-    #     try:
-    #         return self.algorithm
-    #     except AttributeError:
-    #         return None
 
     """ Core siMpLify Methods """
 
@@ -883,10 +513,10 @@ class Page(SimpleManuscript):
 
         """
         try:
-            self.algorithm = self.algorithm._gizmo(**self.parameters)
+            self.algorithm = self.algorithm.process(**self.parameters)
         except AttributeError:
             try:
-                self.algorithm = self.algorithm._gizmo(self.parameters)
+                self.algorithm = self.algorithm.process(self.parameters)
             except AttributeError:
                 pass
         except TypeError:
@@ -1038,13 +668,62 @@ class Page(SimpleManuscript):
             error = ' '.join([self.name, 'algorithm has no transform method'])
             raise AttributeError(error)
 
-    """ Properties """
 
-    @property
-    def chapter(self) -> None:
-        return self.chapter
+class ObjectFiler(SimpleFile):
+    folder_path: str
+    file_name: str
+    file_format: 'FileFormat'
 
-    @chapter.setter
-    def chapter(self, chapter: 'SimpleManuscript') -> None:
-        self.parent = chapter
+    def __post_init__(self):
+        return self
+
+@dataclass
+class Stage(SimpleState):
+    """State machine for siMpLify project workflow.
+
+    Args:
+        idea (Idea): an instance of Idea.
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
+
+    """
+    idea: 'Idea'
+    name: Optional[str] = 'stage_machine'
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        return self
+
+    """ Private Methods """
+
+    def _set_states(self) -> List[str]:
+        """Determines list of possible stages from 'idea'.
+
+        Returns:
+            List[str]: states possible based upon user selections.
+
+        """
+        states = []
+        for stage in listify(self.idea['simplify']['simplify_steps']):
+            if stage == 'farmer':
+                for step in self.idea['farmer']['farmer_steps']:
+                    states.append(step)
+            else:
+                states.append(stage)
+        return states
+
+    """ Core siMpLify Methods """
+
+    def draft(self) -> None:
+        """Initializes state machine."""
+        # Sets list of possible states based upon Idea instance options.
+        self.options = self._set_states()
+        # Sets initial state.
+        self.state = self.options[0]
         return self

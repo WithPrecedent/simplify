@@ -10,7 +10,7 @@ from functools import wraps
 from inspect import signature
 import time
 from types import FunctionType
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from more_itertools import unique_everseen
 import numpy as np

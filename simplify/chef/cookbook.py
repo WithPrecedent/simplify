@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -93,8 +93,8 @@ class Cookbook(Book):
             ingredients: 'Ingredients') -> Tuple['Chapter', 'Ingredients']:
         """Extra actions to take for each recipe."""
         if self.export_results:
-            self.library._set_book_folder()
-            self.library._set_chapter_folder(
+            self.library.set_book_folder()
+            self.library.set_chapter_folder(
                 chapter = chapter,
                 name = 'recipe')
             if self.export_all_recipes:
@@ -163,7 +163,7 @@ class Cookbook(Book):
             if recipes in ['all']:
                 recipes = self.recipes
             for recipe in recipes:
-                self.library._set_chapter_folder(chapter = recipe)
+                self.library.set_chapter_folder(chapter = recipe)
                 recipe.save(folder = self.library.recipe)
         # elif recipes in ['best'] and hasattr(self, 'critic'):
         #     self.critic.best_recipe.save(

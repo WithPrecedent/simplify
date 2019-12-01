@@ -11,11 +11,12 @@ from dataclasses import dataclass
 from importlib import import_module
 import os
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
 from simplify import factory
+from simplify.core.defaults import Defaults
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
@@ -138,10 +139,12 @@ class Idea(object):
     """
     configuration: Union[Dict[str, Any], str]
     name: Optional[str] = 'idea'
-    infer_types: Optional[bool] = True
+    infer_types: Optional[bool] = None
     auto_publish: Optional[bool] = True
 
     def __post_init__(self) -> None:
+        self.defaults = Defaults()
+        self = self.defaults.apply(instance = self)
         self.draft()
         if self.auto_publish:
             self.publish()
@@ -268,7 +271,7 @@ class Idea(object):
 
     def __iter__(self) -> Iterable:
         """Returns iterable 'configuration' dict."""
-        return iter(self.configuration)
+        return self.configuration.items()
 
     def __len__(self):
         """Returns length of 'configuration' dict."""
@@ -495,14 +498,14 @@ class Idea(object):
         return self
 
     def apply(self,
-            instance: 'SimpleContributor',
+            instance: Union['SimpleContributor', 'SimpleComposite'],
             sections: Optional[Union[List[str], str]] = None,
             override: Optional[bool] = False) -> 'SimpleContributor':
         """Injects attributes from configuration settings into passed instance.
 
         Args:
-            instance (SimpleContributor): a class instance to which attributes
-                should be added.
+            instance (Union['SimpleContributor', 'SimpleComposite']): a class
+                instance to which attributes should be added.
             sections (Optional[Union[List[str], str]]): the sections of the
                 configuration that should be stored as local attributes in the
                 passed instance. Defaults to None.
