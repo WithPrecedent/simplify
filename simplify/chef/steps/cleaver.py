@@ -9,13 +9,13 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.contributor import Algorithm
-from simplify.core.contributor import Outline
-from simplify.core.contributor import SimpleContributor
+from simplify.core.typesetter import Algorithm
+from simplify.core.typesetter import Outline
+from simplify.core.typesetter import SimpleDirector
 
 
 @dataclass
-class Cleaver(SimpleContributor):
+class Cleaver(SimpleDirector):
     """Divides features for comparison or recombination.
 
     Args:

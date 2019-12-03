@@ -10,13 +10,13 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.contributor import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleContributor
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
 subclass because siMpLify uses a lazy importing system. This locates the
 potential module importations in roughly the same place as normal module-level
-import commands. A SimpleContributor subclass will, by default, add the
+import commands. A SimpleDirector subclass will, by default, add the
 DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.

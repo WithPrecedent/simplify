@@ -13,12 +13,12 @@ from math import ceil, sqrt
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from simplify.core.contributor import SimpleContributor
-from simplify.core.contributor import Outline
+from simplify.core.typesetter import SimpleDirector
+from simplify.core.typesetter import Outline
 
 
 @dataclass
-class Painter(SimpleContributor):
+class Painter(SimpleDirector):
     """Creates data analysis visualizations.
 
     Args:

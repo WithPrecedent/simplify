@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.contributor import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
 @dataclass

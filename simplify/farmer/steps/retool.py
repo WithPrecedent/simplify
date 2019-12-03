@@ -21,11 +21,11 @@ import numpy as np
 import pandas as pd
 import re
 
-from simplify.core.contributor import SimpleContributor
+from simplify.core.typesetter import SimpleDirector
 
 
 @dataclass
-class ReTool(SimpleContributor):
+class ReTool(SimpleDirector):
     """Contains shared methods for regex tools in the ReTool package.
 
     ReTool aims to simplify and speed up creating expressions tables (pseudo-

@@ -9,12 +9,12 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.contributor import SimpleContributor
-from simplify.core.contributor import Outline
+from simplify.core.typesetter import SimpleDirector
+from simplify.core.typesetter import Outline
 
 
 @dataclass
-class Splitter(SimpleContributor):
+class Splitter(SimpleDirector):
     """Splits data into training, testing, and/or validation datasets.
 
     Args:

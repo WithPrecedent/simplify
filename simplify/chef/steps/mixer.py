@@ -9,12 +9,12 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.contributor import SimpleContributor
-from simplify.core.contributor import Outline
+from simplify.core.typesetter import SimpleDirector
+from simplify.core.typesetter import Outline
 
 
 @dataclass
-class Mixer(SimpleContributor):
+class Mixer(SimpleDirector):
     """Computes new features by combining existing ones.
 
     Args:

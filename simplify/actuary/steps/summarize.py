@@ -11,12 +11,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.core.contributor import SimpleContributor
-from simplify.core.contributor import Outline
+from simplify.core.typesetter import SimpleDirector
+from simplify.core.typesetter import Outline
 
 
 @dataclass
-class Summarize(SimpleContributor):
+class Summarize(SimpleDirector):
     """Summarizes data.
 
     Args:

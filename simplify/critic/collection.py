@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.core.contributor import SimpleContributor
+from simplify.core.typesetter import SimpleDirector
 from simplify.core.book import Book
 from simplify.core.book import Chapter
 
@@ -26,7 +26,7 @@ class Collection(Book):
 
     """
     name: Optional[str] = 'critic'
-    steps: Optional[Dict[str, 'SimpleContributor']] = None
+    steps: Optional[Dict[str, 'SimpleDirector']] = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -58,7 +58,7 @@ class Review(Chapter):
 
 
 @dataclass
-class Article(SimpleContributor):
+class Article(SimpleDirector):
 
     def __post_init__(self) -> None:
         super().__post_init__()

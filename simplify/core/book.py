@@ -1,6 +1,6 @@
 """
 .. module:: book
-:synopsis: composite builder, container, and steps
+:synopsis: composite tree base classes
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -16,19 +16,184 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify import factory
-from simplify.core.typesetter import SimpleFile
-from simplify.core.typesetter import SimpleComposite
-from simplify.core.typesetter import SimpleOptions
-from simplify.core.typesetter import SimpleState
-from simplify.core.utilities import create_proxies
+import simplify
+from simplify.base.filer import SimpleFile
+from simplify.base.options import SimpleOptions
+from simplify.base.state import SimpleState
 from simplify.core.utilities import listify
-from simplify.core.utilities import numpy_shield
-from simplify.core.utilities import XxYy
 
 
 @dataclass
-class Book(SimpleComposite, SimpleOptions):
+class SimpleManuscript(SimpleOptions, ABC):
+    """Base class for data processing, analysis, and visualization.
+
+    SimpleComposite implements a modified composite tree pattern for organizing
+    the various subpackages in siMpLify.
+
+    """
+    def __post_init__(self) -> None:
+        """Calls initialization methods and sets class instance defaults."""
+        # Sets default 'name' attribute if none exists.
+        if not hasattr(self, 'name'):
+            self.name = self.__class__.__name__.lower()
+        # Calls SimpleOptions __post_init__ method.
+        SimpleOptions.__post_init__()
+        # Injects attributes from Idea instance, if values exist.
+        try:
+            self = self.idea.apply(instance = self)
+        except AttributeError:
+            pass
+        # Creates proxy names for attributes, if 'proxies' attribute exists.
+        self.proxify()
+        # Automatically calls 'draft' method.
+        self.draft()
+        # Calls 'publish' method if 'auto_publish' is True.
+        if hasattr(self, 'auto_publish') and self.auto_publish:
+            self.publish()
+        return self
+
+    """ Dunder Methods """
+
+    def __iter__(self) -> NotImplementedError:
+        raise NotImplementedError(' '.join([
+            self.__class__.__name__, 'has no child classes']))
+
+    """ Composite Management Methods """
+
+    def proxify(self, proxies: Optional[Dict[str, str]] = None) -> None:
+        """Creates proxy names for attributes and methods.
+
+        Args:
+            proxies (Optional[Dict[str, str]]): dictionary with keys of current
+                attribute names and values of proxy attribute names. If
+                'proxies' is not passed, the method looks for 'proxies'
+                attribute in the subclass instance. Defaults to None
+
+        """
+        if proxies is None:
+            try:
+                proxies = self.proxies
+            except AttributeError:
+                pass
+        if proxies is not None:
+            proxy_attributes = {}
+            for name, proxy in proxies.items():
+                for key, value in self.__dict__.items():
+                    if proxy in key:
+                        proxy_attributes[key.replace(name, proxy)] = value
+            self.__dict__.update(proxy_attributes)
+        return self
+
+    """ Core siMpLify Methods """
+
+    @abstractmethod
+    def draft(self) -> None:
+        """Required method that sets default values.
+
+        Subclasses should provide their own 'draft' method.
+
+        """
+        return self
+
+    @abstractmethod
+    def publish(self, data: Optional[object] = None) -> None:
+        """Required method which applies methods to passed data.
+
+        Subclasses should provide their own 'publish' method.
+
+        Args:
+            data (Optional[object]): an Ingredients instance.
+
+        """
+        return self
+
+    @abstractmethod
+    def apply(self, data: object, **kwargs) -> None:
+        """Applies created objects to passed 'data'.
+
+        Subclasses should provide their own 'apply' method, if needed.
+
+        Args:
+            data (object): data object for methods to be applied.
+
+        """
+        return self
+
+    """ Properties """
+
+    @property
+    def book(self) -> 'Book':
+        """Returns '_book' attribute."""
+        return self._book
+
+    @book.setter
+    def book(self, book: 'Book') -> None:
+        """Sets '_book' attribute to 'book' argument.
+
+        Args:
+            book (Book): Book class up one level in the composite tree.
+
+        """
+        self._book = book
+        return self
+
+    @book.deleter
+    def book(self) -> None:
+        """Sets 'book' to None."""
+        self._book = None
+        return self
+
+    @property
+    def chapters(self) -> Dict[str, Union['Book', 'Page']]:
+        """Returns '_chapters' attribute.
+
+        Returns:
+            Dict of str access keys and Book or Page values.
+
+        """
+        return self._chapters
+
+    @chapters.setter
+    def chapters(self,
+            chapters: Dict[str, Union['Book', 'Page']],
+            override: Optional[bool] = False) -> None:
+        """Adds 'chapters' to '_chapters' attribute.
+
+        If 'override' is True, 'chapters' replaces '_chapters'.
+
+        Args:
+            chapters (Dict[str, Union['Book', 'Page']]): dictionary with str
+                for reference keys and values of either 'Book' or 'Page'.
+            override (Optional[bool]): whether to overwrite existing '_chapters'
+                (True) or add 'chapters' to '_chapters' (False). Defaults to
+                False.
+
+        """
+        if override or not hasattr(self, '_chapters') or not self._chapters:
+            self._chapters = chapters
+        else:
+            self._chapters.update(chapters)
+        return self
+
+    @chapters.deleter
+    def chapters(self, chapters: Union[List[str], str]) -> None:
+        """ Removes 'chapters' for '_chapters' attribute.
+
+        Args:
+            chapters (Union[List[str], str]): key(s) to chapters classes to
+                remove from '_chapters'.
+
+        """
+        for child in listify(chapters):
+            try:
+                del self._chapters[child]
+            except (KeyError, AttributeError):
+                pass
+        return self
+
+
+@dataclass
+class Book(SimpleManuscript):
     """Builds and controls Chapters.
 
     This class contains methods useful to create iterators and iterate over
@@ -70,6 +235,8 @@ class Book(SimpleComposite, SimpleOptions):
             'ingredients' must also be passed. Defaults to True.
         file_format (Optional[str]): name of file format for object to be
             serialized. Defaults to 'pickle'.
+        export_folder (Optional[str]): attribute name of folder in 'library' for
+            serialization of subclasses to be saved. Defaults to 'book'.
 
     """
     idea: Union['Idea', str]
@@ -83,32 +250,35 @@ class Book(SimpleComposite, SimpleOptions):
     steps: Optional[Union[List[str], str]] = None
     name: Optional[str] = 'simplify'
     auto_publish: Optional[bool] = True
-    file_format: str = 'pickle'
-    export_folder: str = 'book'
+    file_format: Optional[str] = 'pickle'
+    export_folder: Optional[str] = 'book'
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        self.parent_type = 'project'
-        self.children_type = 'chapters'
-        try:
-            self = self.idea.apply(instance = self)
-        except AttributeError:
-            pass
-        self.idea, self.library, self.ingredients = factory.startup(
+        self.proxies = {'chapters': 'chapters'}
+        self.idea, self.library, self.ingredients = simplify.startup(
             idea = self.idea,
             library = self.library,
             ingredients = self.ingredients)
-        self.draft()
-        if self.auto_publish and self.ingredients is not None:
-            self.publish(data = self.ingredients)
+        super().__post_init__()
         return self
+
+    """ Dunder Methods """
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable for '_chapters'."""
+        try:
+            return iter(self._chapters)
+        except AttributeError:
+            self._chapters = {}
+            return iter(self._chapters)
 
     """ Private Methods """
 
     def _draft_steps(self) -> None:
-        """If 'steps' is not passed, gets 'steps' from Idea settings.
+        """If 'steps' does not exist, gets 'steps' from Idea settings.
 
         If there are no 'steps' in the shared Idea instance, an empty list is
         created for 'steps'.
@@ -123,15 +293,15 @@ class Book(SimpleComposite, SimpleOptions):
             self.steps = listify(self.steps)
         return self
 
-    def _draft_contributors(self) -> None:
-        """Creates 'contributors' containing SimpleContributor instances."""
-        self.contributors  = {}
+    def _draft_authors(self) -> None:
+        """Creates 'authors' containing SimpleDirector instances."""
+        self.authors  = {}
         for step in self.steps:
             try:
-                contributor = getattr(
+                author = getattr(
                     import_module(self.options[step][0]),
                     self.options[step][1])
-                self.add_contributor(name = step, contributor = contributor)
+                self.add_author(name = step, author = author)
             except KeyError:
                 error = ' '.join(
                     [step, 'does not match an option in', self.name])
@@ -159,7 +329,7 @@ class Book(SimpleComposite, SimpleOptions):
         for i, plan in enumerate(self.plans):
             pages = dict(zip(self.steps, plan))
             metadata = self._draft_chapter_metadata(number = i)
-            self.add_children(name = str(i), pages = pages, metadata = metadata)
+            self.add_chapters(name = str(i), pages = pages, metadata = metadata)
         return self
 
     def _draft_chapter_metadata(self, number: int) -> Dict[str, Any]:
@@ -190,21 +360,21 @@ class Book(SimpleComposite, SimpleOptions):
         """
         return chapter
 
-    def _publish_contributors(self,
+    def _publish_authors(self,
             data: Optional['Ingredients'] = None) -> None:
-        """Converts contributor classes into class instances.
+        """Converts author classes into class instances.
 
         Args:
             data (Optional['Ingredients']): an Ingredients instance.
 
         """
-        new_contributors = {}
-        for key, contributor in self.contributors.items():
-            instance = contributor(idea = self.idea, library = self.library)
+        new_authors = {}
+        for key, author in self.authors.items():
+            instance = author(idea = self.idea, library = self.library)
             instance.book = self
             instance.publish(data = data)
-            new_contributors[key] = instance
-        self.contributors = new_contributors
+            new_authors[key] = instance
+        self.authors = new_authors
         return self
 
     def _publish_chapters(self, data: Optional['Ingredients'] = None) -> None:
@@ -248,35 +418,35 @@ class Book(SimpleComposite, SimpleOptions):
 
     """ Composite Management Methods """
 
-    def add_contributor(self,
+    def add_author(self,
             name: str,
-            contributor: 'SimpleContributor') -> None:
-        """Creates a SimpleContributor instance and stores it in 'contributors'.
+            author: 'SimpleDirector') -> None:
+        """Creates a SimpleDirector instance and stores it in 'authors'.
 
         Args:
-            name (str): name of key to access SimpleContributor instance from
-                'contributors' dict.
-            contributor ([type]): a SimpleContributor class (not instance).
+            name (str): name of key to access SimpleDirector instance from
+                'authors' dict.
+            author ([type]): a SimpleDirector class (not instance).
 
         """
 
         try:
-            self.contributors[name] = contributor
+            self.authors[name] = author
         except (AttributeError, TypeError):
-            self.contributors = {}
-            self.contributors[name] = contributor
+            self.authors = {}
+            self.authors[name] = author
         return self
 
-    def remove_contributor(self, name: str) -> None:
-        """Deletes a SimpleContributor from 'contributors'.
+    def remove_author(self, name: str) -> None:
+        """Deletes a SimpleDirector from 'authors'.
 
         Args:
-            name (str): key name for SimpleContributor to remove from the
-                'contributors' dict.
+            name (str): key name for SimpleDirector to remove from the
+                'authors' dict.
 
         """
         try:
-            del self.contributors[name]
+            del self.authors[name]
         except KeyError:
             pass
         return self
@@ -285,22 +455,17 @@ class Book(SimpleComposite, SimpleOptions):
 
     def draft(self) -> None:
         """Creates initial attributes."""
-        if not hasattr(self, 'parent_type'):
-            self.parent_type = 'project'
-        if not hasattr(self, 'children_type'):
-            self.children_type = 'chapters'
-        # 'options' should be created before this loop.
         for method in (
                 'options',
                 'steps',
-                'contributors',
+                'authors',
                 'plans',
                 'chapters'):
             getattr(self, '_'.join(['_draft', method]))()
         return self
 
     def publish(self, data: Optional['Ingredients'] = None) -> None:
-        """Finalizes 'contributors' and 'chapters'.
+        """Finalizes 'authors' and 'chapters'.
 
         Args:
             data (Optional['Ingredients']): an Ingredients instance.
@@ -309,7 +474,7 @@ class Book(SimpleComposite, SimpleOptions):
                 in 'pages'. Otherwise, it need not be passed. Defaults to None.
 
         """
-        for method in ('contributors', 'chapters'):
+        for method in ('authors', 'chapters'):
             try:
                 getattr(self, '_'.join(['_publish', method]))(data = data)
             except AttributeError:
@@ -334,7 +499,7 @@ class Book(SimpleComposite, SimpleOptions):
 
 
 @dataclass
-class Chapter(SimpleComposite, SimpleOptions):
+class Chapter(SimpleManuscript):
     """Iterator for a siMpLify process.
 
     Args:
@@ -363,8 +528,19 @@ class Chapter(SimpleComposite, SimpleOptions):
     export_folder: str = 'chapter'
 
     def __post_init__(self) -> None:
+        self.proxies = {'book': 'book', 'chapters': 'pages'}
         super().__post_init__()
         return self
+
+    """ Dunder Methods """
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable for 'pages'."""
+        try:
+            return iter(self._pages)
+        except AttributeError:
+            self._pages= {}
+            return iter(self._pages)
 
     """ Private Methods """
 
@@ -372,56 +548,9 @@ class Chapter(SimpleComposite, SimpleOptions):
             key: str,
             technique: str,
             ingredients: 'Ingredients') -> 'Page':
-        return self.book.contributors[key].publish(
+        return self.book.authors[key].publish(
             page = technique,
             data = ingredients)
-
-    """ Composite Management Methods """
-
-    def add_book(self, book: 'Book') -> None:
-        """Sets 'book' attribute to 'book'.
-
-        Args:
-            'book' ('Book'): Book instance which contains this Chapter instance.
-
-        """
-        self.book = book
-        return self
-
-    def remove_book(self) -> None:
-        """Sets 'book' to None."""
-        self.book = None
-        return self
-
-    def add_page(self, pages: Dict[str, 'Page']) -> None:
-        """Adds page class instances to class instance.
-
-        Args:
-            pages (Dict[str, 'Page']): dict with ordered Page instances to
-                be applied to passed data.
-
-        """
-        try:
-            self.pages.update(pages)
-        except TypeError:
-            self.pages = pages
-        return self
-
-    def remove_pages(self, pages: Union[List[str], str]) -> None:
-        """Delinks 'pages' from class instance.
-
-        Args:
-            pages (List[str], str): key names for Page instances to be
-                delinked from the current class instance.
-
-        """
-        for name in listify(pages):
-            try:
-                self.pages[name].book = None
-                del self.pages[name]
-            except KeyError:
-                pass
-        return self
 
     """ Core siMpLify Methods """
 
@@ -472,18 +601,17 @@ class Chapter(SimpleComposite, SimpleOptions):
 
 
 @dataclass
-class Page(SimpleComposite, SimpleOptions):
+class Page(SimpleManuscript):
     """Stores, combines, and applies Algorithm and Parameters instances.
 
-    A SimpleContributor directs the building of the requisite algorithm and
+    A SimpleDirector directs the building of the requisite algorithm and
     parameters to be injected into a Page instance. When possible, these Page
     instances are made to be scikit-learn compatible using the included
     'fit', 'transform', and 'fit_transform' methods. A Page instance can also
     be applied to data using the normal siMpLify 'apply' method.
 
     Args:
-        algorithm (Algorithm): finalized algorithm instance.
-        parameters (Parameters): finalized parameters instance.
+        components (Dict[str, object])
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -496,13 +624,13 @@ class Page(SimpleComposite, SimpleOptions):
             serialized. Defaults to 'pickle'.
 
     """
-    algorithm: 'Algorithm'
-    parameters: Optional['Parameters'] = None
+    components: Dict[str, object]
     name: str = 'page'
     file_format: str = 'pickle'
     export_folder: str = 'chapter'
 
     def __post_init__(self) -> None:
+        self.proxies = {'book': 'chapter'}
         super().__post_init__()
         return self
 

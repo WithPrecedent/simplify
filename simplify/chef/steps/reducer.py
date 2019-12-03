@@ -9,13 +9,13 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.contributor import SimpleContributor
-from simplify.core.contributor import Outline
+from simplify.core.typesetter import SimpleDirector
+from simplify.core.typesetter import Outline
 from simplify.core.utilities import numpy_shield
 
 
 @dataclass
-class Reducer(SimpleContributor):
+class Reducer(SimpleDirector):
     """Reduces features through various steps.
 
     Args:

@@ -35,7 +35,7 @@ class SearchComposer(ChefComposer):
 
     """ Private Methods """
 
-    def _get_conditional(self, step: ChefTechnique, parameters: dict):
+    def _build_conditional(self, step: ChefTechnique, parameters: dict):
         """[summary]
 
         Args:

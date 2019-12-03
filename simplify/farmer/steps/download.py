@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import os
 import requests
 
-from simplify.core.contributor import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
 @dataclass

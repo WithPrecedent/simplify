@@ -11,9 +11,9 @@ import sys
 sys.path.insert(0, os.path.join('..', 'simplify'))
 sys.path.insert(0, os.path.join('..', '..', 'simplify'))
 
-import simplify.builder as builder
+import simplify.content as content
 
-algorithm, parameters = builder.create(
+algorithm, parameters = content.create(
     configuration = {'general': {'gpu': True, 'seed': 4}},
     package = 'chef',
     step = 'scale',

@@ -71,6 +71,7 @@ class Project(Book):
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods."""
+        self.proxies = {'children' : 'books'}
         super().__post_init__()
         return self
 
@@ -124,33 +125,13 @@ class Project(Book):
 
     """ Composite Management Methods """
 
-    def add_book(self, name: str, book: 'Book') -> None:
-        """Creates a Book instance and stores it in 'books'.
+    def add_parent(self, parent: 'SimpleComponent') -> NotImplementedError:
+        raise NotImplementedError(' '.join([
+            self.__class__.__name__, 'cannot have a parent class']))
 
-        Args:
-            name (str): name of key to access Book instance from 'books' dict.
-            book ([type]): a Book class (not instance).
-
-        """
-        try:
-            self.books[name] = book
-        except (AttributeError, TypeError):
-            self.books = {}
-            self.books[name] = book
-        return self
-
-    def remove_book(self, name: str) -> None:
-        """Deletes a Book from 'books'.
-
-        Args:
-            name (str): key name for Book to remove from the 'books' dict.
-
-        """
-        try:
-            del self.books[name]
-        except KeyError:
-            pass
-        return self
+    def remove_parent(self) -> NotImplementedError:
+        raise NotImplementedError(' '.join([
+            self.__class__.__name__, 'cannot have a parent class']))
 
     """ Core siMpLify Methods """
 

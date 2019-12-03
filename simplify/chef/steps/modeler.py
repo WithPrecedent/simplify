@@ -9,12 +9,12 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.contributor import SimpleContributor
-from simplify.core.contributor import Outline
+from simplify.core.typesetter import SimpleDirector
+from simplify.core.typesetter import Outline
 
 
 @dataclass
-class Modeler(SimpleContributor):
+class Modeler(SimpleDirector):
     """Applies machine learning or statistical model to data.
 
     Args:
@@ -243,7 +243,7 @@ class Modeler(SimpleContributor):
                 data_dependent = 'scale_pos_weight')}
         return self
 
-    def _get_conditional(self,
+    def _build_conditional(self,
             step: str,
             parameters: Dict[str, Any]) -> None:
 

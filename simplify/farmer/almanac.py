@@ -1,6 +1,6 @@
 """
 .. module:: almanac
-:synopsis: data gathering, munging, and preprocessing builder module
+:synopsis: data gathering, munging, and preprocessing content module
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -10,13 +10,13 @@ from dataclasses import dataclass
 
 from simplify.core.utilities import local_backups
 from simplify.core.package import SimplePackage
-from simplify.core.contributor import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
-"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleContributor
+"""DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
 subclass because siMpLify uses a lazy importing system. This locates the
 potential module importations in roughly the same place as normal module-level
-import commands. A SimpleContributor subclass will, by default, add the
+import commands. A SimpleDirector subclass will, by default, add the
 DEFAULT_OPTIONS to the subclass as the 'options' attribute. If a user wants
 to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
@@ -59,7 +59,7 @@ class Almanac(SimplePackage):
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
 
-    Since this class is a subclass to SimplePackage and SimpleContributor, all
+    Since this class is a subclass to SimplePackage and SimpleDirector, all
     documentation for those classes applies as well.
 
     """

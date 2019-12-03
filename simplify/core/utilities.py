@@ -57,27 +57,6 @@ def add_suffix(
     except TypeError:
         return [item + '_' + suffix for item in iterable]
 
-def create_proxies(instance: object, proxies: Dict[str, str]) -> object:
-    """Creates proxy names for attributes and methods in instance.
-
-    Args:
-        instance (object): object with attributes and methods to change.
-        proxies (Dict[str, str]): dictionary with keys of current strings
-            appearing in instance methods and attributes and values of the
-            substitute string to inject.
-
-    Returns:
-        object with attributes and methods added with proxy names.
-
-    """
-    proxy_attributes = {}
-    for name, proxy in proxies.items():
-        for key, value in instance.__dict__.items():
-            if proxy in key:
-                proxy_attributes[key.replace(name, proxy)] = value
-    instance.__dict__.update(proxy_attributes)
-    return instance
-
 def deduplicate(iterable: Union[List, pd.DataFrame, pd.Series]) -> (
     Union[List, pd.DataFrame, pd.Series]):
     """Deduplicates list, pandas DataFrame, or pandas Series.

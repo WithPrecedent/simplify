@@ -11,10 +11,10 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.core.contributor import SimpleContributor
+from simplify.core.typesetter import SimpleDirector
 from simplify.core.chapter import Chapter
 from simplify.core.book import Book
-from simplify.core.contributor import SimpleContributor
+from simplify.core.typesetter import SimpleDirector
 
 
 @dataclass
@@ -26,7 +26,7 @@ class Ledger(Book):
 
     """
     name: Optional[str] = 'actuary'
-    steps: Optional[Dict[str, 'SimpleContributor']] = None
+    steps: Optional[Dict[str, 'SimpleDirector']] = None
 
     def __post_init__(self) -> None:
         super().__post_init__()

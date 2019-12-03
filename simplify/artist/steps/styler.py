@@ -12,8 +12,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from simplify.core.contributor import SimpleContributor
-from simplify.core.contributor import Outline
+from simplify.core.typesetter import SimpleDirector
+from simplify.core.typesetter import Outline
 
 
 @dataclass

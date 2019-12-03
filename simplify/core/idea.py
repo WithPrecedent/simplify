@@ -328,11 +328,11 @@ class Idea(object):
     """ Private Methods """
 
     def _are_parameters(self,
-            instance: 'SimpleContributor', section: str) -> bool:
+            instance: 'SimpleDirector', section: str) -> bool:
         """Returns whether value stores matching parameters for instance.
 
         Args:
-            instance (SimpleContributor): a class instance to which attributes
+            instance (SimpleDirector): a class instance to which attributes
                 should be added.
             section (str): name of a section of the configuration settings.
 
@@ -428,12 +428,12 @@ class Idea(object):
             return variable
 
     def _set_sections(self,
-            instance: 'SimpleContributor',
+            instance: 'SimpleDirector',
             sections: Optional[Union[List[str], str]]) -> List[str]:
         """Finalizes list of sections to be injected into class.
 
         Args:
-            instance (SimpleContributor): a class instance to which attributes
+            instance (SimpleDirector): a class instance to which attributes
                 should be added.
             sections (Optional[Union[List[str], str]]): the sections of the
                 configuration that should be stored as local attributes in the
@@ -498,13 +498,13 @@ class Idea(object):
         return self
 
     def apply(self,
-            instance: Union['SimpleContributor', 'SimpleComposite'],
+            instance: Union['SimpleDirector', 'SimpleComposite'],
             sections: Optional[Union[List[str], str]] = None,
-            override: Optional[bool] = False) -> 'SimpleContributor':
+            override: Optional[bool] = False) -> 'SimpleDirector':
         """Injects attributes from configuration settings into passed instance.
 
         Args:
-            instance (Union['SimpleContributor', 'SimpleComposite']): a class
+            instance (Union['SimpleDirector', 'SimpleComposite']): a class
                 instance to which attributes should be added.
             sections (Optional[Union[List[str], str]]): the sections of the
                 configuration that should be stored as local attributes in the
@@ -515,7 +515,7 @@ class Idea(object):
                 be maintained (unless they are None). Defaults to False.
 
         Returns:
-            SimpleContributor: instance with attribute(s) added.
+            SimpleDirector: instance with attribute(s) added.
 
         """
         # Sets and injections section values into instance.
