@@ -1,46 +1,30 @@
 """
-.. module:: chef
-:synopsis: recipe content
+.. module:: content
+:synopsis: content builder
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
 
 from dataclasses import dataclass
-from importlib import import_module
+from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
 
-from simplify.core.author import Author
-from simplify.core.book import Page
-from simplify.core.content import Outline
-from simplify.core.content import Author
-from simplify.core.content import SimpleDirector
+from simplify.core.manuscript import SimpleManuscript
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Chef(Author):
-    """Constructs pages from Outline instances for use in a Chapter.
+class Content(SimpleManuscript):
+    """Base class for building components in a Page.
 
-    This class is a director for a complex content which constructs finalized
-    algorithms with matching parameters. Because of the variance of supported
-    packages and the nature of parameters involved (particularly data-dependent
-    ones), the final construction of a Page is not usually completed until the
-    'apply' method is called.
+    Takes an Outline subclass instance and creates a component object.
 
     Args:
-        idea ('Idea'): an instance of Idea with user settings.
-        content (Optional[Union['Author'], List['Author']]):
-            instance(s) of Author subclass. Defaults to None.
-        outline (Optional['Outline']): instance containing information
-            needed to build the desired objects. Defaults to None.
-        auto_publish (Optional[bool]): whether to call the 'publish' method when
-            a subclass is instanced. For auto_publish to have an effect,
-            'outline' and 'content' must also be passed. Defaults to True.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -49,56 +33,76 @@ class Chef(Author):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
+        _parent (Optional['Page']): optional way to set 'parent' property.
 
     """
     idea: 'Idea'
-    content: Optional[Union['Author'], List['Author']] = None
-    outline: Optional['Outline'] = None
-    auto_publish: Optional[bool] = True
     name: Optional[str] = None
+    _parent: Optional['Page'] = None
 
-    """ Private Methods """
+    def __post_init__(self) -> None:
+        """Calls initialization methods and sets class instance defaults."""
+        self.proxies = {'parent': 'page'}
+        super().__post_init()
+        return self
 
-    def _build_page(self, page: str, ingredients: 'Ingredients') -> 'Page':
-        """Builds 'page' settings in 'options'.
+    """ Dunder Methods """
+    
+    def iter(self):
+        raise NotImplementedError(' '.join([
+            self.__class__.__name__, 'cannot have child classes to iterate']))
+                
+    """ Core siMpLify Methods """
 
-        Returns:
-            algorithm object configured appropriately.
+    def draft(self) -> None:
+        """Subclasses should provide their own methods, if needed."""
+        return self
 
-        """
-        if page == 'none':
-            return Page(algorithm = None, name = 'none')
-        else:
-            outline = self.options[page]
-            algorithm = self.algorithm_content.publish(
-                outline = outline)
-            parameters = self.parameters_content.publish(
-                outline = outline,
-                data = ingredients)
-            return Page(
-                name = outline.name,
-                algorithm = algorithm,
-                parameters = parameters)
+    def publish(self, data: Optional[object] = None) -> None:
+        """Subclasses should provide their own methods, if needed."""
+        return self
 
-    def _build_conditional(self, parameters: Dict[str, Any]) -> Dict[str, Any]:
-        """Modifies 'parameters' based upon various conditions.
-
-        A subclass should have its own '_build_conditional' method for this
-        method to modify 'parameters'. That method should have a 'parameters'
-        argument and return the modified 'parameters'.
+    def apply(self, outline: 'Outline' **kwargs) -> object:
+        """Builds and returns an object.
 
         Args:
-            parameters (Dict): a dictionary of parameters.
+            outline (Optional['Outline']): instance containing information 
+                needed to build the desired objects.
+            kwargs: extra arguments to use in building the desired object.
 
         Returns:
-            parameters (Dict): altered parameters based on condtions.
-
+            object: subclasses should return built object.
+            
         """
-        pass
+        return
 
+    """ Properties """
+    
+    @property
+    def children(self):
+        raise NotImplementedError(' '.join([
+            self.__class__.__name__, 'cannot have child classes']))
+        
+   
 @dataclass
-class Algorithm(Component):
-    """Finalizes an algorithm with parameters."""
+class Algorithm(Content):
+    """Base class for building an algorithm for a Page subclass instance.
+
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
+        _parent (Optional['Page']): optional way to set 'parent' property.
+
+    """
+    idea: 'Idea'
+    name: Optional[str] = None
+    _parent: Optional['Page'] = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -106,36 +110,40 @@ class Algorithm(Component):
 
     """ Core siMpLify Methods """
 
-    def draft(self) -> None:
-        return self
-
-    def publish(self, outline: 'Outline') -> None:
-        """Finalizes parameter 'bunch'.
+    def apply(self, outline: 'Outline', **kwargs) -> object:
+        """Builds and returns an algorithm.
 
         Args:
+            outline (Optional['Outline']): instance containing information 
+                needed to build an algorithm.
+            kwargs: ignored by this class.
 
+        Returns:
+            object: a loaded algorithm.
+            
         """
-        self.process = getattr(import_module(outline.module), outline.algorithm)
-        return self
+        return self._lazily_load_algorithm(outline = outline)
 
 
 @dataclass
-class Parameters(Author):
-    """Creates and stores parameter sets for Outlines.
-
+class Parameters(Content):
+    """Base class for building parameters for an algorithm.
+    
     Args:
-        idea ('Idea'): an instance of Idea with user settings.
-        library ('Library'): an instance of Library with information about
-            folder and file management.
-
-    Attributes:
-        bunch (dict): actual parameters dict. Returned by '__str__' and
-            '__repr__' methods.
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
+        _parent (Optional['Page']): optional way to set 'parent' property.
 
     """
-
     idea: 'Idea'
-    library: 'Library'
+    name: Optional[str] = None
+    _parent: Optional['Page'] = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -150,15 +158,11 @@ class Parameters(Author):
             outline (Outline): settings for parameters to be built.
 
         """
-        if (not hasattr(self, 'initial_parameters')
-                or not self.initial_parameters):
-            self.bunch = {}
-            try:
-                self.bunch.update(self.idea_parameters)
-            except AttributeError:
-                pass
-        else:
-             self.bunch = self.initial_parameters
+        self.bunch = {}
+        try:
+            self.bunch.update(self.idea_parameters)
+        except AttributeError:
+            pass
         return self
 
     def _build_selected(self, outline: 'Outline') -> None:
@@ -222,17 +226,15 @@ class Parameters(Author):
             self.bunch = new_parameters
         return self
 
-    def _build_runtime(self,
-            outline: 'Outline',
-            page: 'Page') -> None:
+    def _build_runtime(self, outline: 'Outline') -> None:
         """Adds parameters that are determined at runtime.
 
         The primary example of a runtime parameter throughout siMpLify is the
         addition of a random seed for a consistent, replicable state.
 
-        The runtime variables should be stored as attributes in the subclass so
-        that the values listed in outline.runtimes match those attributes to
-        be added to parameters.
+        The runtime variables should be stored as attributes in the Author 
+        instance so that the values listed in outline.runtimes match those 
+        attributes to be added to parameters.
 
         Args:
             outline (Outline): settings for parameters to be built.
@@ -241,32 +243,30 @@ class Parameters(Author):
         try:
             for key, value in outline.runtime.items():
                 try:
-                    self.bunch.update({key: getattr(page, value)})
+                    self.bunch.update({key: getattr(self.author, value)})
                 except AttributeError:
                     error = ' '.join('no matching runtime parameter',
-                                     key, 'found in', page.name)
+                                     key, 'found in', self.author.name)
                     raise AttributeError(error)
         except (AttributeError, TypeError):
             pass
         return self
 
-    def _build_conditional(self,
-            outline: 'Outline',
-            page: 'Page') -> None:
+    def _build_conditional(self, outline: 'Outline') -> None:
         """Modifies 'parameters' based upon various conditions.
 
-        A page class should have its own '_build_conditional' method for this
+        An Author class should have its own '_build_conditional' method for this
         method to modify 'parameters'. That method should have a 'parameters'
-        and 'page' (str) argument and return the modified 'parameters'.
+        and 'name' (str) argument and return the modified 'parameters'.
 
         Args:
             outline (Outline): settings for parameters to be built.
 
         """
-        if outline.conditional:
+        if 'conditional' in outline:
             try:
-                self.bunch = page._build_conditional(
-                    page = outline.name,
+                self.bunch = self._parent._build_conditional(
+                    name = outline.name,
                     parameters = self.bunch)
             except AttributeError:
                 pass
@@ -302,32 +302,25 @@ class Parameters(Author):
             'data_dependent']
         return self
 
-    def publish(self,
+    def apply(self,
             outline: 'Outline',
-            ingredients: Optional['Ingredients'] = None,
-            page: Optional['Page'] = None) -> None:
+            data: Optional[object] = None) -> None:
         """Finalizes parameter 'bunch'.
 
         Args:
-            page ('Page'): page which contains a '_build_condtional'
-                method, if applicable.
-            ingredients ('Ingredients'): data container (Ingredients,
-                Review, etc.)
-                that has attributes matching any items stored in
+            outline ('Outline'): class containing information about parameter
+                construction.
+            data (Optional[object]): data container (Ingredients, Review, etc.) 
+                that has attributes matching any items stored in 
                 'outline.data_dependent'.
 
         """
         for parameter_type in self.parameter_types:
-            if parameter_type in ['conditional', 'runtime']:
-                getattr(self, '_'.join(['_get', parameter_type]))(
+            if parameter_type == 'data_dependent':
+                getattr(self, '_'.join(['_build', parameter_type]))(
                     outline = outline,
-                    page = page)
-            elif parameter_type == 'data_dependent':
-                getattr(self, '_'.join(['_get', parameter_type]))(
-                    outline = outline,
-                    data = ingredients)
+                    data = data)
             else:
-                getattr(self, '_'.join(['_get', parameter_type]))(
+                getattr(self, '_'.join(['_build', parameter_type]))(
                     outline = outline)
         return self
-

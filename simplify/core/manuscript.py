@@ -1,22 +1,19 @@
 """
-.. module:: composite
-:synopsis: base class for composite tree objects
+.. module:: manuscript
+:synopsis: composite tree abstract base class
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
 
-from abc import ABC
-from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.base.options import SimpleOptions
 from simplify.core.utilities import listify
 
 
 @dataclass
-class SimpleManuscript(SimpleOptions, ABC):
+class SimpleManuscript(ABC):
     """Base class for data processing, analysis, and visualization.
 
     SimpleComposite implements a modified composite tree pattern for organizing
@@ -28,8 +25,6 @@ class SimpleManuscript(SimpleOptions, ABC):
         # Sets default 'name' attribute if none exists.
         if not hasattr(self, 'name'):
             self.name = self.__class__.__name__.lower()
-        # Calls SimpleOptions __post_init__ method.
-        SimpleOptions.__post_init__()
         # Injects attributes from Idea instance, if values exist.
         try:
             self = self.idea.apply(instance = self)
@@ -47,44 +42,37 @@ class SimpleManuscript(SimpleOptions, ABC):
     """ Dunder Methods """
 
     def __iter__(self) -> NotImplementedError:
-        raise NotImplementedError(' '.join([
-            self.__class__.__name__, 'has no child classes']))
+        return iter(self._children)
 
     """ Composite Management Methods """
 
-    def proxify(self, proxies: Optional[Dict[str, str]] = None) -> None:
-        """Creates proxy names for attributes and methods.
-
-        Args:
-            proxies (Optional[Dict[str, str]]): dictionary with keys of current
-                attribute names and values of proxy attribute names. If
-                'proxies' is not passed, the method looks for 'proxies'
-                attribute in the subclass instance. Defaults to None
-
-        """
-        if proxies is None:
-            try:
-                proxies = self.proxies
-            except AttributeError:
-                pass
-        if proxies is not None:
+    def add(self, name: str, child: ['SimpleManuscript']):
+        self._children[name] = child
+        return self
+    
+    def proxify(self) -> None:
+        """Creates proxy names for attributes and methods."""
+        try:
             proxy_attributes = {}
-            for name, proxy in proxies.items():
+            for name, proxy in self.proxies.items():
                 for key, value in self.__dict__.items():
-                    if proxy in key:
+                    if name in key:
                         proxy_attributes[key.replace(name, proxy)] = value
             self.__dict__.update(proxy_attributes)
+        except AttributeError:
+            pass
         return self
 
     """ Core siMpLify Methods """
 
-    @abstractmethod
     def draft(self) -> None:
-        """Required method that sets default values.
-
-        Subclasses should provide their own 'draft' method.
-
-        """
+        """Required method that sets default values."""
+        # Initializes all child objects."""
+        for item in self._children:
+            try:
+                getattr(self, '_'.join(['_draft', item]))(idea = self.idea)
+            except AttributeError:
+                pass
         return self
 
     @abstractmethod
@@ -94,7 +82,7 @@ class SimpleManuscript(SimpleOptions, ABC):
         Subclasses should provide their own 'publish' method.
 
         Args:
-            data (Optional[object]): an Ingredients instance.
+            data (Optional[object]): an optional object needed for the method.
 
         """
         return self
@@ -114,16 +102,17 @@ class SimpleManuscript(SimpleOptions, ABC):
     """ Properties """
 
     @property
-    def parent(self) -> 'Book':
+    def parent(self) -> 'SimpleManuscript':
         """Returns '_parent' attribute."""
         return self._parent
 
     @parent.setter
-    def parent(self, parent: 'Book') -> None:
+    def parent(self, parent: 'SimpleManuscript') -> None:
         """Sets '_parent' attribute to 'parent' argument.
 
         Args:
-            parent (Book): Book class up one level in the composite tree.
+            parent (SimpleManuscript): SimpleManuscript class up one level in 
+                the composite tree.
 
         """
         self._parent = parent
@@ -136,29 +125,29 @@ class SimpleManuscript(SimpleOptions, ABC):
         return self
 
     @property
-    def children(self) -> Dict[str, Union['Book', 'Page']]:
+    def children(self) -> Dict[str, 'SimpleManuscript']:
         """Returns '_children' attribute.
 
         Returns:
-            Dict of str access keys and Book or Page values.
+            Dict of str access keys and SimpleManuscript values.
 
         """
         return self._children
 
     @children.setter
     def children(self,
-            children: Dict[str, Union['Book', 'Page']],
-            override: Optional[bool] = False) -> None:
-        """Adds 'children' to '_children' attribute.
+            children: Dict[str, 'SimpleManuscript'],
+            override: Optional[bool] = True) -> None:
+        """Assigns 'children' to '_children' attribute.
 
-        If 'override' is True, 'children' replaces '_children'.
+        If 'override' is False, 'children' are added to '_children'.
 
         Args:
-            children (Dict[str, Union['Book', 'Page']]): dictionary with str
-                for reference keys and values of either 'Book' or 'Page'.
+            children (Dict[str, 'SimpleManuscript']): dictionary with str
+                for reference keys and values of 'SimpleManuscript'.
             override (Optional[bool]): whether to overwrite existing '_children'
                 (True) or add 'children' to '_children' (False). Defaults to
-                False.
+                True.
 
         """
         if override or not hasattr(self, '_children') or not self._children:
@@ -182,3 +171,4 @@ class SimpleManuscript(SimpleOptions, ABC):
             except (KeyError, AttributeError):
                 pass
         return self
+
