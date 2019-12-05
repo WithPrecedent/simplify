@@ -84,6 +84,7 @@ class Page(SimpleManuscript):
             self.content.extend(listify(content))
         self.content = self._draft_content(content = self.content)
         return self
+    
     def publish(self,
             content: Optional[Union['Content'],
                                List['Content']] = None,
@@ -191,7 +192,7 @@ class SKLearnPage(Page):
         return self
 
     # @numpy_shield
-    def apply(self, data: 'Ingredients') -> 'Ingredients':
+    def apply(self, data: object) -> 'Ingredients':
         """[summary]
 
         Returns:
@@ -225,7 +226,7 @@ class SKLearnPage(Page):
     def fit(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None,
-            data: Optional['Ingredients'] = None) -> None:
+            data: Optional[object] = None) -> None:
         """Generic fit method for partial compatibility to sklearn.
 
         Args:
@@ -264,7 +265,7 @@ class SKLearnPage(Page):
     def fit_transform(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None,
-            data: Optional['Ingredients'] = None) -> (
+            data: Optional[object] = None) -> (
                 Union[pd.DataFrame, 'Ingredients']):
         """Generic fit_transform method for partial compatibility to sklearn
 
@@ -300,7 +301,7 @@ class SKLearnPage(Page):
     def transform(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None,
-            data: Optional['Ingredients'] = None) -> (
+            data: Optional[object] = None) -> (
                 Union[pd.DataFrame, 'Ingredients']):
         """Generic transform method for partial compatibility to sklearn.
 

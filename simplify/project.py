@@ -9,17 +9,19 @@
 from dataclasses import dataclass
 import os
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+import warnings
 
 import numpy as np
 import pandas as pd
 
-from simplify.core.book import Book
+import simplify
+from simplify.core.author import Author
 from simplify.core.options import SimpleOptions
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Project(Book):
+class Project(Author):
     """Controller class for siMpLify projects.
 
     Args:
@@ -71,7 +73,19 @@ class Project(Book):
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods."""
-        self.proxies = {'children' : 'books'}
+        # Removes various python warnings from console output.
+        warnings.filterwarnings('ignore')
+        # Sets default 'name' attribute if none exists.
+        if self.name is None:
+            self.name = self.__class__.__name__.lower()
+        # Finalizes 'idea', 'library', and 'ingredients instances.
+        self.idea, self.library, self.ingredients = simplify.startup(
+            idea = self.idea,
+            library = self.library,
+            ingredients = self.ingredients)
+        # Injects SimpleOptions with shared Idea and Library.
+        SimpleOptions.idea = self.idea
+        SimpleOptions.library = self.library
         super().__post_init__()
         return self
 
@@ -79,83 +93,29 @@ class Project(Book):
 
     def _draft_options(self) -> None:
         """Sets step options with information for module importation."""
-        self._options = SimpleOptions(options = {
-            'farmer': ('simplify.farmer', 'Almanac'),
-            'chef': ('simplify.chef', 'Cookbook'),
-            'actuary': ('simplify.actuary', 'Ledger'),
-            'critic': ('simplify.critic', 'Collection'),
-            'artist': ('simplify.artist', 'Canvas')})
+        self._options = SimpleOptions(
+            options = {
+                'farmer': ('simplify.farmer', 'Almanac'),
+                'chef': ('simplify.chef', 'Cookbook'),
+                'actuary': ('simplify.actuary', 'Ledger'),
+                'critic': ('simplify.critic', 'Collection'),
+                'artist': ('simplify.artist', 'Canvas')},
+            _manuscript = self)
         return self
-
-    def _draft_books(self) -> None:
-        """Creates 'books' from 'steps' and 'options'."""
-        self.books = {}
-        for step in self.steps:
-            try:
-                book = getattr(
-                    import_module(self.options[step][0]),
-                    self.options[step][1])
-                if self.verbose:
-                    print('Drafting', self.options[step][1].lower())
-                instance = book(
-                    idea = self.idea,
-                    library = self.library,
-                    ingredients = self.ingredients)
-                instance.parent = self
-                self.books[step] = instance
-            except KeyError:
-                error = ' '.join(
-                    [step, 'does not match an option in', self.name])
-                raise KeyError(error)
-        return self
-
-    def _publish_books(self, data: Optional['Ingredients'] = None) -> None:
-        """Finalizes 'books'."""
-        new_books = {}
-        for key, book in self.books.items():
-            try:
-                if self.verbose:
-                    print('Publishing', book.__class__.__name__.lower())
-                book.publish(data = data)
-                new_books[key] = book
-            except KeyError:
-                error = ' '.join([key, 'does not match a Book in', self.name])
-                raise KeyError(error)
-        return self
-
-    """ Composite Management Methods """
-
-    def add_parent(self, parent: 'SimpleComponent') -> NotImplementedError:
-        raise NotImplementedError(' '.join([
-            self.__class__.__name__, 'cannot have a parent class']))
-
-    def remove_parent(self) -> NotImplementedError:
-        raise NotImplementedError(' '.join([
-            self.__class__.__name__, 'cannot have a parent class']))
 
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
         """Creates initial attributes."""
-        super().draft()
+        super().draft(manuscript = self)
         return self
 
-    def publish(self, data: Optional['Ingredients'] = None) -> None:
-        """"Finalizes 'books'.
-
-        Args:
-            data (Optional['Ingredients']): an Ingredients instance. 'data'
-                needs to be passed if there are any 'data_dependent' parameters
-                for the included Page instances in 'pages'. Otherwise, it need
-                not be passed. Defaults to None.
-
-        """
-        if data is None:
-            data = self.ingredients
-        self._publish_books(data = data)
+    def publish(self, data: Optional[object] = None) -> None:
+        """Finalizes"""
+        super().publish(manuscript = self, data = data)
         return self
 
-    def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
+    def apply(self, data: Optional[object] = None, **kwargs) -> None:
         """Applies created objects to passed 'data'.
 
         Args:
@@ -164,8 +124,5 @@ class Project(Book):
                 as well.
 
         """
-        if not data:
-            data = self.ingredients
-        for step in self.steps:
-            getattr(self, step).apply(data = data)
+        super().apply(manuscript = self, data = data, **kwargs)
         return self

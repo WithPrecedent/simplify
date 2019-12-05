@@ -32,10 +32,6 @@ class SimpleManuscript(ABC):
         # Sets default 'name' attribute if none exists.
         if not hasattr(self, 'name'):
             self.name = self.__class__.__name__.lower()
-        # Injects attributes from Idea instance, if values exist.
-        self = self.idea.apply(instance = self)
-        # Creates proxy names for attributes, if 'proxies' attribute exists.
-        self.proxify()
         # Automatically calls 'draft' method.
         self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
@@ -48,45 +44,13 @@ class SimpleManuscript(ABC):
     def __iter__(self) -> Iterable:
         """Returns '_children' dictionary as iterable."""
         return iter(self._children)
-    """ Private Methods """
-
-    def _draft_options(self) -> None:
-        """Subclasses should provide their own methods to create 'options'."""
-        try:
-            self._options = self._options_class()
-        except AttributeError:
-            self._options = SimpleOptions(options = {})
-        return self
-
-    def _draft_steps(self) -> None:
-        """If 'steps' does not exist, gets 'steps' from 'idea'.
-
-        If there are no 'steps' in 'idea', an empty list is created for 'steps'.
-
-        """
-        if self.steps is None:
-            try:
-                self.steps = getattr(self, '_'.join([self.name, 'steps']))
-            except AttributeError:
-                self.steps = []
-        else:
-            self.steps = listify(self.steps)
-        return self
-
-    def _publish_options(self, data: Optional[object] = None) -> None:
-        """Finalizes 'options'."""
-        self.options.load(self.techniques)
-        self.options.publish(data = data)
-        return self
 
     """ Composite Management Methods """
 
     def add_children(self, keys: Union[List[str], str]) -> None:
         """Adds outline(s) to '_children' from 'options' based on key(s).
-
         Args:
             keys (Union[List[str], str]): key(s) to 'options'.
-
         """
         for key in listify(keys):
             self._children[key] = self.options[key]
@@ -103,7 +67,7 @@ class SimpleManuscript(ABC):
         """
         self.options += options
         return self
-
+    
     def proxify(self) -> None:
         """Creates proxy names for attributes and methods."""
         try:
@@ -116,7 +80,7 @@ class SimpleManuscript(ABC):
         except AttributeError:
             pass
         return self
-
+    
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
@@ -126,10 +90,10 @@ class SimpleManuscript(ABC):
             self._options = SimpleOptions(options = options)
         elif self._options is None:
             self._options = SimpleOptions()
-
+        # Injects attributes from Idea instance, if values exist.
+        self = self.options.idea.apply(instance = self)
         return self
 
-    @abstractmethod
     def publish(self, data: Optional[object] = None) -> None:
         """Required method which applies methods to passed data.
 
@@ -139,11 +103,10 @@ class SimpleManuscript(ABC):
             data (Optional[object]): an optional object needed for the method.
 
         """
-        self.options.publish()
+        self.options.publish(data = data)
         return self
 
-    @abstractmethod
-    def apply(self, data: object, **kwargs) -> None:
+    def apply(self, data: Optional[object], **kwargs) -> None:
         """Applies created objects to passed 'data'.
 
         Subclasses should provide their own 'apply' method, if needed.
@@ -152,7 +115,7 @@ class SimpleManuscript(ABC):
             data (object): data object for methods to be applied.
 
         """
-        return self
+        return self.options.apply(data = data)
 
     """ Composite Properties """
 
@@ -164,11 +127,9 @@ class SimpleManuscript(ABC):
     @parent.setter
     def parent(self, parent: 'SimpleManuscript') -> None:
         """Sets '_parent' attribute to 'parent' argument.
-
         Args:
             parent (SimpleManuscript): SimpleManuscript class up one level in
                 the composite tree.
-
         """
         self._parent = parent
         return self
@@ -182,23 +143,18 @@ class SimpleManuscript(ABC):
     @property
     def children(self) -> Dict[str, Union['Outline', 'SimpleManuscript']]:
         """Returns '_children' attribute.
-
         Returns:
             Dict of str access keys and Outline or SimpleManuscript values.
-
         """
         return self._children
 
     @children.setter
     def children(self, children: Dict[str, 'Outline']) -> None:
         """Assigns 'children' to '_children' attribute.
-
         If 'override' is False, 'children' are added to '_children'.
-
         Args:
             children (Dict[str, 'Outline']): dictionary with str for reference
                 keys and values of 'SimpleManuscript'.
-
         """
         self._children = children
         return self
@@ -206,11 +162,9 @@ class SimpleManuscript(ABC):
     @children.deleter
     def children(self, children: Union[List[str], str]) -> None:
         """ Removes 'children' for '_children' attribute.
-
         Args:
             children (Union[List[str], str]): key(s) to children classes to
                 remove from '_children'.
-
         """
         for child in listify(children):
             try:

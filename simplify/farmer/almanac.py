@@ -118,7 +118,7 @@ class Almanac(SimplePackage):
     def _implement_file(self, ingredients):
         with open(
                 self.library.path_in, mode = 'r', errors = 'ignore',
-                encoding = self.idea['files']['file_encoding']) as a_file:
+                encoding = self.options.idea['files']['file_encoding']) as a_file:
             ingredients.source = a_file.implement()
             for step in self.steps:
                 data = step.implement(data = ingredients)
@@ -134,7 +134,7 @@ class Almanac(SimplePackage):
                 print(file_num + 1, 'files parsed')
             with open(
                     a_path, mode = 'r', errors = 'ignore',
-                    encoding = self.idea['files']['file_encoding']) as a_file:
+                    encoding = self.options.idea['files']['file_encoding']) as a_file:
                 ingredients.source = a_file.implement()
                 print(ingredients.df)
                 ingredients.df[self.index_column] = file_num + 1

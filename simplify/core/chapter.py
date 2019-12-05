@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.base.manuscript import SimpleManuscript
+from simplify.core.manuscript import SimpleManuscript
 from simplify.core.utilities import listify
 
 
@@ -73,7 +73,7 @@ class Chapter(SimpleManuscript):
     def draft(self) -> None:
         return self
 
-    def publish(self, data: Optional['Ingredients'] = None) -> None:
+    def publish(self, data: Optional[object] = None) -> None:
         """Finalizes 'pages'.
 
         Args:
@@ -95,7 +95,7 @@ class Chapter(SimpleManuscript):
         self.pages = new_pages
         return self
 
-    def apply(self, data: 'Ingredients' = None, **kwargs) -> None:
+    def apply(self, data: object = None, **kwargs) -> None:
         """Applies 'pages' to 'data'.
 
         Args:

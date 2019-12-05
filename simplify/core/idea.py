@@ -100,9 +100,9 @@ class Idea(object):
     Regardless of the idea_sections added, all Idea settings can be similarly
     accessed using dict keys or local attributes. For example:
 
-        self.idea['general']['seed'] # typical dict access step
+        self.options.idea['general']['seed'] # typical dict access step
 
-        self.idea['seed'] # if no section or other key is named 'seed'
+        self.options.idea['seed'] # if no section or other key is named 'seed'
 
         self.seed # works because 'seed' is in the 'general' section
 

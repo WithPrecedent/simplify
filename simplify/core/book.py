@@ -10,15 +10,15 @@ from dataclasses import dataclass
 from itertools import product
 import os
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
-import warnings
 
 import numpy as np
 import pandas as pd
 
 import simplify
-from simplify.base.filer import SimpleFile
-from simplify.base.options import SimpleOptions
-from simplify.base.state import SimpleState
+from simplify.core.chapter import Chapter
+from simplify.core.filer import SimpleFile
+from simplify.core.options import SimpleOptions
+from simplify.core.state import SimpleState
 from simplify.core.utilities import listify
 
 
@@ -48,7 +48,7 @@ class Book(SimpleManuscript):
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
-        steps (Optional[Union[List[str], str]]): ordered names of Book
+        techniques (Optional[Union[List[str], str]]): ordered names of Book
             subclasses to include. These names should match keys in the
             'options' attribute. If using the Idea instance settings, this
             argument should not be passed. Default is None.
@@ -77,7 +77,7 @@ class Book(SimpleManuscript):
         pd.Series,
         np.ndarray,
         str]] = None
-    steps: Optional[Union[List[str], str]] = None
+    techniques: Optional[Union[List[str], str]] = None
     name: Optional[str] = 'simplify'
     auto_publish: Optional[bool] = True
     file_format: Optional[str] = 'pickle'
@@ -85,32 +85,18 @@ class Book(SimpleManuscript):
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods."""
-        self.proxies = {'children': 'chapters'}
         super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _draft_authors(self) -> None:
-        """Creates 'authors' containing SimpleDirector instances."""
-        self.authors  = {}
-        for step in self.steps:
-            try:
-                author = self._lazily_load_option(option = step)
-                self.add_author(name = step, author = author)
-            except KeyError:
-                error = ' '.join(
-                    [step, 'does not match an option in', self.name])
-                raise KeyError(error)
-        return self
-
     def _draft_plans(self) -> None:
         """Creates cartesian product of all possible 'chapters'."""
         plans = []
-        for step in self.steps:
+        for step in self.techniques:
             try:
                 key = '_'.join([step, 'techniques'])
-                plans.append(listify(self.idea[self.name][key]))
+                plans.append(listify(self.options.idea[self.name][key]))
             except AttributeError:
                 plans.append(['none'])
         self.plans = list(map(list, product(*plans)))
@@ -123,7 +109,7 @@ class Book(SimpleManuscript):
         if not hasattr(self, 'chapter_type'):
             self.chapter_type = Chapter
         for i, plan in enumerate(self.plans):
-            pages = dict(zip(self.steps, plan))
+            pages = dict(zip(self.techniques, plan))
             metadata = self._draft_chapter_metadata(number = i)
             self.add_chapters(name = str(i), pages = pages, metadata = metadata)
         return self
@@ -157,7 +143,7 @@ class Book(SimpleManuscript):
         return chapter
 
     def _publish_authors(self,
-            data: Optional['Ingredients'] = None) -> None:
+            data: Optional[object] = None) -> None:
         """Converts author classes into class instances.
 
         Args:
@@ -173,7 +159,7 @@ class Book(SimpleManuscript):
         self.authors = new_authors
         return self
 
-    def _publish_chapters(self, data: Optional['Ingredients'] = None) -> None:
+    def _publish_chapters(self, data: Optional[object] = None) -> None:
         """Subclasses should provide their own method, if needed.
 
         Args:
@@ -185,7 +171,7 @@ class Book(SimpleManuscript):
         if not hasattr(self, 'chapter_type'):
             self.chapter_type = Chapter
         for i, plan in enumerate(self.plans):
-            pages = dict(zip(self.steps, plan))
+            pages = dict(zip(self.techniques, plan))
             metadata = self._draft_chapter_metadata(number = i)
             self.add_chapter(name = str(i), pages = pages, metadata = metadata)
         return self
@@ -212,55 +198,19 @@ class Book(SimpleManuscript):
                     file_format = 'pickle')})
         return self
 
-    """ Composite Management Methods """
-
-    def add_author(self,
-            name: str,
-            author: 'SimpleDirector') -> None:
-        """Creates a SimpleDirector instance and stores it in 'authors'.
-
-        Args:
-            name (str): name of key to access SimpleDirector instance from
-                'authors' dict.
-            author ([type]): a SimpleDirector class (not instance).
-
-        """
-
-        try:
-            self.authors[name] = author
-        except (AttributeError, TypeError):
-            self.authors = {}
-            self.authors[name] = author
-        return self
-
-    def remove_author(self, name: str) -> None:
-        """Deletes a SimpleDirector from 'authors'.
-
-        Args:
-            name (str): key name for SimpleDirector to remove from the
-                'authors' dict.
-
-        """
-        try:
-            del self.authors[name]
-        except KeyError:
-            pass
-        return self
-
     """ Core siMpLify methods """
 
     def draft(self) -> None:
         """Creates initial attributes."""
-        for method in (
-                'options',
-                'steps',
-                'authors',
-                'plans',
-                'chapters'):
-            getattr(self, '_'.join(['_draft', method]))()
+        super().draft()
+        # Injects attributes from Idea instance, if values exist.
+        self = self.options.idea.apply(instance = self)
+        # Drafts plans based upon settings.
+        self._draft_plans()
+        self._draft_chapters()
         return self
 
-    def publish(self, data: Optional['Ingredients'] = None) -> None:
+    def publish(self, data: Optional[object] = None) -> None:
         """Finalizes 'authors' and 'chapters'.
 
         Args:
@@ -277,7 +227,7 @@ class Book(SimpleManuscript):
                 pass
         return self
 
-    def apply(self, data: 'Ingredients', **kwargs) -> None:
+    def apply(self, data: object, **kwargs) -> None:
         """Applies created objects to passed 'data'.
 
         Args:
@@ -293,7 +243,12 @@ class Book(SimpleManuscript):
         self.chapters = new_chapters
         return self
 
-
+    """ Composite Properties """
+    
+    @property
+    def parent(self) -> NotImplementedError:
+        return NotImplementedError(
+            'Book instances and subclasses cannot have parents')
 
 
 class BookFiler(SimpleFiler):
@@ -338,9 +293,9 @@ class Stage(SimpleState):
 
         """
         states = []
-        for stage in listify(self.idea['simplify']['simplify_steps']):
+        for stage in listify(self.options.idea['simplify']['simplify_steps']):
             if stage == 'farmer':
-                for step in self.idea['farmer']['farmer_steps']:
+                for step in self.options.idea['farmer']['farmer_steps']:
                     states.append(step)
             else:
                 states.append(stage)

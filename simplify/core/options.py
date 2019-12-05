@@ -39,6 +39,9 @@ class SimpleOptions(MutableMapping):
     options: Optional[Dict[str, Any]] = field(default_factory = dict())
     default_options: Optional[Union[List[str], str]] = field(
         default_factory = list())
+    _idea: Optional['Idea'] = None
+    _library: Optional['Library'] = None
+    _manuscript: Optional['SimpleManuscript'] = None
 
     def __post_init__(self):
         """Calls initialization methods and sets class instance defaults."""
@@ -53,6 +56,11 @@ class SimpleOptions(MutableMapping):
         self.drafted = {}
         self.published = {}
         self.applied = {}
+        # Uses passed Library and Idea instances, if provided.
+        if self._idea is not None:
+            self.idea = self._idea
+        if self._library is not None:
+            self.library = self.library
         # Automatically calls 'draft' method.
         self.draft()
         return self
@@ -167,23 +175,9 @@ class SimpleOptions(MutableMapping):
 
     """ Core siMpLify Methods """
 
-    def load(self, keys: Optional[Union[str, List[str]]] = None) -> object:
-        """Returns object from module based upon tuple in options value.
-
-        Args:
-            keys (Optional[Union[str, List[str]]]): key(s) of option(s) to be
-                loaded. Defaults to None. If not provided, all options will be
-                loaded.
-
-        """
-        if keys is None:
-            keys = list(self.options.keys())
-        for key in listify(keys):
-            self.published[key] = getattr(self, self.state)[key].load()
-        return self
-
     def draft(self) -> None:
-        """Subclasses should call super().draft() and declare 'drafted' here.
+        """Subclasses should call super().draft() and declare 'drafted' if 
+        'options' has not been passed, declared, or injected.
 
         Also, if any default_options are to be set independent of the instance
         arguments, that should be done here as well.
@@ -198,39 +192,52 @@ class SimpleOptions(MutableMapping):
         self.drafted = self.options
         return self
 
-    def publish(self, data: Optional[object] = None) -> None:
-        """"Finalizes options.
+    def publish(self, 
+            techniques: Optional[Union, str, List[str]], 
+            data: Optional[object] = None) -> None:
+        """"Loads and instances options.
 
         Args:
+            techniques (Optional[Union, str, List[str]]): key(s) to options that
+                are to be used in a siMpLify project. Only the selected 
+                'techniques' will be lazily loaded into memory and instanced.
             data (Optional[object]): an object to pass when an options instance
-                is created. Defaults to None.
+                is published. Defaults to None.
 
         """
         # Sets state for access methods.
-        self.state = 'published'
-        # Sets 'default_options' to all options if none exist.
-        if not self.default_options:
-            self.default_options = self.all
-        # Lazily loads all stored options from stored Outline instances.
-        self.options.load()
+        self.state = 'published' 
         # Instances and publishes all selected options.
-        for key, option in self.options.items():
-            try:
-                instance = option(idea = self.idea)
-                instance.publish(data = data)
-                self.published[key] = instance
-            except AttributeError:
-                pass
+        for key in techniques:
+            # Lazily loads all stored options from stored Outline instances.
+            option = self.drafted[key].load()
+            instance = option()
+            instance.publish(data = data)
+            self.published[key] = instance
         return self
 
-    def apply(self, key: str, **kwargs) -> 'Simple_Manuscript':
+    def apply(self,
+            key: str, 
+            data: Optional[object] = None, 
+            **kwargs) -> object:
+        """Calls 'apply' method for published option matching 'key'.
+        
+        Args:
+            key (str): key for specific option to be applied.
+            data (Optional[object]): object for option to be applied. Defaults
+                to None.
+            kwargs: any additional parameters to pass to the option's 'apply'
+                method.
+        
+        Returns:
+            object is returned if data is passed, otherwise None is returned.
+        
+        """
         # Sets state for access methods.
         self.state = 'applied'
-        try:
-            return self.applied[key]
-        except (AttributeError, KeyError):
-            self.applied[key] = self.published[key](**kwargs)
-            return self.applied[key]
+        data = self.published[key].apply(data = data)
+        self.applied[key] = self.published[key]
+        return data
 
     """ Properties """
 
@@ -240,14 +247,32 @@ class SimpleOptions(MutableMapping):
 
     @property
     def default(self):
-        return self.default_options
+        return self.default_options or self.all
 
     @default.setter
-    def default(self,
-            options: Union[str, List[str]],
-            override: Optional[bool]) -> None:
-        if override or not self.default_options:
-            default_options = listify(options)
-        else:
-            default_options.extend(listify(options))
+    def default(self, options: Union[str, List[str]]) -> None:
+        self.default_options = listify(options)
+        return self
+
+    @default.deleter
+    def default(self, options: Union[str, List[str]]) -> None:
+        for option in listify(options):
+            try:
+                del self.default_options[option]
+            except KeyError:
+                pass
+        return self
+    
+    @property
+    def manuscript(self, manuscript: 'SimpleManuscript') -> None:
+        return self._manuscript
+    
+    @manuscript.setter
+    def manuscript(self, manuscript: 'SimpleManuscript') -> None:
+        self._manuscript = manuscript
+        return self
+    
+    @manuscript.deleter
+    def manuscript(self) -> None:
+        self._manuscript = None
         return self

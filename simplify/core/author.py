@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
+from simplify.core.options import SimpleOptions
 from simplify.core.utilities import listify
 
 
@@ -56,10 +57,6 @@ class Author(ABC):
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. For auto_publish to have an effect,
             'ingredients' must also be passed. Defaults to True.
-        file_format (Optional[str]): name of file format for object to be
-            serialized. Defaults to 'pickle'.
-        export_folder (Optional[str]): attribute name of folder in 'library' for
-            serialization of subclasses to be saved. Defaults to 'book'.
 
     """
     idea: Union['Idea', str]
@@ -71,23 +68,11 @@ class Author(ABC):
         np.ndarray,
         str]] = None
     techniques: Optional[Union[List[str], str]] = None
-    name: Optional[str] = 'simplify'
+    name: Optional[str] = None
     auto_publish: Optional[bool] = True
-    file_format: Optional[str] = 'pickle'
-    export_folder: Optional[str] = 'book'
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
-        # Removes various python warnings from console output.
-        warnings.filterwarnings('ignore')
-        # Sets default 'name' attribute if none exists.
-        if self.name is None:
-            self.name = self.__class__.__name__.lower()
-        # Finalizes 'idea', 'library', and 'ingredients instances.
-        self.idea, self.library, self.ingredients = simplify.startup(
-            idea = self.idea,
-            library = self.library,
-            ingredients = self.ingredients)
         # Automatically calls 'draft' method.
         self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
@@ -97,70 +82,70 @@ class Author(ABC):
 
     """ Private Methods """
 
-    def _draft_options(self) -> None:
+    def _draft_options(self, 
+            manuscript: 'SimpleManuscript') -> 'SimpleManuscript':
         """Subclasses should provide their own methods to create 'options'."""
-        self._options = SimpleOptions(options = {})
-        return self
+        manuscript._options = SimpleOptions(options = {}, _manuscript = self)
+        return manuscript
 
-    def _draft_techniques(self) -> None:
+    def _draft_techniques(self, 
+            manuscript: 'SimpleManuscript') -> 'SimpleManuscript':
         """If 'techniques' does not exist, gets 'techniques' from 'idea'.
 
         If there are no matching 'steps' or 'techniques' in 'idea', an empty
         list is created for 'techniques'.
 
         """
-        self.compare = False
-        if self.techniques is None:
+        manuscript.compare = False
+        if manuscript.techniques is None:
             try:
-                self.techniques = getattr(self, '_'.join([self.name, 'steps']))
+                manuscript.techniques = getattr(
+                    self.idea, '_'.join([manuscript.name, 'steps']))
             except AttributeError:
                 try:
-                    self.compare = True
-                    self.techniques = getattr(self, '_'.join([self.name,
-                                                              'techniques']))
+                    manuscript.compare = True
+                    manuscript.techniques = getattr(
+                        self.idea, '_'.join([manuscript.name, 'techniques']))
                 except AttributeError:
-                    self.techniques = []
+                    manuscript.techniques = ['none']
         else:
-            self.techniques = listify(self.techniques)
-        return self
-
-    def _publish_children(self, data: Optional['Ingredients'] = None) -> None:
-        """Finalizes 'books'."""
-        new_books = {}
-        for key, book in self.books.items():
-            try:
-                if self.verbose:
-                    print('Publishing', book.__class__.__name__.lower())
-                book.publish(data = data)
-                new_books[key] = book
-            except KeyError:
-                error = ' '.join([key, 'does not match a Book in', self.name])
-                raise KeyError(error)
-        return self
+            manuscript.techniques = listify(manuscript.techniques)
+        return manuscript
 
     """ Core siMpLify Methods """
 
-    def draft(self) -> None:
+    def draft(self,
+            manuscript: 'SimpleManuscript') -> 'SimpleManuscript':
         """Creates initial attributes."""
         # Injects attributes from Idea instance, if values exist.
         self = self.idea.apply(instance = self)
-        # Finalizes core attributes.
-        for method in ('options', 'techniques'):
-            getattr(self, '_'.join(['_draft', method]))()
+        # initializes core attributes.
+        manuscript = self._draft_options(manuscript = manuscript)
+        manuscript = self._draft_techniques(manuscript = manuscript)
         # Initializes all needed options."""
-        self.options.load(self.techniques)
-        return self
+        manuscript.options.load(manuscript.techniques)
+        return manuscript
 
-    def publish(self, data: Optional['Ingredients'] = None) -> None:
-        """Finalizes child classes.
-
-        Args:
-            data (Optional['Ingredients']): an Ingredients instance. 'data'
-                needs to be passed if there are any 'data_dependent' parameters.
-                Defaults to None.
-
-        """
+    def publish(self,
+            manuscript: 'SimpleManuscript',
+            data: Optional[object] = None) -> 'SimpleManuscript':
+        """Finalizes 'options'."""
         if data is None:
             data = self.ingredients
-        self._publish_children(data = data)
+        for technique in manuscript.techniques:
+            technique.options.publish(
+                techniques = manuscript.techniques,
+                data = data)
         return self
+        
+    def apply(self,
+            manuscript: 'SimpleManuscript',
+            data: Optional[object] = None, **kwargs) -> 'SimpleManuscript':
+        if data is None:
+            data = self.ingredients
+        for technique in manuscript.techniques:
+            data = manuscript.options.apply(
+                key = technique,
+                data = data, 
+                **kwargs)
+        return data
