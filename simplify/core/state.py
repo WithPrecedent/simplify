@@ -16,21 +16,13 @@ from simplify.core.utilities import listify
 
 
 @dataclass
-class SimpleState(SimpleOptions, ABC):
+class SimpleState(ABC):
     """Base class for state management."""
 
     def _post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
-        # Sets default 'name' attribute if none exists.
-        if not hasattr(self, 'name'):
-            self.name = self.__class__.__name__.lower()
-        # Calls SimpleOptions __post_init__ method.
-        SimpleOptions.__post_init__()
         # Automatically calls 'draft' method.
         self.draft()
-        # Calls 'publish' method if 'auto_publish' is True.
-        if hasattr(self, 'auto_publish') and self.auto_publish:
-            self.publish()
         return self
 
     """ Dunder Methods """
@@ -49,17 +41,16 @@ class SimpleState(SimpleOptions, ABC):
         """Changes 'state' to 'new_state'.
 
         Args:
-            new_state(str): name of new state matching a string in 'options'.
+            new_state(str): name of new state matching a string in 'states'.
 
         Raises:
             TypeError: if new_state is not in 'states'.
 
         """
-        if new_state in self.options:
+        if new_state in self.states:
             self.state = new_state
         else:
-            error = ' '.join([new_state, 'is not a recognized state'])
-            raise TypeError(error)
+            raise TypeError(' '.join([new_state, 'is not a recognized state']))
 
     """ Core siMpLify Methods """
 

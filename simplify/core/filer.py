@@ -16,22 +16,8 @@ from simplify.core.utilities import listify
 
 
 @dataclass
-class SimpleFiler(SimpleOptions, ABC):
+class SimpleFiler(ABC):
     """Base class for storing and creating file paths."""
-
-    def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
-        # Sets default 'name' attribute if none exists.
-        if not hasattr(self, 'name'):
-            self.name = self.__class__.__name__.lower()
-        # Calls SimpleOptions __post_init__ method.
-        SimpleOptions.__post_init__()
-        # Automatically calls 'draft' method.
-        self.draft()
-        # Calls 'publish' method if 'auto_publish' is True.
-        if hasattr(self, 'auto_publish') and self.auto_publish:
-            self.publish()
-        return self
 
     """ Public Methods """
 
@@ -70,7 +56,7 @@ class SimpleFiler(SimpleOptions, ABC):
         return self
 
     def save(self,
-            variable: Optional[Union['SimpleComposite', str]] = None,
+            variable: Optional[Union['SimpleManuscript', str]] = None,
             file_path: Optional[str] = None,
             folder: Optional[str] = None,
             file_name: Optional[str] = None,
@@ -84,7 +70,7 @@ class SimpleFiler(SimpleOptions, ABC):
         siMpLify project.
 
         Args:
-            variable (Optional[Union['SimpleComposite'], str]): a python object
+            variable (Optional[Union['SimpleManuscript'], str]): a python object
                 or a string corresponding to a subclass attribute which should
                 be saved to disk. Defaults to None.
             file_path (Optional[str]): a complete file path for the file to be

@@ -107,5 +107,5 @@ class RankSelect(CriticTechnique):
         return self
 
     def draft(self) -> None:
-        self.options = {}
+        self._options = SimpleOptions(options = {}
         return self

@@ -122,7 +122,7 @@ class Library(SimpleOptions):
         return self
 
     def _draft_options(self):
-        self.options = {
+        self._options = SimpleOptions(options = {
             'data': 'data',
             'book': 'book',
             'chapter': 'chapter'}
@@ -315,7 +315,7 @@ class Folderifier(SimpleOptions):
 
     def draft(self) -> None:
         """Sets core default folders"""
-        self.options = {
+        self._options = SimpleOptions(options = {
             'root': self.library.root_folder,
             'data': self.library.data_folder,
             'results': self.library.results_folder}
@@ -369,7 +369,7 @@ class Formatifier(object):
 
     """ Core siMpLify Methods """
     def draft(self):
-        self.options = {
+        self._options = SimpleOptions(options = {
             'csv': FileFormat(
                 name = 'csv',
                 extension = '.csv',
@@ -637,7 +637,7 @@ class Distributor(ABC):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        self.options = {
+        self._options = SimpleOptions(options = {
             'csv': 'csv',
             'matplotlib': 'mp',
             'pandas': 'pd',

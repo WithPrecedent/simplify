@@ -81,7 +81,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_classify(self) -> None:
-        self.options = {
+        self._options = SimpleOptions(options = {
             'adaboost': Outline(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',
@@ -134,7 +134,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_cluster(self) -> None:
-        self.options = {
+        self._options = SimpleOptions(options = {
             'affinity': Outline(
                 name = 'affinity',
                 module = 'sklearn.cluster',
@@ -182,7 +182,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_regress(self) -> None:
-        self.options = {
+        self._options = SimpleOptions(options = {
             'adaboost': Outline(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',

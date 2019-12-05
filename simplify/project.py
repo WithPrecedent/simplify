@@ -7,7 +7,6 @@
 """
 
 from dataclasses import dataclass
-from importlib import import_module
 import os
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
@@ -15,6 +14,7 @@ import numpy as np
 import pandas as pd
 
 from simplify.core.book import Book
+from simplify.core.options import SimpleOptions
 from simplify.core.utilities import listify
 
 
@@ -79,12 +79,12 @@ class Project(Book):
 
     def _draft_options(self) -> None:
         """Sets step options with information for module importation."""
-        self.options = {
+        self._options = SimpleOptions(options = {
             'farmer': ('simplify.farmer', 'Almanac'),
             'chef': ('simplify.chef', 'Cookbook'),
             'actuary': ('simplify.actuary', 'Ledger'),
             'critic': ('simplify.critic', 'Collection'),
-            'artist': ('simplify.artist', 'Canvas')}
+            'artist': ('simplify.artist', 'Canvas')})
         return self
 
     def _draft_books(self) -> None:
@@ -137,9 +137,7 @@ class Project(Book):
 
     def draft(self) -> None:
         """Creates initial attributes."""
-        # Finalizes core attributes.
-        for method in ('options', 'steps', 'books'):
-            getattr(self, '_'.join(['_draft', method]))()
+        super().draft()
         return self
 
     def publish(self, data: Optional['Ingredients'] = None) -> None:

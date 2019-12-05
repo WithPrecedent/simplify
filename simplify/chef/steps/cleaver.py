@@ -65,7 +65,7 @@ class Cleaver(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self.options = {
+        self._options = SimpleOptions(options = {
         'compare': Outline(
             name = 'compare',
             module = None,

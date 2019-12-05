@@ -37,7 +37,7 @@ class Reducer(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self.options = {
+        self._options = SimpleOptions(options = {
             'kbest': Outline(
                 name = 'kbest',
                 module = 'sklearn.feature_selection',

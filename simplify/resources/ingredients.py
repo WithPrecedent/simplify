@@ -883,7 +883,7 @@ class DataFile(SimpleFile):
 
     def __post_init__(self):
         return self
-    
+
 
 @dataclass
 class DataState(SimpleState):
@@ -912,5 +912,5 @@ class DataState(SimpleState):
 
     def draft(self) -> None:
         # Sets possible states
-        self.options = ['unsplit', 'train_test', 'train_val', 'full']
+        self._options = SimpleOptions(options = ['unsplit', 'train_test', 'train_val', 'full']
         return self

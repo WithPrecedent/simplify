@@ -34,7 +34,7 @@ class Merge(FarmerTechnique):
         return self
 
     def draft(self) -> None:
-        self.options = {}
+        self._options = SimpleOptions(options = {}
         return self
 
     def publish(self, ingredients, sources):

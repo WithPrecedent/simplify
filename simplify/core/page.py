@@ -22,7 +22,7 @@ from simplify.core.utilities import listify
 @dataclass
 class Page(SimpleManuscript):
     """Stores, combines, and applies Algorithm and Parameters instances.
-    
+
     Args:
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
@@ -44,8 +44,110 @@ class Page(SimpleManuscript):
         super().__post_init__()
         return self
 
-    """ Core siMpLify Methods """
+    """ Private Methods """
+
+    def _draft_content(self,
+            content: Union['Content', List['Content']]) -> None:
+        """Instances all 'content' and returns instanced list.
+
+        Args:
+            content (Optional[Union['Content', List['Content']]):
+                instance(s) of Content subclass. Defaults to None.
+
+        """
+        instanced_content = []
+        for item in listify(content):
+            # Checks to see if class has already been instanced.
+            if not isinstance(item, Content):
+                instanced_item = item()
+                instanced_item.author = self
+                instanced_content.append(instanced_item)
+        return instanced_content
+
+    """ Public Methods """
+
+    def add_content(self,
+            content: Union['Content', List['Content']],
+            replace_content: Optional[bool] = False) -> None:
+        """Adds Content classes to 'content' attribute.
+
+        Args:
+            content (Union['Content'], List['Content']):
+                subclass(es), not instance(s), of Content.
+            replace_content (Optional[bool]): whether to replace existing
+                'content' (True) or add them to existing 'content' (False).
+
+        """
+        if replace_content or self.content is None:
+            self.content = listify(content)
+        else:
+            self.content.extend(listify(content))
+        self.content = self._draft_content(content = self.content)
+        return self
+    def publish(self,
+            content: Optional[Union['Content'],
+                               List['Content']] = None,
+            replace_content: Optional[bool] = False) -> None:
+        """Validates content.
+
+        If subclass instances provide their own methods, they should incorporate
+        or call the code below.
+
+        Args:
+            content (Optional[Union['Content'], List['Content']]):
+                instance(s) of Content subclass. Defaults to None.
+            replace_content (Optional[bool]): if 'content' is passed, whether
+                to replace existing 'content' (True) or add them to existing
+                'content'.
+
+        """
+        if content is not None:
+            self.add_content(
+                content = content,
+                replace_content = replace_content)
+        for item in listify(self.content):
+            item.publish()
+            # Validates 'content', if possible.
+            try:
+                for component in item.components:
+                    method = '_'.join(['_build', component])
+                    if not hasattr(item, method):
+                        raise NotImplementedError(' '.join([
+                            content.name,
+                            'requires build method for every component']))
+            except AttributeError:
+                pass
+        return self
+
+    def apply(self,
+            page: 'Page',
+            outline: Optional['Outline'],
+            **kwargs) -> 'SimpleComposite':
+        """Builds and returns Page object.
+
+        If subclass instances provide their own methods, they should incorporate
+        or call the code below.
+
+        Args:
+            page ('Page'): class, not instance, of page subclass to return with
+                components added.
+            outline (Optional['Outline']): instance containing information
+                needed to build the desired objects. Defaults to None.
+            kwargs (Dict[str, Any]): keyword arguments to pass to content.
+
+        """
+        if outline is None:
+            outline = self.outline
+        elif self.outline is None:
+            self.outline = outline
+        components = {}
+        for component in self.content:
+            components[component.name] = component.apply(
+                outline = outline, **kwargs)
+        return page(components = components)
     
+    """ Core siMpLify Methods """
+
     def publish(self, data: Optional[object] = None) -> None:
         self.algorithm = self.algorithm.publish(data = data)
         self.parameters = self.parameters.publish(data = data)
@@ -68,7 +170,7 @@ class Page(SimpleManuscript):
 
         Args:
             data (object): data object for methods to be applied.
-            
+
         Returns:
             data (object): data object with methods applied.
 
@@ -79,9 +181,9 @@ class Page(SimpleManuscript):
 @dataclass
 class SKLearnPage(Page):
     """
-    Provides partial scikit-learn compatibility via the included 'fit', 
+    Provides partial scikit-learn compatibility via the included 'fit',
     'transform', and 'fit_transform' methods.
-    """            
+    """
     """ Core siMpLify Methods """
 
     def publish(self) -> None:
@@ -115,7 +217,7 @@ class SKLearnPage(Page):
             except AttributeError:
                 pass
         return ingredients
-    
+
     """ Scikit-Learn Compatibility Methods """
 
     @XxYy(truncate = True)
@@ -239,6 +341,6 @@ def PageFiler(SimpleFiler):
     Args:
         file_format (Optional[str]): name of file format for object to be
             serialized. Defaults to 'pickle'.
-    """    
+    """
     file_format: str = 'pickle'
     export_folder: str = 'chapter'

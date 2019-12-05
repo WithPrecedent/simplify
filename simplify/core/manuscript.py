@@ -9,6 +9,7 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
+from simplify.core.options import SimpleOptions
 from simplify.core.utilities import listify
 
 
@@ -19,17 +20,20 @@ class SimpleManuscript(ABC):
     SimpleComposite implements a modified composite tree pattern for organizing
     the various subpackages in siMpLify.
 
+    Args:
+        _options (Optional[Union['SimpleOptions', Dict[str, Any]]]): allows
+            setting of 'options' property with an argument. Defaults to None.
+
     """
+    _options: (Optional[Union['SimpleOptions', Dict[str, Any]]]) = None
+
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
         # Sets default 'name' attribute if none exists.
         if not hasattr(self, 'name'):
             self.name = self.__class__.__name__.lower()
         # Injects attributes from Idea instance, if values exist.
-        try:
-            self = self.idea.apply(instance = self)
-        except AttributeError:
-            pass
+        self = self.idea.apply(instance = self)
         # Creates proxy names for attributes, if 'proxies' attribute exists.
         self.proxify()
         # Automatically calls 'draft' method.
@@ -41,15 +45,65 @@ class SimpleManuscript(ABC):
 
     """ Dunder Methods """
 
-    def __iter__(self) -> NotImplementedError:
+    def __iter__(self) -> Iterable:
+        """Returns '_children' dictionary as iterable."""
         return iter(self._children)
+    """ Private Methods """
+
+    def _draft_options(self) -> None:
+        """Subclasses should provide their own methods to create 'options'."""
+        try:
+            self._options = self._options_class()
+        except AttributeError:
+            self._options = SimpleOptions(options = {})
+        return self
+
+    def _draft_steps(self) -> None:
+        """If 'steps' does not exist, gets 'steps' from 'idea'.
+
+        If there are no 'steps' in 'idea', an empty list is created for 'steps'.
+
+        """
+        if self.steps is None:
+            try:
+                self.steps = getattr(self, '_'.join([self.name, 'steps']))
+            except AttributeError:
+                self.steps = []
+        else:
+            self.steps = listify(self.steps)
+        return self
+
+    def _publish_options(self, data: Optional[object] = None) -> None:
+        """Finalizes 'options'."""
+        self.options.load(self.techniques)
+        self.options.publish(data = data)
+        return self
 
     """ Composite Management Methods """
 
-    def add(self, name: str, child: ['SimpleManuscript']):
-        self._children[name] = child
+    def add_children(self, keys: Union[List[str], str]) -> None:
+        """Adds outline(s) to '_children' from 'options' based on key(s).
+
+        Args:
+            keys (Union[List[str], str]): key(s) to 'options'.
+
+        """
+        for key in listify(keys):
+            self._children[key] = self.options[key]
         return self
-    
+
+    def add_options(self,
+            options: Union['SimpleOptions', Dict[str, Any]]) -> None:
+        """Assigns 'options' to '_options' attribute.
+
+        Args:
+            options (options: Union['SimpleOptions', Dict[str, Any]]): either
+                another 'SimpleOptions' instance or an options dict.
+
+        """
+        self.options += options
+        return self
+
     def proxify(self) -> None:
         """Creates proxy names for attributes and methods."""
         try:
@@ -67,12 +121,12 @@ class SimpleManuscript(ABC):
 
     def draft(self) -> None:
         """Required method that sets default values."""
-        # Initializes all child objects."""
-        for item in self._children:
-            try:
-                getattr(self, '_'.join(['_draft', item]))(idea = self.idea)
-            except AttributeError:
-                pass
+        # Initializes all needed options."""
+        if isinstance(self._options, dict):
+            self._options = SimpleOptions(options = options)
+        elif self._options is None:
+            self._options = SimpleOptions()
+
         return self
 
     @abstractmethod
@@ -85,6 +139,7 @@ class SimpleManuscript(ABC):
             data (Optional[object]): an optional object needed for the method.
 
         """
+        self.options.publish()
         return self
 
     @abstractmethod
@@ -99,7 +154,7 @@ class SimpleManuscript(ABC):
         """
         return self
 
-    """ Properties """
+    """ Composite Properties """
 
     @property
     def parent(self) -> 'SimpleManuscript':
@@ -111,7 +166,7 @@ class SimpleManuscript(ABC):
         """Sets '_parent' attribute to 'parent' argument.
 
         Args:
-            parent (SimpleManuscript): SimpleManuscript class up one level in 
+            parent (SimpleManuscript): SimpleManuscript class up one level in
                 the composite tree.
 
         """
@@ -125,35 +180,27 @@ class SimpleManuscript(ABC):
         return self
 
     @property
-    def children(self) -> Dict[str, 'SimpleManuscript']:
+    def children(self) -> Dict[str, Union['Outline', 'SimpleManuscript']]:
         """Returns '_children' attribute.
 
         Returns:
-            Dict of str access keys and SimpleManuscript values.
+            Dict of str access keys and Outline or SimpleManuscript values.
 
         """
         return self._children
 
     @children.setter
-    def children(self,
-            children: Dict[str, 'SimpleManuscript'],
-            override: Optional[bool] = True) -> None:
+    def children(self, children: Dict[str, 'Outline']) -> None:
         """Assigns 'children' to '_children' attribute.
 
         If 'override' is False, 'children' are added to '_children'.
 
         Args:
-            children (Dict[str, 'SimpleManuscript']): dictionary with str
-                for reference keys and values of 'SimpleManuscript'.
-            override (Optional[bool]): whether to overwrite existing '_children'
-                (True) or add 'children' to '_children' (False). Defaults to
-                True.
+            children (Dict[str, 'Outline']): dictionary with str for reference
+                keys and values of 'SimpleManuscript'.
 
         """
-        if override or not hasattr(self, '_children') or not self._children:
-            self._children = children
-        else:
-            self._children.update(children)
+        self._children = children
         return self
 
     @children.deleter
@@ -168,7 +215,46 @@ class SimpleManuscript(ABC):
         for child in listify(children):
             try:
                 del self._children[child]
-            except (KeyError, AttributeError):
+            except KeyError:
                 pass
         return self
 
+    """ Strategy Properties """
+
+    @property
+    def options(self) -> 'SimpleOptions':
+        """Returns '_options' attribute."""
+        return self._options
+
+    @options.setter
+    def options(self, options: Union['SimpleOptions', Dict[str, Any]]) -> None:
+        """Assigns 'options' to '_options' attribute.
+
+        Args:
+            options (Union['SimpleOptions', Dict[str, Any]]): SimpleOptions
+                instance or a dictionary to be stored within a SimpleOptions
+                instance (this should follow the form outlined in the
+                SimpleOptions documentation).
+
+        """
+        if isinstance(options, dict):
+            self._options = SimpleOptions(options = options)
+        else:
+            self._options.add(options = options)
+        return self
+
+    @options.deleter
+    def options(self, options: Union[List[str], str]) -> None:
+        """ Removes 'options' for '_options' attribute.
+
+        Args:
+            options (Union[List[str], str]): key(s) to options classes to
+                remove from '_options'.
+
+        """
+        for option in listify(options):
+            try:
+                del self._options[option]
+            except KeyError:
+                pass
+        return self
