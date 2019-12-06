@@ -51,7 +51,7 @@ def main(
         Project based upon passed attributes.
 
     """
-    return factory.create_project(
+    return factory.make_project(
         idea = idea,
         library = library,
         ingredients = ingredients)

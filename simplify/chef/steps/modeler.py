@@ -250,7 +250,7 @@ class Modeler(SimpleDirector):
         if step in ['xgboost'] and self.gpu:
             parameters.update({'tree_method': 'gpu_exact'})
         elif step in ['tensorflow']:
-            algorithm = create_tensorflow_model(
+            algorithm = make_tensorflow_model(
                 step = step,
                 parameters = parameters)
         return parameters
@@ -265,7 +265,7 @@ class Modeler(SimpleDirector):
         return self
 
 
-def create_tensorflow_model(step: 'Page', parameters: dict) -> None:
+def make_tensorflow_model(step: 'Page', parameters: dict) -> None:
     algorithm = None
     return algorithm
 
@@ -327,12 +327,12 @@ def create_tensorflow_model(step: 'Page', parameters: dict) -> None:
 
 
 
-def create_torch_model(step: 'Page', parameters: dict) -> None:
+def make_torch_model(step: 'Page', parameters: dict) -> None:
     algorithm = None
     return algorithm
 
 
-def create_stan_model(step: 'Page', parameters: dict) -> None:
+def make_stan_model(step: 'Page', parameters: dict) -> None:
     algorithm = None
     return algorithm
 

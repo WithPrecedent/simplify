@@ -93,7 +93,7 @@ class Library(SimpleOptions):
                 'add_branch',
                 'add_tree',
                 'add_folder',
-                'create_batch',
+                'make_batch',
                 'set_book_folder',
                 'set_chapter_folder']:
             return getattr(self.foldifier, attribute)
@@ -221,7 +221,7 @@ class Folderifier(SimpleOptions):
 
         """
         for subfolder in listify(subfolders):
-            temp_folder = self.create_folder(folder = root_folder,
+            temp_folder = self.make_folder(folder = root_folder,
                                              subfolder = subfolder)
             setattr(self, subfolder, temp_folder)
             root_folder = temp_folder
@@ -281,7 +281,7 @@ class Folderifier(SimpleOptions):
                 [prefix, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
         else:
             subfolder = prefix
-        self.book = self.create_folder(
+        self.book = self.make_folder(
             folder = self.results_folder,
             subfolder = subfolder)
         return self
@@ -306,7 +306,7 @@ class Folderifier(SimpleOptions):
         except AttributeError:
             pass
         subfolder = ''.join([subfolder, str(chapter.metadata['number'])])
-        self.chapter = self.create_folder(
+        self.chapter = self.make_folder(
             folder = self.book,
             subfolder = subfolder)
         return self
@@ -670,7 +670,7 @@ class Importer(Distributor):
 
     """ Public Methods """
 
-    def create_batch(self,
+    def make_batch(self,
             folder: Optional[str] = None,
             file_format: Optional[str] = None,
             include_subfolders: Optional[bool] = True) -> Iterable[str]:

@@ -128,7 +128,7 @@ class Almanac(SimplePackage):
     def _implement_glob(self, ingredients):
         self.library.initialize_writer(
                 file_path = self.library.path_out)
-        ingredients.create_series()
+        ingredients.make_series()
         for file_num, a_path in enumerate(self.library.path_in):
             if (file_num + 1) % 100 == 0 and self.verbose:
                 print(file_num + 1, 'files parsed')

@@ -23,7 +23,7 @@ from simplify.core import _get_supported_types
 from simplify.data.ingredients import Ingredients
 
 
-def create_ingredients(
+def make_ingredients(
         ingredients: Union['Ingredients', pd.DataFrame, pd.Series, np.ndarray,
                            str],
         idea: 'Idea',
@@ -84,7 +84,7 @@ def create_ingredients(
                 df = df)
         except FileNotFoundError:
             try:
-                library.create_batch(
+                library.make_batch(
                     folder = getattr(self, ingredients))
                 return Ingredients(
                     idea = idea,
@@ -97,7 +97,7 @@ def create_ingredients(
                 raise TypeError(error)
 
 
-def create_library(library: Union[str, 'Library'], idea: 'Idea') -> 'Library':
+def make_library(library: Union[str, 'Library'], idea: 'Idea') -> 'Library':
     """Creates an Library instance from passed arguments.
 
     Args:

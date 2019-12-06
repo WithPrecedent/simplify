@@ -74,7 +74,7 @@ def backup_df(return_df: Optional[bool] = False) -> Callable:
 #     Returns:
 #         Callable:  with 'columns' parameter that combines items from 'columns',
 #             'prefixes', 'suffixes', and 'mask' parameters into a single list
-#             of column names using the 'create_column_list' method.
+#             of column names using the 'make_column_list' method.
 
 #     """
 #     call_signature = signature(method)
@@ -90,19 +90,19 @@ def backup_df(return_df: Optional[bool] = False) -> Callable:
 #             columns = listify(arguments['columns'])
 #         try:
 #             columns.extend(
-#                 self.create_column_list(prefixes = arguments['prefixes']))
+#                 self.make_column_list(prefixes = arguments['prefixes']))
 #             del arguments['prefixes']
 #         except KeyError:
 #             pass
 #         try:
 #             columns.extend(
-#                 self.create_column_list(suffixes = arguments['suffixes']))
+#                 self.make_column_list(suffixes = arguments['suffixes']))
 #             del arguments['suffixes']
 #         except KeyError:
 #             pass
 #         try:
 #             columns.extend(
-#                 self.create_column_list(mask = arguments['mask']))
+#                 self.make_column_list(mask = arguments['mask']))
 #             del arguments['mask']
 #         except KeyError:
 #             pass
@@ -227,7 +227,7 @@ class Ingredients(SimpleOptions):
         """
         return columns or list(self.columns.keys())
 
-    def _create_dataframe_proxies(self):
+    def _make_dataframe_proxies(self):
         """Creates proxy mapping for dataframe attribute names."""
         self._dataframes = {
             'full': [self.x, self.y],
@@ -352,7 +352,7 @@ class Ingredients(SimpleOptions):
                                 file_name = getattr(self, dataframe)))
                     except FileNotFoundError:
                         try:
-                            self.library.create_glob(folder = dataframe)
+                            self.library.make_glob(folder = dataframe)
                         except TypeError:
                             raise TypeError(' '.join(
                                 ['df must be a file path, file folder,',
@@ -535,7 +535,7 @@ class Ingredients(SimpleOptions):
         return self
 
     @backup_df
-    def create_column_list(self,
+    def make_column_list(self,
             df: Optional[pd.DataFrame] = None,
             columns: Optional[Union[List[str], str]] = None,
             prefixes: Optional[Union[List[str], str]] = None,
@@ -590,7 +590,7 @@ class Ingredients(SimpleOptions):
         return deduplicate(iterable = column_names)
 
     # @make_columns_parameter
-    def create_series(self,
+    def make_series(self,
             columns: Optional[Union[List[str], str]] = None,
             return_series: Optional[bool] = True) -> None:
         """Creates a Series (row) with the 'columns' dict.
@@ -860,7 +860,7 @@ class Ingredients(SimpleOptions):
         self.columns = self.columns or {}
         self.prefixes = self.prefixes or {}
         # Creates attribute names for user proxies to DataFrames.
-        self._create_dataframe_proxies()
+        self._make_dataframe_proxies()
         return self
 
     def publish(self) -> None:

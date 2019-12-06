@@ -478,7 +478,7 @@ class Idea(object):
                 instance.
 
         """
-        new_idea = factory.create_idea(idea = configuration)
+        new_idea = factory.make_idea(idea = configuration)
         self.configuration.update(new_idea.configuration)
         return self
 
@@ -487,7 +487,7 @@ class Idea(object):
     def draft(self) -> None:
         """Validates instance construction."""
         if not isinstance(self.configuration, dict):
-            self = factory.create_idea(idea = self.configuration)
+            self = factory.make_idea(idea = self.configuration)
         return self
 
     def publish(self) -> None:

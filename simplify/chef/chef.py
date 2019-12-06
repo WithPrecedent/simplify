@@ -217,7 +217,7 @@ class Cookbook(Book):
         """
         # if not self._exists('cleaves'):
         #     self.cleaves = []
-        # columns = self.ingredients.create_column_list(
+        # columns = self.ingredients.make_column_list(
         #     prefixes = prefixes,
         #     columns = columns)
         # self.options['cleaver'].add_pages(
