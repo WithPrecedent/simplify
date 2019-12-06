@@ -15,12 +15,12 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify.core.manuscript import SimpleManuscript
+from simplify.core.author import SimpleAuthor
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Page(SimpleManuscript):
+class Page(SimpleAuthor):
     """Stores, combines, and applies Algorithm and Parameters instances.
 
     Args:
@@ -84,7 +84,7 @@ class Page(SimpleManuscript):
             self.content.extend(listify(content))
         self.content = self._draft_content(content = self.content)
         return self
-    
+
     def publish(self,
             content: Optional[Union['Content'],
                                List['Content']] = None,
@@ -146,7 +146,7 @@ class Page(SimpleManuscript):
             components[component.name] = component.apply(
                 outline = outline, **kwargs)
         return page(components = components)
-    
+
     """ Core siMpLify Methods """
 
     def publish(self, data: Optional[object] = None) -> None:

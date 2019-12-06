@@ -1,14 +1,12 @@
 """
 .. module:: author
-:synopsis: book builder
+:synopsis: composite tree abstract base class
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
-from abc import ABC
-from abc import abstractmethod
+
 from dataclasses import dataclass
-from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.options import SimpleOptions
@@ -16,136 +14,251 @@ from simplify.core.utilities import listify
 
 
 @dataclass
-class Author(ABC):
-    """Base class for creating Book instances.
+class SimpleAuthor(ABC):
+    """Base class for data processing, analysis, and visualization.
 
-    Author subclasses direct the creation of siMpLify classes in the following
-    manner.
-
-        Idea -> Options -> Outline -> Content -> Page -> Chapter -> Book
+    SimpleComposite implements a modified composite tree pattern for organizing
+    the various subpackages in siMpLify.
 
     Args:
-        idea (Union[Idea, str]): an instance of Idea or a string containing the
-            file path or file name (in the current working directory) where a
-            file of a supoorted file type with settings for an Idea instance is
-            located.
-        library (Optional[Union['Library', str]]): an instance of
-            library or a string containing the full path of where the root
-            folder should be located for file output. A library instance
-            contains all file path and import/export methods for use throughout
-            the siMpLify package. Default is None.
-        ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
-            np.ndarray, str]]): an instance of Ingredients, a string containing
-            the full file path where a data file for a pandas DataFrame or
-            Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Library instance, a
-            DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
-            string is provided, the resultant DataFrame is stored at the 'df'
-            attribute in a new Ingredients instance. Default is None.
-        techniques (Optional[Union[List[str], str]]): ordered names of Book
-            subclasses to include. These names should match keys in the
-            'options' attribute. If using the Idea instance settings, this
-            argument should not be passed. Default is None.
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. If 'name' is not
-            provided, __class__.__name__.lower() is used instead.
-        auto_publish (Optional[bool]): whether to call the 'publish' method when
-            a subclass is instanced. For auto_publish to have an effect,
-            'ingredients' must also be passed. Defaults to True.
+        _options (Optional[Union['SimpleOptions', Dict[str, Any]]]): allows
+            setting of 'options' property with an argument. Defaults to None.
 
     """
-    idea: Union['Idea', str]
-    library: Optional[Union['Library', str]] = None
-    ingredients: Optional[Union[
-        'Ingredients',
-        pd.DataFrame,
-        pd.Series,
-        np.ndarray,
-        str]] = None
-    techniques: Optional[Union[List[str], str]] = None
-    name: Optional[str] = None
-    auto_publish: Optional[bool] = True
+    _options: (Optional[Union['SimpleOptions', Dict[str, Any]]]) = None
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
+        # Sets default 'name' attribute if none exists.
+        if not hasattr(self, 'name'):
+            self.name = self.__class__.__name__.lower()
         # Automatically calls 'draft' method.
         self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
-        if self.auto_publish:
+        if hasattr(self, 'auto_publish') and self.auto_publish:
             self.publish()
         return self
 
+    """ Dunder Methods """
+
+    def __iter__(self) -> Iterable:
+        """Returns '_children' dictionary as iterable."""
+        return iter(self._children)
+
     """ Private Methods """
 
-    def _draft_options(self, 
-            manuscript: 'SimpleManuscript') -> 'SimpleManuscript':
-        """Subclasses should provide their own methods to create 'options'."""
-        manuscript._options = SimpleOptions(options = {}, _manuscript = self)
-        return manuscript
+    def _draft_options(self) -> None:
+        """Subclasses should provide their own methods to create 'options'.
 
-    def _draft_techniques(self, 
-            manuscript: 'SimpleManuscript') -> 'SimpleManuscript':
-        """If 'techniques' does not exist, gets 'techniques' from 'idea'.
-
-        If there are no matching 'steps' or 'techniques' in 'idea', an empty
-        list is created for 'techniques'.
+        If the subclasses also allow for passing of '_options', the code below
+        should be included as well.Any
 
         """
-        manuscript.compare = False
-        if manuscript.techniques is None:
+        if self._options is None:
+            self._options = SimpleOptions(options = {}, _author = self)
+        elif isinstance(self._options, Dict):
+            self._options = SimpleOptions(
+                options = self._options,
+                _author = self)
+        return self
+
+    def _draft_techniques(self) -> None:
+        """If 'techniques' does not exist, gets 'techniques' from 'idea'.
+
+        If there are no matching 'steps' or 'techniques' in 'idea', a list with
+        'none' is created for 'techniques'.
+
+        """
+        self.compare = False
+        if self.techniques is None:
             try:
-                manuscript.techniques = getattr(
-                    self.idea, '_'.join([manuscript.name, 'steps']))
+                self.techniques = getattr(
+                    self.idea, '_'.join([self.name, 'steps']))
             except AttributeError:
                 try:
-                    manuscript.compare = True
-                    manuscript.techniques = getattr(
-                        self.idea, '_'.join([manuscript.name, 'techniques']))
+                    self.compare = True
+                    self.techniques = getattr(
+                        self.idea, '_'.join([self.name, 'techniques']))
                 except AttributeError:
-                    manuscript.techniques = ['none']
+                    self.techniques = ['none']
         else:
-            manuscript.techniques = listify(manuscript.techniques)
-        return manuscript
+            self.techniques = listify(self.techniques)
+        return self
 
     """ Core siMpLify Methods """
 
-    def draft(self,
-            manuscript: 'SimpleManuscript') -> 'SimpleManuscript':
-        """Creates initial attributes."""
+    def draft(self) -> None:
+        """Required method that sets default values."""
+        # Initializes all needed options."""
+        if isinstance(self._options, dict):
+            self._options = SimpleOptions(options = options)
+        elif self._options is None:
+            self._options = SimpleOptions()
         # Injects attributes from Idea instance, if values exist.
         self = self.idea.apply(instance = self)
         # initializes core attributes.
-        manuscript = self._draft_options(manuscript = manuscript)
-        manuscript = self._draft_techniques(manuscript = manuscript)
-        # Initializes all needed options."""
-        manuscript.options.load(manuscript.techniques)
-        return manuscript
-
-    def publish(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[object] = None) -> 'SimpleManuscript':
-        """Finalizes 'options'."""
-        if data is None:
-            data = self.ingredients
-        for technique in manuscript.techniques:
-            technique.options.publish(
-                techniques = manuscript.techniques,
-                data = data)
+        self._draft_options()
+        self._draft_techniques()
         return self
-        
-    def apply(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[object] = None, **kwargs) -> 'SimpleManuscript':
+
+    def publish(self, data: Optional[object] = None) -> None:
+        """Required method which applies methods to passed data.
+
+        Subclasses should provide their own 'publish' method.
+
+        Args:
+            data (Optional[object]): an optional object needed for the method.
+
+        """
         if data is None:
             data = self.ingredients
-        for technique in manuscript.techniques:
-            data = manuscript.options.apply(
+        self.options.publish(
+            techniques = self.techniques,
+            data = data)
+        return self
+
+    def apply(self, data: Optional[object], **kwargs) -> None:
+        """Applies created objects to passed 'data'.
+
+        Subclasses should provide their own 'apply' method, if needed.
+
+        Args:
+            data (object): data object for methods to be applied.
+
+        """
+        for technique in self.techniques:
+            data = self.options[technique].options.apply(
                 key = technique,
-                data = data, 
+                data = data,
                 **kwargs)
         return data
+
+    """ Composite Methods and Properties """
+
+    def add_children(self, keys: Union[List[str], str]) -> None:
+        """Adds outline(s) to '_children' from 'options' based on key(s).
+        Args:
+            keys (Union[List[str], str]): key(s) to 'options'.
+        """
+        for key in listify(keys):
+            self._children[key] = self.options[key]
+        return self
+
+    def proxify(self) -> None:
+        """Creates proxy names for attributes and methods."""
+        try:
+            proxy_attributes = {}
+            for name, proxy in self.proxies.items():
+                for key, value in self.__dict__.items():
+                    if name in key:
+                        proxy_attributes[key.replace(name, proxy)] = value
+            self.__dict__.update(proxy_attributes)
+        except AttributeError:
+            pass
+        return self
+
+    @property
+    def parent(self) -> 'SimpleAuthor':
+        """Returns '_parent' attribute."""
+        return self._parent
+
+    @parent.setter
+    def parent(self, parent: 'SimpleAuthor') -> None:
+        """Sets '_parent' attribute to 'parent' argument.
+        Args:
+            parent (SimpleAuthor): SimpleAuthor class up one level in
+                the composite tree.
+        """
+        self._parent = parent
+        return self
+
+    @parent.deleter
+    def parent(self) -> None:
+        """Sets 'parent' to None."""
+        self._parent = None
+        return self
+
+    @property
+    def children(self) -> Dict[str, Union['Outline', 'SimpleAuthor']]:
+        """Returns '_children' attribute.
+        Returns:
+            Dict of str access keys and Outline or SimpleAuthor values.
+        """
+        return self._children
+
+    @children.setter
+    def children(self, children: Dict[str, 'Outline']) -> None:
+        """Assigns 'children' to '_children' attribute.
+        If 'override' is False, 'children' are added to '_children'.
+        Args:
+            children (Dict[str, 'Outline']): dictionary with str for reference
+                keys and values of 'SimpleAuthor'.
+        """
+        self._children = children
+        return self
+
+    @children.deleter
+    def children(self, children: Union[List[str], str]) -> None:
+        """ Removes 'children' for '_children' attribute.
+        Args:
+            children (Union[List[str], str]): key(s) to children classes to
+                remove from '_children'.
+        """
+        for child in listify(children):
+            try:
+                del self._children[child]
+            except KeyError:
+                pass
+        return self
+
+    """ Strategy Methods and Properties """
+
+    def add_options(self,
+            options: Union['SimpleOptions', Dict[str, Any]]) -> None:
+        """Assigns 'options' to '_options' attribute.
+
+        Args:
+            options (options: Union['SimpleOptions', Dict[str, Any]]): either
+                another 'SimpleOptions' instance or an options dict.
+
+        """
+        self.options += options
+        return self
+
+    @property
+    def options(self) -> 'SimpleOptions':
+        """Returns '_options' attribute."""
+        return self._options
+
+    @options.setter
+    def options(self, options: Union['SimpleOptions', Dict[str, Any]]) -> None:
+        """Assigns 'options' to '_options' attribute.
+
+        Args:
+            options (Union['SimpleOptions', Dict[str, Any]]): SimpleOptions
+                instance or a dictionary to be stored within a SimpleOptions
+                instance (this should follow the form outlined in the
+                SimpleOptions documentation).
+
+        """
+        if isinstance(options, dict):
+            self._options = SimpleOptions(options = options)
+        else:
+            self._options.add(options = options)
+        return self
+
+    @options.deleter
+    def options(self, options: Union[List[str], str]) -> None:
+        """ Removes 'options' for '_options' attribute.
+
+        Args:
+            options (Union[List[str], str]): key(s) to options classes to
+                remove from '_options'.
+
+        """
+        for option in listify(options):
+            try:
+                del self._options[option]
+            except KeyError:
+                pass
+        return self

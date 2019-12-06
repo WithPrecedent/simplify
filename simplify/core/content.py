@@ -14,12 +14,12 @@ import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
 
-from simplify.core.manuscript import SimpleManuscript
+from simplify.core.author import SimpleAuthor
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Content(SimpleManuscript):
+class Content(SimpleAuthor):
     """Base class for building components in a Page.
 
     Takes an Outline subclass instance and creates a component object.
@@ -47,11 +47,11 @@ class Content(SimpleManuscript):
         return self
 
     """ Dunder Methods """
-    
+
     def iter(self):
         raise NotImplementedError(' '.join([
             self.__class__.__name__, 'cannot have child classes to iterate']))
-                
+
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
@@ -66,24 +66,24 @@ class Content(SimpleManuscript):
         """Builds and returns an object.
 
         Args:
-            outline (Optional['Outline']): instance containing information 
+            outline (Optional['Outline']): instance containing information
                 needed to build the desired objects.
             kwargs: extra arguments to use in building the desired object.
 
         Returns:
             object: subclasses should return built object.
-            
+
         """
         return
 
     """ Properties """
-    
+
     @property
     def children(self):
         raise NotImplementedError(' '.join([
             self.__class__.__name__, 'cannot have child classes']))
-        
-   
+
+
 @dataclass
 class Algorithm(Content):
     """Base class for building an algorithm for a Page subclass instance.
@@ -114,13 +114,13 @@ class Algorithm(Content):
         """Builds and returns an algorithm.
 
         Args:
-            outline (Optional['Outline']): instance containing information 
+            outline (Optional['Outline']): instance containing information
                 needed to build an algorithm.
             kwargs: ignored by this class.
 
         Returns:
             object: a loaded algorithm.
-            
+
         """
         return self._lazily_load_algorithm(outline = outline)
 
@@ -128,7 +128,7 @@ class Algorithm(Content):
 @dataclass
 class Parameters(Content):
     """Base class for building parameters for an algorithm.
-    
+
     Args:
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
@@ -232,8 +232,8 @@ class Parameters(Content):
         The primary example of a runtime parameter throughout siMpLify is the
         addition of a random seed for a consistent, replicable state.
 
-        The runtime variables should be stored as attributes in the Author 
-        instance so that the values listed in outline.runtimes match those 
+        The runtime variables should be stored as attributes in the Author
+        instance so that the values listed in outline.runtimes match those
         attributes to be added to parameters.
 
         Args:
@@ -310,8 +310,8 @@ class Parameters(Content):
         Args:
             outline ('Outline'): class containing information about parameter
                 construction.
-            data (Optional[object]): data container (Ingredients, Review, etc.) 
-                that has attributes matching any items stored in 
+            data (Optional[object]): data container (Ingredients, Review, etc.)
+                that has attributes matching any items stored in
                 'outline.data_dependent'.
 
         """

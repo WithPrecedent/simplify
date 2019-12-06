@@ -10,12 +10,12 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.manuscript import SimpleManuscript
+from simplify.core.author import SimpleAuthor
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Chapter(SimpleManuscript):
+class Chapter(SimpleAuthor):
     """Iterator for a siMpLify process.
 
     Args:

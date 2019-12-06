@@ -23,7 +23,7 @@ from simplify.core.utilities import listify
 
 
 @dataclass
-class Book(SimpleManuscript):
+class Book(SimpleAuthor):
     """Builds and controls Chapters.
 
     This class contains methods useful to create iterators and iterate over
@@ -142,23 +142,6 @@ class Book(SimpleManuscript):
         """
         return chapter
 
-    def _publish_authors(self,
-            data: Optional[object] = None) -> None:
-        """Converts author classes into class instances.
-
-        Args:
-            data (Optional['Ingredients']): an Ingredients instance.
-
-        """
-        new_authors = {}
-        for key, author in self.authors.items():
-            instance = author(idea = self.idea, library = self.library)
-            instance.book = self
-            instance.publish(data = data)
-            new_authors[key] = instance
-        self.authors = new_authors
-        return self
-
     def _publish_chapters(self, data: Optional[object] = None) -> None:
         """Subclasses should provide their own method, if needed.
 
@@ -174,28 +157,6 @@ class Book(SimpleManuscript):
             pages = dict(zip(self.techniques, plan))
             metadata = self._draft_chapter_metadata(number = i)
             self.add_chapter(name = str(i), pages = pages, metadata = metadata)
-        return self
-
-    """ Public Import/Export Methods """
-
-    def load_chapter(self, file_path: str) -> None:
-        """Imports a single recipe from disk and adds it to the class iterable.
-
-        Args:
-            file_path (str): a path where the file to be loaded is located.
-
-        """
-        try:
-            self.chapters.update(
-                {str(len(self.chapters)): self.library.load(
-                    file_path = file_path,
-                    file_format = 'pickle')})
-        except (AttributeError, TypeError):
-            self.chapters = {}
-            self.chapters.update(
-                {str(len(self.chapters)): self.library.load(
-                    file_path = file_path,
-                    file_format = 'pickle')})
         return self
 
     """ Core siMpLify methods """
@@ -243,13 +204,57 @@ class Book(SimpleManuscript):
         self.chapters = new_chapters
         return self
 
-    """ Composite Properties """
-    
-    @property
-    def parent(self) -> NotImplementedError:
-        return NotImplementedError(
-            'Book instances and subclasses cannot have parents')
+    """ Composite Methods and Properties """
 
+    def add_chapters(self, chapters: Union[List['Chapter'], 'Chapter']) -> None:
+        """Adds Chapter(s) to 'chapters' property.
+
+        Args:
+            chapters (Union[List['Chapter'], 'Chapter']): Chapter(s) to add.
+
+        """
+        self._chapters[key].extend(listify(chapters))
+        return self
+
+    def load_chapter(self, file_path: str) -> None:
+        """Imports a single chapter from disk and adds it to the class iterable.
+
+        Args:
+            file_path (str): a path where the file to be loaded is located.
+
+        """
+        self._chapters.append(
+            self.author.library.load(
+                file_path = file_path,
+                file_format = 'pickle'))
+        return self
+
+    @property
+    def chapters(self) -> List['Chapter']:
+        """Returns '_chapters' attribute.
+
+        Returns:
+            List of Chapters.
+
+        """
+        return self._chapters
+
+    @chapters.setter
+    def chapters(self, chapters: Union[List['Chapter'], 'Chapter']) -> None:
+        """Assigns 'chapters' to '_chapters' attribute.
+
+        Args:
+            chapters (Union[List['Chapter'], 'Chapter']): Chapter(s) to to set
+                in the '_chapters' attribute.
+
+        """
+        self._chapters = listify(chapters)
+        return self
+
+    @chapters.deleter
+    def chapters(self, chapters: Any) -> NotImplementedError:
+        raise NotImplementedError(
+            'Chapters cannot be deleted, use setter instead')
 
 class BookFiler(SimpleFiler):
 

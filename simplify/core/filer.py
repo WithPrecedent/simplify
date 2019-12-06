@@ -56,7 +56,7 @@ class SimpleFiler(ABC):
         return self
 
     def save(self,
-            variable: Optional[Union['SimpleManuscript', str]] = None,
+            variable: Optional[Union['SimpleAuthor', str]] = None,
             file_path: Optional[str] = None,
             folder: Optional[str] = None,
             file_name: Optional[str] = None,
@@ -70,7 +70,7 @@ class SimpleFiler(ABC):
         siMpLify project.
 
         Args:
-            variable (Optional[Union['SimpleManuscript'], str]): a python object
+            variable (Optional[Union['SimpleAuthor'], str]): a python object
                 or a string corresponding to a subclass attribute which should
                 be saved to disk. Defaults to None.
             file_path (Optional[str]): a complete file path for the file to be

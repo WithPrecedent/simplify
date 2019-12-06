@@ -39,9 +39,7 @@ class SimpleOptions(MutableMapping):
     options: Optional[Dict[str, Any]] = field(default_factory = dict())
     default_options: Optional[Union[List[str], str]] = field(
         default_factory = list())
-    _idea: Optional['Idea'] = None
-    _library: Optional['Library'] = None
-    _manuscript: Optional['SimpleManuscript'] = None
+    _author: Optional[Union['Project', 'SimpleAuthor']] = None
 
     def __post_init__(self):
         """Calls initialization methods and sets class instance defaults."""
@@ -56,11 +54,6 @@ class SimpleOptions(MutableMapping):
         self.drafted = {}
         self.published = {}
         self.applied = {}
-        # Uses passed Library and Idea instances, if provided.
-        if self._idea is not None:
-            self.idea = self._idea
-        if self._library is not None:
-            self.library = self.library
         # Automatically calls 'draft' method.
         self.draft()
         return self
@@ -176,7 +169,7 @@ class SimpleOptions(MutableMapping):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        """Subclasses should call super().draft() and declare 'drafted' if 
+        """Subclasses should call super().draft() and declare 'drafted' if
         'options' has not been passed, declared, or injected.
 
         Also, if any default_options are to be set independent of the instance
@@ -192,21 +185,21 @@ class SimpleOptions(MutableMapping):
         self.drafted = self.options
         return self
 
-    def publish(self, 
-            techniques: Optional[Union, str, List[str]], 
+    def publish(self,
+            techniques: Optional[Union, str, List[str]],
             data: Optional[object] = None) -> None:
         """"Loads and instances options.
 
         Args:
             techniques (Optional[Union, str, List[str]]): key(s) to options that
-                are to be used in a siMpLify project. Only the selected 
+                are to be used in a siMpLify project. Only the selected
                 'techniques' will be lazily loaded into memory and instanced.
             data (Optional[object]): an object to pass when an options instance
                 is published. Defaults to None.
 
         """
         # Sets state for access methods.
-        self.state = 'published' 
+        self.state = 'published'
         # Instances and publishes all selected options.
         for key in techniques:
             # Lazily loads all stored options from stored Outline instances.
@@ -217,26 +210,26 @@ class SimpleOptions(MutableMapping):
         return self
 
     def apply(self,
-            key: str, 
-            data: Optional[object] = None, 
+            technique: str,
+            data: Optional[object] = None,
             **kwargs) -> object:
-        """Calls 'apply' method for published option matching 'key'.
-        
+        """Calls 'apply' method for published option matching 'technique'.
+
         Args:
-            key (str): key for specific option to be applied.
+            technique (str): technique for specific option to be applied.
             data (Optional[object]): object for option to be applied. Defaults
                 to None.
             kwargs: any additional parameters to pass to the option's 'apply'
                 method.
-        
+
         Returns:
             object is returned if data is passed, otherwise None is returned.
-        
+
         """
         # Sets state for access methods.
         self.state = 'applied'
-        data = self.published[key].apply(data = data)
-        self.applied[key] = self.published[key]
+        data = self.published[technique].apply(data = data)
+        self.applied[technique] = self.published[technique]
         return data
 
     """ Properties """
@@ -262,17 +255,17 @@ class SimpleOptions(MutableMapping):
             except KeyError:
                 pass
         return self
-    
+
     @property
-    def manuscript(self, manuscript: 'SimpleManuscript') -> None:
-        return self._manuscript
-    
-    @manuscript.setter
-    def manuscript(self, manuscript: 'SimpleManuscript') -> None:
-        self._manuscript = manuscript
+    def author(self, author: 'SimpleAuthor') -> None:
+        return self._author
+
+    @author.setter
+    def author(self, author: 'SimpleAuthor') -> None:
+        self._author = author
         return self
-    
-    @manuscript.deleter
-    def manuscript(self) -> None:
-        self._manuscript = None
+
+    @author.deleter
+    def author(self) -> None:
+        self._author = None
         return self
