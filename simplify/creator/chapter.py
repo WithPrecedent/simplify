@@ -10,12 +10,13 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.author import SimpleAuthor
-from simplify.core.utilities import listify
+from simplify import creator
+from simplify.creator.author import SimpleSimpleCodex
+from simplify.library.utilities import listify
 
 
 @dataclass
-class Chapter(SimpleAuthor):
+class Chapter(SimpleSimpleCodex):
     """Iterator for a siMpLify process.
 
     Args:
@@ -107,7 +108,7 @@ class Chapter(SimpleAuthor):
         setattr(self, data.name, data)
         for key, page in self.pages.items():
             try:
-                self.book.library.stage = key
+                self.book.filer.stage = key
             except KeyError:
                 pass
             setattr(self, data.name, page.apply(

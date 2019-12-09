@@ -1,20 +1,127 @@
 """
-.. module:: author
-:synopsis: composite tree abstract base class
+.. module:: creator
+:synopsis: composite tree builder
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
-
+from collections import ABC
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.options import SimpleOptions
-from simplify.core.utilities import listify
+from simplify import creator
+from simplify.creator.options import SimpleOptions
+from simplify.library.utilities import listify
 
 
 @dataclass
-class SimpleAuthor(ABC):
+class SimpleCreator(ABC):
+    """Base class for building SimpleCodex objects and instances.
+
+    Args:
+        idea (Union['Idea', Dict[str, Dict[str, Any]], str]): an instance of
+            Idea, a nested Idea-compatible nested dictionary, or a string
+            containing the file path where a file of a supoorted file type with
+            settings for an Idea instance is located.
+        filer (Optional[Union['Filer', str]]): an instance of Filer or a string
+            containing the full path of where the root folder should be located
+            for file output. A Filer instance contains all file path and
+            import/export methods for use throughout the siMpLify package.
+            Default is None.
+        ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
+            np.ndarray, str]]): an instance of Ingredients, a string containing
+            the full file path where a data file for a pandas DataFrame or
+            Series is located, a string containing a file name in the default
+            data folder, as defined in the shared Filer instance, a
+            DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
+            string is provided, the resultant DataFrame is stored at the 'df'
+            attribute in a new Ingredients instance. Default is None.
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            a subclass is instanced. For auto_publish to have an effect,
+            'ingredients' and 'options' must also be passed. Defaults to True,
+            but the 'publish' method will not be called without 'ingredients'
+            and 'options'.
+
+    """
+    idea: Union['Idea', Dict[str, Dict[str, Any]], str]
+    filer: Optional[Union['Filer', str]] = None
+    ingredients: Optional[Union[
+        'Ingredients',
+        pd.DataFrame,
+        pd.Series,
+        np.ndarray,
+        str]] = None
+    name: str = 'creator'
+    auto_publish: Optional[bool] = True
+
+    def __post_init__(self) -> None:
+        """Calls initialization methods and sets class instance defaults."""
+        # Automatically calls 'draft' method.
+        self.draft()
+        # Calls 'publish' method if 'auto_publish' is True.
+        if hasattr(self, 'auto_publish') and self.auto_publish:
+            self.publish()
+        return self
+
+    """ Private Methods """
+
+    def _add_idea(self, instance: 'SimpleCodex') -> 'SimpleCodex':
+
+        return instance
+
+    """ Core siMpLify Methods """
+
+    def draft(self) -> None:
+        """Sets initial attributes."""
+        # Sets default 'name' attribute if none exists.
+        if not hasattr(self, 'name'):
+            self.name = self.__class__.__name__.lower()
+        return self
+
+    def publish(self) -> None:
+        """Finalizes core attributes."""
+        # Finalizes Idea, Filer, and Ingredients instances.
+        self.idea, self.filer, self.ingredients = creator.startup(
+            idea = self.idea,
+            filer = self.filer,
+            ingredients = self.ingredients)
+        # Injects attributes from Idea instance, if values exist.
+        self = self.idea.apply(instance = self)
+        return self
+
+    def apply(self, outline: 'Outline', **kwargs) -> object:
+        return self.make(outline = outline, **kwargs)
+
+    def make(self, outline: 'Outline', **kwargs) -> object:
+        """Applies created objects to passed 'data'.
+
+        Subclasses should provide their own 'apply' method, if needed.
+
+        Args:
+            data (object): data object for methods to be applied.
+
+        """
+        return instance
+
+
+@dataclass
+class Editor(SimpleCreator):
+
+
+@dataclass
+class Author(SimpleCreator):
+
+
+@dataclass
+class SimpleCodex(ABC):
     """Base class for data processing, analysis, and visualization.
 
     SimpleComposite implements a modified composite tree pattern for organizing
@@ -89,11 +196,6 @@ class SimpleAuthor(ABC):
 
     def draft(self) -> None:
         """Required method that sets default values."""
-        # Initializes all needed options."""
-        if isinstance(self._options, dict):
-            self._options = SimpleOptions(options = options)
-        elif self._options is None:
-            self._options = SimpleOptions()
         # Injects attributes from Idea instance, if values exist.
         self = self.idea.apply(instance = self)
         # initializes core attributes.
@@ -158,15 +260,15 @@ class SimpleAuthor(ABC):
         return self
 
     @property
-    def parent(self) -> 'SimpleAuthor':
+    def parent(self) -> 'SimpleSimpleCodex':
         """Returns '_parent' attribute."""
         return self._parent
 
     @parent.setter
-    def parent(self, parent: 'SimpleAuthor') -> None:
+    def parent(self, parent: 'SimpleSimpleCodex') -> None:
         """Sets '_parent' attribute to 'parent' argument.
         Args:
-            parent (SimpleAuthor): SimpleAuthor class up one level in
+            parent (SimpleSimpleCodex): SimpleSimpleCodex class up one level in
                 the composite tree.
         """
         self._parent = parent
@@ -179,10 +281,10 @@ class SimpleAuthor(ABC):
         return self
 
     @property
-    def children(self) -> Dict[str, Union['Outline', 'SimpleAuthor']]:
+    def children(self) -> Dict[str, Union['Outline', 'SimpleSimpleCodex']]:
         """Returns '_children' attribute.
         Returns:
-            Dict of str access keys and Outline or SimpleAuthor values.
+            Dict of str access keys and Outline or SimpleSimpleCodex values.
         """
         return self._children
 
@@ -192,7 +294,7 @@ class SimpleAuthor(ABC):
         If 'override' is False, 'children' are added to '_children'.
         Args:
             children (Dict[str, 'Outline']): dictionary with str for reference
-                keys and values of 'SimpleAuthor'.
+                keys and values of 'SimpleSimpleCodex'.
         """
         self._children = children
         return self

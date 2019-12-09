@@ -1,5 +1,5 @@
 """
-.. module:: library
+.. module:: filer
 :synopsis: file management made simple
 :author: Corey Rayburn Yung
 :copyright: 2019
@@ -17,13 +17,13 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.core.defaults import Defaults
-from simplify.core.typesetter import SimpleOptions
-from simplify.core.utilities import listify
+from simplify.library.defaults import Defaults
+from simplify.creator.typesetter import SimpleOptions
+from simplify.library.utilities import listify
 
 
 @dataclass
-class Library(SimpleOptions):
+class Filer(SimpleOptions):
     """Manages files and folders for siMpLify.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -40,7 +40,7 @@ class Library(SimpleOptions):
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
         root_folder (Optional[str]): the complete path from which the other
-            paths and folders used by library should be created. Defaults to
+            paths and folders used by filer should be created. Defaults to
             '' (the current working directory).
         data_folder (Optional[str]): the data subfolder name or a complete path
             if the 'data_folder' is not off of 'root_folder'. Defaults to
@@ -56,7 +56,7 @@ class Library(SimpleOptions):
 
     """
     idea: 'Idea'
-    name: Optional[str] = 'library'
+    name: Optional[str] = 'filer'
     root_folder: Optional[str] = None
     data_folder: Optional[str] = None
     results_folder: Optional[str] = None
@@ -134,11 +134,11 @@ class Library(SimpleOptions):
         """Creates default folder and file settings."""
         self._check_root_folder()
         self._draft_options()
-        self.folderifier = Folderifier(library = self)
-        self.nameifier = Nameifier(library = self)
-        self.formatifier = Formatifier(library = self)
-        self.pathifier = Pathifier(library = self)
-        self.kwargifier = Kwargifier(library = self)
+        self.folderifier = Folderifier(filer = self)
+        self.nameifier = Nameifier(filer = self)
+        self.formatifier = Formatifier(filer = self)
+        self.pathifier = Pathifier(filer = self)
+        self.kwargifier = Kwargifier(filer = self)
         return self
 
     def publish(self) -> None:
@@ -149,20 +149,20 @@ class Library(SimpleOptions):
         self.folderifier.add_folders(
             subfolders = self.data_subfolders,
             root_folder = self.data)
-        self.importer = Importer(library = self)
-        self.exporter = Exporter(library = self)
+        self.importer = Importer(filer = self)
+        self.exporter = Exporter(filer = self)
         return self
 
     def apply(self, instance: object) -> None:
-        """Injects Library instance into passed 'instance'.
+        """Injects Filer instance into passed 'instance'.
 
-        The attribute name will be the same as Library's 'name' attribute.
+        The attribute name will be the same as Filer's 'name' attribute.
 
         Args:
-            instance (object): instance for Library instance to be injected.
+            instance (object): instance for Filer instance to be injected.
 
         Returns:
-            instance (object): instance with Library instance injected.
+            instance (object): instance with Filer instance injected.
 
         """
         setattr(instance, self.name, self)
@@ -174,7 +174,7 @@ class Folderifier(SimpleOptions):
     """Builds folders and, if necessary, writes them to disk.
 
     Args:
-        library ('Library'): Library instance.
+        filer ('Filer'): Filer instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -184,7 +184,7 @@ class Folderifier(SimpleOptions):
             __class__.__name__ to make such subclassing easier.
 
     """
-    library: 'Library'
+    filer: 'Filer'
     name: Optional[str] = 'folderifier'
 
     def __post_init__(self) -> None:
@@ -261,7 +261,7 @@ class Folderifier(SimpleOptions):
 
         Args:
             folder_tree (Dict[str, str]): a folder tree to be created with
-                corresponding attributes to the library instance.
+                corresponding attributes to the filer instance.
 
         """
         for folder, subfolders in folder_tree.items():
@@ -316,9 +316,9 @@ class Folderifier(SimpleOptions):
     def draft(self) -> None:
         """Sets core default folders"""
         self._options = SimpleOptions(options = {
-            'root': self.library.root_folder,
-            'data': self.library.data_folder,
-            'results': self.library.results_folder}
+            'root': self.filer.root_folder,
+            'data': self.filer.data_folder,
+            'results': self.filer.results_folder}
         return self
 
     def apply(self, folder):
@@ -332,7 +332,7 @@ class Nameifier(object):
     """Builds file_names from passed arguments or default options.
 
     Args:
-        library ('Library'): Library instance.
+        filer ('Filer'): Filer instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -342,7 +342,7 @@ class Nameifier(object):
             __class__.__name__ to make such subclassing easier.
 
     """
-    library: 'Library'
+    filer: 'Filer'
     name: Optional[str] = 'nameifier'
 
     def __post_init__(self) -> None:
@@ -354,7 +354,7 @@ class Formatifier(object):
     """Sets appropriate file_format and file extension.
 
     Args:
-        library ('Library'): Library instance.
+        filer ('Filer'): Filer instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -364,7 +364,7 @@ class Formatifier(object):
             __class__.__name__ to make such subclassing easier.
 
     """
-    library: 'Library'
+    filer: 'Filer'
     name: Optional[str] = 'formatifier'
 
     """ Core siMpLify Methods """
@@ -432,7 +432,7 @@ class Pathifier(object):
     """Builds completed file_paths.
 
     Args:
-        library ('Library'): Library instance.
+        filer ('Filer'): Filer instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -442,7 +442,7 @@ class Pathifier(object):
             __class__.__name__ to make such subclassing easier.
 
     """
-    library: 'Library'
+    filer: 'Filer'
     name: Optional[str] = 'formatifier'
 
     def __post_init__(self) -> None:
@@ -461,10 +461,10 @@ class Pathifier(object):
 
         """
         if not folder:
-            folder = self.library.data_folders[self.library.stage]
+            folder = self.filer.data_folders[self.filer.stage]
         else:
             try:
-                folder = getattr(self.library, folder)
+                folder = getattr(self.filer, folder)
             except AttributeError:
                 pass
         return folder
@@ -480,7 +480,7 @@ class Pathifier(object):
 
         """
         if not file_name:
-            file_name = self.library.data_file_names[self.library.stage]
+            file_name = self.filer.data_file_names[self.filer.stage]
         return file_name
 
     def _set_file_format(self, file_format: Optional[str] = None) -> str:
@@ -494,7 +494,7 @@ class Pathifier(object):
 
         """
         if not file_format:
-            file_format = self.library.data_file_formats[self.library.stage]
+            file_format = self.filer.data_file_formats[self.filer.stage]
         return file_format
 
     def _make_path(self,
@@ -513,7 +513,7 @@ class Pathifier(object):
 
         """
         return os.path.join(folder,'.'.join(
-            [file_name, self.library.extensions[file_format]]))
+            [file_name, self.filer.extensions[file_format]]))
 
     """ Core siMpLify Methods """
 
@@ -550,7 +550,7 @@ class Pathifier(object):
     """Builds completed file_paths.
 
     Args:
-        library ('Library'): Library instance.
+        filer ('Filer'): Filer instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -560,7 +560,7 @@ class Pathifier(object):
             __class__.__name__ to make such subclassing easier.
 
     """
-    library: 'Library'
+    filer: 'Filer'
     name: Optional[str] = 'formatifier'
 
     def __post_init__(self) -> None:
@@ -627,7 +627,7 @@ class Distributor(ABC):
             if not variable in passed_kwargs:
                 if variable in self.default_kwargs:
                     new_kwargs.update(
-                        {variable: self.library.default_kwargs[variable]})
+                        {variable: self.filer.default_kwargs[variable]})
                 elif hasattr(self, variable):
                     new_kwargs.update({variable: getattr(self, variable)})
         return new_kwargs
@@ -650,7 +650,7 @@ class Importer(Distributor):
     """Manages file importing for siMpLify.
 
     Args:
-        library ('Library): parent Library class instance.
+        filer ('Filer): parent Filer class instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -660,7 +660,7 @@ class Importer(Distributor):
             __class__.__name__ to make such subclassing easier.
 
     """
-    library: 'Library'
+    filer: 'Filer'
     name: Optional[str] = 'import'
     auto_publish: Optional[bool] = True
 
@@ -761,7 +761,7 @@ class Exporter(Distributor):
     """Manages file exporting for siMpLify.
 
     Args:
-        library ('Library): parent Library class instance.
+        filer ('Filer): parent Filer class instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -771,7 +771,7 @@ class Exporter(Distributor):
             __class__.__name__ to make such subclassing easier.
 
     """
-    library: 'Library'
+    filer: 'Filer'
     name: Optional[str] = 'export'
     auto_publish: Optional[bool] = True
 

@@ -15,10 +15,10 @@ import numpy as np
 import pandas as pd
 
 import simplify
-from simplify.core.author import Author
-from simplify.core.options import SimpleOptions
-from simplify.core.utilities import listify
-from simplify.core.worker import Worker
+from simplify.creator.author import SimpleCodex
+from simplify.creator.options import SimpleOptions
+from simplify.library.utilities import listify
+from simplify.creator.worker import Worker
 
 
 @dataclass
@@ -30,16 +30,16 @@ class Project(object):
             file path or file name (in the current working directory) where a
             file of a supoorted file type with settings for an Idea instance is
             located.
-        library (Optional[Union['Library', str]]): an instance of
-            library or a string containing the full path of where the root
-            folder should be located for file output. A library instance
+        filer (Optional[Union['Filer', str]]): an instance of
+            filer or a string containing the full path of where the root
+            folder should be located for file output. A filer instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Library instance, a
+            data folder, as defined in the shared Filer instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -61,7 +61,7 @@ class Project(object):
 
     """
     idea: Union['Idea', str]
-    library: Optional[Union['Library', str]] = None
+    filer: Optional[Union['Filer', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
         pd.DataFrame,
@@ -79,10 +79,10 @@ class Project(object):
         # Sets default 'name' attribute if none exists.
         if self.name is None:
             self.name = self.__class__.__name__.lower()
-        # Finalizes 'idea', 'library', and 'ingredients instances.
-        self.idea, self.library, self.ingredients = simplify.startup(
+        # Finalizes 'idea', 'filer', and 'ingredients instances.
+        self.idea, self.filer, self.ingredients = simplify.startup(
             idea = self.idea,
-            library = self.library,
+            filer = self.filer,
             ingredients = self.ingredients)
         # Automatically calls 'draft' method.
         self.draft()
@@ -127,10 +127,10 @@ class Project(object):
         return self
 
     def _set_author(self) -> None:
-        """Sets Author instance."""
-        self.author = Author(
+        """Sets SimpleCodex instance."""
+        self.author = SimpleCodex(
             idea = self.idea,
-            library = self.library,
+            filer = self.filer,
             ingredients = self.ingredients)
         return self
 
@@ -138,7 +138,7 @@ class Project(object):
         """Sets Worker instance."""
         self.worker = Worker(
             idea = self.author.idea,
-            library = self.author.library,
+            filer = self.author.filer,
             ingredients = self.author.ingredients)
         return self
 
@@ -151,7 +151,7 @@ class Project(object):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        """Creates initial attributes."""
+        """Sets initial attributes."""
         # Injects attributes from Idea instance, if values exist.
         self = self.idea.apply(instance = self)
         # Calls methods for setting 'options' and 'steps'.
@@ -219,7 +219,7 @@ class Project(object):
 
     #     """
     #     self._steps.append(
-    #         self.author.library.load(
+    #         self.author.filer.load(
     #             file_path = file_path,
     #             file_format = 'pickle'))
     #     return self

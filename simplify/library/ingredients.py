@@ -15,12 +15,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core.defaults import Defaults
-from simplify.core.typesetter import SimpleFile
-from simplify.core.typesetter import SimpleOptions
-from simplify.core.typesetter import SimpleState
-from simplify.core.utilities import deduplicate
-from simplify.core.utilities import listify
+from simplify.library.defaults import Defaults
+from simplify.creator.typesetter import SimpleFile
+from simplify.creator.typesetter import SimpleOptions
+from simplify.creator.typesetter import SimpleState
+from simplify.library.utilities import deduplicate
+from simplify.library.utilities import listify
 
 
 """ Ingredients Decorators """
@@ -159,7 +159,7 @@ class Ingredients(SimpleOptions):
 
     """
     idea: 'Idea'
-    library: 'Library'
+    filer: 'Filer'
     name: Optional[str] = 'ingredients'
     df: Optional[pd.DataFrame] = None
     default_df: Optional[str] = None
@@ -322,7 +322,7 @@ class Ingredients(SimpleOptions):
             taken.
         If a 'dataframe' is a file path, the file is loaded into a DataFrame and
             assigned to 'df'.
-        If a 'dataframe' is a file folder, a glob in 'library' is created.
+        If a 'dataframe' is a file folder, a glob in 'filer' is created.
         If a 'dataframe' is a numpy array, it is converted to a pandas
             DataFrame.
 
@@ -347,12 +347,12 @@ class Ingredients(SimpleOptions):
                         setattr(
                             self,
                             getattr(self, dataframe),
-                            self.library.load(
-                                folder = self.library.data,
+                            self.filer.load(
+                                folder = self.filer.data,
                                 file_name = getattr(self, dataframe)))
                     except FileNotFoundError:
                         try:
-                            self.library.make_glob(folder = dataframe)
+                            self.filer.make_glob(folder = dataframe)
                         except TypeError:
                             raise TypeError(' '.join(
                                 ['df must be a file path, file folder,',
@@ -799,7 +799,7 @@ class Ingredients(SimpleOptions):
         if self.dropped_columns:
             if self.verbose:
                 print('Exporting dropped feature list')
-            self.library.save(
+            self.filer.save(
                 variable = self.dropped_columns,
                 folder = folder,
                 file_name = file_name,

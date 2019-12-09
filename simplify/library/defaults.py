@@ -27,7 +27,7 @@ IDEA = {
     'infer_types': True,
     'override': False}
 
-LIBRARY = {
+FILER = {
     'root_folder': ['..', '..'],
     'results_folder': 'results',
     'data_folder': 'data',
@@ -161,7 +161,7 @@ class Defaults(object):
 
     def draft(self):
         """Sets default values for core siMpLify objects."""
-        for default in ('LIBRARY', 'IDEA', 'INGREDIENTS'):
+        for default in ('FILER', 'IDEA', 'INGREDIENTS'):
             self.add_defaults(
                 object_name = default.lower(),
                 defaults = globals()[default])

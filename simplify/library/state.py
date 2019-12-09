@@ -11,8 +11,8 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.options import SimpleOptions
-from simplify.core.utilities import listify
+from simplify.creator.options import SimpleOptions
+from simplify.library.utilities import listify
 
 
 @dataclass

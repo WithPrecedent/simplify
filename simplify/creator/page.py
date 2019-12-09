@@ -15,12 +15,12 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify.core.author import SimpleAuthor
-from simplify.core.utilities import listify
+from simplify.creator.author import SimpleSimpleCodex
+from simplify.library.utilities import listify
 
 
 @dataclass
-class Page(SimpleAuthor):
+class Page(SimpleSimpleCodex):
     """Stores, combines, and applies Algorithm and Parameters instances.
 
     Args:
@@ -34,7 +34,6 @@ class Page(SimpleAuthor):
             provided, __class__.__name__.lower() is used instead.
 
     """
-    idea: 'Idea'
     algorithm: 'Algorithm'
     parameters: 'Parameters'
     name: Optional[str] = None

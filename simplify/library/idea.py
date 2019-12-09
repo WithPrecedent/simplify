@@ -16,9 +16,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import pandas as pd
 
 from simplify import factory
-from simplify.core.defaults import Defaults
-from simplify.core.utilities import deduplicate
-from simplify.core.utilities import listify
+from simplify.library.defaults import Defaults
+from simplify.library.utilities import deduplicate
+from simplify.library.utilities import listify
 
 
 @dataclass

@@ -8,9 +8,9 @@
 
 from dataclasses import dataclass
 
-from simplify.core.utilities import local_backups
-from simplify.core.package import SimplePackage
-from simplify.core.typesetter import FarmerTechnique
+from simplify.library.utilities import local_backups
+from simplify.creator.package import SimplePackage
+from simplify.creator.typesetter import FarmerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
@@ -38,7 +38,7 @@ class Almanac(SimplePackage):
         idea(Idea or str): an instance of Idea or a string containing the file
             path or file name (in the current working directory) where a
             supoorted settings file for an Idea instance is located.
-        library(library): an instance of library.
+        filer(filer): an instance of filer.
         ingredients(Ingredients or str): an instance of Ingredients or a string
             with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced.
@@ -64,7 +64,7 @@ class Almanac(SimplePackage):
 
     """
     idea: object = None
-    library: object = None
+    filer: object = None
     ingredients: object = None
     steps: object = None
     plans: object = None
@@ -117,19 +117,19 @@ class Almanac(SimplePackage):
 
     def _implement_file(self, ingredients):
         with open(
-                self.library.path_in, mode = 'r', errors = 'ignore',
+                self.filer.path_in, mode = 'r', errors = 'ignore',
                 encoding = self.options.idea['files']['file_encoding']) as a_file:
             ingredients.source = a_file.implement()
             for step in self.steps:
                 data = step.implement(data = ingredients)
-            self.library.save(variable = ingredients.df)
+            self.filer.save(variable = ingredients.df)
         return ingredients
 
     def _implement_glob(self, ingredients):
-        self.library.initialize_writer(
-                file_path = self.library.path_out)
+        self.filer.initialize_writer(
+                file_path = self.filer.path_out)
         ingredients.make_series()
-        for file_num, a_path in enumerate(self.library.path_in):
+        for file_num, a_path in enumerate(self.filer.path_in):
             if (file_num + 1) % 100 == 0 and self.verbose:
                 print(file_num + 1, 'files parsed')
             with open(
@@ -140,7 +140,7 @@ class Almanac(SimplePackage):
                 ingredients.df[self.index_column] = file_num + 1
                 for step in self.steps:
                     data = step.implement(data = ingredients)
-                self.library.save(variable = ingredients.df)
+                self.filer.save(variable = ingredients.df)
         return ingredients
 
     def _set_columns(self, organizer):
@@ -184,6 +184,6 @@ class Almanac(SimplePackage):
                 ingredients.columns = self.columns
             self.conform(step = self.step)
             self.data = draft.implement(data = self.ingredients)
-            self.library.save(variable = self.ingredients,
+            self.filer.save(variable = self.ingredients,
                                 file_name = self.step + '_ingredients')
         return self

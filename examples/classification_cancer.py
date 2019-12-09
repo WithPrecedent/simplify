@@ -26,7 +26,7 @@ idea = os.path.join(os.getcwd(), 'examples', 'cancer_settings.ini')
 # settings in the 'idea_file'.
 cancer_project = Project(
     idea = idea,
-    library = root_folder,
+    filer = root_folder,
     ingredients = df)
 # Converts label to boolean type to correct numpy default above.
 cancer_project.ingredients.change_datatype(columns = 'target',

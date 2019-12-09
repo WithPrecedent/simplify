@@ -17,9 +17,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.core.defaults import Defaults
-from simplify.core.typesetter import SimpleOptions
-from simplify.core.utilities import listify
+from simplify.library.defaults import Defaults
+from simplify.creator.typesetter import SimpleOptions
+from simplify.library.utilities import listify
 
 
 @dataclass

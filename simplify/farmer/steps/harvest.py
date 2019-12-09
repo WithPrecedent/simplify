@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.typesetter import FarmerTechnique
+from simplify.creator.typesetter import FarmerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
@@ -21,8 +21,8 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'organize': ['simplify.core.retool', 'ReTool'],
-    'parse': ['simplify.core.retool', 'ReTool']}
+    'organize': ['simplify.creator.retool', 'ReTool'],
+    'parse': ['simplify.creator.retool', 'ReTool']}
 
 
 @dataclass
@@ -47,7 +47,7 @@ class Harvest(SimpleIterable):
         return self
 
     def _publish_organize(self, key):
-        file_path = os.path.join(self.library.instructions,
+        file_path = os.path.join(self.filer.instructions,
                                  'organizer_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}
@@ -56,7 +56,7 @@ class Harvest(SimpleIterable):
         return algorithm
 
     def _publish_parse(self, key):
-        file_path = os.path.join(self.library.instructions,
+        file_path = os.path.join(self.filer.instructions,
                                  'parser_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}

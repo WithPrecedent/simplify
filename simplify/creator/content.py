@@ -6,6 +6,7 @@
 :license: Apache-2.0
 """
 
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
@@ -14,12 +15,12 @@ import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
 
-from simplify.core.author import SimpleAuthor
-from simplify.core.utilities import listify
+from simplify.creator.author import SimpleSimpleCodex
+from simplify.library.utilities import listify
 
 
 @dataclass
-class Content(SimpleAuthor):
+class Content(SimpleSimpleCodex):
     """Base class for building components in a Page.
 
     Takes an Outline subclass instance and creates a component object.
@@ -83,7 +84,6 @@ class Content(SimpleAuthor):
         raise NotImplementedError(' '.join([
             self.__class__.__name__, 'cannot have child classes']))
 
-
 @dataclass
 class Algorithm(Content):
     """Base class for building an algorithm for a Page subclass instance.
@@ -126,7 +126,7 @@ class Algorithm(Content):
 
 
 @dataclass
-class Parameters(Content):
+class ParameterBuilder(Content):
     """Base class for building parameters for an algorithm.
 
     Args:
@@ -232,7 +232,7 @@ class Parameters(Content):
         The primary example of a runtime parameter throughout siMpLify is the
         addition of a random seed for a consistent, replicable state.
 
-        The runtime variables should be stored as attributes in the Author
+        The runtime variables should be stored as attributes in the SimpleCodex
         instance so that the values listed in outline.runtimes match those
         attributes to be added to parameters.
 
@@ -255,7 +255,7 @@ class Parameters(Content):
     def _build_conditional(self, outline: 'Outline') -> None:
         """Modifies 'parameters' based upon various conditions.
 
-        An Author class should have its own '_build_conditional' method for this
+        An SimpleCodex class should have its own '_build_conditional' method for this
         method to modify 'parameters'. That method should have a 'parameters'
         and 'name' (str) argument and return the modified 'parameters'.
 
@@ -272,21 +272,6 @@ class Parameters(Content):
                 pass
         return self
 
-    def _build_data_dependent(self,
-            outline: 'Outline',
-            ingredients: 'Ingredients') -> None:
-        """Adds data-derived parameters to parameters 'bunch'.
-
-        Args:
-            outline (Outline): settings for parameters to be built.
-
-        """
-        try:
-            for key, value in outline.data_dependents.items():
-                self.bunch.update({key, getattr(ingredients, value)})
-        except (KeyError, AttributeError):
-            pass
-        return self
 
     """ Core siMpLify Methods """
 
@@ -324,3 +309,103 @@ class Parameters(Content):
                 getattr(self, '_'.join(['_build', parameter_type]))(
                     outline = outline)
         return self
+
+
+@dataclass
+class Parameters(MutableMapping):
+    """Base class for parameters to be stored.
+
+    Args:
+        parameters (Optional[Dict[str, Any]]): dictionary of parameters to be
+            passed to a siMpLify or external object.
+        page (Optional['Page']): Page instance associated with these parameters.
+        data_dependent (Optional[Dict[str, str]]): a dictionary of data
+            dependent parameters. Keys are the name of the parameter and values
+            are the attribute name of the passed 'data' object given to the
+            'apply' method.
+
+    """
+    parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
+    page: Optional['Page'] = None
+    data_dependent: Optional[Dict[str, str]] = None
+
+    def __post_init__(self):
+        if self.page is not None:
+            self.name = '_'.join([self.page.name, 'parameters'])
+        else:
+            self.name = self.__class__.__name__.lower()
+        return self
+
+    """ Required ABC Methods """
+
+    def __delitem__(self, item: str) -> None:
+        """Deletes item in options.
+
+        Args:
+            item (str): name of key in options.
+
+        """
+        try:
+            del self.parameters[item]
+        except KeyError:
+            pass
+        return self
+
+    def __getitem__(self, item: str) -> Any:
+        """Returns item in options.
+
+        If there are no matches, the method searches for a matching wildcard.
+
+        Args:
+            item (str): name of key in options.
+
+        Raises:
+            KeyError: if 'item' is not found in options and does not match
+                a recognized wildcard.
+
+        """
+        try:
+            return self.parameters[item]
+        except KeyError:
+            raise KeyError(' '.join([item, 'is not in', self.name]))
+
+    def __setitem__(self, item: str, value: Any) -> None:
+        """Sets 'item' in options to 'value'.
+
+        Args:
+            item (str): name of key in options.
+            value (Any): value to be paired with 'item' in options.
+
+        """
+        self.parameters[item] = value
+        return self
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable of options."""
+        return iter(self.parameters)
+
+    def __len__(self) -> int:
+        """Returns length of options."""
+        return len(self.parameters)
+
+    """ Core siMpLify Methods """
+
+    def apply(self, data: Optional[object]) -> Dict[str, Any]:
+        """Completes parameter dictionary by adding data dependent parameters.
+
+        Args:
+            data (object): data object with attributes for data dependent
+                parameters to be added.
+
+        Returns:
+            parameters with any data dependent parameters added.
+
+        """
+        if self.data_dependents is not None:
+            for key, value in self.data_dependents.items():
+                try:
+                    self.parameters.update({key, getattr(data, value)})
+                except KeyError:
+                    print('no matching parameter found for', key, 'in',
+                        data.name)
+        return self.parameters

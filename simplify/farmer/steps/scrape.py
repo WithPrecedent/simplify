@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.typesetter import FarmerTechnique
+from simplify.creator.typesetter import FarmerTechnique
 
 
 @dataclass
@@ -37,5 +37,5 @@ class Scrape(FarmerTechnique):
 
 
     def publish(self, ingredients):
-        file_path = os.path.join(self.library.external, self.file_name)
+        file_path = os.path.join(self.filer.external, self.file_name)
         return self

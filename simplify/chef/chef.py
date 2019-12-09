@@ -13,17 +13,17 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core.author import Author
-from simplify.core.book import Book
-from simplify.core.chapter import Chapter
-from simplify.core.content import Content
-from simplify.core.outline import Outline
-from simplify.core.page import Page
-from simplify.core.utilities import listify
+from simplify.creator.author import SimpleCodex
+from simplify.creator.book import Book
+from simplify.creator.chapter import Chapter
+from simplify.creator.content import Content
+from simplify.creator.outline import Outline
+from simplify.creator.page import Page
+from simplify.library.utilities import listify
 
 
 @dataclass
-class Chef(Author):
+class Chef(SimpleCodex):
     """Constructs Page instances from Outline instances for use in a Chapter.
 
     This class is a director for a complex content which constructs finalized
@@ -37,16 +37,16 @@ class Chef(Author):
             file path or file name (in the current working directory) where a
             file of a supoorted file type with settings for an Idea instance is
             located.
-        library (Optional[Union['Library', str]]): an instance of
-            library or a string containing the full path of where the root
-            folder should be located for file output. A library instance
+        filer (Optional[Union['Filer', str]]): an instance of
+            filer or a string containing the full path of where the root
+            folder should be located for file output. A filer instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Library instance, a
+            data folder, as defined in the shared Filer instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -67,12 +67,12 @@ class Chef(Author):
             'ingredients' must also be passed. Defaults to True.
         file_format (Optional[str]): name of file format for object to be
             serialized. Defaults to 'pickle'.
-        export_folder (Optional[str]): attribute name of folder in 'library' for
+        export_folder (Optional[str]): attribute name of folder in 'filer' for
             serialization of subclasses to be saved. Defaults to 'book'.
 
     """
     idea: Union['Idea', str]
-    library: Optional[Union['Library', str]] = None
+    filer: Optional[Union['Filer', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
         pd.DataFrame,
@@ -121,16 +121,16 @@ class Cookbook(Book):
             file path or file name (in the current working directory) where a
             file of a supoorted file type with settings for an Idea instance is
             located.
-        library (Optional[Union['Library', str]]): an instance of
-            library or a string containing the full path of where the root
-            folder should be located for file output. A library instance
+        filer (Optional[Union['Filer', str]]): an instance of
+            filer or a string containing the full path of where the root
+            folder should be located for file output. A filer instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Library instance, a
+            data folder, as defined in the shared Filer instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -153,7 +153,7 @@ class Cookbook(Book):
 
     """
     idea: Union['Idea', str]
-    library: Optional[Union['Library', str]] = None
+    filer: Optional[Union['Filer', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
         pd.DataFrame,
@@ -187,16 +187,16 @@ class Cookbook(Book):
             ingredients: 'Ingredients') -> Tuple['Chapter', 'Ingredients']:
         """Extra actions to take for each recipe."""
         if self.export_results:
-            self.library.set_book_folder()
-            self.library.set_chapter_folder(
+            self.filer.set_book_folder()
+            self.filer.set_chapter_folder(
                 chapter = chapter,
                 name = 'recipe')
             if self.export_all_recipes:
                 self.save_recipes(recipes = chapter)
             if 'reduce' in self.steps and chapter.steps['reduce'] != 'none':
-                ingredients.save_dropped(folder = self.library.recipe)
+                ingredients.save_dropped(folder = self.filer.recipe)
             else:
-                ingredients.save_dropped(folder = self.library.book)
+                ingredients.save_dropped(folder = self.filer.book)
         return chapter, ingredients
 
     """ Public Tool Methods """
@@ -250,24 +250,24 @@ class Cookbook(Book):
                 best recipe).
             file_path (Optional[str]): path of where file should be saved. If
                 None, a default file_path will be created from the shared
-                Library instance.
+                Filer instance.
 
         """
         if recipes in ['all'] or isinstance(recipes, list):
             if recipes in ['all']:
                 recipes = self.recipes
             for recipe in recipes:
-                self.library.set_chapter_folder(chapter = recipe)
-                recipe.save(folder = self.library.recipe)
+                self.filer.set_chapter_folder(chapter = recipe)
+                recipe.save(folder = self.filer.recipe)
         # elif recipes in ['best'] and hasattr(self, 'critic'):
         #     self.critic.best_recipe.save(
         #         file_path = file_path,
-        #         folder = self.library.book,
+        #         folder = self.filer.book,
         #         file_name = 'best_recipe')
         elif not isinstance(recipes, str):
             recipes.save(
                 file_path = file_path,
-                folder = self.library.chapter)
+                folder = self.filer.chapter)
         return
 
     """ Core siMpLify Methods """
@@ -353,13 +353,8 @@ class Recipe(Chapter):
                     ((self.ingredients.y == 1).sum())) - 1
         return self
 
-
 @dataclass
-class Step(SKLearnPage):
-
-
-@dataclass
-class Essence(Outline):
+class Essence(PageOutline):
     """Contains settings for creating a Algorithm and Parameters.
 
     Users can use the idiom 'x in Outline' to check if a particular attribute
@@ -381,9 +376,9 @@ class Essence(Outline):
             Defaults to None.
 
     """
-    name: Optional[str] = 'outline'
-    module: Optional[str] = None
-    algorithm: Optional[str] = None
+    name: str
+    module: str
+    component: str
     default: Optional[Dict[str, Any]] = None
     required: Optional[Dict[str, Any]] = None
     runtime: Optional[Dict[str, str]] = None
@@ -391,5 +386,16 @@ class Essence(Outline):
     selected: Optional[Union[bool, List[str]]] = False
     conditional: Optional[bool] = False
     hyperparameter_search: Optional[bool] = False
-    critic_dependent: Optional[Dict[str, str]] = None
-    export_file: Optional[str] = None
+
+
+@dataclass
+class CookbookOutline(BookOutline):
+    name: str = 'cookbook'
+    module: str = 'current'
+    component: str = 'Cookbook'
+    steps: Optional[Union[List[str], str]] = None
+    chapter_type: Optional['Chapter'] = Recipe
+    chapter_iterable: Optional[str] = 'recipes'
+    metadata: Optional[Dict[str, Any]] = None
+    file_format: Optional[str] = 'pickle'
+    export_folder: Optional[str] = 'book'

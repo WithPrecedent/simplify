@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.typesetter import FarmerTechnique
+from simplify.creator.typesetter import FarmerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
@@ -20,7 +20,7 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'keyword': ['simplify.core.retool', 'ReTool'],
+    'keyword': ['simplify.creator.retool', 'ReTool'],
     'combine': ['simplify.farmer.steps.combine', 'Combine']}
 
 

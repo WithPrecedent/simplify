@@ -9,9 +9,9 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Outline
-from simplify.core.utilities import numpy_shield
+from simplify.creator.typesetter import SimpleDirector
+from simplify.creator.typesetter import Outline
+from simplify.library.utilities import numpy_shield
 
 
 @dataclass

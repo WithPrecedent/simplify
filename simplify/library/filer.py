@@ -11,8 +11,8 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.options import SimpleOptions
-from simplify.core.utilities import listify
+from simplify.creator.options import SimpleOptions
+from simplify.library.utilities import listify
 
 
 @dataclass
@@ -30,7 +30,7 @@ class SimpleFiler(ABC):
         """Loads object from file into the subclass attribute 'name'.
 
         For any arguments not passed, default values stored in the shared
-        Library instance will be used based upon the current 'stage' of the
+        Filer instance will be used based upon the current 'stage' of the
         siMpLify project.
 
         Args:
@@ -45,10 +45,10 @@ class SimpleFiler(ABC):
                 loaded without the file extension (not used if file_path is
                 passed). Defaults to None.
             file_format (Optional[str]): name of file format in
-                library.extensions. Defaults to None.
+                filer.extensions. Defaults to None.
 
         """
-        setattr(self, name, self.library.load(
+        setattr(self, name, self.filer.load(
             file_path = file_path,
             folder = folder,
             file_name = file_name,
@@ -56,7 +56,7 @@ class SimpleFiler(ABC):
         return self
 
     def save(self,
-            variable: Optional[Union['SimpleAuthor', str]] = None,
+            variable: Optional[Union['SimpleSimpleCodex', str]] = None,
             file_path: Optional[str] = None,
             folder: Optional[str] = None,
             file_name: Optional[str] = None,
@@ -66,11 +66,11 @@ class SimpleFiler(ABC):
         If 'variable' is not passed, 'self' will be used.
 
         For other arguments not passed, default values stored in the shared
-        library instance will be used based upon the current 'stage' of the
+        filer instance will be used based upon the current 'stage' of the
         siMpLify project.
 
         Args:
-            variable (Optional[Union['SimpleAuthor'], str]): a python object
+            variable (Optional[Union['SimpleSimpleCodex'], str]): a python object
                 or a string corresponding to a subclass attribute which should
                 be saved to disk. Defaults to None.
             file_path (Optional[str]): a complete file path for the file to be
@@ -81,7 +81,7 @@ class SimpleFiler(ABC):
                 without the file extension (not used if file_path is passed).
                 Defaults to None.
             file_format (Optional[str]): name of file format in
-                library.extensions. Defaults to None.
+                filer.extensions. Defaults to None.
 
         """
         # If variable is not passed, the subclass instance is saved.
@@ -94,7 +94,7 @@ class SimpleFiler(ABC):
                 variable = getattr(self, variable)
             except TypeError:
                 pass
-        self.library.save(
+        self.filer.save(
             variable = variable,
             file_path = file_path,
             folder = folder,

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.utilities import listify
+from simplify.library.utilities import listify
 
 
 @dataclass
@@ -39,7 +39,7 @@ class SimpleOptions(MutableMapping):
     options: Optional[Dict[str, Any]] = field(default_factory = dict())
     default_options: Optional[Union[List[str], str]] = field(
         default_factory = list())
-    _author: Optional[Union['Project', 'SimpleAuthor']] = None
+    _author: Optional[Union['Project', 'SimpleSimpleCodex']] = None
 
     def __post_init__(self):
         """Calls initialization methods and sets class instance defaults."""
@@ -257,11 +257,11 @@ class SimpleOptions(MutableMapping):
         return self
 
     @property
-    def author(self, author: 'SimpleAuthor') -> None:
+    def author(self) -> None:
         return self._author
 
     @author.setter
-    def author(self, author: 'SimpleAuthor') -> None:
+    def author(self, author: 'SimpleCodex') -> None:
         self._author = author
         return self
 

@@ -15,15 +15,15 @@ import numpy as np
 import pandas as pd
 
 import simplify
-from simplify.core.chapter import Chapter
-from simplify.core.filer import SimpleFile
-from simplify.core.options import SimpleOptions
-from simplify.core.state import SimpleState
-from simplify.core.utilities import listify
+from simplify.creator.chapter import Chapter
+from simplify.library.filer import SimpleFile
+from simplify.creator.options import SimpleOptions
+from simplify.library.state import SimpleState
+from simplify.library.utilities import listify
 
 
 @dataclass
-class Book(SimpleAuthor):
+class Book(SimpleSimpleCodex):
     """Builds and controls Chapters.
 
     This class contains methods useful to create iterators and iterate over
@@ -35,16 +35,16 @@ class Book(SimpleAuthor):
             file path or file name (in the current working directory) where a
             file of a supoorted file type with settings for an Idea instance is
             located.
-        library (Optional[Union['Library', str]]): an instance of
-            library or a string containing the full path of where the root
-            folder should be located for file output. A library instance
+        filer (Optional[Union['Filer', str]]): an instance of
+            filer or a string containing the full path of where the root
+            folder should be located for file output. A filer instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Library instance, a
+            data folder, as defined in the shared Filer instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -65,12 +65,12 @@ class Book(SimpleAuthor):
             'ingredients' must also be passed. Defaults to True.
         file_format (Optional[str]): name of file format for object to be
             serialized. Defaults to 'pickle'.
-        export_folder (Optional[str]): attribute name of folder in 'library' for
+        export_folder (Optional[str]): attribute name of folder in 'filer' for
             serialization of subclasses to be saved. Defaults to 'book'.
 
     """
     idea: Union['Idea', str]
-    library: Optional[Union['Library', str]] = None
+    filer: Optional[Union['Filer', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
         pd.DataFrame,
@@ -213,7 +213,7 @@ class Book(SimpleAuthor):
             chapters (Union[List['Chapter'], 'Chapter']): Chapter(s) to add.
 
         """
-        self._chapters[key].extend(listify(chapters))
+        self._chapters.extend(listify(chapters))
         return self
 
     def load_chapter(self, file_path: str) -> None:
@@ -224,7 +224,7 @@ class Book(SimpleAuthor):
 
         """
         self._chapters.append(
-            self.author.library.load(
+            self.author.filer.load(
                 file_path = file_path,
                 file_format = 'pickle'))
         return self

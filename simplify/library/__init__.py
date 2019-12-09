@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core import _get_supported_types
+from simplify.creator import _get_supported_types
 from simplify.data.ingredients import Ingredients
 
 
@@ -27,7 +27,7 @@ def make_ingredients(
         ingredients: Union['Ingredients', pd.DataFrame, pd.Series, np.ndarray,
                            str],
         idea: 'Idea',
-        library: 'Library') -> 'Ingredients':
+        filer: 'Filer') -> 'Ingredients':
     """Creates an Ingredients instance.
 
     If 'ingredients' is an Ingredients instance, it is returned unchanged.
@@ -35,7 +35,7 @@ def make_ingredients(
         with that data container as the 'df' attribute which is returned.
     If 'ingredients' is a file path, the file is loaded into a DataFrame and
         assigned to 'df' in an Ingredients instance which is returned.
-    If 'ingredients' is a file folder, a glob in the shared Library is
+    If 'ingredients' is a file folder, a glob in the shared Filer is
         created and an Ingredients instance is returned with 'df' as None.
     If 'ingredients' is a numpy array, it is converted to a pandas
         DataFrame at the 'df' attribute of an Ingredients instance and
@@ -47,7 +47,7 @@ def make_ingredients(
         ingredients (Union['Ingredients', pd.DataFrame, pd.Series, np.ndarray,
             str]): Ingredients instance or information needed to create one.
         idea ('Idea'): an Idea instance.
-        library ('Library'): a Library instance.
+        filer ('Filer'): a Filer instance.
 
     Returns:
         Ingredients instance, published.
@@ -62,33 +62,33 @@ def make_ingredients(
     elif isinstance(ingredients, (pd.Series, pd.DataFrame)):
         return Ingredients(
             idea = idea,
-            library = library,
+            filer = filer,
             df = ingredients)
     elif isinstance(ingredients, np.ndarray):
         return Ingredients(
             idea = idea,
-            library = library,
+            filer = filer,
             df =  pd.DataFrame(data = getattr(self, ingredients)))
     elif isinstance(ingredients, None):
         return Ingredients(
             idea = idea,
-            library = library)
+            filer = filer)
     elif isinstance(ingredients, str):
         try:
-            df = library.load(
-                folder = library.data,
+            df = filer.load(
+                folder = filer.data,
                 file_name = ingredients)
             return Ingredients(
                 idea = idea,
-                library = library,
+                filer = filer,
                 df = df)
         except FileNotFoundError:
             try:
-                library.make_batch(
+                filer.make_batch(
                     folder = getattr(self, ingredients))
                 return Ingredients(
                     idea = idea,
-                    library = library)
+                    filer = filer)
             except FileNotFoundError:
                 error = ' '.join(
                     ['ingredients must be a file path, file folder',
@@ -97,24 +97,24 @@ def make_ingredients(
                 raise TypeError(error)
 
 
-def make_library(library: Union[str, 'Library'], idea: 'Idea') -> 'Library':
-    """Creates an Library instance from passed arguments.
+def make_filer(filer: Union['Filer', str], idea: 'Idea') -> 'Filer':
+    """Creates an Filer instance from passed arguments.
 
     Args:
-        library: Union[str, 'Library']: Library instance or root folder for one.
+        filer: Union['Filer', str]: Filer instance or root folder for one.
         idea ('Idea'): an Idea instance.
 
     Returns:
-        Library instance, published.
+        Filer instance, published.
 
     Raises:
-        TypeError if library is not Library or str folder path.
+        TypeError if filer is not Filer or str folder path.
 
     """
-    if isinstance(library, Library):
-        return library
-    elif os.path.isdir(library):
-        return Library(idea = idea, root_folder = library)
+    if isinstance(filer, Filer):
+        return filer
+    elif os.path.isdir(filer):
+        return Filer(idea = idea, root_folder = filer)
     else:
-        error = 'library must be Library type or folder path'
+        error = 'filer must be Filer type or folder path'
         raise TypeError(error)

@@ -1,6 +1,6 @@
 """
-.. module:: siMpLify
-:synopsis: data science made simple
+.. module:: siMpLify main
+:synopsis: command-line data science made simple
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -9,7 +9,7 @@ import os
 import sys
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify import factory
+import simplify
 
 
 def _args_to_dict() -> Dict[str, str]:
@@ -37,32 +37,32 @@ def _args_to_dict() -> Dict[str, str]:
     return arguments
 
 def main(
-    idea: 'Idea',
-    library: 'Library',
-    ingredients: 'Ingredients') -> 'Project':
-    """Creates Project from idea, library, and ingredients
+        idea: 'Idea',
+        filer: 'Filer',
+        ingredients: 'Ingredients') -> 'Project':
+    """Creates Project from idea, filer, and ingredients
 
     Args:
         idea ('Idea'): an Idea instance.
-        library ('Library'): a Library instance.
+        filer ('Filer'): a Filer instance.
         ingredients ('Ingredients'): an Ingredients instance.
 
     Returns:
         Project based upon passed attributes.
 
     """
-    return factory.make_project(
+    return simplify.make_project(
         idea = idea,
-        library = library,
+        filer = filer,
         ingredients = ingredients)
 
 if __name__ == '__main__':
     # Gets command line arguments and converts them to dict.
     arguments = _args_to_dict()
-    # Creates Idea, Library, and Ingredients instances from passed arguments.
-    idea = factory.startup(
-        idea = arguments.get['idea'],
-        library = arguments.get('-library'),
+    # Creates Idea, Filer, and Ingredients instances from passed arguments.
+    idea, filer, ingredients = simplify.startup(
+        idea = arguments.get('-idea'),
+        filer = arguments.get('-filer'),
         ingredients = arguments.get('-ingredients'))
     # Calls 'main' function to return Project.
-    main(idea = idea, library = library, ingredients = ingredients)
+    main(idea = idea, filer = filer, ingredients = ingredients)
