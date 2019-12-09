@@ -15,12 +15,12 @@ import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
 
-from simplify.creator.author import SimpleSimpleCodex
+from simplify.creator.author import SimpleCodex
 from simplify.library.utilities import listify
 
 
 @dataclass
-class Content(SimpleSimpleCodex):
+class Content(SimpleCodex):
     """Base class for building components in a Page.
 
     Takes an Outline subclass instance and creates a component object.
@@ -283,8 +283,7 @@ class ParameterBuilder(Content):
             'required',
             # 'search',
             'runtime',
-            'conditional',
-            'data_dependent']
+            'conditional']
         return self
 
     def apply(self,

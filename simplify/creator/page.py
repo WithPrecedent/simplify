@@ -15,12 +15,12 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify.creator.author import SimpleSimpleCodex
+from simplify.creator.author import SimpleCodex
 from simplify.library.utilities import listify
 
 
 @dataclass
-class Page(SimpleSimpleCodex):
+class Page(SimpleCodex):
     """Stores, combines, and applies Algorithm and Parameters instances.
 
     Args:

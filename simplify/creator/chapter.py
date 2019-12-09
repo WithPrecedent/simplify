@@ -11,12 +11,12 @@ from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify import creator
-from simplify.creator.author import SimpleSimpleCodex
+from simplify.creator.author import SimpleCodex
 from simplify.library.utilities import listify
 
 
 @dataclass
-class Chapter(SimpleSimpleCodex):
+class Chapter(SimpleCodex):
     """Iterator for a siMpLify process.
 
     Args:

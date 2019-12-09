@@ -23,7 +23,7 @@ from simplify.library.utilities import listify
 
 
 @dataclass
-class Book(SimpleSimpleCodex):
+class Book(SimpleCodex):
     """Builds and controls Chapters.
 
     This class contains methods useful to create iterators and iterate over

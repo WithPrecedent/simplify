@@ -39,7 +39,7 @@ class SimpleOptions(MutableMapping):
     options: Optional[Dict[str, Any]] = field(default_factory = dict())
     default_options: Optional[Union[List[str], str]] = field(
         default_factory = list())
-    _author: Optional[Union['Project', 'SimpleSimpleCodex']] = None
+    _author: Optional[Union['Project', 'SimpleCodex']] = None
 
     def __post_init__(self):
         """Calls initialization methods and sets class instance defaults."""

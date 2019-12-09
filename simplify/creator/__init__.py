@@ -428,8 +428,113 @@ def make_chapter(
 def make_page(
         idea: 'Idea',
         outline: 'Outline',
-        name: Optional[str] = None) -> 'Page':
-    return Page(idea = idea, outline = outline, name = name)
+        name: Optional[str] = None,
+        sklearn_compatiable: Optional[bool] = True) -> 'Page':
+    algorithm = outline.load()
+    parameters = make_parameters(idea = idea, outline = outline)
+    return Page(algorithm = algorithm, parameters = parameters, name = name)
+
+def make_parameters(
+        idea: 'Idea', 
+        outline: 'Outline',
+        parameters: Optional[Dict[str, Any]] = None) -> 'Parameters':
+    
+    def make_selected(self, outline: 'Outline') -> None:
+        """Limits parameters to those appropriate to the outline.
+
+        If 'outline.selected' is True, the keys from 'outline.defaults' are
+        used to select the final returned parameters.
+
+        If 'outline.selected' is a list of parameter keys, then only those
+        parameters are selected for the final returned parameters.
+
+        Args:
+            outline (Outline): settings for parameters to be built.
+
+        """
+        if outline.selected:
+            if isinstance(outline.selected, list):
+                parameters_to_use = outline.selected
+            else:
+                parameters_to_use = list(outline.default.keys())
+            new_parameters = {}
+            for key, value in self.bunch.items():
+                if key in parameters_to_use:
+                    new_parameters.update({key: value})
+            self.bunch = new_parameters
+        return self
+
+    def make_required(self, outline: 'Outline') -> None:
+        """Adds required parameters (mandatory additions) to 'parameters'.
+
+        Args:
+            outline (Outline): settings for parameters to be built.
+
+        """
+        try:
+            self.bunch.update(outline.required)
+        except TypeError:
+            pass
+        return self
+
+    def make_search(self, outline: 'Outline') -> None:
+        """Separates variables with multiple options to search parameters.
+
+        Args:
+            outline (Outline): settings for parameters to be built.
+
+        """
+        self.space = {}
+        if outline.hyperparameter_search:
+            new_parameters = {}
+            for parameter, values in self.bunch.items():
+                if isinstance(values, list):
+                    if any(isinstance(i, float) for i in values):
+                        self.space.update(
+                            {parameter: uniform(values[0], values[1])})
+                    elif any(isinstance(i, int) for i in values):
+                        self.space.update(
+                            {parameter: randint(values[0], values[1])})
+                else:
+                    new_parameters.update({parameter: values})
+            self.bunch = new_parameters
+        return self
+
+    def make_runtime(self, outline: 'Outline') -> None:
+        """Adds parameters that are determined at runtime.
+
+        The primary example of a runtime parameter throughout siMpLify is the
+        addition of a random seed for a consistent, replicable state.
+
+        The runtime variables should be stored as attributes in the SimpleCodex
+        instance so that the values listed in outline.runtimes match those
+        attributes to be added to parameters.
+
+        Args:
+            outline (Outline): settings for parameters to be built.
+
+        """
+        try:
+            for key, value in outline.runtime.items():
+                try:
+                    self.bunch.update({key: getattr(self.author, value)})
+                except AttributeError:
+                    error = ' '.join('no matching runtime parameter',
+                                     key, 'found in', self.author.name)
+                    raise AttributeError(error)
+        except (AttributeError, TypeError):
+            pass
+        return self
+
+    if parameters is None:
+        try:
+            parameters = idea[outline.name]
+        except KeyError:
+            parameters = {}
+    parameters = make_selected(parameters = parameters, outline = outline)
+    parameters = make_required(parameters = parameters, outline = outline)
+    parameters = make_runtime(parameters = parameters, outline = outline)
+    return parameters
 
 def make_outline(
         name: str,

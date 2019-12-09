@@ -179,15 +179,15 @@ class SimpleCodex(ABC):
         return self
 
     @property
-    def parent(self) -> 'SimpleSimpleCodex':
+    def parent(self) -> 'SimpleCodex':
         """Returns '_parent' attribute."""
         return self._parent
 
     @parent.setter
-    def parent(self, parent: 'SimpleSimpleCodex') -> None:
+    def parent(self, parent: 'SimpleCodex') -> None:
         """Sets '_parent' attribute to 'parent' argument.
         Args:
-            parent (SimpleSimpleCodex): SimpleSimpleCodex class up one level in
+            parent (SimpleCodex): SimpleCodex class up one level in
                 the composite tree.
         """
         self._parent = parent
@@ -200,10 +200,10 @@ class SimpleCodex(ABC):
         return self
 
     @property
-    def children(self) -> Dict[str, Union['Outline', 'SimpleSimpleCodex']]:
+    def children(self) -> Dict[str, Union['Outline', 'SimpleCodex']]:
         """Returns '_children' attribute.
         Returns:
-            Dict of str access keys and Outline or SimpleSimpleCodex values.
+            Dict of str access keys and Outline or SimpleCodex values.
         """
         return self._children
 
@@ -213,7 +213,7 @@ class SimpleCodex(ABC):
         If 'override' is False, 'children' are added to '_children'.
         Args:
             children (Dict[str, 'Outline']): dictionary with str for reference
-                keys and values of 'SimpleSimpleCodex'.
+                keys and values of 'SimpleCodex'.
         """
         self._children = children
         return self

@@ -122,6 +122,6 @@ class PageOutline(Outline):
     default: Optional[Dict[str, Any]] = None
     required: Optional[Dict[str, Any]] = None
     runtime: Optional[Dict[str, str]] = None
-    data_dependent: Optional[Dict[str, str]] = None
     selected: Optional[Union[bool, List[str]]] = False
     conditional: Optional[bool] = False
+    data_dependent: Optional[Dict[str, str]] = None
