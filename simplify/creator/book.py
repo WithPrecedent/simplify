@@ -16,9 +16,7 @@ import pandas as pd
 
 import simplify.creator
 from simplify.creator.chapter import Chapter
-from simplify.library.filer import SimpleFile
 from simplify.creator.options import Options
-from simplify.library.state import SimpleState
 from simplify.library.utilities import listify
 
 
@@ -31,15 +29,6 @@ class Book(SimpleCodex):
     iterators and process data with those iterators.
 
     Args:
-        idea (Union[Idea, str]): an instance of Idea or a string containing the
-            file path or file name (in the current working directory) where a
-            file of a supoorted file type with settings for an Idea instance is
-            located.
-        filer (Optional[Union['Filer', str]]): an instance of
-            filer or a string containing the full path of where the root
-            folder should be located for file output. A filer instance
-            contains all file path and import/export methods for use throughout
-            the siMpLify package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
@@ -48,10 +37,6 @@ class Book(SimpleCodex):
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
-        techniques (Optional[Union[List[str], str]]): ordered names of Book
-            subclasses to include. These names should match keys in the
-            'options' attribute. If using the Idea instance settings, this
-            argument should not be passed. Default is None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -60,6 +45,11 @@ class Book(SimpleCodex):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
+        techniques (Optional[List[str], str]): ordered list of techniques to
+            use. Each technique should match a key in 'options'. Defaults to
+            None.
+        options (Optional[Union['Options', Dict[str, Any]]]): allows
+            setting of 'options' property with an argument. Defaults to None.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. For auto_publish to have an effect,
             'ingredients' must also be passed. Defaults to True.
@@ -69,16 +59,15 @@ class Book(SimpleCodex):
             serialization of subclasses to be saved. Defaults to 'book'.
 
     """
-    idea: Union['Idea', str]
-    filer: Optional[Union['Filer', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
         pd.DataFrame,
         pd.Series,
         np.ndarray,
         str]] = None
-    techniques: Optional[Union[List[str], str]] = None
     name: Optional[str] = 'simplify'
+    techniques: Optional[Union[List[str], str]] = None
+    options: (Optional[Union['Options', Dict[str, Any]]]) = None
     auto_publish: Optional[bool] = True
     file_format: Optional[str] = 'pickle'
     export_folder: Optional[str] = 'book'

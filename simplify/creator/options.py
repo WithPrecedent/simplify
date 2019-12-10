@@ -188,7 +188,8 @@ class Options(MutableMapping):
         return self
 
     def publish(self,
-            techniques: Optional[Union, str, List[str]],
+            steps: Optional[Union, str, List[str]],
+            techniques: Optional[Union, str, List[str]] = None,
             data: Optional[object] = None) -> None:
         """"Loads and instances options.
 
@@ -203,12 +204,15 @@ class Options(MutableMapping):
         # Sets state for access methods.
         self.state = 'published'
         # Instances and publishes all selected options.
-        for key in techniques:
+        for i, step in enumerate(steps):
             # Lazily loads all stored options from stored Outline instances.
             option = self.drafted[key].load()
-            instance = option()
+            if techniques:
+                instance = option(technique = techniques[i])
+            else:
+                instance = option()
             instance.publish(data = data)
-            self.published[key] = instance
+            self.published[step] = instance
         return self
 
     def apply(self,

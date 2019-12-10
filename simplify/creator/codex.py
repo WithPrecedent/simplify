@@ -7,6 +7,7 @@
 """
 
 from dataclasses import dataclass
+from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.creator.options import Options
@@ -23,15 +24,21 @@ class SimpleCodex(ABC):
     siMpLify.
 
     Args:
+        steps (Optional[List[str], str]): ordered list of steps to use. Each 
+            step should match a key in 'options'. Defaults to empty list.
         techniques (Optional[List[str], str]): ordered list of techniques to
-            use. Each technique should match a key in 'options'. Defaults to
-            None.
+            use. Each technique should correspond to a step in 'steps'. As a
+            result, 'steps' and 'techniques' should be of equal length, unless
+            'techniques' is left empty. If 'techniques' is left as an empty 
+            list, the default, no 'technique' parameter will be passed to the
+            options matching 'steps'.
         options (Optional[Union['Options', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. Defaults to True.
     """
-    techniques: Optional[List[str], str] = None
+    steps: Optional[List[str], str] = field(default_factory = list)
+    techniques: Optional[List[str], str] = field(default_factory = list)
     options: (Optional[Union['Options', Dict[str, Any]]]) = None
     auto_publish: optional[bool] = True
 
@@ -77,20 +84,23 @@ class SimpleCodex(ABC):
         'none' is created for 'techniques'.
 
         """
-        self.compare = False
-        if self.techniques is None:
+        
+        if not self.steps:
             try:
-                self.techniques = getattr(
-                    self.idea, '_'.join([self.name, 'steps']))
+                self.steps = self.options.idea['_'.join([self.name, 'steps'])]
             except AttributeError:
-                try:
-                    self.compare = True
-                    self.techniques = getattr(
-                        self.idea, '_'.join([self.name, 'techniques']))
-                except AttributeError:
-                    self.techniques = ['none']
-        else:
-            self.techniques = listify(self.techniques)
+                pass
+        if not self.techniques:
+            try:
+                self.techniques = self.options.idea[
+                    '_'.join([self.name, 'techniques'])]
+            except AttributeError:
+                pass
+        self._technique_parameter = False
+        self.steps = listify(self.steps, use_null = True) or []
+        self.techniques = listify(self.techniques, use_null = True) or []
+        if len(self.steps) == len(self.techniques) and len(self.steps) > 0:
+            self._technique_parameter = True
         return self
 
     """ Core siMpLify Methods """
@@ -120,8 +130,12 @@ class SimpleCodex(ABC):
 
         """
         if data is None:
-            data = self.ingredients
+            try:
+                data = self.ingredients
+            except AttributeError:
+                pass
         self.options.publish(
+            steps = self.steps,
             techniques = self.techniques,
             data = data)
         return self
@@ -135,6 +149,11 @@ class SimpleCodex(ABC):
             data (object): data object for methods to be applied.
 
         """
+        if data is None:
+            try:
+                data = self.ingredients
+            except AttributeError:
+                pass
         for technique in self.techniques:
             data = self.options[technique].options.apply(
                 key = technique,

@@ -84,6 +84,9 @@ class Project(SimpleCodex):
             idea = self.idea,
             filer = self.filer,
             ingredients = self.ingredients)
+        # Injects Options class with 'filer' and 'idea'.
+        Options.idea = self.idea
+        Options.filer = self.filer
         # Sets proxy property names.
         self.proxies = {'children': 'books'}
         super()._post_init__()

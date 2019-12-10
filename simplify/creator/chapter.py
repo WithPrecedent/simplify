@@ -20,12 +20,6 @@ class Chapter(SimpleCodex):
     """Iterator for a siMpLify process.
 
     Args:
-        techniques (Dict[str, str]): information needed to create Page classes.
-            Keys are step names and values are Algorithm keys.
-        metadata (Optional[Dict[str, Any]], optional): any metadata about
-            the chapter. In projects, 'number' is automatically a key
-            created for 'metadata' to allow for better recordkeeping.
-            Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -34,15 +28,30 @@ class Chapter(SimpleCodex):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
+        techniques (Optional[List[str], str]): ordered list of techniques to
+            use. Each technique should match a key in 'options'. Defaults to
+            None.
+        options (Optional[Union['Options', Dict[str, Any]]]): allows
+            setting of 'options' property with an argument. Defaults to None.
+        metadata (Optional[Dict[str, Any]], optional): any metadata about
+            the Chapter. In projects, 'number' is automatically a key
+            created for 'metadata' to allow for better recordkeeping.
+            Defaults to None.
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            a subclass is instanced. Defaults to True.
         file_format (Optional[str]): name of file format for object to be
             serialized. Defaults to 'pickle'.
+        export_folder (Optional[str]): attribute name of folder in 'filer' for
+            serialization of subclasses to be saved. Defaults to 'chapter'.
 
     """
-    techniques: Dict[str, str]
-    metadata: Optional[Dict[str, Any]] = None
     name: Optional[str] = 'chapter'
-    file_format: str = 'pickle'
-    export_folder: str = 'chapter'
+    techniques: Optional[Union[List[str], str]] = None
+    options: (Optional[Union['Options', Dict[str, Any]]]) = None
+    metadata: Optional[Dict[str, Any]] = None
+    auto_publish: Optional[bool] = True
+    file_format: Optional[str] = 'pickle'
+    export_folder: Optional[str] = 'book'
 
     def __post_init__(self) -> None:
         self.proxies = {'parent': 'book', 'children': 'pages', 'child': 'page'}
@@ -50,58 +59,50 @@ class Chapter(SimpleCodex):
         return self
 
     """ Private Methods """
-
-    def _get_page(self,
-            key: str,
-            technique: str,
-            ingredients: 'Ingredients') -> 'Page':
-        return self.book.authors[key].publish(
-            page = technique,
-            data = ingredients)
-
+    
+    def _draft_techniques(self):
+        if not self.techniques:
+            self.techniques = {}
+        return self
+    
     """ Core siMpLify Methods """
-
-    def draft(self) -> None:
-        return self
-
+        
     def publish(self, data: Optional[object] = None) -> None:
-        """Finalizes 'pages'.
+        """Required method which applies methods to passed data.
+
+        Subclasses should provide their own 'publish' method.
 
         Args:
-            data (Optional['Ingredients']): an Ingredients instance.
-                'ingredients' needs to be passed if there are any
-                'data_dependent' parameters for the included Page instances
-                in 'pages'. Otherwise, it need not be passed. Defaults to None.
+            data (Optional[object]): an optional object needed for the method.
 
         """
-        new_pages = {}
-        for key, technique in self.pages.items():
-            page = self._get_page(
-                key = key,
-                technique = technique,
-                data = ingredients)
-            page.chapter = self
-            page.publish(data = ingredients)
-            new_pages[key] = page
-        self.pages = new_pages
-        return self
-
-    def apply(self, data: object = None, **kwargs) -> None:
-        """Applies 'pages' to 'data'.
-
-        Args:
-            data (Optional['Ingredients']): an Ingredients instance for 'pages'
-                to be applied.
-            **kwargs: any paramters to pass to Page 'apply' methods.
-
-        """
-        setattr(self, data.name, data)
-        for key, page in self.pages.items():
+        if data is None:
             try:
-                self.book.filer.stage = key
-            except KeyError:
+                data = self.ingredients
+            except AttributeError:
                 pass
-            setattr(self, data.name, page.apply(
-                data = getattr(self, data.name),
-                **kwargs))
+        self.options.publish(
+            techniques = self.techniques,
+            data = data)
         return self
+
+    def apply(self, data: Optional[object], **kwargs) -> None:
+        """Applies created objects to passed 'data'.
+
+        Subclasses should provide their own 'apply' method, if needed.
+
+        Args:
+            data (object): data object for methods to be applied.
+
+        """
+        if data is None:
+            try:
+                data = self.ingredients
+            except AttributeError:
+                pass
+        for technique in self.techniques:
+            data = self.options[technique].options.apply(
+                key = technique,
+                data = data,
+                **kwargs)
+        return data
