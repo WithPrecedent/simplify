@@ -15,21 +15,18 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify import startup
-from simplify import get_supported_types
 from simplify.creator.book import Book
 from simplify.creator.chapter import Chapter
 from simplify.creator.content import Content
-from simplify.creator.options import Options
+from simplify.creator.options import CodexOptions
 from simplify.creator.page import Page
 from simplify.creator.project import Project
-
+from simplify.library.filer import Filer
+from simplify.library.idea import Idea
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
-
-__all__ = _get_supported_types()
 
 
 """
@@ -68,19 +65,19 @@ https://www.bnmetrics.com/blog/builder-pattern-in-python3-simple-version
 """ Private Functions """
 
 def _check_options(
-        options: Union['Options',
-                       Dict[str, 'Outline']]) -> 'Options':
-    """Checks if 'options' is a dict and prepares Options instance.
+        options: Union['CodexOptions',
+                       Dict[str, 'Outline']]) -> 'CodexOptions':
+    """Checks if 'options' is a dict and prepares CodexOptions instance.
 
     Args:
-        options (Union['Options', Dict[str, Any]]):
+        options (Union['CodexOptions', Dict[str, Any]]):
 
     Returns:
-        completed Options instance.
+        completed CodexOptions instance.
 
     """
     if options is None:
-        return Options(options = {})
+        return CodexOptions(options = {})
     elif isinstance(options, Dict):
         return make_options(options = options)
     else:
@@ -166,7 +163,7 @@ def make_project(
             pd.Series,
             np.ndarray,
             str]] = None,
-        options: Optional['Options', Dict[str, 'Outline']] = None,
+        options: Optional[Union['CodexOptions', Dict[str, 'Outline']]] = None,
         steps: Optional[Union[List[str], str]] = None,
         name: Optional[str] = None,
         auto_publish: Optional[bool] = True) -> 'Book':
@@ -193,9 +190,9 @@ def make_project(
             subclasses to include. These names should match keys in the
             'options' attribute. If using the Idea instance settings, this
             argument should not be passed. Default is None.
-        options (Optional['Options', Dict[str, 'Outline']]): either
-            a Options instance or a dictionary compatible with a
-            Options instance. Defaults to None.
+        options (Optional['CodexOptions', Dict[str, 'Outline']]): either
+            a CodexOptions instance or a dictionary compatible with a
+            CodexOptions instance. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -310,17 +307,17 @@ def make_idea(idea: Union[Dict[str, Dict[str, Any]],  'Idea']) -> 'Idea':
         error = 'idea must be Idea, str, or nested dict type'
         raise TypeError(error)
 
-def make_options(options: Dict[str, 'Outline']) -> 'Options':
-    """Creates a Options instance.
+def make_options(options: Dict[str, 'Outline']) -> 'CodexOptions':
+    """Creates a CodexOptions instance.
 
     Args:
-        options: Dict[str, 'Outline']: dict compatiable with Options.
+        options: Dict[str, 'Outline']: dict compatiable with CodexOptions.
 
     Returns:
-        Options instance with 'options' dict.
+        CodexOptions instance with 'options' dict.
 
     """
-    return Options(options = options)
+    return CodexOptions(options = options)
 
 def make_book(
         idea: Union[Dict[str, Dict[str, Any]], 'Idea'],
@@ -331,7 +328,7 @@ def make_book(
             pd.Series,
             np.ndarray,
             str]] = None,
-        options: Optional['Options', Dict[str, 'Outline']] = None,
+        options: Optional[Union['CodexOptions', Dict[str, 'Outline']]] = None,
         steps: Optional[Union[List[str], str]] = None,
         name: Optional[str] = None,
         auto_publish: Optional[bool] = True) -> 'Book':
@@ -359,9 +356,9 @@ def make_book(
             subclasses to include. These names should match keys in the
             'options' attribute. If using the Idea instance settings, this
             argument should not be passed. Default is None.
-        options (Optional['Options', Dict[str, 'Outline']]): either
-            a Options instance or a dictionary compatible with a
-            Options instance. Defaults to None.
+        options (Optional['CodexOptions', Dict[str, 'Outline']]): either
+            a CodexOptions instance or a dictionary compatible with a
+            CodexOptions instance. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -392,19 +389,18 @@ def make_book(
         options = options)
 
 def make_chapter(
-        steps: Dict[str, str],
-        metadata: Dict[str, Any],
         name: Optional[str] = None,
-        options: Optional['Options',
-                           Dict[str, 'Outline']] = None) -> 'Chapter':
+        steps: Dict[str, str] = None,
+        options: Optional[Union['CodexOptions', Dict[str, 'Outline']]] = None,
+        metadata: Dict[str, Any] = None) -> 'Chapter':
     """Creates a Chapter instance.
 
     Args:
         steps (Dict[str, str]): ordered names of steps as keys and particular
             techniques as methods.
-        options (Optional['Options', Dict[str, 'Outline']]): either
-            a Options instance or a dictionary compatible with a
-            Options instance. Defaults to None.
+        options (Optional['CodexOptions', Dict[str, 'Outline']]): either
+            a CodexOptions instance or a dictionary compatible with a
+            CodexOptions instance. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -552,7 +548,7 @@ def make_outline(
         setattr(outline, key, value)
     return outline
 
-def get_supported_types() -> List[dtr]:
+def get_supported_types() -> List[str]:
     """Removes 'make_' from object names in locals() to create a list of
     supported class types.
 

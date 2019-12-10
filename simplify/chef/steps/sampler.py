@@ -36,7 +36,7 @@ class Sampler(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = Options(options = {
+        self._options = CodexOptions(options = {
             'adasyn': Outline(
                 name = 'adasyn',
                 module = 'imblearn.over_sampling',

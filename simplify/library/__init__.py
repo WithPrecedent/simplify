@@ -19,8 +19,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.creator import _get_supported_types
-from simplify.data.ingredients import Ingredients
+# from simplify.creator import get_supported_types
+from simplify.library.ingredients import Ingredients
 
 
 def make_ingredients(

@@ -34,12 +34,11 @@ class Content(SimpleCodex):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
-        _parent (Optional['Page']): optional way to set 'parent' property.
+        parent (Optional['Page']): optional way to set 'parent' property.
 
     """
-    idea: 'Idea'
     name: Optional[str] = None
-    _parent: Optional['Page'] = None
+    parent: Optional['Page'] = None
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
@@ -63,7 +62,7 @@ class Content(SimpleCodex):
         """Subclasses should provide their own methods, if needed."""
         return self
 
-    def apply(self, outline: 'Outline' **kwargs) -> object:
+    def apply(self, outline: 'Outline', **kwargs) -> object:
         """Builds and returns an object.
 
         Args:
@@ -100,7 +99,6 @@ class Algorithm(Content):
         _parent (Optional['Page']): optional way to set 'parent' property.
 
     """
-    idea: 'Idea'
     name: Optional[str] = None
     _parent: Optional['Page'] = None
 
@@ -141,7 +139,6 @@ class ParameterBuilder(Content):
         _parent (Optional['Page']): optional way to set 'parent' property.
 
     """
-    idea: 'Idea'
     name: Optional[str] = None
     _parent: Optional['Page'] = None
 

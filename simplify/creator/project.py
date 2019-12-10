@@ -14,12 +14,11 @@ import warnings
 import numpy as np
 import pandas as pd
 
-import simplify.creator
+from simplify import creator
 from simplify.creator.codex import SimpleCodex
-from simplify.creator.options import Options
+from simplify.creator.options import CodexOptions
 from simplify.creator.outline import Outline
 from simplify.library.utilities import listify
-from simplify.creator.worker import Worker
 
 
 @dataclass
@@ -55,14 +54,14 @@ class Project(SimpleCodex):
         steps (Optional[List[str], str]): ordered list of steps to
             use. Each step should match a key in 'options'. Defaults to
             None.
-        options (Optional[Union['Options', Dict[str, Any]]]): allows setting of
+        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows setting of
             'options' property with an argument. Defaults to None.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. For auto_publish to have an effect,
             'ingredients' must also be passed. Defaults to True.
 
     """
-    idea: Union['Idea', str]
+    idea: Union['Idea', str] = None
     filer: Optional[Union['Filer', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
@@ -72,7 +71,7 @@ class Project(SimpleCodex):
         str]] = None
     name: Optional[str] = 'simplify'
     steps: Optional[Union[List[str], str]] = None
-    options: (Optional[Union['Options', Dict[str, Any]]]) = None
+    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
     auto_publish: Optional[bool] = True
 
     def __post_init__(self) -> None:
@@ -80,13 +79,13 @@ class Project(SimpleCodex):
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
         # Finalizes 'idea', 'filer', and 'ingredients instances.
-        self.idea, self.filer, self.ingredients = simplify.startup(
+        self.idea, self.filer, self.ingredients = creator.startup(
             idea = self.idea,
             filer = self.filer,
             ingredients = self.ingredients)
-        # Injects Options class with 'filer' and 'idea'.
-        Options.idea = self.idea
-        Options.filer = self.filer
+        # Injects CodexOptions class with 'filer' and 'idea'.
+        CodexOptions.idea = self.idea
+        CodexOptions.filer = self.filer
         # Sets proxy property names.
         self.proxies = {'children': 'books'}
         super()._post_init__()
@@ -96,7 +95,7 @@ class Project(SimpleCodex):
 
     def _draft_options(self) -> None:
         """Sets step options with information for module importation."""
-        self.options = Options(
+        self.options = CodexOptions(
             options = {
                 'farmer': Outline(
                     name = 'farmer',

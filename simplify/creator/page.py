@@ -17,6 +17,8 @@ import pandas as pd
 
 from simplify.creator.codex import SimpleCodex
 from simplify.library.utilities import listify
+from simplify.library.utilities import numpy_shield
+from simplify.library.utilities import XxYy
 
 
 @dataclass
@@ -34,8 +36,8 @@ class Page(SimpleCodex):
             provided, __class__.__name__.lower() is used instead.
 
     """
-    algorithm: 'Algorithm'
-    parameters: 'Parameters'
+    algorithm: 'Algorithm' = None
+    parameters: 'Parameters' = None
     name: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -85,8 +87,8 @@ class Page(SimpleCodex):
         return self
 
     def publish(self,
-            content: Optional[Union['Content'],
-                               List['Content']] = None,
+            content: Optional[Union['Content',
+                               List['Content']]] = None,
             replace_content: Optional[bool] = False) -> None:
         """Validates content.
 
@@ -334,13 +336,3 @@ class SKLearnPage(Page):
         else:
             error = ' '.join([self.name, 'algorithm has no transform method'])
             raise AttributeError(error)
-
-@dataclass
-def PageFiler(SimpleFiler):
-    """
-    Args:
-        file_format (Optional[str]): name of file format for object to be
-            serialized. Defaults to 'pickle'.
-    """
-    file_format: str = 'pickle'
-    export_folder: str = 'chapter'

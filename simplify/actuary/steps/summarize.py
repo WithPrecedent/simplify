@@ -41,7 +41,7 @@ class Summarize(SimpleDirector):
     def draft(self) -> None:
         """Sets options for Summarize class."""
         super().draft()
-        self._options = Options(options = {
+        self._options = CodexOptions(options = {
             'count': Outline(
                 name = 'count',
                 module = 'numpy.ndarray',

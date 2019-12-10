@@ -1,6 +1,6 @@
 """
 .. module:: options
-:synopsis: base class for containing different options
+:synopsis: base class for storing different options
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -12,16 +12,17 @@ from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.library.utilities import listify
+from simplify.library.utilities import proxify
 
 
 @dataclass
 class Options(MutableMapping):
     """Base class for different options to be stored.
 
-    The Options class should be injected with the shared Idea instance
-    before it or any subclass is instanced. This is done automatically through
-    the normal siMpLify access points. But if creating a completely customized
-    workflow, this step must be taken for siMpLify to work properly.
+    The CodexOptions class should be injected with the shared Idea instance before it 
+    or any subclass is instanced. This is done automatically through the normal 
+    siMpLify Project access point. But if you are creating a completely 
+    customized workflow, this step must be taken for siMpLify to work properly.
 
     Args:
         options (Optional[Dict[str, Any]]): alternative strategies stored
@@ -31,33 +32,28 @@ class Options(MutableMapping):
 
             If subclassing, 'drafted' should be declared in the 'draft' method.
             Defaults to an empty dict.
-        default_options (Optional[Union[List[str], str]]): key(s) to use if
-            'default' is selected. Defaults to an empty list. If not specified,
-            and 'default' options are sought, all options will be returned.
-
+        default_options (Optional[Union[List[str], str]]): key(s) to use if the
+            'default' property is selected. Defaults to an empty list. If not 
+            specified, and 'default' options are sought, all options will be 
+            returned.
+            
     """
-    options: Optional[Dict[str, Any]] = field(default_factory = dict())
+    options: Optional[Dict[str, Any]] = field(default_factory = dict)
     default_options: Optional[Union[List[str], str]] = field(
-        default_factory = list())
-    codex: Optional[Union['Project', 'SimpleCodex']] = None
-
+        default_factory = list)
+    parent: Optional[object] = None
+    
     def __post_init__(self):
         """Calls initialization methods and sets class instance defaults."""
-        # Sets wildcard values to check if a key doesn't exist in options.
-        self.wildcards = {
-            'all': self.all,
-            'default': self.default,
-            'defaults': self.default,
-            'none': ['none'],
-            'None': ['none']}
-        # Initializes state-dependent dictionaries.
-        self.drafted = {}
-        self.published = {}
-        self.applied = {}
+        # Sets private 'codex' attribute.
+        self._parent = parent
+        # Applies proxy attribute names, if any are set.
+        try:
+            self = proxify(instance = self, proxies = self.proxies)
+        except AttributeError:
+            pass
         # Automatically calls 'draft' method.
         self.draft()
-        # Sets private 'codex' attribute.
-        self._codex = self.codex
         return self
 
     """ Required ABC Methods """
@@ -115,17 +111,17 @@ class Options(MutableMapping):
         """Returns length of options."""
         return len(getattr(self, self.state))
 
-    """ Numeric Dunder Methods """
+    """ Other Dunder Methods """
 
-    def __add__(self, other: Union[Dict[str, Any], 'Options']) -> None:
+    def __add__(self, other: Union[Dict[str, Any], 'CodexOptions']) -> None:
         """Combines two options dictionaries.
 
         Args:
-            other (Union[Dict[str, Any],): either another 'Options'
+            other (Union[Dict[str, Any],): either another 'CodexOptions'
                 instance or an options dict.
 
         Raises:
-            TypeError: if 'other' is neither a 'Options' instance nor
+            TypeError: if 'other' is neither a 'CodexOptions' instance nor
                 a dict.
 
         """
@@ -136,18 +132,18 @@ class Options(MutableMapping):
                 getattr(self, self.state).update(other)
             except AttributeError:
                 raise TypeError(' '.join(
-                    ['addition requires objects to be dict or Options']))
+                    ['addition requires objects to be dict or CodexOptions']))
         return self
 
-    def __iadd__(self, other: Union[Dict[str, Any], 'Options']) -> None:
+    def __iadd__(self, other: Union[Dict[str, Any], 'CodexOptions']) -> None:
         """Combines two options dictionaries.
 
         Args:
-            other (Union[Dict[str, Any],): either another 'Options'
+            other (Union[Dict[str, Any],): either another 'CodexOptions'
                 instance or an options dict.
 
         Raises:
-            TypeError: if 'other' is neither a 'Options' instance nor
+            TypeError: if 'other' is neither a 'CodexOptions' instance nor
                 a dict.
 
         """
@@ -162,39 +158,73 @@ class Options(MutableMapping):
             setattr(self, self.state, {})
         return self
 
-    """ Sequence Dunder Methods """
-
     def __reversed__(self) -> Dict[Any, str]:
         """Returns options with keys and values reversed."""
         return {value: key for key, value in getattr(self, self.state).items()}
 
-    """ Core siMpLify Methods """
+    """ Relational Properties """
+    
+    @property
+    def parent(self) -> None:
+        return self._parent
 
-    def draft(self) -> None:
-        """Subclasses should call super().draft() and declare 'drafted' if
-        'options' has not been passed, declared, or injected.
-
-        Also, if any default_options are to be set independent of the instance
-        arguments, that should be done here as well.
-
-        If the default 'wildcards' attribute is to be overrided, this should be
-        done in this method by any subclass.
-
-        """
-        # Sets state for access methods.
-        self.state = 'drafted'
-        # Assigns initial options in a 'drafted' state.
-        self.drafted = self.options
+    @parent.setter
+    def parent(self, parent: object) -> None:
+        self._parent = parent
         return self
 
+    @parent.deleter
+    def parent(self) -> None:
+        self._parent = None
+        return self            
+
+         
+@dataclass
+class CodexOptions(Options):
+    """Base class for SimpleCodex subclasses with 'options'.
+
+    Args:
+        options (Optional[Dict[str, Any]]): alternative strategies stored
+            in a dictionary in the following format:
+
+                {str: Outline}
+
+            If subclassing, 'drafted' should be declared in the 'draft' method.
+            Defaults to an empty dict.
+        default_options (Optional[Union[List[str], str]]): key(s) to use if the
+            'default' property is selected. Defaults to an empty list. If not 
+            specified, and 'default' options are sought, all options will be 
+            returned.
+            
+    """
+    options: Optional[Dict[str, Any]] = field(default_factory = dict)
+    default_options: Optional[Union[List[str], str]] = field(
+        default_factory = list)
+    parent: Optional[object] = None
+
+    def __post_init__(self):
+        """Calls initialization methods and sets class instance defaults."""
+        # Sets wildcard values to check if a key doesn't exist in options.
+        self.wildcards = {
+            'all': self.all,
+            'default': self.default,
+            'defaults': self.default,
+            'none': ['none'],
+            'None': ['none']}
+        self.proxies = {'parent': 'codex'}
+        self.state = 'drafted'
+        super().__post_init__()
+        return self
+
+    """ Core siMpLify Methods """
+
     def publish(self,
-            steps: Optional[Union, str, List[str]],
-            techniques: Optional[Union, str, List[str]] = None,
+            steps: Dict[str, str], 
             data: Optional[object] = None) -> None:
-        """"Loads and instances options.
+        """Loads and instances selected options.
 
         Args:
-            techniques (Optional[Union, str, List[str]]): key(s) to options that
+            steps (steps: Dict[str, str]): key(s) to options that
                 are to be used in a siMpLify project. Only the selected
                 'techniques' will be lazily loaded into memory and instanced.
             data (Optional[object]): an object to pass when an options instance
@@ -204,13 +234,13 @@ class Options(MutableMapping):
         # Sets state for access methods.
         self.state = 'published'
         # Instances and publishes all selected options.
-        for i, step in enumerate(steps):
+        for step, technique in steps.items():
             # Lazily loads all stored options from stored Outline instances.
-            option = self.drafted[key].load()
-            if techniques:
-                instance = option(technique = techniques[i])
-            else:
+            option = self.drafted[step].load()
+            if step == technique:
                 instance = option()
+            else:
+                instance = option(technique = technique)
             instance.publish(data = data)
             self.published[step] = instance
         return self
@@ -260,18 +290,4 @@ class Options(MutableMapping):
                 del self.default_options[option]
             except KeyError:
                 pass
-        return self
-
-    @property
-    def codex(self) -> None:
-        return self._codex
-
-    @codex.setter
-    def codex(self, codex: 'SimpleCodex') -> None:
-        self._codex = codex
-        return self
-
-    @codex.deleter
-    def codex(self) -> None:
-        self._codex = None
         return self

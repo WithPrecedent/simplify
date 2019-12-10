@@ -34,7 +34,7 @@ class Supplement(FarmerTechnique):
         return self
 
     def draft(self) -> None:
-        self._options = Options(options = {}
+        self._options = CodexOptions(options = {}
         return self
 
     def publish(self, ingredients, sources):

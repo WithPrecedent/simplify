@@ -28,10 +28,10 @@ class Chapter(SimpleCodex):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
-        techniques (Optional[List[str], str]): ordered list of techniques to
+        steps (Optional[List[str], str]): ordered list of steps to
             use. Each technique should match a key in 'options'. Defaults to
             None.
-        options (Optional[Union['Options', Dict[str, Any]]]): allows
+        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
         metadata (Optional[Dict[str, Any]], optional): any metadata about
             the Chapter. In projects, 'number' is automatically a key
@@ -46,8 +46,8 @@ class Chapter(SimpleCodex):
 
     """
     name: Optional[str] = 'chapter'
-    techniques: Optional[Union[List[str], str]] = None
-    options: (Optional[Union['Options', Dict[str, Any]]]) = None
+    steps: Optional[Union[List[str], str]] = None
+    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
     metadata: Optional[Dict[str, Any]] = None
     auto_publish: Optional[bool] = True
     file_format: Optional[str] = 'pickle'
@@ -60,9 +60,9 @@ class Chapter(SimpleCodex):
 
     """ Private Methods """
     
-    def _draft_techniques(self):
-        if not self.techniques:
-            self.techniques = {}
+    def _draft_steps(self):
+        if not self.steps:
+            self.steps = {}
         return self
     
     """ Core siMpLify Methods """
@@ -82,7 +82,7 @@ class Chapter(SimpleCodex):
             except AttributeError:
                 pass
         self.options.publish(
-            techniques = self.techniques,
+            steps = self.steps,
             data = data)
         return self
 
@@ -100,7 +100,7 @@ class Chapter(SimpleCodex):
                 data = self.ingredients
             except AttributeError:
                 pass
-        for technique in self.techniques:
+        for technique in self.steps:
             data = self.options[technique].options.apply(
                 key = technique,
                 data = data,

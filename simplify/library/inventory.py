@@ -18,12 +18,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import pandas as pd
 
 from simplify.library.defaults import Defaults
-from simplify.creator.typesetter import Options
+from simplify.creator.typesetter import CodexOptions
 from simplify.library.utilities import listify
 
 
 @dataclass
-class Inventory(Options):
+class Inventory(CodexOptions):
 
     def __post_init__(self):
         return self
@@ -46,14 +46,3 @@ class GraphicsFiler(SimpleFile):
         return self
 
 
-@dataclass
-class FileFormat(object):
-    """File format container."""
-
-    name: Optional[str] = 'file_format'
-    extension: Optional[str] = None
-    import_method: Optional[str] = None
-    export_method: Optional[str] = None
-    addtional_kwargs: Optional[List[str]] = None
-    required: Optional[Dict[str, Any]] = None
-    test_size_parameter: Optional[str] = None

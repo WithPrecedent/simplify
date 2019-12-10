@@ -6,11 +6,13 @@
 :license: Apache-2.0
 """
 
+from abc import ABC
+from abc import abstractmethod
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.creator.options import Options
+from simplify.creator.options import CodexOptions
 from simplify.library.utilities import listify
 from simplify.library.utilities import proxify
 
@@ -29,16 +31,16 @@ class SimpleCodex(ABC):
             item which matchings a key in 'options' or a dictionary where each
             key matches a key in options and each value is a 'technique'
             parameter to be sent to a child class. Defaults to an empty dict.
-        options (Optional[Union['Options', Dict[str, Any]]]): allows
+        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. Defaults to True.
 
     """
-    steps: Optional[List[str], str, Dict[str, str]] = field(
+    steps: Optional[Union[List[str], str, Dict[str, str]]] = field(
         default_factory = dict)
-    options: (Optional[Union['Options', Dict[str, Any]]]) = None
-    auto_publish: optional[bool] = True
+    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
+    auto_publish: Optional[bool] = True
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
@@ -70,35 +72,13 @@ class SimpleCodex(ABC):
         if not hasattr(self, '_options'):
             self._options = self.options
         if self.options is None:
-            self.options = Options(options = {}, author = self)
+            self.options = CodexOptions(options = {}, author = self)
         elif isinstance(self.options, Dict):
-            self.options = Options(options = self.options, author = self)
+            self.options = CodexOptions(options = self.options, author = self)
         return self
 
     def _draft_steps(self) -> None:
-        """If 'steps' does not exist, gets 'steps' from 'idea'.
-
-        If there are no matching 'steps' or 'steps' in 'idea', a list with
-        'none' is created for 'steps'.
-
-        """
-
-        if not self.steps:
-            try:
-                self.steps = self.options.idea['_'.join([self.name, 'steps'])]
-            except AttributeError:
-                pass
-        if not self.steps:
-            try:
-                self.steps = self.options.idea[
-                    '_'.join([self.name, 'steps'])]
-            except AttributeError:
-                pass
-        self._technique_parameter = False
-        self.steps = listify(self.steps, use_null = True) or []
-        self.steps = listify(self.steps, use_null = True) or []
-        if len(self.steps) == len(self.steps) and len(self.steps) > 0:
-            self._technique_parameter = True
+        """Subclass should provide their own methods."""
         return self
 
     """ Core siMpLify Methods """
@@ -133,7 +113,6 @@ class SimpleCodex(ABC):
             except AttributeError:
                 pass
         self.options.publish(
-            steps = self.steps,
             steps = self.steps,
             data = data)
         return self
@@ -239,35 +218,35 @@ class SimpleCodex(ABC):
     """ Strategy Methods and Properties """
 
     def add_options(self,
-            options: Union['Options', Dict[str, Any]]) -> None:
+            options: Union['CodexOptions', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (options: Union['Options', Dict[str, Any]]): either
-                another 'Options' instance or an options dict.
+            options (options: Union['CodexOptions', Dict[str, Any]]): either
+                another 'CodexOptions' instance or an options dict.
 
         """
         self.options += options
         return self
 
     @property
-    def options(self) -> 'Options':
+    def options(self) -> 'CodexOptions':
         """Returns '_options' attribute."""
         return self.options
 
     @options.setter
-    def options(self, options: Union['Options', Dict[str, Any]]) -> None:
+    def options(self, options: Union['CodexOptions', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (Union['Options', Dict[str, Any]]): Options
-                instance or a dictionary to be stored within a Options
+            options (Union['CodexOptions', Dict[str, Any]]): CodexOptions
+                instance or a dictionary to be stored within a CodexOptions
                 instance (this should follow the form outlined in the
-                Options documentation).
+                CodexOptions documentation).
 
         """
         if isinstance(options, dict):
-            self.options = Options(options = options)
+            self.options = CodexOptions(options = options)
         else:
             self.options.add(options = options)
         return self

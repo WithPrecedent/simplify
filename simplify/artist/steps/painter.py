@@ -50,7 +50,7 @@ class Painter(SimpleDirector):
         return max_display
 
     def _draft_options(self) -> None:
-        self._options = Options(options = {
+        self._options = CodexOptions(options = {
             'calibration': Outline(
                 name = 'calibration',
                 module = 'skplt.metrics',

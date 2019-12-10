@@ -6,19 +6,19 @@
 :license: Apache-2.0
 """
 
-from abc import ABC
-from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.creator.options import Options
 from simplify.library.utilities import listify
 
 
 @dataclass
-class SimpleState(ABC):
+class SimpleState(object):
     """Base class for state management."""
 
+    states: List[str]
+    initial_state: Optional[str] = None
+    
     def _post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
         # Automatically calls 'draft' method.
@@ -27,13 +27,17 @@ class SimpleState(ABC):
 
     """ Dunder Methods """
 
+    def __iter__(self) -> Iterable:
+        """Returns 'states' as an Iterable."""
+        return iter(self.states)
+    
     def __repr__(self) -> str:
         """Returns string name of 'state'."""
-        return self.publish()
+        return self.state
 
     def __str__(self) -> str:
         """Returns string name of 'state'."""
-        return self.publish()
+        return self.state
 
     """ State Management Methods """
 
@@ -54,15 +58,10 @@ class SimpleState(ABC):
 
     """ Core siMpLify Methods """
 
-    @abstractmethod
     def draft(self) -> None:
-        """Creates state machine default settings.
-
-        Subclass instances should provide their own methods.
-
-        """
+        """Creates state machine default settings. """
+        if self.initial_state:
+            self.state = self.initial_state
+        else:
+            self.state = self.states[0]
         return self
-
-    def publish(self) -> str:
-        """Returns current state in 'state' attribute."""
-        return self.state

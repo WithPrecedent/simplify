@@ -16,7 +16,8 @@ import pandas as pd
 
 import simplify.creator
 from simplify.creator.chapter import Chapter
-from simplify.creator.options import Options
+from simplify.creator.codex import SimpleCodex
+from simplify.creator.options import CodexOptions
 from simplify.library.utilities import listify
 
 
@@ -45,10 +46,10 @@ class Book(SimpleCodex):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
-        techniques (Optional[List[str], str]): ordered list of techniques to
+        steps (Optional[List[str], str]): ordered list of steps to
             use. Each technique should match a key in 'options'. Defaults to
             None.
-        options (Optional[Union['Options', Dict[str, Any]]]): allows
+        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. For auto_publish to have an effect,
@@ -66,8 +67,8 @@ class Book(SimpleCodex):
         np.ndarray,
         str]] = None
     name: Optional[str] = 'simplify'
-    techniques: Optional[Union[List[str], str]] = None
-    options: (Optional[Union['Options', Dict[str, Any]]]) = None
+    steps: Optional[Union[List[str], str]] = None
+    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
     auto_publish: Optional[bool] = True
     file_format: Optional[str] = 'pickle'
     export_folder: Optional[str] = 'book'
@@ -79,11 +80,28 @@ class Book(SimpleCodex):
         return self
 
     """ Private Methods """
+    
+    def _draft_steps(self) -> None:
+        """If 'steps' does not exist, gets 'steps' from 'idea'.
 
+        If there are no matching 'steps' or 'steps' in 'idea', a list with
+        'none' is created for 'steps'.
+
+        """     
+        if not self.steps:
+            try:
+                self.steps = listify(
+                    self.options.idea['_'.join([self.name, 'steps'])])
+            except AttributeError:
+                pass
+        elif isinstance(self.steps, list):
+            self.steps = dict(zip(self.steps, self.steps))
+        return self
+    
     def _draft_plans(self) -> None:
         """Creates cartesian product of all possible 'chapters'."""
         plans = []
-        for step in self.techniques:
+        for step in self.steps:
             try:
                 key = '_'.join([step, 'techniques'])
                 plans.append(listify(self.options.idea[self.name][key]))
@@ -122,7 +140,7 @@ class Book(SimpleCodex):
             self.add_chapters(
                 chapters = self.chapter_type(
                     name = str(i),
-                    techniques = dict(zip(self.techniques, plan)),
+                    steps = dict(zip(self.steps, plan)),
                     metadata = self._publish_chapter_metadata(number = i)))
         return self
 

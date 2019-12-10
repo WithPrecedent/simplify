@@ -171,7 +171,7 @@ class Cookbook(Book):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        self._options = Options(options = {
+        self._options = CodexOptions(options = {
             'scaler': ('simplify.chef.steps.scaler', 'Scaler'),
             'splitter': ('simplify.chef.steps.splitter', 'Splitter'),
             'encoder': ('simplify.chef.steps.encoder', 'Encoder'),
