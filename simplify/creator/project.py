@@ -1,6 +1,6 @@
 """
 .. module:: siMpLify project
-:synopsis: entry point for implementing multiple siMpLify techniques
+:synopsis: entry point for implementing multiple siMpLify steps
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -52,11 +52,11 @@ class Project(SimpleCodex):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
-        techniques (Optional[List[str], str]): ordered list of techniques to
-            use. Each technique should match a key in 'options'. Defaults to
+        steps (Optional[List[str], str]): ordered list of steps to
+            use. Each step should match a key in 'options'. Defaults to
             None.
-        options (Optional[Union['Options', Dict[str, Any]]]): allows
-            setting of 'options' property with an argument. Defaults to None.
+        options (Optional[Union['Options', Dict[str, Any]]]): allows setting of
+            'options' property with an argument. Defaults to None.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. For auto_publish to have an effect,
             'ingredients' must also be passed. Defaults to True.
@@ -71,7 +71,7 @@ class Project(SimpleCodex):
         np.ndarray,
         str]] = None
     name: Optional[str] = 'simplify'
-    techniques: Optional[Union[List[str], str]] = None
+    steps: Optional[Union[List[str], str]] = None
     options: (Optional[Union['Options', Dict[str, Any]]]) = None
     auto_publish: Optional[bool] = True
 
@@ -95,7 +95,7 @@ class Project(SimpleCodex):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        """Sets technique options with information for module importation."""
+        """Sets step options with information for module importation."""
         self.options = Options(
             options = {
                 'farmer': Outline(
@@ -122,10 +122,10 @@ class Project(SimpleCodex):
         super()._draft_options()
         return self
 
-    def _store_techniques(self) -> None:
+    def _store_steps(self) -> None:
         """Stores all selected options in local attributes."""
-        for technique in self.techniques:
-            setattr(self, technique, self.options[technique])
+        for step in self.steps:
+            setattr(self, step, self.options[step])
         return self
 
     """ Core siMpLify Methods """
@@ -134,14 +134,14 @@ class Project(SimpleCodex):
         """Sets initial attributes."""
         # Injects attributes from Idea instance, if values exist.
         self = self.idea.apply(instance = self)
-        # Calls methods for setting 'options' and 'techniques'.
+        # Calls methods for setting 'options' and 'steps'.
         self._draft_options()
-        self._draft_techniques()
-        self._store_techniques()
+        self._draft_steps()
+        self._store_steps()
         return self
 
     def publish(self, data: Optional[object] = None) -> None:
-        """Finalizes techniques by creating Book instances in options.
+        """Finalizes steps by creating Book instances in options.
 
         Args:
             data (Optional[object]): an optional object needed for a Book's
@@ -150,12 +150,12 @@ class Project(SimpleCodex):
         """
         if data is None:
             data = self.ingredients
-        for technique in self.techniques:
-            technique.options.publish(
+        for step in self.steps:
+            step.options.publish(
                 author = self.author,
-                techniques = self.techniques,
+                steps = self.steps,
                 data = data)
-        self._store_techniques()
+        self._store_steps()
         return self
 
     def apply(self, data: Optional[object] = None, **kwargs) -> None:
@@ -169,11 +169,11 @@ class Project(SimpleCodex):
         """
         if data is not None:
             self.ingredients = data
-        for technique in self.techniques:
+        for step in self.steps:
             self.ingredients = self.options.apply(
                 worker = self.worker,
-                key = technique,
+                key = step,
                 data = self.ingredients,
                 **kwargs)
-        self._store_techniques()
+        self._store_steps()
         return self

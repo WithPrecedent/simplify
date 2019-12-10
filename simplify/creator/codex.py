@@ -24,21 +24,19 @@ class SimpleCodex(ABC):
     siMpLify.
 
     Args:
-        steps (Optional[List[str], str]): ordered list of steps to use. Each 
-            step should match a key in 'options'. Defaults to empty list.
-        techniques (Optional[List[str], str]): ordered list of techniques to
-            use. Each technique should correspond to a step in 'steps'. As a
-            result, 'steps' and 'techniques' should be of equal length, unless
-            'techniques' is left empty. If 'techniques' is left as an empty 
-            list, the default, no 'technique' parameter will be passed to the
-            options matching 'steps'.
+        steps (Optional[List[str], str, Dict[str, str]]): ordered list of
+            steps to use with each item matching a key in 'options', a single
+            item which matchings a key in 'options' or a dictionary where each
+            key matches a key in options and each value is a 'technique'
+            parameter to be sent to a child class. Defaults to an empty dict.
         options (Optional[Union['Options', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. Defaults to True.
+
     """
-    steps: Optional[List[str], str] = field(default_factory = list)
-    techniques: Optional[List[str], str] = field(default_factory = list)
+    steps: Optional[List[str], str, Dict[str, str]] = field(
+        default_factory = dict)
     options: (Optional[Union['Options', Dict[str, Any]]]) = None
     auto_publish: optional[bool] = True
 
@@ -77,29 +75,29 @@ class SimpleCodex(ABC):
             self.options = Options(options = self.options, author = self)
         return self
 
-    def _draft_techniques(self) -> None:
-        """If 'techniques' does not exist, gets 'techniques' from 'idea'.
+    def _draft_steps(self) -> None:
+        """If 'steps' does not exist, gets 'steps' from 'idea'.
 
-        If there are no matching 'steps' or 'techniques' in 'idea', a list with
-        'none' is created for 'techniques'.
+        If there are no matching 'steps' or 'steps' in 'idea', a list with
+        'none' is created for 'steps'.
 
         """
-        
+
         if not self.steps:
             try:
                 self.steps = self.options.idea['_'.join([self.name, 'steps'])]
             except AttributeError:
                 pass
-        if not self.techniques:
+        if not self.steps:
             try:
-                self.techniques = self.options.idea[
-                    '_'.join([self.name, 'techniques'])]
+                self.steps = self.options.idea[
+                    '_'.join([self.name, 'steps'])]
             except AttributeError:
                 pass
         self._technique_parameter = False
         self.steps = listify(self.steps, use_null = True) or []
-        self.techniques = listify(self.techniques, use_null = True) or []
-        if len(self.steps) == len(self.techniques) and len(self.steps) > 0:
+        self.steps = listify(self.steps, use_null = True) or []
+        if len(self.steps) == len(self.steps) and len(self.steps) > 0:
             self._technique_parameter = True
         return self
 
@@ -117,7 +115,7 @@ class SimpleCodex(ABC):
         # Injects attributes from Idea instance, if values exist.
         self = self.idea.apply(instance = self)
         # Initializes class steps.
-        self._draft_techniques()
+        self._draft_steps()
         return self
 
     def publish(self, data: Optional[object] = None) -> None:
@@ -136,7 +134,7 @@ class SimpleCodex(ABC):
                 pass
         self.options.publish(
             steps = self.steps,
-            techniques = self.techniques,
+            steps = self.steps,
             data = data)
         return self
 
@@ -154,7 +152,7 @@ class SimpleCodex(ABC):
                 data = self.ingredients
             except AttributeError:
                 pass
-        for technique in self.techniques:
+        for technique in self.steps:
             data = self.options[technique].options.apply(
                 key = technique,
                 data = data,
