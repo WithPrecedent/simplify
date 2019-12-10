@@ -36,7 +36,7 @@ class Splitter(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = SimpleOptions(options = {
+        self._options = Options(options = {
             'group_kfold': Outline(
                 name = 'group_kfold',
                 module = 'sklearn.model_selection',

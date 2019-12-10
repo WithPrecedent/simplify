@@ -37,7 +37,7 @@ class Mixer(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = SimpleOptions(options = {
+        self._options = Options(options = {
         'polynomial': Outline(
             name = 'polynomial_mixer',
             module = 'sklearn.preprocessing',

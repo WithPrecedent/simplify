@@ -1,6 +1,6 @@
 """
-.. module:: author
-:synopsis: composite tree abstract base classes
+.. module:: codex
+:synopsis: composite tree abstract base class
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -11,48 +11,29 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.creator.options import Options
 from simplify.library.utilities import listify
-
-
-@dataclass
-class Author(object):
-    """Base class for building SimpleCodex instances.
-
-    SimpleComposite implements a modified composite tree pattern for organizing
-    the various subpackages in siMpLify.
-
-    Args:
-        options (Optional[Union['Options', Dict[str, Any]]]): allows
-            setting of 'options' property with an argument. Defaults to None.
-
-    """
-    options: (Optional[Union['Options', Dict[str, Any]]]) = None
-
-    def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
-        # Sets default 'name' attribute if none exists.
-        if not hasattr(self, 'name'):
-            self.name = self.__class__.__name__.lower()
-        # Automatically calls 'draft' method.
-        self.draft()
-        # Calls 'publish' method if 'auto_publish' is True.
-        if hasattr(self, 'auto_publish') and self.auto_publish:
-            self.publish()
-        return self
+from simplify.library.utilities import proxify
 
 
 @dataclass
 class SimpleCodex(ABC):
     """Base class for data processing, analysis, and visualization.
 
-    SimpleComposite implements a modified composite tree pattern for organizing
-    the various subpackages in siMpLify.
+    SimpleCodex contains the shared methods, properties, and attributes for a
+    modified composite tree pattern for organizing the various subpackages in
+    siMpLify.
 
     Args:
+        techniques (Optional[List[str], str]): ordered list of techniques to
+            use. Each technique should match a key in 'options'. Defaults to
+            None.
         options (Optional[Union['Options', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
-
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            a subclass is instanced. Defaults to True.
     """
+    techniques: Optional[List[str], str] = None
     options: (Optional[Union['Options', Dict[str, Any]]]) = None
+    auto_publish: optional[bool] = True
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
@@ -62,7 +43,7 @@ class SimpleCodex(ABC):
         # Automatically calls 'draft' method.
         self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
-        if hasattr(self, 'auto_publish') and self.auto_publish:
+        if self.auto_publish:
             self.publish()
         return self
 
@@ -81,12 +62,12 @@ class SimpleCodex(ABC):
         should be included as well.Any
 
         """
-        if self._options is None:
-            self._options = Options(options = {}, _author = self)
-        elif isinstance(self._options, Dict):
-            self._options = Options(
-                options = self._options,
-                _author = self)
+        if not hasattr(self, '_options'):
+            self._options = self.options
+        if self.options is None:
+            self.options = Options(options = {}, author = self)
+        elif isinstance(self.options, Dict):
+            self.options = Options(options = self.options, author = self)
         return self
 
     def _draft_techniques(self) -> None:
@@ -116,10 +97,16 @@ class SimpleCodex(ABC):
 
     def draft(self) -> None:
         """Required method that sets default values."""
+        # initializes class options.
+        self._draft_options()
+        # Adds proxy attributes if 'proxies' has been set.
+        try:
+            self = proxify(instance = self, proxies = self.proxies)
+        except AttributeError:
+            pass
         # Injects attributes from Idea instance, if values exist.
         self = self.idea.apply(instance = self)
-        # initializes core attributes.
-        self._draft_options()
+        # Initializes class steps.
         self._draft_techniques()
         return self
 
@@ -157,26 +144,25 @@ class SimpleCodex(ABC):
 
     """ Composite Methods and Properties """
 
-    def add_children(self, keys: Union[List[str], str]) -> None:
+    def add_children(self, children: Union[List[str], str]) -> None:
         """Adds outline(s) to '_children' from 'options' based on key(s).
         Args:
             keys (Union[List[str], str]): key(s) to 'options'.
         """
-        for key in listify(keys):
-            self._children[key] = self.options[key]
+        self._children.extend(listify(children))
         return self
 
-    def proxify(self) -> None:
-        """Creates proxy names for attributes and methods."""
-        try:
-            proxy_attributes = {}
-            for name, proxy in self.proxies.items():
-                for key, value in self.__dict__.items():
-                    if name in key:
-                        proxy_attributes[key.replace(name, proxy)] = value
-            self.__dict__.update(proxy_attributes)
-        except AttributeError:
-            pass
+    def load_child(self, file_path: str) -> None:
+        """Imports a single child from disk and adds it to the class iterable.
+
+        Args:
+            file_path (str): a path where the file to be loaded is located.
+
+        """
+        self.children.append(
+            self.filer.load(
+                file_path = file_path,
+                file_format = 'pickle'))
         return self
 
     @property
@@ -250,7 +236,7 @@ class SimpleCodex(ABC):
     @property
     def options(self) -> 'Options':
         """Returns '_options' attribute."""
-        return self._options
+        return self.options
 
     @options.setter
     def options(self, options: Union['Options', Dict[str, Any]]) -> None:
@@ -264,14 +250,14 @@ class SimpleCodex(ABC):
 
         """
         if isinstance(options, dict):
-            self._options = Options(options = options)
+            self.options = Options(options = options)
         else:
-            self._options.add(options = options)
+            self.options.add(options = options)
         return self
 
     @options.deleter
     def options(self, options: Union[List[str], str]) -> None:
-        """ Removes 'options' for '_options' attribute.
+        """ Removes 'options' from '_options' attribute.
 
         Args:
             options (Union[List[str], str]): key(s) to options classes to
@@ -280,7 +266,7 @@ class SimpleCodex(ABC):
         """
         for option in listify(options):
             try:
-                del self._options[option]
+                del self.options[option]
             except KeyError:
                 pass
         return self

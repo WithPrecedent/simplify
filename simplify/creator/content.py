@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
 
-from simplify.creator.author import SimpleCodex
+from simplify.creator.codex import SimpleCodex
 from simplify.library.utilities import listify
 
 

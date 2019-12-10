@@ -18,12 +18,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import pandas as pd
 
 from simplify.library.defaults import Defaults
-from simplify.creator.typesetter import SimpleOptions
+from simplify.creator.typesetter import Options
 from simplify.library.utilities import listify
 
 
 @dataclass
-class Filer(SimpleOptions):
+class Filer(Options):
     """Manages files and folders for siMpLify.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -122,7 +122,7 @@ class Filer(SimpleOptions):
         return self
 
     def _draft_options(self):
-        self._options = SimpleOptions(options = {
+        self._options = Options(options = {
             'data': 'data',
             'book': 'book',
             'chapter': 'chapter'}
@@ -170,7 +170,7 @@ class Filer(SimpleOptions):
 
 
 @dataclass
-class Folderifier(SimpleOptions):
+class Folderifier(Options):
     """Builds folders and, if necessary, writes them to disk.
 
     Args:
@@ -315,7 +315,7 @@ class Folderifier(SimpleOptions):
 
     def draft(self) -> None:
         """Sets core default folders"""
-        self._options = SimpleOptions(options = {
+        self._options = Options(options = {
             'root': self.filer.root_folder,
             'data': self.filer.data_folder,
             'results': self.filer.results_folder}
@@ -369,7 +369,7 @@ class Formatifier(object):
 
     """ Core siMpLify Methods """
     def draft(self):
-        self._options = SimpleOptions(options = {
+        self._options = Options(options = {
             'csv': FileFormat(
                 name = 'csv',
                 extension = '.csv',
@@ -637,7 +637,7 @@ class Distributor(ABC):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        self._options = SimpleOptions(options = {
+        self._options = Options(options = {
             'csv': 'csv',
             'matplotlib': 'mp',
             'pandas': 'pd',

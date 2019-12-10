@@ -125,3 +125,8 @@ class PageOutline(Outline):
     selected: Optional[Union[bool, List[str]]] = False
     conditional: Optional[bool] = False
     data_dependent: Optional[Dict[str, str]] = None
+
+def expand_outline(outline: 'Outline') -> 'SimpleCodex':
+    
+
+    return codex

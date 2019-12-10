@@ -20,7 +20,7 @@ from simplify import get_supported_types
 from simplify.creator.book import Book
 from simplify.creator.chapter import Chapter
 from simplify.creator.content import Content
-from simplify.creator.options import SimpleOptions
+from simplify.creator.options import Options
 from simplify.creator.page import Page
 from simplify.creator.project import Project
 
@@ -68,19 +68,19 @@ https://www.bnmetrics.com/blog/builder-pattern-in-python3-simple-version
 """ Private Functions """
 
 def _check_options(
-        options: Union['SimpleOptions',
-                       Dict[str, 'Outline']]) -> 'SimpleOptions':
-    """Checks if 'options' is a dict and prepares SimpleOptions instance.
+        options: Union['Options',
+                       Dict[str, 'Outline']]) -> 'Options':
+    """Checks if 'options' is a dict and prepares Options instance.
 
     Args:
-        options (Union['SimpleOptions', Dict[str, Any]]):
+        options (Union['Options', Dict[str, Any]]):
 
     Returns:
-        completed SimpleOptions instance.
+        completed Options instance.
 
     """
     if options is None:
-        return SimpleOptions(options = {})
+        return Options(options = {})
     elif isinstance(options, Dict):
         return make_options(options = options)
     else:
@@ -166,7 +166,7 @@ def make_project(
             pd.Series,
             np.ndarray,
             str]] = None,
-        options: Optional['SimpleOptions', Dict[str, 'Outline']] = None,
+        options: Optional['Options', Dict[str, 'Outline']] = None,
         steps: Optional[Union[List[str], str]] = None,
         name: Optional[str] = None,
         auto_publish: Optional[bool] = True) -> 'Book':
@@ -193,9 +193,9 @@ def make_project(
             subclasses to include. These names should match keys in the
             'options' attribute. If using the Idea instance settings, this
             argument should not be passed. Default is None.
-        options (Optional['SimpleOptions', Dict[str, 'Outline']]): either
-            a SimpleOptions instance or a dictionary compatible with a
-            SimpleOptions instance. Defaults to None.
+        options (Optional['Options', Dict[str, 'Outline']]): either
+            a Options instance or a dictionary compatible with a
+            Options instance. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -310,17 +310,17 @@ def make_idea(idea: Union[Dict[str, Dict[str, Any]],  'Idea']) -> 'Idea':
         error = 'idea must be Idea, str, or nested dict type'
         raise TypeError(error)
 
-def make_options(options: Dict[str, 'Outline']) -> 'SimpleOptions':
-    """Creates a SimpleOptions instance.
+def make_options(options: Dict[str, 'Outline']) -> 'Options':
+    """Creates a Options instance.
 
     Args:
-        options: Dict[str, 'Outline']: dict compatiable with SimpleOptions.
+        options: Dict[str, 'Outline']: dict compatiable with Options.
 
     Returns:
-        SimpleOptions instance with 'options' dict.
+        Options instance with 'options' dict.
 
     """
-    return SimpleOptions(options = options)
+    return Options(options = options)
 
 def make_book(
         idea: Union[Dict[str, Dict[str, Any]], 'Idea'],
@@ -331,7 +331,7 @@ def make_book(
             pd.Series,
             np.ndarray,
             str]] = None,
-        options: Optional['SimpleOptions', Dict[str, 'Outline']] = None,
+        options: Optional['Options', Dict[str, 'Outline']] = None,
         steps: Optional[Union[List[str], str]] = None,
         name: Optional[str] = None,
         auto_publish: Optional[bool] = True) -> 'Book':
@@ -359,9 +359,9 @@ def make_book(
             subclasses to include. These names should match keys in the
             'options' attribute. If using the Idea instance settings, this
             argument should not be passed. Default is None.
-        options (Optional['SimpleOptions', Dict[str, 'Outline']]): either
-            a SimpleOptions instance or a dictionary compatible with a
-            SimpleOptions instance. Defaults to None.
+        options (Optional['Options', Dict[str, 'Outline']]): either
+            a Options instance or a dictionary compatible with a
+            Options instance. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -389,22 +389,22 @@ def make_book(
         steps = steps,
         name = name,
         auto_publish = auto_publish,
-        _options = options)
+        options = options)
 
 def make_chapter(
         steps: Dict[str, str],
         metadata: Dict[str, Any],
         name: Optional[str] = None,
-        options: Optional['SimpleOptions',
+        options: Optional['Options',
                            Dict[str, 'Outline']] = None) -> 'Chapter':
     """Creates a Chapter instance.
 
     Args:
         steps (Dict[str, str]): ordered names of steps as keys and particular
             techniques as methods.
-        options (Optional['SimpleOptions', Dict[str, 'Outline']]): either
-            a SimpleOptions instance or a dictionary compatible with a
-            SimpleOptions instance. Defaults to None.
+        options (Optional['Options', Dict[str, 'Outline']]): either
+            a Options instance or a dictionary compatible with a
+            Options instance. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -423,7 +423,7 @@ def make_chapter(
         steps = steps,
         metadata = metadata,
         name = name,
-        _options = options)
+        options = options)
 
 def make_page(
         idea: 'Idea',
@@ -435,11 +435,13 @@ def make_page(
     return Page(algorithm = algorithm, parameters = parameters, name = name)
 
 def make_parameters(
-        idea: 'Idea', 
+        idea: 'Idea',
         outline: 'Outline',
         parameters: Optional[Dict[str, Any]] = None) -> 'Parameters':
-    
-    def make_selected(self, outline: 'Outline') -> None:
+
+    def make_selected(
+            parameters: Dict[str, Any],
+            outline: 'Outline') -> None:
         """Limits parameters to those appropriate to the outline.
 
         If 'outline.selected' is True, the keys from 'outline.defaults' are
@@ -458,13 +460,15 @@ def make_parameters(
             else:
                 parameters_to_use = list(outline.default.keys())
             new_parameters = {}
-            for key, value in self.bunch.items():
+            for key, value in parameters.items():
                 if key in parameters_to_use:
                     new_parameters.update({key: value})
-            self.bunch = new_parameters
-        return self
+            parameters = new_parameters
+        return parameters
 
-    def make_required(self, outline: 'Outline') -> None:
+    def make_required(
+            parameters: Dict[str, Any],
+            outline: 'Outline') -> None:
         """Adds required parameters (mandatory additions) to 'parameters'.
 
         Args:
@@ -472,33 +476,35 @@ def make_parameters(
 
         """
         try:
-            self.bunch.update(outline.required)
+            parameters.update(outline.required)
         except TypeError:
             pass
-        return self
+        return parameters
 
-    def make_search(self, outline: 'Outline') -> None:
+    def make_search(
+            parameters: Dict[str, Any],
+            outline: 'Outline') -> None:
         """Separates variables with multiple options to search parameters.
 
         Args:
             outline (Outline): settings for parameters to be built.
 
         """
-        self.space = {}
+        space = {}
         if outline.hyperparameter_search:
             new_parameters = {}
-            for parameter, values in self.bunch.items():
+            for parameter, values in parameters.items():
                 if isinstance(values, list):
                     if any(isinstance(i, float) for i in values):
-                        self.space.update(
+                        space.update(
                             {parameter: uniform(values[0], values[1])})
                     elif any(isinstance(i, int) for i in values):
-                        self.space.update(
+                        space.update(
                             {parameter: randint(values[0], values[1])})
                 else:
                     new_parameters.update({parameter: values})
-            self.bunch = new_parameters
-        return self
+            parameters = new_parameters
+        return parameters, space
 
     def make_runtime(self, outline: 'Outline') -> None:
         """Adds parameters that are determined at runtime.
@@ -517,14 +523,14 @@ def make_parameters(
         try:
             for key, value in outline.runtime.items():
                 try:
-                    self.bunch.update({key: getattr(self.author, value)})
+                    parameters.update({key: getattr(self.author, value)})
                 except AttributeError:
                     error = ' '.join('no matching runtime parameter',
-                                     key, 'found in', self.author.name)
+                        key, 'found')
                     raise AttributeError(error)
         except (AttributeError, TypeError):
             pass
-        return self
+        return parameters
 
     if parameters is None:
         try:

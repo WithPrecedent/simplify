@@ -15,10 +15,10 @@ from simplify.library.utilities import listify
 
 
 @dataclass
-class SimpleOptions(MutableMapping):
+class Options(MutableMapping):
     """Base class for different options to be stored.
 
-    The SimpleOptions class should be injected with the shared Idea instance
+    The Options class should be injected with the shared Idea instance
     before it or any subclass is instanced. This is done automatically through
     the normal siMpLify access points. But if creating a completely customized
     workflow, this step must be taken for siMpLify to work properly.
@@ -39,7 +39,7 @@ class SimpleOptions(MutableMapping):
     options: Optional[Dict[str, Any]] = field(default_factory = dict())
     default_options: Optional[Union[List[str], str]] = field(
         default_factory = list())
-    _author: Optional[Union['Project', 'SimpleCodex']] = None
+    codex: Optional[Union['Project', 'SimpleCodex']] = None
 
     def __post_init__(self):
         """Calls initialization methods and sets class instance defaults."""
@@ -56,6 +56,8 @@ class SimpleOptions(MutableMapping):
         self.applied = {}
         # Automatically calls 'draft' method.
         self.draft()
+        # Sets private 'codex' attribute.
+        self._codex = self.codex
         return self
 
     """ Required ABC Methods """
@@ -115,15 +117,15 @@ class SimpleOptions(MutableMapping):
 
     """ Numeric Dunder Methods """
 
-    def __add__(self, other: Union[Dict[str, Any], 'SimpleOptions']) -> None:
+    def __add__(self, other: Union[Dict[str, Any], 'Options']) -> None:
         """Combines two options dictionaries.
 
         Args:
-            other (Union[Dict[str, Any],): either another 'SimpleOptions'
+            other (Union[Dict[str, Any],): either another 'Options'
                 instance or an options dict.
 
         Raises:
-            TypeError: if 'other' is neither a 'SimpleOptions' instance nor
+            TypeError: if 'other' is neither a 'Options' instance nor
                 a dict.
 
         """
@@ -134,18 +136,18 @@ class SimpleOptions(MutableMapping):
                 getattr(self, self.state).update(other)
             except AttributeError:
                 raise TypeError(' '.join(
-                    ['addition requires objects to be dict or SimpleOptions']))
+                    ['addition requires objects to be dict or Options']))
         return self
 
-    def __iadd__(self, other: Union[Dict[str, Any], 'SimpleOptions']) -> None:
+    def __iadd__(self, other: Union[Dict[str, Any], 'Options']) -> None:
         """Combines two options dictionaries.
 
         Args:
-            other (Union[Dict[str, Any],): either another 'SimpleOptions'
+            other (Union[Dict[str, Any],): either another 'Options'
                 instance or an options dict.
 
         Raises:
-            TypeError: if 'other' is neither a 'SimpleOptions' instance nor
+            TypeError: if 'other' is neither a 'Options' instance nor
                 a dict.
 
         """
@@ -257,15 +259,15 @@ class SimpleOptions(MutableMapping):
         return self
 
     @property
-    def author(self) -> None:
-        return self._author
+    def codex(self) -> None:
+        return self._codex
 
-    @author.setter
-    def author(self, author: 'SimpleCodex') -> None:
-        self._author = author
+    @codex.setter
+    def codex(self, codex: 'SimpleCodex') -> None:
+        self._codex = codex
         return self
 
-    @author.deleter
-    def author(self) -> None:
-        self._author = None
+    @codex.deleter
+    def codex(self) -> None:
+        self._codex = None
         return self

@@ -11,7 +11,7 @@ from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify import creator
-from simplify.creator.author import SimpleCodex
+from simplify.creator.codex import SimpleCodex
 from simplify.library.utilities import listify
 
 
@@ -20,7 +20,7 @@ class Chapter(SimpleCodex):
     """Iterator for a siMpLify process.
 
     Args:
-        pages (Dict[str, str]): information needed to create Page classes.
+        techniques (Dict[str, str]): information needed to create Page classes.
             Keys are step names and values are Algorithm keys.
         metadata (Optional[Dict[str, Any]], optional): any metadata about
             the chapter. In projects, 'number' is automatically a key
@@ -38,26 +38,16 @@ class Chapter(SimpleCodex):
             serialized. Defaults to 'pickle'.
 
     """
-    pages: Dict[str, str]
+    techniques: Dict[str, str]
     metadata: Optional[Dict[str, Any]] = None
     name: Optional[str] = 'chapter'
     file_format: str = 'pickle'
     export_folder: str = 'chapter'
 
     def __post_init__(self) -> None:
-        self.proxies = {'book': 'book', 'chapters': 'pages'}
+        self.proxies = {'parent': 'book', 'children': 'pages', 'child': 'page'}
         super().__post_init__()
         return self
-
-    """ Dunder Methods """
-
-    def __iter__(self) -> Iterable:
-        """Returns iterable for 'pages'."""
-        try:
-            return iter(self._pages)
-        except AttributeError:
-            self._pages= {}
-            return iter(self._pages)
 
     """ Private Methods """
 

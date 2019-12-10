@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.creator.author import SimpleCodex
+from simplify.creator.codex import SimpleCodex
 from simplify.creator.book import Book
 from simplify.creator.chapter import Chapter
 from simplify.creator.content import Content
@@ -171,7 +171,7 @@ class Cookbook(Book):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        self._options = SimpleOptions(options = {
+        self._options = Options(options = {
             'scaler': ('simplify.chef.steps.scaler', 'Scaler'),
             'splitter': ('simplify.chef.steps.splitter', 'Splitter'),
             'encoder': ('simplify.chef.steps.encoder', 'Encoder'),
@@ -182,7 +182,7 @@ class Cookbook(Book):
             'modeler': ('simplify.chef.steps.modeler', 'Modeler')}
         return self
 
-    def _extra_processing(self,
+    def _apply_extra_processing(self,
             chapter: 'Chapter',
             ingredients: 'Ingredients') -> Tuple['Chapter', 'Ingredients']:
         """Extra actions to take for each recipe."""

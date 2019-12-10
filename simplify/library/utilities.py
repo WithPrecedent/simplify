@@ -114,6 +114,31 @@ def listify(
     else:
         return [variable]
 
+def proxify(instance: object, proxies: Dict[str, str]) -> object:
+    """Creates proxy names for attributes, properties, and methods.
+
+    Args:
+        instance (object): instance for proxy attributes to be added.
+        proxies (Dict[str, str]): dictionary of proxy values to be added. Keys
+            are the original attribute, method, or property name (or partial
+            name). Values are the replacement strings.
+
+    Returns:
+        object with proxy attributes added.
+
+    """
+    try:
+        proxy_attributes = {}
+        for name, proxy in proxies.items():
+            for attribute in dir(instance):
+                if name in attribute and not attribute.startswith('__'):
+                    proxy_attributes[attribute.replace(name, proxy)] = (
+                        getattr(instance, attribute))
+        instance.__dict__.update(proxy_attributes)
+    except AttributeError:
+        pass
+    return instance
+
 def stringify(
     variable: Union[str, List],
     use_null: Optional[bool] = False) -> str:

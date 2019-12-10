@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify import creator
-from simplify.creator.options import SimpleOptions
+from simplify.creator.options import Options
 from simplify.library.utilities import listify
 
 
@@ -128,11 +128,11 @@ class SimpleCodex(ABC):
     the various subpackages in siMpLify.
 
     Args:
-        _options (Optional[Union['SimpleOptions', Dict[str, Any]]]): allows
+        options (Optional[Union['Options', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
 
     """
-    _options: (Optional[Union['SimpleOptions', Dict[str, Any]]]) = None
+    options: (Optional[Union['Options', Dict[str, Any]]]) = None
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
@@ -162,9 +162,9 @@ class SimpleCodex(ABC):
 
         """
         if self._options is None:
-            self._options = SimpleOptions(options = {}, _author = self)
+            self._options = Options(options = {}, _author = self)
         elif isinstance(self._options, Dict):
-            self._options = SimpleOptions(
+            self._options = Options(
                 options = self._options,
                 _author = self)
         return self
@@ -316,35 +316,35 @@ class SimpleCodex(ABC):
     """ Strategy Methods and Properties """
 
     def add_options(self,
-            options: Union['SimpleOptions', Dict[str, Any]]) -> None:
+            options: Union['Options', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (options: Union['SimpleOptions', Dict[str, Any]]): either
-                another 'SimpleOptions' instance or an options dict.
+            options (options: Union['Options', Dict[str, Any]]): either
+                another 'Options' instance or an options dict.
 
         """
         self.options += options
         return self
 
     @property
-    def options(self) -> 'SimpleOptions':
+    def options(self) -> 'Options':
         """Returns '_options' attribute."""
         return self._options
 
     @options.setter
-    def options(self, options: Union['SimpleOptions', Dict[str, Any]]) -> None:
+    def options(self, options: Union['Options', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (Union['SimpleOptions', Dict[str, Any]]): SimpleOptions
-                instance or a dictionary to be stored within a SimpleOptions
+            options (Union['Options', Dict[str, Any]]): Options
+                instance or a dictionary to be stored within a Options
                 instance (this should follow the form outlined in the
-                SimpleOptions documentation).
+                Options documentation).
 
         """
         if isinstance(options, dict):
-            self._options = SimpleOptions(options = options)
+            self._options = Options(options = options)
         else:
             self._options.add(options = options)
         return self

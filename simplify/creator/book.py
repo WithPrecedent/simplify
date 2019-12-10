@@ -14,10 +14,10 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-import simplify
+import simplify.creator
 from simplify.creator.chapter import Chapter
 from simplify.library.filer import SimpleFile
-from simplify.creator.options import SimpleOptions
+from simplify.creator.options import Options
 from simplify.library.state import SimpleState
 from simplify.library.utilities import listify
 
@@ -85,6 +85,7 @@ class Book(SimpleCodex):
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods."""
+        self.proxies = {'children': 'chapters', 'child': 'chapter'}
         super().__post_init__()
         return self
 
@@ -102,19 +103,7 @@ class Book(SimpleCodex):
         self.plans = list(map(list, product(*plans)))
         return self
 
-    def _draft_chapters(self) -> None:
-        """Converts 'plans' from list of lists to Chapter instances."""
-        if not hasattr(self, 'chapters'):
-            self.chapters = {}
-        if not hasattr(self, 'chapter_type'):
-            self.chapter_type = Chapter
-        for i, plan in enumerate(self.plans):
-            pages = dict(zip(self.techniques, plan))
-            metadata = self._draft_chapter_metadata(number = i)
-            self.add_chapters(name = str(i), pages = pages, metadata = metadata)
-        return self
-
-    def _draft_chapter_metadata(self, number: int) -> Dict[str, Any]:
+    def _publish_chapter_metadata(self, number: int) -> Dict[str, Any]:
         """Finalizes metadata for Chapter instance.
 
         Args:
@@ -131,17 +120,6 @@ class Book(SimpleCodex):
             pass
         return metadata
 
-    def _extra_processing(self, chapter: 'Chapter') -> 'Chapter':
-        """Extra actions to take for each Chapter processed.
-
-        Subclasses should provide _extra_processing methods, if needed.
-
-        Returns:
-            'Chapter' with any modifications made.
-
-        """
-        return chapter
-
     def _publish_chapters(self, data: Optional[object] = None) -> None:
         """Subclasses should provide their own method, if needed.
 
@@ -149,26 +127,34 @@ class Book(SimpleCodex):
             data (Optional['Ingredients']): an Ingredients instance.
 
         """
-        if not hasattr(self, 'chapters'):
-            self.chapters = {}
         if not hasattr(self, 'chapter_type'):
             self.chapter_type = Chapter
         for i, plan in enumerate(self.plans):
-            pages = dict(zip(self.techniques, plan))
-            metadata = self._draft_chapter_metadata(number = i)
-            self.add_chapter(name = str(i), pages = pages, metadata = metadata)
+            self.add_chapters(
+                chapters = self.chapter_type(
+                    name = str(i),
+                    techniques = dict(zip(self.techniques, plan)),
+                    metadata = self._publish_chapter_metadata(number = i)))
         return self
+
+    def _apply_extra_processing(self, chapter: 'Chapter') -> 'Chapter':
+        """Extra actions to take for each Chapter applied.
+
+        Subclasses should provide '_apply_extra_processing' methods, if needed.
+
+        Returns:
+            'Chapter' with any modifications made.
+
+        """
+        return chapter
 
     """ Core siMpLify methods """
 
     def draft(self) -> None:
         """Creates initial attributes."""
         super().draft()
-        # Injects attributes from Idea instance, if values exist.
-        self = self.options.idea.apply(instance = self)
         # Drafts plans based upon settings.
         self._draft_plans()
-        self._draft_chapters()
         return self
 
     def publish(self, data: Optional[object] = None) -> None:
@@ -181,14 +167,11 @@ class Book(SimpleCodex):
                 in 'pages'. Otherwise, it need not be passed. Defaults to None.
 
         """
-        for method in ('authors', 'chapters'):
-            try:
-                getattr(self, '_'.join(['_publish', method]))(data = data)
-            except AttributeError:
-                pass
+        super().publish(data = data)
+        self._publish_chapters(data = data)
         return self
 
-    def apply(self, data: object, **kwargs) -> None:
+    def apply(self, data: Optional[object], **kwargs) -> None:
         """Applies created objects to passed 'data'.
 
         Args:
@@ -197,121 +180,11 @@ class Book(SimpleCodex):
                 as well.
 
         """
-        new_chapters = {}
-        for number, chapter in self.chapters.items():
-            chapter.apply(data = ingredients, **kwargs)
-            new_chapter[number] = self._extra_processing(chapter = chapter)
+        if data is not None:
+            self.ingredients = data
+        new_chapters = []
+        for chapter in self.chapters:
+            chapter.apply(data = data, **kwargs)
+            new_chapters.append(self._apply_extra_processing(chapter = chapter))
         self.chapters = new_chapters
-        return self
-
-    """ Composite Methods and Properties """
-
-    def add_chapters(self, chapters: Union[List['Chapter'], 'Chapter']) -> None:
-        """Adds Chapter(s) to 'chapters' property.
-
-        Args:
-            chapters (Union[List['Chapter'], 'Chapter']): Chapter(s) to add.
-
-        """
-        self._chapters.extend(listify(chapters))
-        return self
-
-    def load_chapter(self, file_path: str) -> None:
-        """Imports a single chapter from disk and adds it to the class iterable.
-
-        Args:
-            file_path (str): a path where the file to be loaded is located.
-
-        """
-        self._chapters.append(
-            self.author.filer.load(
-                file_path = file_path,
-                file_format = 'pickle'))
-        return self
-
-    @property
-    def chapters(self) -> List['Chapter']:
-        """Returns '_chapters' attribute.
-
-        Returns:
-            List of Chapters.
-
-        """
-        return self._chapters
-
-    @chapters.setter
-    def chapters(self, chapters: Union[List['Chapter'], 'Chapter']) -> None:
-        """Assigns 'chapters' to '_chapters' attribute.
-
-        Args:
-            chapters (Union[List['Chapter'], 'Chapter']): Chapter(s) to to set
-                in the '_chapters' attribute.
-
-        """
-        self._chapters = listify(chapters)
-        return self
-
-    @chapters.deleter
-    def chapters(self, chapters: Any) -> NotImplementedError:
-        raise NotImplementedError(
-            'Chapters cannot be deleted, use setter instead')
-
-class BookFiler(SimpleFiler):
-
-    folder_path: str
-    file_name: str
-    file_format: 'FileFormat'
-
-    def __post_init__(self):
-        return self
-
-@dataclass
-class Stage(SimpleState):
-    """State machine for siMpLify project workflow.
-
-    Args:
-        idea (Idea): an instance of Idea.
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. If 'name' is not
-            provided, __class__.__name__.lower() is used instead.
-
-    """
-    idea: 'Idea'
-    name: Optional[str] = 'stage_machine'
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        return self
-
-    """ Private Methods """
-
-    def _set_states(self) -> List[str]:
-        """Determines list of possible stages from 'idea'.
-
-        Returns:
-            List[str]: states possible based upon user selections.
-
-        """
-        states = []
-        for stage in listify(self.options.idea['simplify']['simplify_steps']):
-            if stage == 'farmer':
-                for step in self.options.idea['farmer']['farmer_steps']:
-                    states.append(step)
-            else:
-                states.append(stage)
-        return states
-
-    """ Core siMpLify Methods """
-
-    def draft(self) -> None:
-        """Initializes state machine."""
-        # Sets list of possible states based upon Idea instance options.
-        self._options = SimpleOptions(options = self._set_states()
-        # Sets initial state.
-        self.state = self.options[0]
         return self

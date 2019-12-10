@@ -17,7 +17,7 @@ import pandas as pd
 
 from simplify.library.defaults import Defaults
 from simplify.creator.typesetter import SimpleFile
-from simplify.creator.typesetter import SimpleOptions
+from simplify.creator.typesetter import Options
 from simplify.creator.typesetter import SimpleState
 from simplify.library.utilities import deduplicate
 from simplify.library.utilities import listify
@@ -117,7 +117,7 @@ def backup_df(return_df: Optional[bool] = False) -> Callable:
 """ Ingredients Class """
 
 @dataclass
-class Ingredients(SimpleOptions):
+class Ingredients(Options):
     """Stores pandas DataFrames and Series with related information about those
     data containers.
 
@@ -912,5 +912,5 @@ class DataState(SimpleState):
 
     def draft(self) -> None:
         # Sets possible states
-        self._options = SimpleOptions(options = ['unsplit', 'train_test', 'train_val', 'full']
+        self._options = Options(options = ['unsplit', 'train_test', 'train_val', 'full']
         return self
