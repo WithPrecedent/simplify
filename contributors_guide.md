@@ -17,7 +17,7 @@ siMpLify is fully extensible. Additional subpackages, Books, Chapters, and Pages
 It is particularly important for contributions to follow the Google style for docstrings so that sphinx napoleon can automatically incorporate the docstrings into online documentation.
 
 2. Explicitness preferences are heightened beyond PEP8 guidelines. Varible names should be verbose enough so that there meaning is clear and consistent. Annotations (using python 3.7+) should always be used in arguments and docstrings. As siMpLify is intended to be used by all levels of coders (and by non-coders as well), it is important to make everything as clear as possible to someone seeing the code for the first time. List and dict comprehensions are disfavored. If there are significant speed advantages to using a comprehension,
-please wrap them in a function or method (as with the 'add_suffix' and 'add_prefix' functions in simplify.library.utilities).
+please wrap them in a function or method (as with the 'add_suffix' and 'add_prefix' functions in simplify.core.utilities).
 
 3. Follow the package naming conventions. All abstract base classes begin with the prefix 'Simple'. Generally, siMpLify tries to avoid cluttering user namespace with commonly used object names (an exception was made for the 'apply' method).
 
@@ -55,7 +55,7 @@ Any new subpackages, Books, Chapters, and Pages should follow a similar template
 
 ## siMpLify Resources
 
-1. All file management should be perfomed throught the shared Filer instance.
+1. All file management should be perfomed throught the shared Inventory instance.
 
 2. All external settings should be imported and constructed using the shared Idea instance. To inject matching attributes from the Idea instance, use this idiom from a subclass with the Idea instance stored at 'idea':
 
@@ -63,11 +63,11 @@ Any new subpackages, Books, Chapters, and Pages should follow a similar template
 
 3. All external data should be contained in instances of Ingredients. Before beginning the processes in Chef, ideally, there should be a single, combined pandas DataFrame stored in the Ingredients instance at the 'df' attribute.
 
-4. Any generally usable functions or decorators should be stored in simplify.library.utilities.
+4. Any generally usable functions or decorators should be stored in simplify.core.utilities.
 
-5. If you create a proxy for typing, please subclass the SimpleType class in simplify.creator.typesetter, if possible.
+5. If you create a proxy for typing, please subclass the SimpleType class in simplify.core.typesetter, if possible.
 
-6. State management is currently handled by classes in simplify.library.states, but are typically accessed indirectly. The overall 'stage' attribute is an attribute to a Filer instance and 'data_state' is an attribute to an Ingredients instance.
+6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'stage' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Ingredients instance.
 
 ## General
 

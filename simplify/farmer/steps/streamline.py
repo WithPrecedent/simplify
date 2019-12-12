@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.creator.typesetter import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
 @dataclass

@@ -1,43 +1,123 @@
 """
-.. module:: author
-:synopsis: composite tree abstract base classes
+.. module:: creator
+:synopsis: composite tree builder
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
-
+from collections import ABC
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.creator.options import CodexOptions
-from simplify.library.utilities import listify
+from simplify import creator
+from simplify.core.options import CodexOptions
+from simplify.core.utilities import listify
 
 
 @dataclass
-class Author(object):
-    """Base class for building SimpleCodex instances.
-
-    SimpleComposite implements a modified composite tree pattern for organizing
-    the various subpackages in siMpLify.
+class SimpleCreator(ABC):
+    """Base class for building SimpleCodex objects and instances.
 
     Args:
-        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows
-            setting of 'options' property with an argument. Defaults to None.
+        idea (Union['Idea', Dict[str, Dict[str, Any]], str]): an instance of
+            Idea, a nested Idea-compatible nested dictionary, or a string
+            containing the file path where a file of a supoorted file type with
+            settings for an Idea instance is located.
+        inventory (Optional[Union['Inventory', str]]): an instance of Inventory or a string
+            containing the full path of where the root folder should be located
+            for file output. A Inventory instance contains all file path and
+            import/export methods for use throughout the siMpLify package.
+            Default is None.
+        ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
+            np.ndarray, str]]): an instance of Ingredients, a string containing
+            the full file path where a data file for a pandas DataFrame or
+            Series is located, a string containing a file name in the default
+            data folder, as defined in the shared Inventory instance, a
+            DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
+            string is provided, the resultant DataFrame is stored at the 'df'
+            attribute in a new Ingredients instance. Default is None.
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. If 'name' is not
+            provided, __class__.__name__.lower() is used instead.
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            a subclass is instanced. For auto_publish to have an effect,
+            'ingredients' and 'options' must also be passed. Defaults to True,
+            but the 'publish' method will not be called without 'ingredients'
+            and 'options'.
 
     """
-    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
+    idea: Union['Idea', Dict[str, Dict[str, Any]], str]
+    inventory: Optional[Union['Inventory', str]] = None
+    ingredients: Optional[Union[
+        'Ingredients',
+        pd.DataFrame,
+        pd.Series,
+        np.ndarray,
+        str]] = None
+    name: str = 'creator'
+    auto_publish: Optional[bool] = True
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
-        # Sets default 'name' attribute if none exists.
-        if not hasattr(self, 'name'):
-            self.name = self.__class__.__name__.lower()
         # Automatically calls 'draft' method.
         self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
         if hasattr(self, 'auto_publish') and self.auto_publish:
             self.publish()
         return self
+
+    """ Private Methods """
+
+    def _add_idea(self, instance: 'SimpleCodex') -> 'SimpleCodex':
+
+        return instance
+
+    """ Core siMpLify Methods """
+
+    def draft(self) -> None:
+        """Sets initial attributes."""
+        # Sets default 'name' attribute if none exists.
+        if not hasattr(self, 'name'):
+            self.name = self.__class__.__name__.lower()
+        return self
+
+    def publish(self) -> None:
+        """Finalizes core attributes."""
+        # Finalizes Idea, Inventory, and Ingredients instances.
+        self.idea, self.inventory, self.ingredients = creator.startup(
+            idea = self.idea,
+            inventory = self.inventory,
+            ingredients = self.ingredients)
+        # Injects attributes from Idea instance, if values exist.
+        self = self.idea.apply(instance = self)
+        return self
+
+    def apply(self, outline: 'Outline', **kwargs) -> object:
+        return self.make(outline = outline, **kwargs)
+
+    def make(self, outline: 'Outline', **kwargs) -> object:
+        """Applies created objects to passed 'data'.
+
+        Subclasses should provide their own 'apply' method, if needed.
+
+        Args:
+            data (object): data object for methods to be applied.
+
+        """
+        return instance
+
+
+@dataclass
+class Editor(SimpleCreator):
+
+
+@dataclass
+class Author(SimpleCreator):
 
 
 @dataclass
@@ -123,7 +203,7 @@ class SimpleCodex(ABC):
         self._draft_techniques()
         return self
 
-    def publish(self, data: Optional[object] = None) -> None:
+    def publish(self) -> None:
         """Required method which applies methods to passed data.
 
         Subclasses should provide their own 'publish' method.

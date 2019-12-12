@@ -1,5 +1,5 @@
 """
-.. module:: filer
+.. module:: inventory
 :synopsis: file management made simple
 :author: Corey Rayburn Yung
 :copyright: 2019
@@ -16,14 +16,14 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.creator.options import CodexOptions
-from simplify.creator.outline import Outline
-from simplify.library.defaults import Defaults
-from simplify.library.utilities import listify
+from simplify.core.options import CodexOptions
+from simplify.core.outline import Outline
+from simplify.core.defaults import Defaults
+from simplify.core.utilities import listify
 
 
 @dataclass
-class Filer(object):
+class Inventory(object):
     """Manages files and folders for siMpLify.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -32,8 +32,8 @@ class Filer(object):
 
     Args:
         root_folder (Optional[str]): the complete path from which the other
-            paths and folders used by Filer should be created. Defaults to
-            the parent folder or the parent folder of the current working 
+            paths and folders used by Inventory should be created. Defaults to
+            the parent folder or the parent folder of the current working
             directory.
         data_folder (Optional[str]): the data subfolder name or a complete path
             if the 'data_folder' is not off of 'root_folder'. Defaults to
@@ -54,7 +54,7 @@ class Filer(object):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
-            
+
     """
     idea: 'Idea'
     root_folder: Optional[str] = None
@@ -137,11 +137,11 @@ class Filer(object):
         """Creates default folder and file settings."""
         self._check_root_folder()
         self._draft_options()
-        self.folderifier = Folderifier(filer = self)
-        self.nameifier = Nameifier(filer = self)
-        self.formatifier = Formatifier(filer = self)
-        self.pathifier = Pathifier(filer = self)
-        self.kwargifier = Kwargifier(filer = self)
+        self.folderifier = Folderifier(inventory = self)
+        self.nameifier = Nameifier(inventory = self)
+        self.formatifier = Formatifier(inventory = self)
+        self.pathifier = Pathifier(inventory = self)
+        self.kwargifier = Kwargifier(inventory = self)
         return self
 
     def publish(self) -> None:
@@ -152,20 +152,20 @@ class Filer(object):
         self.folderifier.add_folders(
             subfolders = self.data_subfolders,
             root_folder = self.data)
-        self.importer = Importer(filer = self)
-        self.exporter = Exporter(filer = self)
+        self.importer = Importer(inventory = self)
+        self.exporter = Exporter(inventory = self)
         return self
 
     def apply(self, instance: object) -> None:
-        """Injects Filer instance into passed 'instance'.
+        """Injects Inventory instance into passed 'instance'.
 
-        The attribute name will be the same as Filer's 'name' attribute.
+        The attribute name will be the same as Inventory's 'name' attribute.
 
         Args:
-            instance (object): instance for Filer instance to be injected.
+            instance (object): instance for Inventory instance to be injected.
 
         Returns:
-            instance (object): instance with Filer instance injected.
+            instance (object): instance with Inventory instance injected.
 
         """
         setattr(instance, self.name, self)
@@ -177,7 +177,7 @@ class Folderifier(object):
     """Builds folders and, if necessary, writes them to disk.
 
     Args:
-        filer ('Filer'): Filer instance.
+        inventory ('Inventory'): Inventory instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -187,7 +187,7 @@ class Folderifier(object):
             __class__.__name__ to make such subclassing easier.
 
     """
-    filer: 'Filer'
+    inventory: 'Inventory'
     name: Optional[str] = 'folderifier'
 
     def __post_init__(self) -> None:
@@ -265,7 +265,7 @@ class Folderifier(object):
 
         Args:
             folder_tree (Dict[str, str]): a folder tree to be created with
-                corresponding attributes to the filer instance.
+                corresponding attributes to the inventory instance.
 
         """
         for folder, subfolders in folder_tree.items():
@@ -320,9 +320,9 @@ class Folderifier(object):
     def draft(self) -> None:
         """Sets core default folders"""
         self._options = CodexOptions(options = {
-            'root': self.filer.root_folder,
-            'data': self.filer.data_folder,
-            'results': self.filer.results_folder})
+            'root': self.inventory.root_folder,
+            'data': self.inventory.data_folder,
+            'results': self.inventory.results_folder})
         return self
 
     def apply(self, folder):
@@ -336,7 +336,7 @@ class Nameifier(object):
     """Builds file_names from passed arguments or default options.
 
     Args:
-        filer ('Filer'): Filer instance.
+        inventory ('Inventory'): Inventory instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -346,7 +346,7 @@ class Nameifier(object):
             __class__.__name__ to make such subclassing easier.
 
     """
-    filer: 'Filer'
+    inventory: 'Inventory'
     name: Optional[str] = 'nameifier'
 
     def __post_init__(self) -> None:
@@ -358,7 +358,7 @@ class Formatifier(object):
     """Sets appropriate file_format and file extension.
 
     Args:
-        filer ('Filer'): Filer instance.
+        inventory ('Inventory'): Inventory instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -368,7 +368,7 @@ class Formatifier(object):
             __class__.__name__ to make such subclassing easier.
 
     """
-    filer: 'Filer'
+    inventory: 'Inventory'
     name: Optional[str] = 'formatifier'
 
     """ Core siMpLify Methods """
@@ -436,7 +436,7 @@ class Pathifier(object):
     """Builds completed file_paths.
 
     Args:
-        filer ('Filer'): Filer instance.
+        inventory ('Inventory'): Inventory instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -446,7 +446,7 @@ class Pathifier(object):
             __class__.__name__ to make such subclassing easier.
 
     """
-    filer: 'Filer'
+    inventory: 'Inventory'
     name: Optional[str] = 'formatifier'
 
     def __post_init__(self) -> None:
@@ -465,10 +465,10 @@ class Pathifier(object):
 
         """
         if not folder:
-            folder = self.filer.data_folders[self.filer.stage]
+            folder = self.inventory.data_folders[self.inventory.stage]
         else:
             try:
-                folder = getattr(self.filer, folder)
+                folder = getattr(self.inventory, folder)
             except AttributeError:
                 pass
         return folder
@@ -484,7 +484,7 @@ class Pathifier(object):
 
         """
         if not file_name:
-            file_name = self.filer.data_file_names[self.filer.stage]
+            file_name = self.inventory.data_file_names[self.inventory.stage]
         return file_name
 
     def _set_file_format(self, file_format: Optional[str] = None) -> str:
@@ -498,7 +498,7 @@ class Pathifier(object):
 
         """
         if not file_format:
-            file_format = self.filer.data_file_formats[self.filer.stage]
+            file_format = self.inventory.data_file_formats[self.inventory.stage]
         return file_format
 
     def _make_path(self,
@@ -517,7 +517,7 @@ class Pathifier(object):
 
         """
         return os.path.join(folder,'.'.join(
-            [file_name, self.filer.extensions[file_format]]))
+            [file_name, self.inventory.extensions[file_format]]))
 
     """ Core siMpLify Methods """
 
@@ -554,7 +554,7 @@ class Kwargifier(object):
     """Builds completed file_paths.
 
     Args:
-        filer ('Filer'): Filer instance.
+        inventory ('Inventory'): Inventory instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -564,7 +564,7 @@ class Kwargifier(object):
             __class__.__name__ to make such subclassing easier.
 
     """
-    filer: 'Filer'
+    inventory: 'Inventory'
     name: Optional[str] = 'kwargtifier'
 
     def __post_init__(self) -> None:
@@ -631,7 +631,7 @@ class Distributor(ABC):
             if not variable in passed_kwargs:
                 if variable in self.default_kwargs:
                     new_kwargs.update(
-                        {variable: self.filer.default_kwargs[variable]})
+                        {variable: self.inventory.default_kwargs[variable]})
                 elif hasattr(self, variable):
                     new_kwargs.update({variable: getattr(self, variable)})
         return new_kwargs
@@ -654,7 +654,7 @@ class Importer(Distributor):
     """Manages file importing for siMpLify.
 
     Args:
-        filer ('Filer): parent Filer class instance.
+        inventory ('Inventory): parent Inventory class instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -664,7 +664,7 @@ class Importer(Distributor):
             __class__.__name__ to make such subclassing easier.
 
     """
-    filer: 'Filer'
+    inventory: 'Inventory'
     name: Optional[str] = 'import'
     auto_publish: Optional[bool] = True
 
@@ -765,7 +765,7 @@ class Exporter(Distributor):
     """Manages file exporting for siMpLify.
 
     Args:
-        filer ('Filer): parent Filer class instance.
+        inventory ('Inventory): parent Inventory class instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -775,7 +775,7 @@ class Exporter(Distributor):
             __class__.__name__ to make such subclassing easier.
 
     """
-    filer: 'Filer'
+    inventory: 'Inventory'
     name: Optional[str] = 'export'
     auto_publish: Optional[bool] = True
 
@@ -869,7 +869,7 @@ class Exporter(Distributor):
 
 
 @dataclass
-class SimpleFiler(ABC):
+class SimpleInventory(ABC):
     """Base class for storing and creating file paths."""
 
     """ Public Methods """
@@ -883,7 +883,7 @@ class SimpleFiler(ABC):
         """Loads object from file into the subclass attribute 'name'.
 
         For any arguments not passed, default values stored in the shared
-        Filer instance will be used based upon the current 'stage' of the
+        Inventory instance will be used based upon the current 'stage' of the
         siMpLify project.
 
         Args:
@@ -898,10 +898,10 @@ class SimpleFiler(ABC):
                 loaded without the file extension (not used if file_path is
                 passed). Defaults to None.
             file_format (Optional[str]): name of file format in
-                filer.extensions. Defaults to None.
+                inventory.extensions. Defaults to None.
 
         """
-        setattr(self, name, self.filer.load(
+        setattr(self, name, self.inventory.load(
             file_path = file_path,
             folder = folder,
             file_name = file_name,
@@ -919,7 +919,7 @@ class SimpleFiler(ABC):
         If 'variable' is not passed, 'self' will be used.
 
         For other arguments not passed, default values stored in the shared
-        filer instance will be used based upon the current 'stage' of the
+        inventory instance will be used based upon the current 'stage' of the
         siMpLify project.
 
         Args:
@@ -934,7 +934,7 @@ class SimpleFiler(ABC):
                 without the file extension (not used if file_path is passed).
                 Defaults to None.
             file_format (Optional[str]): name of file format in
-                filer.extensions. Defaults to None.
+                inventory.extensions. Defaults to None.
 
         """
         # If variable is not passed, the subclass instance is saved.
@@ -947,7 +947,7 @@ class SimpleFiler(ABC):
                 variable = getattr(self, variable)
             except TypeError:
                 pass
-        self.filer.save(
+        self.inventory.save(
             variable = variable,
             file_path = file_path,
             folder = folder,

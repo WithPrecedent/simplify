@@ -11,8 +11,6 @@ from dataclasses import dataclass
 from importlib import import_module
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.creator.chapter import Chapter
-
 
 @dataclass
 class Outline(Container):
@@ -125,8 +123,3 @@ class PageOutline(Outline):
     selected: Optional[Union[bool, List[str]]] = False
     conditional: Optional[bool] = False
     data_dependent: Optional[Dict[str, str]] = None
-
-def expand_outline(outline: 'Outline') -> 'SimpleCodex':
-    
-
-    return codex

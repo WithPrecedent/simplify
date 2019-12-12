@@ -12,7 +12,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
-from simplify.creator.typesetter import CriticTechnique
+from simplify.core.typesetter import CriticTechnique
 from simplify.critic.collection import CriticTechnique
 
 

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.creator.typesetter import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector

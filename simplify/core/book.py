@@ -14,11 +14,11 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-import simplify.creator
-from simplify.creator.chapter import Chapter
-from simplify.creator.codex import SimpleCodex
-from simplify.creator.options import CodexOptions
-from simplify.library.utilities import listify
+import simplify.core
+from simplify.core.chapters import Chapters
+from simplify.core.codex import SimpleCodex
+from simplify.core.options import CodexOptions
+from simplify.core.utilities import listify
 
 
 @dataclass
@@ -34,7 +34,7 @@ class Book(SimpleCodex):
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Filer instance, a
+            data folder, as defined in the shared Inventory instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -46,32 +46,30 @@ class Book(SimpleCodex):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
-        steps (Optional[List[str], str]): ordered list of steps to
-            use. Each technique should match a key in 'options'. Defaults to
-            None.
+        steps (Optional[List[str], str, Dict[str, str]]): ordered list of
+            steps to use with each item matching a key in 'options', a single
+            item which matchings a key in 'options' or a dictionary where each
+            key matches a key in options and each value is a 'technique'
+            parameter to be sent to a child class. Defaults to an empty dict.
         options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows
-            setting of 'options' property with an argument. Defaults to None.
+            setting of 'options' property with an argument. Defaults to an
+            empty dict.
+        chapters (Optional[Union['Chapters', Dict[str, 'Page']]]): a dictionary
+            with stored Page instance or a completed Chapters instance. This
+            should not be ordinarly passed, but is made available if users
+            wish to pass a set of Chapters instance. Defaults to an empty dict.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. For auto_publish to have an effect,
             'ingredients' must also be passed. Defaults to True.
         file_format (Optional[str]): name of file format for object to be
             serialized. Defaults to 'pickle'.
-        export_folder (Optional[str]): attribute name of folder in 'filer' for
+        export_folder (Optional[str]): attribute name of folder in 'inventory' for
             serialization of subclasses to be saved. Defaults to 'book'.
 
     """
-    ingredients: Optional[Union[
-        'Ingredients',
-        pd.DataFrame,
-        pd.Series,
-        np.ndarray,
-        str]] = None
+    chapters: List['Chapters']
+    filer: 'SimpleFiler'
     name: Optional[str] = 'simplify'
-    steps: Optional[Union[List[str], str]] = None
-    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
-    auto_publish: Optional[bool] = True
-    file_format: Optional[str] = 'pickle'
-    export_folder: Optional[str] = 'book'
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods."""
@@ -80,24 +78,7 @@ class Book(SimpleCodex):
         return self
 
     """ Private Methods """
-    
-    def _draft_steps(self) -> None:
-        """If 'steps' does not exist, gets 'steps' from 'idea'.
 
-        If there are no matching 'steps' or 'steps' in 'idea', a list with
-        'none' is created for 'steps'.
-
-        """     
-        if not self.steps:
-            try:
-                self.steps = listify(
-                    self.options.idea['_'.join([self.name, 'steps'])])
-            except AttributeError:
-                pass
-        elif isinstance(self.steps, list):
-            self.steps = dict(zip(self.steps, self.steps))
-        return self
-    
     def _draft_plans(self) -> None:
         """Creates cartesian product of all possible 'chapters'."""
         plans = []
@@ -127,7 +108,7 @@ class Book(SimpleCodex):
             pass
         return metadata
 
-    def _publish_chapters(self, data: Optional[object] = None) -> None:
+    def _publish_plans(self) -> None:
         """Subclasses should provide their own method, if needed.
 
         Args:
@@ -137,11 +118,17 @@ class Book(SimpleCodex):
         if not hasattr(self, 'chapter_type'):
             self.chapter_type = Chapter
         for i, plan in enumerate(self.plans):
-            self.add_chapters(
-                chapters = self.chapter_type(
+            self.chapters.add(
+                chapter = self.chapter_type(
                     name = str(i),
                     steps = dict(zip(self.steps, plan)),
+                    options = self.options,
                     metadata = self._publish_chapter_metadata(number = i)))
+        return self
+
+    def _publish_chapters(self) -> None:
+        for chapter in self.children:
+            chapter.publish()
         return self
 
     def _apply_extra_processing(self, chapter: 'Chapter') -> 'Chapter':
@@ -160,11 +147,12 @@ class Book(SimpleCodex):
     def draft(self) -> None:
         """Creates initial attributes."""
         super().draft()
+        self.chapters = Chapters(options = self.options, book = self)
         # Drafts plans based upon settings.
         self._draft_plans()
         return self
 
-    def publish(self, data: Optional[object] = None) -> None:
+    def publish(self) -> None:
         """Finalizes 'authors' and 'chapters'.
 
         Args:
@@ -174,7 +162,12 @@ class Book(SimpleCodex):
                 in 'pages'. Otherwise, it need not be passed. Defaults to None.
 
         """
-        super().publish(data = data)
+        if data is None:
+            try:
+                data = self.ingredients
+            except AttributeError:
+                pass
+        self._publish_plans()
         self._publish_chapters(data = data)
         return self
 

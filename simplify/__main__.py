@@ -38,13 +38,13 @@ def _args_to_dict() -> Dict[str, str]:
 
 def main(
         idea: 'Idea',
-        filer: 'Filer',
+        inventory: 'Inventory',
         ingredients: 'Ingredients') -> 'Project':
-    """Creates Project from idea, filer, and ingredients
+    """Creates Project from idea, inventory, and ingredients
 
     Args:
         idea ('Idea'): an Idea instance.
-        filer ('Filer'): a Filer instance.
+        inventory ('Inventory'): a Inventory instance.
         ingredients ('Ingredients'): an Ingredients instance.
 
     Returns:
@@ -53,16 +53,16 @@ def main(
     """
     return simplify.make_project(
         idea = idea,
-        filer = filer,
+        inventory = inventory,
         ingredients = ingredients)
 
 if __name__ == '__main__':
     # Gets command line arguments and converts them to dict.
     arguments = _args_to_dict()
-    # Creates Idea, Filer, and Ingredients instances from passed arguments.
-    idea, filer, ingredients = simplify.startup(
+    # Creates Idea, Inventory, and Ingredients instances from passed arguments.
+    idea, inventory, ingredients = simplify.startup(
         idea = arguments.get('-idea'),
-        filer = arguments.get('-filer'),
+        inventory = arguments.get('-inventory'),
         ingredients = arguments.get('-ingredients'))
     # Calls 'main' function to return Project.
-    main(idea = idea, filer = filer, ingredients = ingredients)
+    main(idea = idea, inventory = inventory, ingredients = ingredients)

@@ -17,9 +17,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.library.defaults import Defaults
-from simplify.creator.typesetter import CodexOptions
-from simplify.library.utilities import listify
+from simplify.core.defaults import Defaults
+from simplify.core.typesetter import CodexOptions
+from simplify.core.utilities import listify
 
 
 @dataclass
@@ -36,7 +36,7 @@ class Inventory(CodexOptions):
 
 
 @dataclass
-class GraphicsFiler(SimpleFile):
+class GraphicsInventory(SimpleFile):
 
     folder_path: str
     file_name: str

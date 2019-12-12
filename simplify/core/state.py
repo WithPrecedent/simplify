@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.library.utilities import listify
+from simplify.core.utilities import listify
 
 
 @dataclass
@@ -18,7 +18,7 @@ class SimpleState(object):
 
     states: List[str]
     initial_state: Optional[str] = None
-    
+
     def _post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
         # Automatically calls 'draft' method.
@@ -30,7 +30,7 @@ class SimpleState(object):
     def __iter__(self) -> Iterable:
         """Returns 'states' as an Iterable."""
         return iter(self.states)
-    
+
     def __repr__(self) -> str:
         """Returns string name of 'state'."""
         return self.state

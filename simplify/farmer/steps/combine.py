@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from simplify.creator.typesetter import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
 @dataclass

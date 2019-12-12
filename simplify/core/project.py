@@ -15,10 +15,11 @@ import numpy as np
 import pandas as pd
 
 from simplify import creator
-from simplify.creator.codex import SimpleCodex
-from simplify.creator.options import CodexOptions
-from simplify.creator.outline import Outline
-from simplify.library.utilities import listify
+from simplify.core.codex import SimpleCodex
+from simplify.core.options import CodexOptions
+from simplify.core.options import Options
+from simplify.core.outline import Outline
+from simplify.core.utilities import listify
 
 
 @dataclass
@@ -30,19 +31,27 @@ class Project(SimpleCodex):
             file path or file name (in the current working directory) where a
             file of a supported file type with settings for an Idea instance is
             located.
-        filer (Optional[Union['Filer', str]]): an instance of filer or a string
-            containing the full path of where the root folder should be located
-            for file output. A filer instance contains all file path and
-            import/export methods for use throughout the siMpLify package.
-            Default is None.
+        inventory (Optional[Union['Inventory', str]]): an instance of Inventory
+            or a string containing the full path of where the root folder should
+            be located for file output. A inventory instance contains all file
+            path and import/export methods for use throughout the siMpLify
+            package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Filer instance, a DataFrame, a
-            Series, or numpy ndarray. If a DataFrame, ndarray, or string is
-            provided, the resultant DataFrame is stored at the 'df' attribute
-            in a new Ingredients instance. Default is None.
+            data folder, as defined in the shared Inventory instance, a
+            DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
+            string is provided, the resultant DataFrame is stored at the 'df'
+            attribute in a new Ingredients instance. Default is None.
+        steps (Optional[List[str], str]): ordered list of steps to execute. Each
+            step should match a key in 'options'. Defaults to an empty list.
+        options (Optional[Union['CodexOptions', Dict[str, 'Book']]]): allows
+            setting of 'options' property with an argument. Defaults to an
+            empty dictionary.
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            a subclass is instanced. For auto_publish to have an effect,
+            'ingredients' must also be passed. Defaults to True.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -51,41 +60,34 @@ class Project(SimpleCodex):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. If 'name' is not
             provided, __class__.__name__.lower() is used instead.
-        steps (Optional[List[str], str]): ordered list of steps to
-            use. Each step should match a key in 'options'. Defaults to
-            None.
-        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows setting of
-            'options' property with an argument. Defaults to None.
-        auto_publish (Optional[bool]): whether to call the 'publish' method when
-            a subclass is instanced. For auto_publish to have an effect,
-            'ingredients' must also be passed. Defaults to True.
 
     """
     idea: Union['Idea', str] = None
-    filer: Optional[Union['Filer', str]] = None
+    inventory: Optional[Union['Inventory', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
         pd.DataFrame,
         pd.Series,
         np.ndarray,
         str]] = None
-    name: Optional[str] = 'simplify'
-    steps: Optional[Union[List[str], str]] = None
-    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
+    steps: Optional[Union[List[str], str]] = field(default_factory = list)
+    options: Optional[Union['CodexOptions', Dict[str, 'Book']]] = field(
+        default_factory = dict)
     auto_publish: Optional[bool] = True
+    name: Optional[str] = 'simplify'
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Finalizes 'idea', 'filer', and 'ingredients instances.
-        self.idea, self.filer, self.ingredients = creator.startup(
+        # Finalizes 'idea', 'inventory', and 'ingredients instances.
+        self.idea, self.inventory, self.ingredients = creator.startup(
             idea = self.idea,
-            filer = self.filer,
+            inventory = self.inventory,
             ingredients = self.ingredients)
-        # Injects CodexOptions class with 'filer' and 'idea'.
-        CodexOptions.idea = self.idea
-        CodexOptions.filer = self.filer
+        # Injects CodexOptions class with 'inventory' and 'idea'.
+        Options.idea = self.idea
+        Options.inventory = self.inventory
         # Sets proxy property names.
         self.proxies = {'children': 'books'}
         super()._post_init__()
@@ -117,7 +119,7 @@ class Project(SimpleCodex):
                     name = 'artist',
                     module = 'simplify.artist',
                     component = 'Canvas')},
-            codex = self)
+            parent = self)
         super()._draft_options()
         return self
 
@@ -139,7 +141,7 @@ class Project(SimpleCodex):
         self._store_steps()
         return self
 
-    def publish(self, data: Optional[object] = None) -> None:
+    def publish(self) -> None:
         """Finalizes steps by creating Book instances in options.
 
         Args:
@@ -147,13 +149,7 @@ class Project(SimpleCodex):
                 'publish' method.
 
         """
-        if data is None:
-            data = self.ingredients
-        for step in self.steps:
-            step.options.publish(
-                author = self.author,
-                steps = self.steps,
-                data = data)
+        super().publish(data = data)
         self._store_steps()
         return self
 
@@ -166,13 +162,6 @@ class Project(SimpleCodex):
                 as well.
 
         """
-        if data is not None:
-            self.ingredients = data
-        for step in self.steps:
-            self.ingredients = self.options.apply(
-                worker = self.worker,
-                key = step,
-                data = self.ingredients,
-                **kwargs)
+        data = super().apply(data = data)
         self._store_steps()
         return self

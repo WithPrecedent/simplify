@@ -1,123 +1,280 @@
 """
-.. module:: creator
-:synopsis: composite tree builder
+.. module:: author
+:synopsis: composite tree abstract base classes
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
-from collections import ABC
+
 from dataclasses import dataclass
+from dataclasses import field
+from importlib import import_module
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify import creator
-from simplify.creator.options import CodexOptions
-from simplify.library.utilities import listify
+from simplify.core.book import Book
+from simplify.core.book import Chapter
+from simplify.core.book import Page
+from simplify.core.options import CodexOptions
+from simplify.core.utilities import listify
 
 
 @dataclass
-class SimpleCreator(ABC):
-    """Base class for building SimpleCodex objects and instances.
+class Creator(ABC):
 
-    Args:
-        idea (Union['Idea', Dict[str, Dict[str, Any]], str]): an instance of
-            Idea, a nested Idea-compatible nested dictionary, or a string
-            containing the file path where a file of a supoorted file type with
-            settings for an Idea instance is located.
-        filer (Optional[Union['Filer', str]]): an instance of Filer or a string
-            containing the full path of where the root folder should be located
-            for file output. A Filer instance contains all file path and
-            import/export methods for use throughout the siMpLify package.
-            Default is None.
-        ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
-            np.ndarray, str]]): an instance of Ingredients, a string containing
-            the full file path where a data file for a pandas DataFrame or
-            Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Filer instance, a
-            DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
-            string is provided, the resultant DataFrame is stored at the 'df'
-            attribute in a new Ingredients instance. Default is None.
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. If 'name' is not
-            provided, __class__.__name__.lower() is used instead.
-        auto_publish (Optional[bool]): whether to call the 'publish' method when
-            a subclass is instanced. For auto_publish to have an effect,
-            'ingredients' and 'options' must also be passed. Defaults to True,
-            but the 'publish' method will not be called without 'ingredients'
-            and 'options'.
-
-    """
-    idea: Union['Idea', Dict[str, Dict[str, Any]], str]
-    filer: Optional[Union['Filer', str]] = None
-    ingredients: Optional[Union[
-        'Ingredients',
-        pd.DataFrame,
-        pd.Series,
-        np.ndarray,
-        str]] = None
-    name: str = 'creator'
+    idea: 'Idea' = None
+    inventory: 'Inventory' = None
+    package: Optional[str] = None
+    options: Optional[Union['CodexOptions', Dict[str, 'SimpleCodex']]] = field(
+        default_factory = dict)
+    steps: Optional[Union[List[str], str]] = field(default_factory = list)
     auto_publish: Optional[bool] = True
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
+        # Validates passed 'options' argument.
+        self.options = self._validate_options()
         # Automatically calls 'draft' method.
         self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
-        if hasattr(self, 'auto_publish') and self.auto_publish:
+        if self.auto_publish:
             self.publish()
         return self
 
     """ Private Methods """
 
-    def _add_idea(self, instance: 'SimpleCodex') -> 'SimpleCodex':
+    def _validate_options(self) -> 'CodexOptions':
+        """
 
-        return instance
+        """
+        if self.options:
+            if isinstance(options, Dict):
+                return CodexOptions(options = options)
+            else:
+                return options
+        elif self.package:
+            try:
+                options = import_module(getattr(
+                    self.packages[self.package], 'DEFAULT_OPTIONS'))
+                return CodexOptions(options = options)
+            except ImportError:
+                raise ImportError(' '.join(
+                    [self.packages[self.package], 'was not found']))
+            except KeyError:
+                raise KeyError(' '.join([self.package, 'does not exist']))
+            except AttributeError:
+                raise AttributeError(' '.join(
+                    [self.package, 'does not have DEFAULT_OPTIONS']))
+        else:
+            raise AttributeError(' '.join(
+                [self.__class__.__name__,
+                 'requires either options or package argument']))
+
+
+    def _build_filer(self, codex_type: str) -> 'SimpleFiler':
+        """Returns SimpleFiler object appropriate to 'codex_type'.
+
+        Args:
+            codex_type (str): either 'book', 'chapter', or 'page'.
+
+        Returns:
+            'SimpleFiler' with settings for specific 'codex_type'.
+
+        """
+        return self.inventory.filers[codex_type]
+
+    def draft(self) -> None:
+        self.packages = {
+            'farmer': 'simplify.farmer.farmer',
+            'chef': 'simplify.chef.chef',
+            'actuary': 'simplify.actuary.actuary',
+            'critic': 'simplify.critic.critic',
+            'artist': 'simplify.artist.artist'}
+        return self
+
+    def apply(self,
+            name: str,
+            book: Optional['Book'] = Book,
+            technique: Optional[str] = None) -> 'SimpleCodex':
+        """Creates a SimpleCodex object based upon arguments passed.
+
+        Args:
+            codex_type (str): either 'book', 'chapter', or 'page'.
+            codex_object (Optional['SimpleCodex']): if the generic Book,
+                Chapter, or Page is not to be used, an alternative class
+                should be passed.
+
+        Returns:
+            SimpleCodex instance.
+
+        """
+        parameters = {}
+        for need in self.needs[codex_type]:
+            parameters[need] = getattr(self, '_'.join(['_draft', need]))()
+        if codex_object is None:
+            return self.default[codex_type](parameters)
+        else:
+            return codex_object(parameters)
+
+@dataclass
+class Author(Creator):
+    """Builds completed Book instances.
+
+    Args:
+        idea (Idea): an instance of Idea containing siMpLify project settings.
+        inventory (Inventory): an instance of Inventory containing file and
+            folder management attributes and methods.
+        options (Optional[Union['CodexOptions', Dict[str, 'SimpleCodex']]]):
+
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            the class is instanced.
+
+    """
+    idea: 'Idea'
+    inventory: 'Inventory'
+    package: Optional[str] = None
+    options: Optional[Union['CodexOptions', Dict[str, 'SimpleCodex']]] = field(
+        default_factory = dict)
+    steps: Optional[Union[List[str], str]] = field(default_factory = list)
+    auto_publish: Optional[bool] = True
+
+    def __post_init__(self):
+        """Calls initialization methods and sets class instance defaults."""
+        self.options = self._validate_options(options = self.options)
+        super().__post_init__()
+        return self
+
+    """ Private Methods """
+
+    def _build_steps(self, name: str) -> List[str]:
+        """Gets 'steps' from Idea, if possible."""
+        try:
+            return listify(self.idea['_'.join([name, 'steps'])])
+        except AttributeError:
+
+    def _build_techniques(self,
+            name: str,
+            steps: List[str]) -> List[List[str]]:
+        """Tries to get techniques from shared Idea instance.
+
+        Returns:
+            List[List[str]] of parallel sequences of steps.
+
+        """
+        possibilities = []
+        for step in steps:
+            try:
+                possibilities.append(listify(
+                    self.idea[name]['_'.join([step, 'techniques'])]))
+            except KeyError:
+                possibilities.append(['none'])
+        return list(map(list, product(*possibilities)))
+
+    def _build_chapters(self,
+            name: str,
+            technique: str) -> List['Chapter']:
+        """
+        """
+        steps = self._build_steps(name = name)
+        possibilities = self._build_techniques(name = name, steps = steps)
+
+        for i, plan in enumerate(self.plans):
+            self.chapters.add(
+                chapter = self.chapter_type(
+                    name = str(i),
+                    steps = dict(zip(self.steps, plan)),
+                    options = self.options,
+                    metadata = self._publish_chapter_metadata(number = i)))
+        return chapters
 
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
         """Sets initial attributes."""
-        # Sets default 'name' attribute if none exists.
-        if not hasattr(self, 'name'):
-            self.name = self.__class__.__name__.lower()
+        self.options = {
+            'chef': ChefPackage
+        }
+
         return self
 
     def publish(self) -> None:
-        """Finalizes core attributes."""
-        # Finalizes Idea, Filer, and Ingredients instances.
-        self.idea, self.filer, self.ingredients = creator.startup(
-            idea = self.idea,
-            filer = self.filer,
-            ingredients = self.ingredients)
-        # Injects attributes from Idea instance, if values exist.
-        self = self.idea.apply(instance = self)
+        """Creates instances of delegate creators."""
+        new_creators = {}
+        for name, creator in self.creators.items():
+            new_creators[name] = creator(
+                idea = self.idea,
+                inventory = self.inventory)
+        self.creators = new_creators
         return self
 
-    def apply(self, outline: 'Outline', **kwargs) -> object:
-        return self.make(outline = outline, **kwargs)
-
-    def make(self, outline: 'Outline', **kwargs) -> object:
-        """Applies created objects to passed 'data'.
-
-        Subclasses should provide their own 'apply' method, if needed.
+    def apply(self,
+            name: str,
+            book: Optional['Book'] = None,
+            options: Optional['CodexOptions'] = None) -> 'Book':
+        """Creates a SimpleCodex object based upon arguments passed.
 
         Args:
-            data (object): data object for methods to be applied.
+
+        Returns:
+            SimpleCodex instance.
 
         """
-        return instance
+        if book is None:
+            book = Book
+        return self.creators[codex_type].apply(
+            name = name,
+            codex_object = codex_object,
+            technique = technique)
+
+@dataclass
+class ChapterCreator(Creator):
+    """Base class for building SimpleCodex classes and instances.
+
+    Args:
+        idea (Idea): an instance of Idea containing siMpLify project settings.
+        inventory (Inventory): an instance of Inventory containing file and
+            folder management attributes and methods.
+
+    """
+    idea: 'Idea'
+    inventory: 'Inventory'
+    auto_publish: Optional[bool] = True
+
+    def __post_init__(self):
+        """Calls initialization methods and sets class instance defaults."""
+        super().__post_init__()
+        return self
+
+    def draft(self) -> None:
+        """Sets initial attributes."""
+        self.needs = ['pages', 'filer']
+        self.default = Chapter
+        return self
 
 
 @dataclass
-class Editor(SimpleCreator):
+class PageCreator(Creator):
+    """Base class for building SimpleCodex classes and instances.
 
+    Args:
+        idea (Idea): an instance of Idea containing siMpLify project settings.
+        inventory (Inventory): an instance of Inventory containing file and
+            folder management attributes and methods.
 
-@dataclass
-class Author(SimpleCreator):
+    """
+    idea: 'Idea'
+    inventory: 'Inventory'
+    auto_publish: Optional[bool] = True
+
+    def __post_init__(self):
+        """Calls initialization methods and sets class instance defaults."""
+        super().__post_init__()
+        return self
+
+    def draft(self) -> None:
+        """Sets initial attributes."""
+        self.needs = ['algorithm', 'parameters', 'filer']
+        self.default = Page
+        return self
 
 
 @dataclass
@@ -203,7 +360,7 @@ class SimpleCodex(ABC):
         self._draft_techniques()
         return self
 
-    def publish(self, data: Optional[object] = None) -> None:
+    def publish(self) -> None:
         """Required method which applies methods to passed data.
 
         Subclasses should provide their own 'publish' method.

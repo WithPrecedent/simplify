@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.creator.typesetter import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
 @dataclass
@@ -36,7 +36,7 @@ class Convert(FarmerTechnique):
         return self
 
     def _make_path(self, file_name):
-        file_path = os.path.join(self.filer.external, file_name)
+        file_path = os.path.join(self.inventory.external, file_name)
         return file_path
 
     def publish(self):
@@ -46,5 +46,5 @@ class Convert(FarmerTechnique):
 
     def publish(self, ingredients):
         converted = self.method(file_path = self.file_path_in)
-        self.filer.save_df(converted, file_path = self.file_path_out)
+        self.inventory.save_df(converted, file_path = self.file_path_out)
         return self

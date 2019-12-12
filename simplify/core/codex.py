@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.creator.options import CodexOptions
-from simplify.library.utilities import listify
-from simplify.library.utilities import proxify
+from simplify.core.options import CodexOptions
+from simplify.core.utilities import listify
+from simplify.core.utilities import proxify
 
 
 @dataclass
@@ -41,12 +41,17 @@ class SimpleCodex(ABC):
         default_factory = dict)
     options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
     auto_publish: Optional[bool] = True
+    parent: Optional[object] = None
+    children: Optiona[List[object]] = field(default_factory = list)
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
         # Sets default 'name' attribute if none exists.
         if not hasattr(self, 'name'):
             self.name = self.__class__.__name__.lower()
+        # Creates private 'parent' and 'children' attributes.
+        self._parent = self.parent
+        self._children = self.children
         # Automatically calls 'draft' method.
         self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
@@ -63,23 +68,57 @@ class SimpleCodex(ABC):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        """Subclasses should provide their own methods to create 'options'.
-
-        If the subclasses also allow for passing of '_options', the code below
-        should be included as well.Any
+        """
 
         """
+        if not self.options:
+            try:
+                self.options = CodexOptions(
+                    options = globals()['DEFAULT_OPTIONS'],
+                    parent = self)
+            except KeyError:
+                self.options = CodexOptions(options = {}, parent = self)
+        elif isinstance(self.options, Dict):
+            self.options = CodexOptions(options = self.options, parent = self)
+        else:
+            self.options = CodexOptions(options = {}, parent = self)
         if not hasattr(self, '_options'):
             self._options = self.options
-        if self.options is None:
-            self.options = CodexOptions(options = {}, author = self)
-        elif isinstance(self.options, Dict):
-            self.options = CodexOptions(options = self.options, author = self)
         return self
 
     def _draft_steps(self) -> None:
-        """Subclass should provide their own methods."""
+        """Drafts 'steps' as a dictionary."""
+        if not isinstance(self.steps, dict):
+            techniques = self._draft_techniques
+            if not self.steps:
+                try:
+                    self.steps = listify(
+                        self.options.idea['_'.join([self.name, 'steps'])])
+                except AttributeError:
+                    pass
+            if techniques:
+                self.steps = dict(zip(self.steps, techniques))
+            else:
+                self.steps = dict(zip(self.steps, self.steps))
         return self
+
+    def _draft_techniques(self) -> List[str]:
+        """Tries to get techniques from shared Idea instance.
+
+        Returns:
+            List[str] of techniques to use.
+        """
+        techniques = None
+        try:
+            techniques = listify(
+                self.options.idea['_'.join([self.name, 'techniques'])])
+        except AttributeError:
+            try:
+                techniques = listify(
+                    self.options.idea['_'.join([self.technique, 'techniques'])])
+            except AttributeError:
+                pass
+        return techniques
 
     """ Core siMpLify Methods """
 
@@ -93,28 +132,14 @@ class SimpleCodex(ABC):
         except AttributeError:
             pass
         # Injects attributes from Idea instance, if values exist.
-        self = self.idea.apply(instance = self)
+        self = self.options.idea.apply(instance = self)
         # Initializes class steps.
         self._draft_steps()
         return self
 
-    def publish(self, data: Optional[object] = None) -> None:
-        """Required method which applies methods to passed data.
-
-        Subclasses should provide their own 'publish' method.
-
-        Args:
-            data (Optional[object]): an optional object needed for the method.
-
-        """
-        if data is None:
-            try:
-                data = self.ingredients
-            except AttributeError:
-                pass
-        self.options.publish(
-            steps = self.steps,
-            data = data)
+    def publish(self) -> None:
+        """Finalizes objects in 'options' for application."""
+        self.options.publish(steps = self.steps)
         return self
 
     def apply(self, data: Optional[object], **kwargs) -> None:
@@ -131,7 +156,7 @@ class SimpleCodex(ABC):
                 data = self.ingredients
             except AttributeError:
                 pass
-        for technique in self.steps:
+        for step, technique in self.steps.items():
             data = self.options[technique].options.apply(
                 key = technique,
                 data = data,
@@ -155,8 +180,8 @@ class SimpleCodex(ABC):
             file_path (str): a path where the file to be loaded is located.
 
         """
-        self.children.append(
-            self.filer.load(
+        self.add_children(children =
+            self.options.inventory.load(
                 file_path = file_path,
                 file_format = 'pickle'))
         return self
@@ -226,7 +251,7 @@ class SimpleCodex(ABC):
                 another 'CodexOptions' instance or an options dict.
 
         """
-        self.options += options
+        self.options.add(options = options)
         return self
 
     @property

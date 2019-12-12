@@ -1,6 +1,6 @@
 """
 .. module:: chef
-:synopsis: algorithm and parameter builder
+:synopsis: machine learning made simple
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -13,18 +13,19 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.creator.codex import SimpleCodex
-from simplify.creator.book import Book
-from simplify.creator.chapter import Chapter
-from simplify.creator.content import Content
-from simplify.creator.outline import Outline
-from simplify.creator.page import Page
-from simplify.library.utilities import listify
+from simplify.core.codex import SimpleCodex
+from simplify.core.book import Book
+from simplify.core.chapter import Chapter
+from simplify.core.content import Content
+from simplify.core.creator import SimpleCreator
+from simplify.core.outline import Outline
+from simplify.core.page import Page
+from simplify.core.utilities import listify
 
 
 @dataclass
-class Chef(SimpleCodex):
-    """Constructs Page instances from Outline instances for use in a Chapter.
+class Chef(SimpleCreator):
+    """Constructs Cookbook, Recipe
 
     This class is a director for a complex content which constructs finalized
     algorithms with matching parameters. Because of the variance of supported
@@ -37,16 +38,16 @@ class Chef(SimpleCodex):
             file path or file name (in the current working directory) where a
             file of a supoorted file type with settings for an Idea instance is
             located.
-        filer (Optional[Union['Filer', str]]): an instance of
-            filer or a string containing the full path of where the root
-            folder should be located for file output. A filer instance
+        inventory (Optional[Union['Inventory', str]]): an instance of
+            inventory or a string containing the full path of where the root
+            folder should be located for file output. A inventory instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Filer instance, a
+            data folder, as defined in the shared Inventory instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -67,12 +68,12 @@ class Chef(SimpleCodex):
             'ingredients' must also be passed. Defaults to True.
         file_format (Optional[str]): name of file format for object to be
             serialized. Defaults to 'pickle'.
-        export_folder (Optional[str]): attribute name of folder in 'filer' for
+        export_folder (Optional[str]): attribute name of folder in 'inventory' for
             serialization of subclasses to be saved. Defaults to 'book'.
 
     """
     idea: Union['Idea', str]
-    filer: Optional[Union['Filer', str]] = None
+    inventory: Optional[Union['Inventory', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
         pd.DataFrame,
@@ -114,23 +115,23 @@ class Chef(SimpleCodex):
 
 @dataclass
 class Cookbook(Book):
-    """Creates recipes for staging, machine learning, and data analysis.
+    """Creates and stores Recipes for preprocessing and machine learning.
 
     Args:
         idea (Union[Idea, str]): an instance of Idea or a string containing the
             file path or file name (in the current working directory) where a
             file of a supoorted file type with settings for an Idea instance is
             located.
-        filer (Optional[Union['Filer', str]]): an instance of
-            filer or a string containing the full path of where the root
-            folder should be located for file output. A filer instance
+        inventory (Optional[Union['Inventory', str]]): an instance of
+            inventory or a string containing the full path of where the root
+            folder should be located for file output. A inventory instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Filer instance, a
+            data folder, as defined in the shared Inventory instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -153,7 +154,7 @@ class Cookbook(Book):
 
     """
     idea: Union['Idea', str]
-    filer: Optional[Union['Filer', str]] = None
+    inventory: Optional[Union['Inventory', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
         pd.DataFrame,
@@ -161,7 +162,8 @@ class Cookbook(Book):
         np.ndarray,
         str]] = None
     name: Optional[str] = 'chef'
-    steps: Optional[Dict[str, 'Page']] = None
+    steps: Optional[Optional[Union[List[str], str]]] = field(
+        default_factory = list)
     recipes: Optional[List['Recipe']] = None
 
     def __post_init__(self) -> None:
@@ -172,32 +174,56 @@ class Cookbook(Book):
 
     def _draft_options(self) -> None:
         self._options = CodexOptions(options = {
-            'scaler': ('simplify.chef.steps.scaler', 'Scaler'),
-            'splitter': ('simplify.chef.steps.splitter', 'Splitter'),
-            'encoder': ('simplify.chef.steps.encoder', 'Encoder'),
-            'mixer': ('simplify.chef.steps.mixer', 'Mixer'),
-            'cleaver': ('simplify.chef.steps.cleaver', 'Cleaver'),
-            'sampler': ('simplify.chef.steps.sampler', 'Sampler'),
-            'reducer': ('simplify.chef.steps.reducer', 'Reducer'),
-            'modeler': ('simplify.chef.steps.modeler', 'Modeler')}
+            'scaler': Outline(
+                name = 'scaler',
+                module = 'simplify.chef.steps.scaler',
+                component = 'Scaler'),
+            'splitter': Outline(
+                name = 'scaler',
+                module = 'simplify.chef.steps.splitter',
+                component = 'Splitter'),
+            'encoder': Outline(
+                name = 'scaler',
+                module = 'simplify.chef.steps.encoder',
+                component = 'Encoder'),
+            'mixer': Outline(
+                name = 'scaler',
+                module = 'simplify.chef.steps.mixer',
+                component = 'Mixer'),
+            'cleaver': Outline(
+                name = 'scaler',
+                module = 'simplify.chef.steps.cleaver',
+                component = 'Cleaver'),
+            'sampler': Outline(
+                name = 'scaler',
+                module = 'simplify.chef.steps.sampler',
+                component = 'Sampler'),
+            'reducer': Outline(
+                name = 'scaler',
+                module = 'simplify.chef.steps.reducer',
+                component = 'Reducer'),
+            'modeler': Outline(
+                name = 'scaler',
+                module = 'simplify.chef.steps.modeler',
+                component = 'Modeler')})
         return self
 
-    def _apply_extra_processing(self,
-            chapter: 'Chapter',
-            ingredients: 'Ingredients') -> Tuple['Chapter', 'Ingredients']:
-        """Extra actions to take for each recipe."""
-        if self.export_results:
-            self.filer.set_book_folder()
-            self.filer.set_chapter_folder(
-                chapter = chapter,
-                name = 'recipe')
-            if self.export_all_recipes:
-                self.save_recipes(recipes = chapter)
-            if 'reduce' in self.steps and chapter.steps['reduce'] != 'none':
-                ingredients.save_dropped(folder = self.filer.recipe)
-            else:
-                ingredients.save_dropped(folder = self.filer.book)
-        return chapter, ingredients
+    # def _apply_extra_processing(self,
+    #         chapter: 'Recipe',
+    #         data: 'Ingredients') -> 'Recipe':
+    #     """Extra actions to take for each recipe."""
+    #     if self.export_results:
+    #         self.inventory.set_book_folder()
+    #         self.inventory.set_chapter_folder(
+    #             chapter = chapter,
+    #             name = 'recipe')
+    #         if self.export_all_recipes:
+    #             self.save_recipes(recipes = chapter)
+    #         if 'reduce' in self.steps and chapter.steps['reduce'] != 'none':
+    #             ingredients.save_dropped(folder = self.inventory.recipe)
+    #         else:
+    #             ingredients.save_dropped(folder = self.inventory.book)
+    #     return chapter
 
     """ Public Tool Methods """
 
@@ -250,24 +276,24 @@ class Cookbook(Book):
                 best recipe).
             file_path (Optional[str]): path of where file should be saved. If
                 None, a default file_path will be created from the shared
-                Filer instance.
+                Inventory instance.
 
         """
         if recipes in ['all'] or isinstance(recipes, list):
             if recipes in ['all']:
                 recipes = self.recipes
             for recipe in recipes:
-                self.filer.set_chapter_folder(chapter = recipe)
-                recipe.save(folder = self.filer.recipe)
+                self.inventory.set_chapter_folder(chapter = recipe)
+                recipe.save(folder = self.inventory.recipe)
         # elif recipes in ['best'] and hasattr(self, 'critic'):
         #     self.critic.best_recipe.save(
         #         file_path = file_path,
-        #         folder = self.filer.book,
+        #         folder = self.inventory.book,
         #         file_name = 'best_recipe')
         elif not isinstance(recipes, str):
             recipes.save(
                 file_path = file_path,
-                folder = self.filer.chapter)
+                folder = self.inventory.chapter)
         return
 
     """ Core siMpLify Methods """

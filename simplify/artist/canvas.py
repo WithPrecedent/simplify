@@ -9,8 +9,8 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.creator.chapter import Chapter
-from simplify.creator.book import Book
+from simplify.core.chapter import Chapter
+from simplify.core.book import Book
 
 
 @dataclass
@@ -22,16 +22,16 @@ class Canvas(Book):
             file path or file name (in the current working directory) where a
             file of a supoorted file type with settings for an Idea instance is
             located.
-        filer (Optional[Union['Filer', str]]): an instance of
-            filer or a string containing the full path of where the root
-            folder should be located for file output. A filer instance
+        inventory (Optional[Union['Inventory', str]]): an instance of
+            inventory or a string containing the full path of where the root
+            folder should be located for file output. A inventory instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Filer instance, a
+            data folder, as defined in the shared Inventory instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -53,7 +53,7 @@ class Canvas(Book):
 
     """
     idea: Union['Idea', str]
-    filer: Optional[Union['Filer', str]] = None
+    inventory: Optional[Union['Inventory', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
         pd.DataFrame,

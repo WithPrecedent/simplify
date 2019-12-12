@@ -15,14 +15,15 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.creator.book import Book
-from simplify.creator.chapter import Chapter
-from simplify.creator.content import Content
-from simplify.creator.options import CodexOptions
-from simplify.creator.page import Page
-from simplify.creator.project import Project
-from simplify.library.filer import Filer
-from simplify.library.idea import Idea
+from simplify.core.book import Book
+from simplify.core.chapter import Chapter
+from simplify.core.content import Content
+from simplify.core.options import CodexOptions
+from simplify.core.page import Page
+from simplify.core.project import Project
+from simplify.core.ingredients import Ingredients
+from simplify.core.inventory import Inventory
+from simplify.core.idea import Idea
 
 __version__ = '0.1.1'
 
@@ -115,48 +116,48 @@ def make_object(object_type: str, *args, **kwargs) -> object:
 
 def startup(
         idea: Union['Idea', Dict[str, Dict[str, Any]], str],
-        filer: Union['Filer', str],
+        inventory: Union['Inventory', str],
         ingredients: Union[
             'Ingredients',
             pd.DataFrame,
             pd.Series,
             np.ndarray,
             str]) -> None:
-    """Creates Idea, Filer, and Ingredients instances.
+    """Creates Idea, Inventory, and Ingredients instances.
 
     Args:
         idea (Union['Idea', Dict[str, Dict[str, Any]], str]): an instance of
             Idea, a nested Idea-compatible nested dictionary, or a string
             containing the file path where a file of a supoorted file type with
             settings for an Idea instance is located.
-        filer (Union['Filer', str]): an instance of Filer or a string
+        inventory (Union['Inventory', str]): an instance of Inventory or a string
             containing the full path of where the root folder should be located
-            for file output. A Filer instance contains all file path and
+            for file output. A Inventory instance contains all file path and
             import/export methods for use throughout the siMpLify package.
         ingredients (Union['Ingredients', pd.DataFrame, pd.Series, np.ndarray,
             str]): an instance of Ingredients, a string containing the full file
             path where a data file for a pandas DataFrame or Series is located,
             a string containing a file name in the default data folder, as
-            defined in the shared Filer instance, a DataFrame, a Series, or
+            defined in the shared Inventory instance, a DataFrame, a Series, or
             numpy ndarray. If a DataFrame, ndarray, or string is provided, the
             resultant DataFrame is stored at the 'df' attribute in a new
             Ingredients instance.
 
     Returns:
-        Idea, Filer, Ingredients instances.
+        Idea, Inventory, Ingredients instances.
 
     """
     idea = make_idea(idea = idea)
-    filer = make_filer(filer = filer, idea = idea)
+    inventory = make_inventory(inventory = inventory, idea = idea)
     ingredients = make_ingredients(
         ingredients = ingredients,
         idea = idea,
-        filer = filer)
-    return idea, filer, ingredients
+        inventory = inventory)
+    return idea, inventory, ingredients
 
 def make_project(
         idea: Union['Idea', Dict[str, Dict[str, Any]], str],
-        filer: Optional[Union['Filer', str]] = None,
+        inventory: Optional[Union['Inventory', str]] = None,
         ingredients: Optional[Union[
             'Ingredients',
             pd.DataFrame,
@@ -173,16 +174,16 @@ def make_project(
             Idea, a nested Idea-compatible nested dictionary, or a string
             containing the file path where a file of a supoorted file type with
             settings for an Idea instance is located.
-        filer (Optional[Union['Filer', str]]): an instance of Filer or a string
+        inventory (Optional[Union['Inventory', str]]): an instance of Inventory or a string
             containing the full path of where the root folder should be located
-            for file output. A Filer instance contains all file path and
+            for file output. A Inventory instance contains all file path and
             import/export methods for use throughout the siMpLify package.
             Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Filer instance, a
+            data folder, as defined in the shared Inventory instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -208,13 +209,13 @@ def make_project(
             and 'options'.
 
     """
-    idea, filer, ingredients = startup(
+    idea, inventory, ingredients = startup(
         idea = idea,
-        filer = filer,
+        inventory = inventory,
         ingredients = ingredients)
     return Project(
         idea = idea,
-        filer = filer,
+        inventory = inventory,
         ingredients = ingredients,
         options = options,
         steps = steps,
@@ -321,7 +322,7 @@ def make_options(options: Dict[str, 'Outline']) -> 'CodexOptions':
 
 def make_book(
         idea: Union[Dict[str, Dict[str, Any]], 'Idea'],
-        filer: Optional[Union['Filer', str]],
+        inventory: Optional[Union['Inventory', str]],
         ingredients: Optional[Union[
             'Ingredients',
             pd.DataFrame,
@@ -339,16 +340,16 @@ def make_book(
             file path or file name (in the current working directory) where a
             file of a supoorted file type with settings for an Idea instance is
             located.
-        filer (Optional[Union['Filer', str]]): an instance of
-            filer or a string containing the full path of where the root
-            folder should be located for file output. A filer instance
+        inventory (Optional[Union['Inventory', str]]): an instance of
+            inventory or a string containing the full path of where the root
+            folder should be located for file output. A inventory instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Default is None.
         ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Ingredients, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Filer instance, a
+            data folder, as defined in the shared Inventory instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
@@ -374,14 +375,14 @@ def make_book(
             and 'options'.
 
     """
-    idea, filer, ingredients = startup(
+    idea, inventory, ingredients = startup(
         idea = idea,
-        filer = filer,
+        inventory = inventory,
         ingredients = ingredients)
     options = _check_options(options = options)
     return Book(
         idea = idea,
-        filer = filer,
+        inventory = inventory,
         ingredients = ingredients,
         steps = steps,
         name = name,
@@ -547,6 +548,103 @@ def make_outline(
     for key, value in kwargs.items():
         setattr(outline, key, value)
     return outline
+
+def make_ingredients(
+        ingredients: Union['Ingredients', pd.DataFrame, pd.Series, np.ndarray,
+                           str],
+        idea: 'Idea',
+        inventory: 'Inventory') -> 'Ingredients':
+    """Creates an Ingredients instance.
+
+    If 'ingredients' is an Ingredients instance, it is returned unchanged.
+    If 'ingredients' is a pandas data container, an Ingredients is created
+        with that data container as the 'df' attribute which is returned.
+    If 'ingredients' is a file path, the file is loaded into a DataFrame and
+        assigned to 'df' in an Ingredients instance which is returned.
+    If 'ingredients' is a file folder, a glob in the shared Inventory is
+        created and an Ingredients instance is returned with 'df' as None.
+    If 'ingredients' is a numpy array, it is converted to a pandas
+        DataFrame at the 'df' attribute of an Ingredients instance and
+        returned
+    If 'ingredients' is None, a new Ingredients instance is returned with
+        'df' assigned to None.
+
+    Args:
+        ingredients (Union['Ingredients', pd.DataFrame, pd.Series, np.ndarray,
+            str]): Ingredients instance or information needed to create one.
+        idea ('Idea'): an Idea instance.
+        inventory ('Inventory'): a Inventory instance.
+
+    Returns:
+        Ingredients instance, published.
+
+    Raises:
+        TypeError: if 'ingredients' is neither a file path, file folder,
+            None, DataFrame, Series, numpy array, or Ingredients instance.
+
+    """
+    if isinstance(ingredients, Ingredients):
+        return ingredients
+    elif isinstance(ingredients, (pd.Series, pd.DataFrame)):
+        return Ingredients(
+            idea = idea,
+            inventory = inventory,
+            df = ingredients)
+    elif isinstance(ingredients, np.ndarray):
+        return Ingredients(
+            idea = idea,
+            inventory = inventory,
+            df =  pd.DataFrame(data = getattr(self, ingredients)))
+    elif isinstance(ingredients, None):
+        return Ingredients(
+            idea = idea,
+            inventory = inventory)
+    elif isinstance(ingredients, str):
+        try:
+            df = inventory.load(
+                folder = inventory.data,
+                file_name = ingredients)
+            return Ingredients(
+                idea = idea,
+                inventory = inventory,
+                df = df)
+        except FileNotFoundError:
+            try:
+                inventory.make_batch(
+                    folder = getattr(self, ingredients))
+                return Ingredients(
+                    idea = idea,
+                    inventory = inventory)
+            except FileNotFoundError:
+                error = ' '.join(
+                    ['ingredients must be a file path, file folder',
+                        'DataFrame, Series, None, Ingredients, or numpy',
+                        'array'])
+                raise TypeError(error)
+
+
+def make_inventory(inventory: Union['Inventory', str], idea: 'Idea') -> 'Inventory':
+    """Creates an Inventory instance from passed arguments.
+
+    Args:
+        inventory: Union['Inventory', str]: Inventory instance or root folder for one.
+        idea ('Idea'): an Idea instance.
+
+    Returns:
+        Inventory instance, published.
+
+    Raises:
+        TypeError if inventory is not Inventory or str folder path.
+
+    """
+    if isinstance(inventory, Inventory):
+        return inventory
+    elif os.path.isdir(inventory):
+        return Inventory(idea = idea, root_folder = inventory)
+    else:
+        error = 'inventory must be Inventory type or folder path'
+        raise TypeError(error)
+
 
 def get_supported_types() -> List[str]:
     """Removes 'make_' from object names in locals() to create a list of

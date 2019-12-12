@@ -10,7 +10,7 @@ from dataclasses import dataclass
 import os
 import requests
 
-from simplify.creator.typesetter import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
 @dataclass
@@ -41,7 +41,7 @@ class Download(FarmerTechnique):
 
     def publish(self, ingredients):
         """Downloads file from a URL if the file is available."""
-        file_path = os.path.join(self.filer.external,
+        file_path = os.path.join(self.inventory.external,
                                  self.file_name)
         file_response = requests.get(self.file_url)
         with open(file_path, 'wb') as file:

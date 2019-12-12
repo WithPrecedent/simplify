@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.creator.typesetter import FarmerTechnique
+from simplify.core.typesetter import FarmerTechnique
 
 
 @dataclass

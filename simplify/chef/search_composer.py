@@ -12,7 +12,7 @@ from scipy.stats import randint, uniform
 
 from simplify.chef.chef_composer import (ChefAlgorithm, ChefComposer,
                                          ChefTechnique)
-from simplify.library.utilities import numpy_shield
+from simplify.core.utilities import numpy_shield
 
 
 @dataclass

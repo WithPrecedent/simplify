@@ -11,9 +11,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.creator.typesetter import SimpleDirector
-from simplify.creator.book import Book
-from simplify.creator.book import Chapter
+from simplify.core.typesetter import SimpleDirector
+from simplify.core.book import Book
+from simplify.core.book import Chapter
 
 
 @dataclass
@@ -153,9 +153,9 @@ class Article(SimpleDirector):
         Args:
             review(Review.report): 'report' from an instance of review
         """
-        self.filer.save(
+        self.inventory.save(
             variable = report,
-            folder = self.filer.experiment,
+            folder = self.inventory.experiment,
             file_name = self.model_type + '_review',
             file_format = 'csv',
             header = True)

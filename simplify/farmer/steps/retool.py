@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 import re
 
-from simplify.creator.typesetter import SimpleDirector
+from simplify.core.typesetter import SimpleDirector
 
 
 @dataclass

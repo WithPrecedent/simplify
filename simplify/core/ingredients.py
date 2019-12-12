@@ -15,11 +15,11 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.library.defaults import Defaults
-from simplify.library.filer import SimpleFiler
-from simplify.library.state import SimpleState
-from simplify.library.utilities import deduplicate
-from simplify.library.utilities import listify
+from simplify.core.defaults import Defaults
+from simplify.core.inventory import SimpleInventory
+from simplify.core.state import SimpleState
+from simplify.core.utilities import deduplicate
+from simplify.core.utilities import listify
 
 
 """ Ingredients Decorators """
@@ -158,7 +158,7 @@ class Ingredients(object):
 
     """
     idea: 'Idea'
-    filer: 'Filer'
+    inventory: 'Inventory'
     name: Optional[str] = 'ingredients'
     df: Optional[pd.DataFrame] = None
     default_df: Optional[str] = None
@@ -321,7 +321,7 @@ class Ingredients(object):
             taken.
         If a 'dataframe' is a file path, the file is loaded into a DataFrame and
             assigned to 'df'.
-        If a 'dataframe' is a file folder, a glob in 'filer' is created.
+        If a 'dataframe' is a file folder, a glob in 'inventory' is created.
         If a 'dataframe' is a numpy array, it is converted to a pandas
             DataFrame.
 
@@ -346,12 +346,12 @@ class Ingredients(object):
                         setattr(
                             self,
                             getattr(self, dataframe),
-                            self.filer.load(
-                                folder = self.filer.data,
+                            self.inventory.load(
+                                folder = self.inventory.data,
                                 file_name = getattr(self, dataframe)))
                     except FileNotFoundError:
                         try:
-                            self.filer.make_glob(folder = dataframe)
+                            self.inventory.make_glob(folder = dataframe)
                         except TypeError:
                             raise TypeError(' '.join(
                                 ['df must be a file path, file folder,',
@@ -798,7 +798,7 @@ class Ingredients(object):
         if self.dropped_columns:
             if self.verbose:
                 print('Exporting dropped feature list')
-            self.filer.save(
+            self.inventory.save(
                 variable = self.dropped_columns,
                 folder = folder,
                 file_name = file_name,
@@ -874,7 +874,7 @@ class Ingredients(object):
 
 
 @dataclass
-class DataFile(SimpleFiler):
+class DataFile(SimpleInventory):
     """Manages data importing and exporting for siMpLify."""
     folder_path: str
     file_name: str

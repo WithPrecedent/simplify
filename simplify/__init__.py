@@ -8,8 +8,8 @@
 
 from simplify import creator
 from simplify.__main__ import main as project
-from simplify.creator.project import Project
-from simplify.library.utilities import timer
+from simplify.core.project import Project
+from simplify.core.utilities import timer
 
 
 __version__ = '0.1.1'

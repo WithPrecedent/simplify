@@ -11,8 +11,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.creator.typesetter import SimpleDirector
-from simplify.creator.typesetter import Outline
+from simplify.core.typesetter import SimpleDirector
+from simplify.core.typesetter import Outline
 
 
 @dataclass
