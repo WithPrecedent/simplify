@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.codex import SimpleCodex
+from simplify.core.manuscript import Manuscript
 from simplify.core.utilities import listify
 
 
@@ -264,7 +264,7 @@ class Chapters(MutableMapping):
 
 
 @dataclass
-class Chapter(SimpleCodex):
+class Chapter(Manuscript):
     """Iterator for a siMpLify process.
 
     Args:
@@ -279,7 +279,7 @@ class Chapter(SimpleCodex):
         steps (Optional[Dict[str, str]]): ordered list of steps to
             use. Each technique should match a key in 'options'. Defaults to
             None.
-        options (Optional['CodexOptions']): options passed from Book instance.
+        options (Optional['ManuscriptOptions']): options passed from Book instance.
         metadata (Optional[Dict[str, Any]], optional): any metadata about
             the Chapter. In projects, 'number' is automatically a key
             created for 'metadata' to allow for better recordkeeping.
@@ -294,7 +294,7 @@ class Chapter(SimpleCodex):
     """
     name: Optional[str] = 'chapter'
     steps: Optional[Dict[str, str]] = field(default_factory = dict)
-    options: Optional['CodexOptions'] = field(default_factory = dict)
+    options: Optional['ManuscriptOptions'] = field(default_factory = dict)
     metadata: Optional[Dict[str, Any]] = field(default_factory = dict)
     auto_publish: Optional[bool] = True
     file_format: Optional[str] = 'pickle'

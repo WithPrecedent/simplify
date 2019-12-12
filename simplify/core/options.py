@@ -298,8 +298,8 @@ class Options(MutableMapping):
 
 
 @dataclass
-class CodexOptions(Options):
-    """Base class for SimpleCodex subclasses with 'options'.
+class ManuscriptOptions(Options):
+    """Base class for Manuscript subclasses with 'options'.
 
     Args:
         options (Optional[Dict[str, Any]]): alternative strategies stored
@@ -325,7 +325,7 @@ class CodexOptions(Options):
 
     def __post_init__(self):
         """Calls initialization methods and sets class instance defaults."""
-        self.proxies = {'parent': 'codex'}
+        self.proxies = {'parent': 'manuscript'}
         self.state = 'drafted'
         super().__post_init__()
         return self

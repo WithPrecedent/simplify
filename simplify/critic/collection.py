@@ -36,7 +36,7 @@ class Collection(Book):
 
     def draft(self) -> None:
         """Sets default options for the Critic's analysis."""
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'explanation': ('simplify.critic.steps.explain', 'Explain'),
             'prediction': ('simplify.critic.steps.predict', 'Predict'),
             'probabilities': ('simplify.critic.steps.probability',

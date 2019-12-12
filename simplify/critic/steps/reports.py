@@ -64,7 +64,7 @@ class Reports(CriticTechnique):
 
     def draft(self) -> None:
         super().publish()
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'classification': ('sklearn.metrics', 'classification_report'),
             'confusion': ('sklearn.metrics', 'confusion_matrix')}
         return self

@@ -119,7 +119,7 @@ class ReTool(SimpleDirector):
                              'verbose': re.VERBOSE,
                              'ascii': re.ASCII}
         # Sets options for matcher classes.
-        self._options = CodexOptions(options = {'organize': ReOrganize,
+        self._options = ManuscriptOptions(options = {'organize': ReOrganize,
                         'parse': ReSearch,
                         'keyword': ReFrame}
         return self

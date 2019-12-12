@@ -71,7 +71,7 @@ class Canvas(Book):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'styler': ('simplify.artist.steps.styler', 'Styler'),
             'painter': ('simplify.artist.steps.paint', 'Painter'),
             'animator': ('simplify.artist.steps.animator', 'Animator')}

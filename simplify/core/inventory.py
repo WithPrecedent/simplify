@@ -18,12 +18,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import pandas as pd
 
 from simplify.core.defaults import Defaults
-from simplify.core.typesetter import CodexOptions
+from simplify.core.typesetter import ManuscriptOptions
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Inventory(CodexOptions):
+class Inventory(ManuscriptOptions):
 
     def __post_init__(self):
         return self

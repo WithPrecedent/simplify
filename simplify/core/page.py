@@ -16,14 +16,14 @@ import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
 
-from simplify.core.codex import SimpleCodex
+from simplify.core.manuscript import Manuscript
 from simplify.core.utilities import listify
 from simplify.core.utilities import numpy_shield
 from simplify.core.utilities import XxYy
 
 
 @dataclass
-class Page(SimpleCodex):
+class Page(Manuscript):
     """Stores, combines, and applies Algorithm and Parameters instances.
 
     Args:
@@ -216,7 +216,7 @@ class Page(SimpleCodex):
 
 
 @dataclass
-class Content(SimpleCodex):
+class Content(Manuscript):
     """Base class for building components in a Page.
 
     Takes an Outline subclass instance and creates a component object.
@@ -425,7 +425,7 @@ class ParameterBuilder(Content):
         The primary example of a runtime parameter throughout siMpLify is the
         addition of a random seed for a consistent, replicable state.
 
-        The runtime variables should be stored as attributes in the SimpleCodex
+        The runtime variables should be stored as attributes in the Manuscript
         instance so that the values listed in outline.runtimes match those
         attributes to be added to parameters.
 
@@ -448,7 +448,7 @@ class ParameterBuilder(Content):
     def _build_conditional(self, outline: 'Outline') -> None:
         """Modifies 'parameters' based upon various conditions.
 
-        An SimpleCodex class should have its own '_build_conditional' method for this
+        An Manuscript class should have its own '_build_conditional' method for this
         method to modify 'parameters'. That method should have a 'parameters'
         and 'name' (str) argument and return the modified 'parameters'.
 

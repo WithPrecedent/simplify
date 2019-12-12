@@ -18,7 +18,7 @@ from simplify.core.utilities import listify
 class SimpleSteps(MutableSequence):
 
     steps: List[str] = field(default_factory = list)
-    related: 'SimpleCodex' = None
+    related: 'Manuscript' = None
 
     """ Required Dunder and Public Methods """
 

@@ -10,13 +10,13 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify import creator
-from simplify.core.options import CodexOptions
+from simplify.core.options import ManuscriptOptions
 from simplify.core.utilities import listify
 
 
 @dataclass
 class SimpleCreator(ABC):
-    """Base class for building SimpleCodex objects and instances.
+    """Base class for building Manuscript objects and instances.
 
     Args:
         idea (Union['Idea', Dict[str, Dict[str, Any]], str]): an instance of
@@ -73,7 +73,7 @@ class SimpleCreator(ABC):
 
     """ Private Methods """
 
-    def _add_idea(self, instance: 'SimpleCodex') -> 'SimpleCodex':
+    def _add_idea(self, instance: 'Manuscript') -> 'Manuscript':
 
         return instance
 
@@ -121,18 +121,18 @@ class Author(SimpleCreator):
 
 
 @dataclass
-class SimpleCodex(ABC):
+class Manuscript(ABC):
     """Base class for data processing, analysis, and visualization.
 
     SimpleComposite implements a modified composite tree pattern for organizing
     the various subpackages in siMpLify.
 
     Args:
-        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows
+        options (Optional[Union['ManuscriptOptions', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
 
     """
-    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
+    options: (Optional[Union['ManuscriptOptions', Dict[str, Any]]]) = None
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
@@ -162,9 +162,9 @@ class SimpleCodex(ABC):
 
         """
         if self._options is None:
-            self._options = CodexOptions(options = {}, _author = self)
+            self._options = ManuscriptOptions(options = {}, _author = self)
         elif isinstance(self._options, Dict):
-            self._options = CodexOptions(
+            self._options = ManuscriptOptions(
                 options = self._options,
                 _author = self)
         return self
@@ -260,15 +260,15 @@ class SimpleCodex(ABC):
         return self
 
     @property
-    def parent(self) -> 'SimpleCodex':
+    def parent(self) -> 'Manuscript':
         """Returns '_parent' attribute."""
         return self._parent
 
     @parent.setter
-    def parent(self, parent: 'SimpleCodex') -> None:
+    def parent(self, parent: 'Manuscript') -> None:
         """Sets '_parent' attribute to 'parent' argument.
         Args:
-            parent (SimpleCodex): SimpleCodex class up one level in
+            parent (Manuscript): Manuscript class up one level in
                 the composite tree.
         """
         self._parent = parent
@@ -281,10 +281,10 @@ class SimpleCodex(ABC):
         return self
 
     @property
-    def children(self) -> Dict[str, Union['Outline', 'SimpleCodex']]:
+    def children(self) -> Dict[str, Union['Outline', 'Manuscript']]:
         """Returns '_children' attribute.
         Returns:
-            Dict of str access keys and Outline or SimpleCodex values.
+            Dict of str access keys and Outline or Manuscript values.
         """
         return self._children
 
@@ -294,7 +294,7 @@ class SimpleCodex(ABC):
         If 'override' is False, 'children' are added to '_children'.
         Args:
             children (Dict[str, 'Outline']): dictionary with str for reference
-                keys and values of 'SimpleCodex'.
+                keys and values of 'Manuscript'.
         """
         self._children = children
         return self
@@ -316,35 +316,35 @@ class SimpleCodex(ABC):
     """ Strategy Methods and Properties """
 
     def add_options(self,
-            options: Union['CodexOptions', Dict[str, Any]]) -> None:
+            options: Union['ManuscriptOptions', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (options: Union['CodexOptions', Dict[str, Any]]): either
-                another 'CodexOptions' instance or an options dict.
+            options (options: Union['ManuscriptOptions', Dict[str, Any]]): either
+                another 'ManuscriptOptions' instance or an options dict.
 
         """
         self.options += options
         return self
 
     @property
-    def options(self) -> 'CodexOptions':
+    def options(self) -> 'ManuscriptOptions':
         """Returns '_options' attribute."""
         return self._options
 
     @options.setter
-    def options(self, options: Union['CodexOptions', Dict[str, Any]]) -> None:
+    def options(self, options: Union['ManuscriptOptions', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (Union['CodexOptions', Dict[str, Any]]): CodexOptions
-                instance or a dictionary to be stored within a CodexOptions
+            options (Union['ManuscriptOptions', Dict[str, Any]]): ManuscriptOptions
+                instance or a dictionary to be stored within a ManuscriptOptions
                 instance (this should follow the form outlined in the
-                CodexOptions documentation).
+                ManuscriptOptions documentation).
 
         """
         if isinstance(options, dict):
-            self._options = CodexOptions(options = options)
+            self._options = ManuscriptOptions(options = options)
         else:
             self._options.add(options = options)
         return self

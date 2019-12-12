@@ -18,7 +18,7 @@ import pandas as pd
 from simplify.core.book import Book
 from simplify.core.chapter import Chapter
 from simplify.core.content import Content
-from simplify.core.options import CodexOptions
+from simplify.core.options import ManuscriptOptions
 from simplify.core.page import Page
 from simplify.core.project import Project
 from simplify.core.ingredients import Ingredients
@@ -66,19 +66,19 @@ https://www.bnmetrics.com/blog/builder-pattern-in-python3-simple-version
 """ Private Functions """
 
 def _check_options(
-        options: Union['CodexOptions',
-                       Dict[str, 'Outline']]) -> 'CodexOptions':
-    """Checks if 'options' is a dict and prepares CodexOptions instance.
+        options: Union['ManuscriptOptions',
+                       Dict[str, 'Outline']]) -> 'ManuscriptOptions':
+    """Checks if 'options' is a dict and prepares ManuscriptOptions instance.
 
     Args:
-        options (Union['CodexOptions', Dict[str, Any]]):
+        options (Union['ManuscriptOptions', Dict[str, Any]]):
 
     Returns:
-        completed CodexOptions instance.
+        completed ManuscriptOptions instance.
 
     """
     if options is None:
-        return CodexOptions(options = {})
+        return ManuscriptOptions(options = {})
     elif isinstance(options, Dict):
         return make_options(options = options)
     else:
@@ -164,7 +164,7 @@ def make_project(
             pd.Series,
             np.ndarray,
             str]] = None,
-        options: Optional[Union['CodexOptions', Dict[str, 'Outline']]] = None,
+        options: Optional[Union['ManuscriptOptions', Dict[str, 'Outline']]] = None,
         steps: Optional[Union[List[str], str]] = None,
         name: Optional[str] = None,
         auto_publish: Optional[bool] = True) -> 'Book':
@@ -187,13 +187,13 @@ def make_project(
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
-        steps (Optional[Union[List[str], str]]): ordered names of SimpleCodex
+        steps (Optional[Union[List[str], str]]): ordered names of Manuscript
             subclasses to include. These names should match keys in the
             'options' attribute. If using the Idea instance settings, this
             argument should not be passed. Default is None.
-        options (Optional['CodexOptions', Dict[str, 'Outline']]): either
-            a CodexOptions instance or a dictionary compatible with a
-            CodexOptions instance. Defaults to None.
+        options (Optional['ManuscriptOptions', Dict[str, 'Outline']]): either
+            a ManuscriptOptions instance or a dictionary compatible with a
+            ManuscriptOptions instance. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -308,17 +308,17 @@ def make_idea(idea: Union[Dict[str, Dict[str, Any]],  'Idea']) -> 'Idea':
         error = 'idea must be Idea, str, or nested dict type'
         raise TypeError(error)
 
-def make_options(options: Dict[str, 'Outline']) -> 'CodexOptions':
-    """Creates a CodexOptions instance.
+def make_options(options: Dict[str, 'Outline']) -> 'ManuscriptOptions':
+    """Creates a ManuscriptOptions instance.
 
     Args:
-        options: Dict[str, 'Outline']: dict compatiable with CodexOptions.
+        options: Dict[str, 'Outline']: dict compatiable with ManuscriptOptions.
 
     Returns:
-        CodexOptions instance with 'options' dict.
+        ManuscriptOptions instance with 'options' dict.
 
     """
-    return CodexOptions(options = options)
+    return ManuscriptOptions(options = options)
 
 def make_book(
         idea: Union[Dict[str, Dict[str, Any]], 'Idea'],
@@ -329,7 +329,7 @@ def make_book(
             pd.Series,
             np.ndarray,
             str]] = None,
-        options: Optional[Union['CodexOptions', Dict[str, 'Outline']]] = None,
+        options: Optional[Union['ManuscriptOptions', Dict[str, 'Outline']]] = None,
         steps: Optional[Union[List[str], str]] = None,
         name: Optional[str] = None,
         auto_publish: Optional[bool] = True) -> 'Book':
@@ -357,9 +357,9 @@ def make_book(
             subclasses to include. These names should match keys in the
             'options' attribute. If using the Idea instance settings, this
             argument should not be passed. Default is None.
-        options (Optional['CodexOptions', Dict[str, 'Outline']]): either
-            a CodexOptions instance or a dictionary compatible with a
-            CodexOptions instance. Defaults to None.
+        options (Optional['ManuscriptOptions', Dict[str, 'Outline']]): either
+            a ManuscriptOptions instance or a dictionary compatible with a
+            ManuscriptOptions instance. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -392,16 +392,16 @@ def make_book(
 def make_chapter(
         name: Optional[str] = None,
         steps: Dict[str, str] = None,
-        options: Optional[Union['CodexOptions', Dict[str, 'Outline']]] = None,
+        options: Optional[Union['ManuscriptOptions', Dict[str, 'Outline']]] = None,
         metadata: Dict[str, Any] = None) -> 'Chapter':
     """Creates a Chapter instance.
 
     Args:
         steps (Dict[str, str]): ordered names of steps as keys and particular
             techniques as methods.
-        options (Optional['CodexOptions', Dict[str, 'Outline']]): either
-            a CodexOptions instance or a dictionary compatible with a
-            CodexOptions instance. Defaults to None.
+        options (Optional['ManuscriptOptions', Dict[str, 'Outline']]): either
+            a ManuscriptOptions instance or a dictionary compatible with a
+            ManuscriptOptions instance. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -509,7 +509,7 @@ def make_parameters(
         The primary example of a runtime parameter throughout siMpLify is the
         addition of a random seed for a consistent, replicable state.
 
-        The runtime variables should be stored as attributes in the SimpleCodex
+        The runtime variables should be stored as attributes in the Manuscript
         instance so that the values listed in outline.runtimes match those
         attributes to be added to parameters.
 

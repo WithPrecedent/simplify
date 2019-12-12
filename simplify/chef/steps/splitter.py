@@ -36,7 +36,7 @@ class Splitter(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'group_kfold': Outline(
                 name = 'group_kfold',
                 module = 'sklearn.model_selection',

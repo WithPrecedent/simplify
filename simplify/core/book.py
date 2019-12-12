@@ -16,13 +16,13 @@ import pandas as pd
 
 import simplify.core
 from simplify.core.chapters import Chapters
-from simplify.core.codex import SimpleCodex
-from simplify.core.options import CodexOptions
+from simplify.core.manuscript import Manuscript
+from simplify.core.options import ManuscriptOptions
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Book(SimpleCodex):
+class Book(Manuscript):
     """Builds and controls Chapters.
 
     This class contains methods useful to create iterators and iterate over
@@ -51,7 +51,7 @@ class Book(SimpleCodex):
             item which matchings a key in 'options' or a dictionary where each
             key matches a key in options and each value is a 'technique'
             parameter to be sent to a child class. Defaults to an empty dict.
-        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows
+        options (Optional[Union['ManuscriptOptions', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to an
             empty dict.
         chapters (Optional[Union['Chapters', Dict[str, 'Page']]]): a dictionary

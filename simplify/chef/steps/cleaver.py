@@ -65,7 +65,7 @@ class Cleaver(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
         'compare': Outline(
             name = 'compare',
             module = None,

@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core.codex import SimpleCodex
+from simplify.core.manuscript import Manuscript
 from simplify.core.book import Book
 from simplify.core.chapter import Chapter
 from simplify.core.content import Content
@@ -173,7 +173,7 @@ class Cookbook(Book):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'scaler': Outline(
                 name = 'scaler',
                 module = 'simplify.chef.steps.scaler',

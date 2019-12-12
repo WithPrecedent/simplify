@@ -1,5 +1,5 @@
 """
-.. module:: codex
+.. module:: manuscript
 :synopsis: composite tree abstract base class
 :author: Corey Rayburn Yung
 :copyright: 2019
@@ -12,16 +12,15 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-from simplify.core.options import CodexOptions
+from simplify.core.options import ManuscriptOptions
 from simplify.core.utilities import listify
-from simplify.core.utilities import proxify
 
 
 @dataclass
-class SimpleCodex(ABC):
+class Manuscript(ABC):
     """Base class for data processing, analysis, and visualization.
 
-    SimpleCodex contains the shared methods, properties, and attributes for a
+    Manuscript contains the shared methods, properties, and attributes for a
     modified composite tree pattern for organizing the various subpackages in
     siMpLify.
 
@@ -31,27 +30,18 @@ class SimpleCodex(ABC):
             item which matchings a key in 'options' or a dictionary where each
             key matches a key in options and each value is a 'technique'
             parameter to be sent to a child class. Defaults to an empty dict.
-        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows
+        options (Optional[Union['ManuscriptOptions', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. Defaults to True.
 
     """
-    steps: Optional[Union[List[str], str, Dict[str, str]]] = field(
-        default_factory = dict)
-    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
-    auto_publish: Optional[bool] = True
-    parent: Optional[object] = None
-    children: Optiona[List[object]] = field(default_factory = list)
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
         # Sets default 'name' attribute if none exists.
         if not hasattr(self, 'name'):
             self.name = self.__class__.__name__.lower()
-        # Creates private 'parent' and 'children' attributes.
-        self._parent = self.parent
-        self._children = self.children
         # Automatically calls 'draft' method.
         self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
@@ -64,44 +54,9 @@ class SimpleCodex(ABC):
     def __iter__(self) -> Iterable:
         """Returns '_children' dictionary as iterable."""
         return iter(self._children)
-
+    
     """ Private Methods """
-
-    def _draft_options(self) -> None:
-        """
-
-        """
-        if not self.options:
-            try:
-                self.options = CodexOptions(
-                    options = globals()['DEFAULT_OPTIONS'],
-                    parent = self)
-            except KeyError:
-                self.options = CodexOptions(options = {}, parent = self)
-        elif isinstance(self.options, Dict):
-            self.options = CodexOptions(options = self.options, parent = self)
-        else:
-            self.options = CodexOptions(options = {}, parent = self)
-        if not hasattr(self, '_options'):
-            self._options = self.options
-        return self
-
-    def _draft_steps(self) -> None:
-        """Drafts 'steps' as a dictionary."""
-        if not isinstance(self.steps, dict):
-            techniques = self._draft_techniques
-            if not self.steps:
-                try:
-                    self.steps = listify(
-                        self.options.idea['_'.join([self.name, 'steps'])])
-                except AttributeError:
-                    pass
-            if techniques:
-                self.steps = dict(zip(self.steps, techniques))
-            else:
-                self.steps = dict(zip(self.steps, self.steps))
-        return self
-
+    
     def _draft_techniques(self) -> List[str]:
         """Tries to get techniques from shared Idea instance.
 
@@ -124,15 +79,10 @@ class SimpleCodex(ABC):
 
     def draft(self) -> None:
         """Required method that sets default values."""
+         # Injects attributes from Idea instance, if values exist.
+        self = self.options.idea.apply(instance = self)
         # initializes class options.
         self._draft_options()
-        # Adds proxy attributes if 'proxies' has been set.
-        try:
-            self = proxify(instance = self, proxies = self.proxies)
-        except AttributeError:
-            pass
-        # Injects attributes from Idea instance, if values exist.
-        self = self.options.idea.apply(instance = self)
         # Initializes class steps.
         self._draft_steps()
         return self
@@ -187,15 +137,15 @@ class SimpleCodex(ABC):
         return self
 
     @property
-    def parent(self) -> 'SimpleCodex':
+    def parent(self) -> 'Manuscript':
         """Returns '_parent' attribute."""
         return self._parent
 
     @parent.setter
-    def parent(self, parent: 'SimpleCodex') -> None:
+    def parent(self, parent: 'Manuscript') -> None:
         """Sets '_parent' attribute to 'parent' argument.
         Args:
-            parent (SimpleCodex): SimpleCodex class up one level in
+            parent (Manuscript): Manuscript class up one level in
                 the composite tree.
         """
         self._parent = parent
@@ -208,10 +158,10 @@ class SimpleCodex(ABC):
         return self
 
     @property
-    def children(self) -> Dict[str, Union['Outline', 'SimpleCodex']]:
+    def children(self) -> Dict[str, Union['Outline', 'Manuscript']]:
         """Returns '_children' attribute.
         Returns:
-            Dict of str access keys and Outline or SimpleCodex values.
+            Dict of str access keys and Outline or Manuscript values.
         """
         return self._children
 
@@ -221,7 +171,7 @@ class SimpleCodex(ABC):
         If 'override' is False, 'children' are added to '_children'.
         Args:
             children (Dict[str, 'Outline']): dictionary with str for reference
-                keys and values of 'SimpleCodex'.
+                keys and values of 'Manuscript'.
         """
         self._children = children
         return self
@@ -243,35 +193,35 @@ class SimpleCodex(ABC):
     """ Strategy Methods and Properties """
 
     def add_options(self,
-            options: Union['CodexOptions', Dict[str, Any]]) -> None:
+            options: Union['ManuscriptOptions', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (options: Union['CodexOptions', Dict[str, Any]]): either
-                another 'CodexOptions' instance or an options dict.
+            options (options: Union['ManuscriptOptions', Dict[str, Any]]): either
+                another 'ManuscriptOptions' instance or an options dict.
 
         """
         self.options.add(options = options)
         return self
 
     @property
-    def options(self) -> 'CodexOptions':
+    def options(self) -> 'ManuscriptOptions':
         """Returns '_options' attribute."""
         return self.options
 
     @options.setter
-    def options(self, options: Union['CodexOptions', Dict[str, Any]]) -> None:
+    def options(self, options: Union['ManuscriptOptions', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (Union['CodexOptions', Dict[str, Any]]): CodexOptions
-                instance or a dictionary to be stored within a CodexOptions
+            options (Union['ManuscriptOptions', Dict[str, Any]]): ManuscriptOptions
+                instance or a dictionary to be stored within a ManuscriptOptions
                 instance (this should follow the form outlined in the
-                CodexOptions documentation).
+                ManuscriptOptions documentation).
 
         """
         if isinstance(options, dict):
-            self.options = CodexOptions(options = options)
+            self.options = ManuscriptOptions(options = options)
         else:
             self.options.add(options = options)
         return self

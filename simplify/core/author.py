@@ -1,6 +1,6 @@
 """
 .. module:: author
-:synopsis: composite tree abstract base classes
+:synopsis: creator of manuscripts
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -9,30 +9,26 @@
 from dataclasses import dataclass
 from dataclasses import field
 from importlib import import_module
+from itertools import product
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
+from simplify import core
 from simplify.core.book import Book
 from simplify.core.book import Chapter
 from simplify.core.book import Page
-from simplify.core.options import CodexOptions
+from simplify.core.options import ManuscriptOptions
+from simplify.core.project import Project
 from simplify.core.utilities import listify
 
 
 @dataclass
 class Creator(ABC):
-
-    idea: 'Idea' = None
-    inventory: 'Inventory' = None
-    package: Optional[str] = None
-    options: Optional[Union['CodexOptions', Dict[str, 'SimpleCodex']]] = field(
-        default_factory = dict)
-    steps: Optional[Union[List[str], str]] = field(default_factory = list)
-    auto_publish: Optional[bool] = True
-
+    """Base class for Book, Chapter, and Page creation."""
+    
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
         # Validates passed 'options' argument.
-        self.options = self._validate_options()
+        self._validate_options()
         # Automatically calls 'draft' method.
         self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
@@ -42,79 +38,50 @@ class Creator(ABC):
 
     """ Private Methods """
 
-    def _validate_options(self) -> 'CodexOptions':
-        """
-
-        """
-        if self.options:
-            if isinstance(options, Dict):
-                return CodexOptions(options = options)
-            else:
-                return options
-        elif self.package:
-            try:
-                options = import_module(getattr(
-                    self.packages[self.package], 'DEFAULT_OPTIONS'))
-                return CodexOptions(options = options)
-            except ImportError:
-                raise ImportError(' '.join(
-                    [self.packages[self.package], 'was not found']))
-            except KeyError:
-                raise KeyError(' '.join([self.package, 'does not exist']))
-            except AttributeError:
-                raise AttributeError(' '.join(
-                    [self.package, 'does not have DEFAULT_OPTIONS']))
+    def _validate_options(self) -> None:
+        """Converts 'options' to proper ManuscriptOptions form."""
+        if not self.options:
+            self.options = ManuscriptOptions(
+                options = globals()['DEFAULT_OPTIONS'],
+                parent = self)
+        elif isinstance(self.options, Dict):
+            self.options = ManuscriptOptions(
+                options = self.options, 
+                parent = self)
         else:
-            raise AttributeError(' '.join(
-                [self.__class__.__name__,
-                 'requires either options or package argument']))
-
-
-    def _build_filer(self, codex_type: str) -> 'SimpleFiler':
-        """Returns SimpleFiler object appropriate to 'codex_type'.
-
-        Args:
-            codex_type (str): either 'book', 'chapter', or 'page'.
-
-        Returns:
-            'SimpleFiler' with settings for specific 'codex_type'.
-
-        """
-        return self.inventory.filers[codex_type]
-
-    def draft(self) -> None:
-        self.packages = {
-            'farmer': 'simplify.farmer.farmer',
-            'chef': 'simplify.chef.chef',
-            'actuary': 'simplify.actuary.actuary',
-            'critic': 'simplify.critic.critic',
-            'artist': 'simplify.artist.artist'}
+            self.options = ManuscriptOptions(options = {}, parent = self)
         return self
 
-    def apply(self,
-            name: str,
-            book: Optional['Book'] = Book,
-            technique: Optional[str] = None) -> 'SimpleCodex':
-        """Creates a SimpleCodex object based upon arguments passed.
+
+    def _create_filer(self, manuscript_type: str) -> 'SimpleFiler':
+        """Returns SimpleFiler object appropriate to 'manuscript_type'.
 
         Args:
-            codex_type (str): either 'book', 'chapter', or 'page'.
-            codex_object (Optional['SimpleCodex']): if the generic Book,
-                Chapter, or Page is not to be used, an alternative class
-                should be passed.
+            manuscript_type (str): either 'book', 'chapter', or 'page'.
 
         Returns:
-            SimpleCodex instance.
+            'SimpleFiler' with settings for specific 'manuscript_type'.
 
         """
-        parameters = {}
-        for need in self.needs[codex_type]:
-            parameters[need] = getattr(self, '_'.join(['_draft', need]))()
-        if codex_object is None:
-            return self.default[codex_type](parameters)
-        else:
-            return codex_object(parameters)
+        return self.inventory.filers[manuscript_type]
 
+    """ Core siMpLify Methods """
+    
+    @abstract_method
+    def draft(self) -> None:
+        """Subclasses must provide their own methods."""
+        pass
+
+    @abstract_method
+    def publish(self) -> None:
+        """Subclasses must provide their own methods."""
+        pass
+
+    def apply(self, **kwargs) -> 'Manuscript':
+        """Subclasses must provide their own methods."""
+        pass
+    
+    
 @dataclass
 class Author(Creator):
     """Builds completed Book instances.
@@ -123,7 +90,7 @@ class Author(Creator):
         idea (Idea): an instance of Idea containing siMpLify project settings.
         inventory (Inventory): an instance of Inventory containing file and
             folder management attributes and methods.
-        options (Optional[Union['CodexOptions', Dict[str, 'SimpleCodex']]]):
+        options (Optional[Union['ManuscriptOptions', Dict[str, 'Manuscript']]]):
 
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             the class is instanced.
@@ -131,30 +98,35 @@ class Author(Creator):
     """
     idea: 'Idea'
     inventory: 'Inventory'
-    package: Optional[str] = None
-    options: Optional[Union['CodexOptions', Dict[str, 'SimpleCodex']]] = field(
+    options: Optional[Union['ManuscriptOptions', Dict[str, 'Manuscript']]] = field(
         default_factory = dict)
     steps: Optional[Union[List[str], str]] = field(default_factory = list)
     auto_publish: Optional[bool] = True
 
     def __post_init__(self):
         """Calls initialization methods and sets class instance defaults."""
-        self.options = self._validate_options(options = self.options)
         super().__post_init__()
         return self
 
     """ Private Methods """
 
-    def _build_steps(self, name: str) -> List[str]:
-        """Gets 'steps' from Idea, if possible."""
-        try:
-            return listify(self.idea['_'.join([name, 'steps'])])
-        except AttributeError:
-
-    def _build_techniques(self,
-            name: str,
+    def _create_steps(self, name: str) -> List[str]:
+        """Gets 'steps' from Idea, if not passed to class instance."""
+        if not self.steps:
+            try:
+                return listify(self.idea[name]['_'.join([name, 'steps'])])
+            except KeyError:
+                pass
+        return self
+    
+    def _create_techniques(self, 
+            name: str, 
             steps: List[str]) -> List[List[str]]:
         """Tries to get techniques from shared Idea instance.
+        
+        Args:
+            name (str): name of class to be built.
+            steps (List[str]): steps in class to be built.
 
         Returns:
             List[List[str]] of parallel sequences of steps.
@@ -169,65 +141,76 @@ class Author(Creator):
                 possibilities.append(['none'])
         return list(map(list, product(*possibilities)))
 
-    def _build_chapters(self,
+    def _create_chapters(self,
             name: str,
             technique: str) -> List['Chapter']:
         """
         """
-        steps = self._build_steps(name = name)
-        possibilities = self._build_techniques(name = name, steps = steps)
-
-        for i, plan in enumerate(self.plans):
-            self.chapters.add(
-                chapter = self.chapter_type(
-                    name = str(i),
-                    steps = dict(zip(self.steps, plan)),
-                    options = self.options,
-                    metadata = self._publish_chapter_metadata(number = i)))
+        chapters = []
+        steps = self._create_steps(name = name)
+        possibilities = self._create_techniques(name = name, steps = steps)
+        for i, sequence in enumerate(possibilities):
+            self.chapters_create.apply(
+                number = i,
+                steps = dict(zip(self.steps, sequence)))
         return chapters
 
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        """Sets initial attributes."""
-        self.options = {
-            'chef': ChefPackage
-        }
-
         return self
 
     def publish(self) -> None:
-        """Creates instances of delegate creators."""
-        new_creators = {}
-        for name, creator in self.creators.items():
-            new_creators[name] = creator(
-                idea = self.idea,
-                inventory = self.inventory)
-        self.creators = new_creators
+        """Creates instance of ChapterCreator."""
+        self.chapter_creator = ChapterCreator(
+            idea = self.idea,
+            inventory = self.inventory,
+            auto_publish = self.auto_publish)
         return self
 
     def apply(self,
             name: str,
-            book: Optional['Book'] = None,
-            options: Optional['CodexOptions'] = None) -> 'Book':
-        """Creates a SimpleCodex object based upon arguments passed.
+            options: Optional['ManuscriptOptions'] = None) -> 'Book':
+        """Creates a Manuscript object based upon arguments passed.
 
         Args:
 
         Returns:
-            SimpleCodex instance.
+            Manuscript instance.
 
         """
-        if book is None:
-            book = Book
-        return self.creators[codex_type].apply(
+        return self.creators[manuscript_type].apply(
             name = name,
-            codex_object = codex_object,
+            manuscript_object = manuscript_object,
             technique = technique)
+            
+            name: str,
+            book: Optional['Book'] = Book,
+            technique: Optional[str] = None) -> 'Manuscript':
+        """Creates a Manuscript object based upon arguments passed.
 
+        Args:
+            manuscript_type (str): either 'book', 'chapter', or 'page'.
+            manuscript_object (Optional['Manuscript']): if the generic Book,
+                Chapter, or Page is not to be used, an alternative class
+                should be passed.
+
+        Returns:
+            Manuscript instance.
+
+        """
+        parameters = {}
+        for need in self.needs[manuscript_type]:
+            parameters[need] = getattr(self, '_'.join(['_draft', need]))()
+        if manuscript_object is None:
+            return self.default[manuscript_type](parameters)
+        else:
+            return manuscript_object(parameters)
+
+       
 @dataclass
 class ChapterCreator(Creator):
-    """Base class for building SimpleCodex classes and instances.
+    """Base class for building Manuscript classes and instances.
 
     Args:
         idea (Idea): an instance of Idea containing siMpLify project settings.
@@ -237,6 +220,8 @@ class ChapterCreator(Creator):
     """
     idea: 'Idea'
     inventory: 'Inventory'
+    options: Optional[Union['ManuscriptOptions', Dict[str, 'Manuscript']]] = field(
+        default_factory = dict)
     auto_publish: Optional[bool] = True
 
     def __post_init__(self):
@@ -253,7 +238,7 @@ class ChapterCreator(Creator):
 
 @dataclass
 class PageCreator(Creator):
-    """Base class for building SimpleCodex classes and instances.
+    """Base class for building Manuscript classes and instances.
 
     Args:
         idea (Idea): an instance of Idea containing siMpLify project settings.
@@ -278,18 +263,18 @@ class PageCreator(Creator):
 
 
 @dataclass
-class SimpleCodex(ABC):
+class Manuscript(ABC):
     """Base class for data processing, analysis, and visualization.
 
     SimpleComposite implements a modified composite tree pattern for organizing
     the various subpackages in siMpLify.
 
     Args:
-        options (Optional[Union['CodexOptions', Dict[str, Any]]]): allows
+        options (Optional[Union['ManuscriptOptions', Dict[str, Any]]]): allows
             setting of 'options' property with an argument. Defaults to None.
 
     """
-    options: (Optional[Union['CodexOptions', Dict[str, Any]]]) = None
+    options: (Optional[Union['ManuscriptOptions', Dict[str, Any]]]) = None
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
@@ -319,9 +304,9 @@ class SimpleCodex(ABC):
 
         """
         if self._options is None:
-            self._options = CodexOptions(options = {}, _author = self)
+            self._options = ManuscriptOptions(options = {}, _author = self)
         elif isinstance(self._options, Dict):
-            self._options = CodexOptions(
+            self._options = ManuscriptOptions(
                 options = self._options,
                 _author = self)
         return self
@@ -417,15 +402,15 @@ class SimpleCodex(ABC):
         return self
 
     @property
-    def parent(self) -> 'SimpleCodex':
+    def parent(self) -> 'Manuscript':
         """Returns '_parent' attribute."""
         return self._parent
 
     @parent.setter
-    def parent(self, parent: 'SimpleCodex') -> None:
+    def parent(self, parent: 'Manuscript') -> None:
         """Sets '_parent' attribute to 'parent' argument.
         Args:
-            parent (SimpleCodex): SimpleCodex class up one level in
+            parent (Manuscript): Manuscript class up one level in
                 the composite tree.
         """
         self._parent = parent
@@ -438,10 +423,10 @@ class SimpleCodex(ABC):
         return self
 
     @property
-    def children(self) -> Dict[str, Union['Outline', 'SimpleCodex']]:
+    def children(self) -> Dict[str, Union['Outline', 'Manuscript']]:
         """Returns '_children' attribute.
         Returns:
-            Dict of str access keys and Outline or SimpleCodex values.
+            Dict of str access keys and Outline or Manuscript values.
         """
         return self._children
 
@@ -451,7 +436,7 @@ class SimpleCodex(ABC):
         If 'override' is False, 'children' are added to '_children'.
         Args:
             children (Dict[str, 'Outline']): dictionary with str for reference
-                keys and values of 'SimpleCodex'.
+                keys and values of 'Manuscript'.
         """
         self._children = children
         return self
@@ -473,35 +458,35 @@ class SimpleCodex(ABC):
     """ Strategy Methods and Properties """
 
     def add_options(self,
-            options: Union['CodexOptions', Dict[str, Any]]) -> None:
+            options: Union['ManuscriptOptions', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (options: Union['CodexOptions', Dict[str, Any]]): either
-                another 'CodexOptions' instance or an options dict.
+            options (options: Union['ManuscriptOptions', Dict[str, Any]]): either
+                another 'ManuscriptOptions' instance or an options dict.
 
         """
         self.options += options
         return self
 
     @property
-    def options(self) -> 'CodexOptions':
+    def options(self) -> 'ManuscriptOptions':
         """Returns '_options' attribute."""
         return self._options
 
     @options.setter
-    def options(self, options: Union['CodexOptions', Dict[str, Any]]) -> None:
+    def options(self, options: Union['ManuscriptOptions', Dict[str, Any]]) -> None:
         """Assigns 'options' to '_options' attribute.
 
         Args:
-            options (Union['CodexOptions', Dict[str, Any]]): CodexOptions
-                instance or a dictionary to be stored within a CodexOptions
+            options (Union['ManuscriptOptions', Dict[str, Any]]): ManuscriptOptions
+                instance or a dictionary to be stored within a ManuscriptOptions
                 instance (this should follow the form outlined in the
-                CodexOptions documentation).
+                ManuscriptOptions documentation).
 
         """
         if isinstance(options, dict):
-            self._options = CodexOptions(options = options)
+            self._options = ManuscriptOptions(options = options)
         else:
             self._options.add(options = options)
         return self

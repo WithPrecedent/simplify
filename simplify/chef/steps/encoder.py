@@ -37,7 +37,7 @@ class Encoder(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'backward': Outline(
                 name = 'backward',
                 module = 'category_encoders',

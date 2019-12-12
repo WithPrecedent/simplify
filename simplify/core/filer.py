@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.core.options import CodexOptions
+from simplify.core.options import ManuscriptOptions
 from simplify.core.outline import Outline
 from simplify.core.defaults import Defaults
 from simplify.core.utilities import listify
@@ -125,7 +125,7 @@ class Inventory(object):
         return self
 
     def _draft_options(self):
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'data': 'data',
             'book': 'book',
             'chapter': 'chapter'})
@@ -319,7 +319,7 @@ class Folderifier(object):
 
     def draft(self) -> None:
         """Sets core default folders"""
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'root': self.inventory.root_folder,
             'data': self.inventory.data_folder,
             'results': self.inventory.results_folder})
@@ -373,7 +373,7 @@ class Formatifier(object):
 
     """ Core siMpLify Methods """
     def draft(self):
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'csv': FileFormat(
                 name = 'csv',
                 extension = '.csv',
@@ -641,7 +641,7 @@ class Distributor(ABC):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'csv': 'csv',
             'matplotlib': 'mp',
             'pandas': 'pd',
@@ -909,7 +909,7 @@ class SimpleInventory(ABC):
         return self
 
     def save(self,
-            variable: Optional[Union['SimpleCodex', str]] = None,
+            variable: Optional[Union['Manuscript', str]] = None,
             file_path: Optional[str] = None,
             folder: Optional[str] = None,
             file_name: Optional[str] = None,
@@ -923,7 +923,7 @@ class SimpleInventory(ABC):
         siMpLify project.
 
         Args:
-            variable (Optional[Union['SimpleCodex'], str]): a python object
+            variable (Optional[Union['Manuscript'], str]): a python object
                 or a string corresponding to a subclass attribute which should
                 be saved to disk. Defaults to None.
             file_path (Optional[str]): a complete file path for the file to be

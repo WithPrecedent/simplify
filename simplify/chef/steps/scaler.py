@@ -37,7 +37,7 @@ class Scaler(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = CodexOptions(options = {
+        self._options = ManuscriptOptions(options = {
             'bins': Outline(
                 name = 'bins',
                 module = 'sklearn.preprocessing',

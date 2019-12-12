@@ -7,6 +7,7 @@
 """
 
 from dataclasses import dataclass
+from dataclasses import field
 import os
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import warnings
@@ -14,16 +15,40 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify import creator
-from simplify.core.codex import SimpleCodex
-from simplify.core.options import CodexOptions
-from simplify.core.options import Options
+from simplify import core
+from simplify.core.author import Author
+from simplify.core.library import Library
+from simplify.core.manuscript import Manuscript
+from simplify.core.options import ManuscriptOptions
 from simplify.core.outline import Outline
 from simplify.core.utilities import listify
 
 
+DEFAULT_OPTIONS = {
+    'farmer': Outline(
+        name = 'farmer',
+        module = 'simplify.farmer',
+        component = 'Almanac'),
+    'chef': Outline(
+        name = 'chef',
+        module = 'simplify.chef',
+        component = 'Cookbook'),
+    'actuary': Outline(
+        name = 'actuary',
+        module = 'simplify.actuary',
+        component = 'Ledger'),
+    'critic': Outline(
+        name = 'critic',
+        module = 'simplify.critic',
+        component = 'Collection'),
+    'artist': Outline(
+        name = 'artist',
+        module = 'simplify.artist',
+        component = 'Canvas')}
+
+
 @dataclass
-class Project(SimpleCodex):
+class Project(Manuscript):
     """Controller class for siMpLify projects.
 
     Args:
@@ -46,9 +71,9 @@ class Project(SimpleCodex):
             attribute in a new Ingredients instance. Default is None.
         steps (Optional[List[str], str]): ordered list of steps to execute. Each
             step should match a key in 'options'. Defaults to an empty list.
-        options (Optional[Union['CodexOptions', Dict[str, 'Book']]]): allows
-            setting of 'options' property with an argument. Defaults to an
-            empty dictionary.
+        options (Optional[Union['ManuscriptOptions', Dict[str, 'Book']]]): 
+            allows setting of 'options' property with an argument. Defaults to 
+            an empty dictionary.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. For auto_publish to have an effect,
             'ingredients' must also be passed. Defaults to True.
@@ -62,7 +87,7 @@ class Project(SimpleCodex):
             provided, __class__.__name__.lower() is used instead.
 
     """
-    idea: Union['Idea', str] = None
+    idea: Union['Idea', str]
     inventory: Optional[Union['Inventory', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
@@ -71,7 +96,7 @@ class Project(SimpleCodex):
         np.ndarray,
         str]] = None
     steps: Optional[Union[List[str], str]] = field(default_factory = list)
-    options: Optional[Union['CodexOptions', Dict[str, 'Book']]] = field(
+    options: Optional[Union['ManuscriptOptions', Dict[str, 'Book']]] = field(
         default_factory = dict)
     auto_publish: Optional[bool] = True
     name: Optional[str] = 'simplify'
@@ -81,64 +106,53 @@ class Project(SimpleCodex):
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
         # Finalizes 'idea', 'inventory', and 'ingredients instances.
-        self.idea, self.inventory, self.ingredients = creator.startup(
+        self.idea, self.inventory, self.ingredients = core.startup(
             idea = self.idea,
             inventory = self.inventory,
             ingredients = self.ingredients)
-        # Injects CodexOptions class with 'inventory' and 'idea'.
-        Options.idea = self.idea
-        Options.inventory = self.inventory
-        # Sets proxy property names.
-        self.proxies = {'children': 'books'}
         super()._post_init__()
         return self
-
+    
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        """Sets step options with information for module importation."""
-        self.options = CodexOptions(
-            options = {
-                'farmer': Outline(
-                    name = 'farmer',
-                    module = 'simplify.farmer',
-                    component = 'Almanac'),
-                'chef': Outline(
-                    name = 'chef',
-                    module = 'simplify.chef',
-                    component = 'Cookbook'),
-                'actuary': Outline(
-                    name = 'actuary',
-                    module = 'simplify.actuary',
-                    component = 'Ledger'),
-                'critic': Outline(
-                    name = 'critic',
-                    module = 'simplify.critic',
-                    component = 'Collection'),
-                'artist': Outline(
-                    name = 'artist',
-                    module = 'simplify.artist',
-                    component = 'Canvas')},
-            parent = self)
-        super()._draft_options()
+        """Converts 'options' to proper ManuscriptOptions form."""
+        if not self.options:
+            self.options = ManuscriptOptions(
+                options = globals()['DEFAULT_OPTIONS'],
+                parent = self)
+        elif isinstance(self.options, Dict):
+            self.options = ManuscriptOptions(
+                options = self.options, 
+                parent = self)
+        else:
+            self.options = ManuscriptOptions(options = {}, parent = self)
+        # Creates private '_options' to allow usage of 'options' property.
+        self._options = self.options
         return self
 
-    def _store_steps(self) -> None:
-        """Stores all selected options in local attributes."""
-        for step in self.steps:
-            setattr(self, step, self.options[step])
+    def _draft_steps(self) -> None:
+        """Attempts to find 'steps' in 'idea' if not were provided."""
+        if not self.steps:
+            try:
+                return listify(self.idea[name]['_'.join([name, 'steps'])])
+            except KeyError:
+                pass
         return self
-
+    
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
         """Sets initial attributes."""
-        # Injects attributes from Idea instance, if values exist.
-        self = self.idea.apply(instance = self)
-        # Calls methods for setting 'options' and 'steps'.
-        self._draft_options()
-        self._draft_steps()
-        self._store_steps()
+        super().draft()
+        # Creates Author instance for building Manuscript objects.
+        self.author = Author(
+            idea = self.idea,
+            inventory = self.inventory,
+            auto_publish = self.auto_publish)
+        # Creates Library instance for storing built objects.
+        self.library = Library()
+        Manuscript.library = self.library
         return self
 
     def publish(self) -> None:
@@ -149,8 +163,10 @@ class Project(SimpleCodex):
                 'publish' method.
 
         """
-        super().publish(data = data)
-        self._store_steps()
+        for step in self.steps:
+            book = self.author.create(name = step, options = self.options)
+            self.library[step] = book
+            setattr(self, step, self.library[step])
         return self
 
     def apply(self, data: Optional[object] = None, **kwargs) -> None:
@@ -162,6 +178,10 @@ class Project(SimpleCodex):
                 as well.
 
         """
-        data = super().apply(data = data)
-        self._store_steps()
+        if data:
+            self.ingredients = data
+        for step in self.steps:
+            self.ingredients = getattr(self, step).apply(
+                data = self.ingredients, 
+                **kwargs)
         return self
