@@ -13,12 +13,12 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core.manuscript import Manuscript
+from simplify.core.manuscript import SimpleManuscript
 from simplify.core.book import Book
 from simplify.core.chapter import Chapter
 from simplify.core.content import Content
 from simplify.core.creator import SimpleCreator
-from simplify.core.outline import Outline
+from simplify.core.outline import Option
 from simplify.core.page import Page
 from simplify.core.utilities import listify
 
@@ -173,36 +173,36 @@ class Cookbook(Book):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        self._options = ManuscriptOptions(options = {
-            'scaler': Outline(
+        self.default_options = SimpleOptions(options = {
+            'scaler': Option(
                 name = 'scaler',
                 module = 'simplify.chef.steps.scaler',
                 component = 'Scaler'),
-            'splitter': Outline(
+            'splitter': Option(
                 name = 'scaler',
                 module = 'simplify.chef.steps.splitter',
                 component = 'Splitter'),
-            'encoder': Outline(
+            'encoder': Option(
                 name = 'scaler',
                 module = 'simplify.chef.steps.encoder',
                 component = 'Encoder'),
-            'mixer': Outline(
+            'mixer': Option(
                 name = 'scaler',
                 module = 'simplify.chef.steps.mixer',
                 component = 'Mixer'),
-            'cleaver': Outline(
+            'cleaver': Option(
                 name = 'scaler',
                 module = 'simplify.chef.steps.cleaver',
                 component = 'Cleaver'),
-            'sampler': Outline(
+            'sampler': Option(
                 name = 'scaler',
                 module = 'simplify.chef.steps.sampler',
                 component = 'Sampler'),
-            'reducer': Outline(
+            'reducer': Option(
                 name = 'scaler',
                 module = 'simplify.chef.steps.reducer',
                 component = 'Reducer'),
-            'modeler': Outline(
+            'modeler': Option(
                 name = 'scaler',
                 module = 'simplify.chef.steps.modeler',
                 component = 'Modeler')})
@@ -380,10 +380,10 @@ class Recipe(Chapter):
         return self
 
 @dataclass
-class Essence(PageOutline):
+class Essence(PageOption):
     """Contains settings for creating a Algorithm and Parameters.
 
-    Users can use the idiom 'x in Outline' to check if a particular attribute
+    Users can use the idiom 'x in Option' to check if a particular attribute
     exists and is not None. This means default values for optional arguments
     should generally be set to None to allow use of that idiom.
 
@@ -415,7 +415,7 @@ class Essence(PageOutline):
 
 
 @dataclass
-class CookbookOutline(BookOutline):
+class CookbookOption(SimpleOption):
     name: str = 'cookbook'
     module: str = 'current'
     component: str = 'Cookbook'

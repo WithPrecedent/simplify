@@ -5,11 +5,11 @@
 :copyright: 2019
 :license: Apache-2.0
 """
-import os
+
 import sys
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
-import simplify
+from simplify.core.project import Project
 
 
 def _args_to_dict() -> Dict[str, str]:
@@ -36,33 +36,11 @@ def _args_to_dict() -> Dict[str, str]:
             arguments[key] = value
     return arguments
 
-def main(
-        idea: 'Idea',
-        inventory: 'Inventory',
-        ingredients: 'Ingredients') -> 'Project':
-    """Creates Project from idea, inventory, and ingredients
-
-    Args:
-        idea ('Idea'): an Idea instance.
-        inventory ('Inventory'): a Inventory instance.
-        ingredients ('Ingredients'): an Ingredients instance.
-
-    Returns:
-        Project based upon passed attributes.
-
-    """
-    return simplify.make_project(
-        idea = idea,
-        inventory = inventory,
-        ingredients = ingredients)
-
 if __name__ == '__main__':
     # Gets command line arguments and converts them to dict.
     arguments = _args_to_dict()
-    # Creates Idea, Inventory, and Ingredients instances from passed arguments.
-    idea, inventory, ingredients = simplify.startup(
+    # Calls Project with passed command-line arguments.
+    Project(
         idea = arguments.get('-idea'),
-        inventory = arguments.get('-inventory'),
-        ingredients = arguments.get('-ingredients'))
-    # Calls 'main' function to return Project.
-    main(idea = idea, inventory = inventory, ingredients = ingredients)
+        inventory = arguments.get('-inventory', None),
+        ingredients = arguments.get('-ingredients', None))

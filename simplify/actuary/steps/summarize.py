@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import pandas as pd
 
 from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Outline
+from simplify.core.typesetter import Option
 
 
 @dataclass
@@ -41,92 +41,92 @@ class Summarize(SimpleDirector):
     def draft(self) -> None:
         """Sets options for Summarize class."""
         super().draft()
-        self._options = ManuscriptOptions(options = {
-            'count': Outline(
+        self._options = SimpleOptions(options = {
+            'count': Option(
                 name = 'count',
                 module = 'numpy.ndarray',
                 algorithm = 'size'),
-            'min': Outline(
+            'min': Option(
                 name = 'minimum',
                 module = 'numpy',
                 algorithm = 'nanmin'),
-            'q1': Outline(
+            'q1': Option(
                 name = 'quantile1',
                 module = 'numpy',
                 algorithm = 'nanquantile',
                 required = {'q': 0.25}),
-            'median': Outline(
+            'median': Option(
                 name = 'median',
                 module = 'numpy',
                 algorithm = 'nanmedian'),
-            'q3': Outline(
+            'q3': Option(
                 name = 'quantile3',
                 module = 'numpy',
                 algorithm = 'nanquantile',
                 required = {'q': 0.25}),
-            'max': Outline(
+            'max': Option(
                 name = '',
                 module = 'numpy',
                 algorithm = 'nanmax'),
-            'mad': Outline(
+            'mad': Option(
                 name = 'median absoluate deviation',
                 module = 'scipy.stats',
                 algorithm = 'median_absolute_deviation',
                 required = {'nan_policy': 'omit'}),
-            'mean': Outline(
+            'mean': Option(
                 name = 'mean',
                 module = 'numpy',
                 algorithm = 'nanmean'),
-            'std': Outline(
+            'std': Option(
                 name = 'standard deviation',
                 module = 'numpy',
                 algorithm = 'nanstd'),
-            'standard_error': Outline(
+            'standard_error': Option(
                 name = 'standard_error',
                 module = 'scipy.stats',
                 algorithm = 'sem',
                 required = {'nan_policy': 'omit'}),
-            'geometric_mean': Outline(
+            'geometric_mean': Option(
                 name = 'geometric_mean',
                 module = 'scipy.stats',
                 algorithm = 'gmean'),
-            'geometric_std': Outline(
+            'geometric_std': Option(
                 name = 'geometric_standard_deviation',
                 module = 'scipy.stats',
                 algorithm = 'gstd'),
-            'harmonic_mean': Outline(
+            'harmonic_mean': Option(
                 name = 'harmonic_mean',
                 module = 'scipy.stats',
                 algorithm = 'hmean'),
-            'mode': Outline(
+            'mode': Option(
                 name = 'mode',
                 module = 'scipy.stats',
                 algorithm = 'mode',
                 required = {'nan_policy': 'omit'}),
-            'sum': Outline(
+            'sum': Option(
                 name = 'sum',
                 module = 'numpy',
                 algorithm = 'nansum'),
-            'kurtosis': Outline(
+            'kurtosis': Option(
                 name = 'kurtosis',
                 module = 'scipy.stats',
                 algorithm = 'kurtosis',
                 required = {'nan_policy': 'omit'}),
-            'skew': Outline(
+            'skew': Option(
                 name = 'skew',
                 module = 'scipy.stats',
                 algorithm = 'skew',
                 required = {'nan_policy': 'omit'}),
-            'variance': Outline(
+            'variance': Option(
                 name = 'variance',
                 module = 'numpy',
                 algorithm = 'nanvar'),
-            'variation': Outline(
+            'variation': Option(
                 name = 'variation',
                 module = 'scipy.stats',
                 algorithm = 'variation',
                 required = {'nan_policy': 'omit'}),
-            'unique': Outline(
+            'unique': Option(
                 name = 'unique_values',
                 module = 'numpy',
                 algorithm = 'nunique')}

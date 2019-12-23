@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Outline
+from simplify.core.typesetter import Option
 
 
 @dataclass

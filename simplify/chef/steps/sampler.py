@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Outline
+from simplify.core.typesetter import Option
 
 
 @dataclass
@@ -36,50 +36,50 @@ class Sampler(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = ManuscriptOptions(options = {
-            'adasyn': Outline(
+        self._options = SimpleOptions(options = {
+            'adasyn': Option(
                 name = 'adasyn',
                 module = 'imblearn.over_sampling',
                 algorithm = 'ADASYN',
                 default = {'sampling_strategy': 'auto'},
                 runtime = {'random_state': 'seed'}),
-            'cluster': Outline(
+            'cluster': Option(
                 name = 'cluster',
                 module = 'imblearn.under_sampling',
                 algorithm = 'ClusterCentroids',
                 default = {'sampling_strategy': 'auto'},
                 runtime = {'random_state': 'seed'}),
-            'knn': Outline(
+            'knn': Option(
                 name = 'knn',
                 module = 'imblearn.under_sampling',
                 algorithm = 'AllKNN',
                 default = {'sampling_strategy': 'auto'},
                 runtime = {'random_state': 'seed'}),
-            'near_miss': Outline(
+            'near_miss': Option(
                 name = 'near_miss',
                 module = 'imblearn.under_sampling',
                 algorithm = 'NearMiss',
                 default = {'sampling_strategy': 'auto'},
                 runtime = {'random_state': 'seed'}),
-            'random_over': Outline(
+            'random_over': Option(
                 name = 'random_over',
                 module = 'imblearn.over_sampling',
                 algorithm = 'RandomOverSampler',
                 default = {'sampling_strategy': 'auto'},
                 runtime = {'random_state': 'seed'}),
-            'random_under': Outline(
+            'random_under': Option(
                 name = 'random_under',
                 module = 'imblearn.under_sampling',
                 algorithm = 'RandomUnderSampler',
                 default = {'sampling_strategy': 'auto'},
                 runtime = {'random_state': 'seed'}),
-            'smote': Outline(
+            'smote': Option(
                 name = 'smote',
                 module = 'imblearn.over_sampling',
                 algorithm = 'SMOTE',
                 default = {'sampling_strategy': 'auto'},
                 runtime = {'random_state': 'seed'}),
-            'smotenc': Outline(
+            'smotenc': Option(
                 name = 'smotenc',
                 module = 'imblearn.over_sampling',
                 algorithm = 'SMOTENC',
@@ -87,13 +87,13 @@ class Sampler(SimpleDirector):
                 runtime = {'random_state': 'seed'},
                 data_dependent = {
                     'categorical_features': 'categoricals_indices'}),
-            'smoteenn': Outline(
+            'smoteenn': Option(
                 name = 'smoteenn',
                 module = 'imblearn.combine',
                 algorithm = 'SMOTEENN',
                 default = {'sampling_strategy': 'auto'},
                 runtime = {'random_state': 'seed'}),
-            'smotetomek': Outline(
+            'smotetomek': Option(
                 name = 'smotetomek',
                 module = 'imblearn.combine',
                 algorithm = 'SMOTETomek',

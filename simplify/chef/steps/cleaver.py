@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.typesetter import Algorithm
-from simplify.core.typesetter import Outline
+from simplify.core.typesetter import Option
 from simplify.core.typesetter import SimpleDirector
 
 
@@ -65,12 +65,12 @@ class Cleaver(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = ManuscriptOptions(options = {
-        'compare': Outline(
+        self._options = SimpleOptions(options = {
+        'compare': Option(
             name = 'compare',
             module = None,
             algorithm = 'CompareCleaves'),
-        'combine': Outline(
+        'combine': Option(
             name = 'combine',
             module = None,
             algorithm = 'CombineCleaves')}

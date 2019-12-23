@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Outline
+from simplify.core.typesetter import Option
 from simplify.core.utilities import numpy_shield
 
 
@@ -37,45 +37,45 @@ class Reducer(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = ManuscriptOptions(options = {
-            'kbest': Outline(
+        self._options = SimpleOptions(options = {
+            'kbest': Option(
                 name = 'kbest',
                 module = 'sklearn.feature_selection',
                 algorithm = 'SelectKBest',
                 default = {'k': 10, 'score_func': 'f_classif'},
                 selected = True),
-            'fdr': Outline(
+            'fdr': Option(
                 name = 'fdr',
                 module = 'sklearn.feature_selection',
                 algorithm = 'SelectFdr',
                 default = {'alpha': 0.05, 'score_func': 'f_classif'},
                 selected = True),
-            'fpr': Outline(
+            'fpr': Option(
                 name = 'fpr',
                 module = 'sklearn.feature_selection',
                 algorithm = 'SelectFpr',
                 default = {'alpha': 0.05, 'score_func': 'f_classif'},
                 selected = True),
-            'custom': Outline(
+            'custom': Option(
                 name = 'custom',
                 module = 'sklearn.feature_selection',
                 algorithm = 'SelectFromModel',
                 default = {'threshold': 'mean'},
                 runtime = {'estimator': 'estimator'},
                 selected = True),
-            'rank': Outline(
+            'rank': Option(
                 name = 'rank',
                 module = 'simplify.critic.rank',
                 algorithm = 'RankSelect',
                 selected = True),
-            'rfe': Outline(
+            'rfe': Option(
                 name = 'rfe',
                 module = 'sklearn.feature_selection',
                 algorithm = 'RFE',
                 default = {'n_features_to_select': 10, 'step': 1},
                 runtime = {'estimator': 'estimator'},
                 selected = True),
-            'rfecv': Outline(
+            'rfecv': Option(
                 name = 'rfecv',
                 module = 'sklearn.feature_selection',
                 algorithm = 'RFECV',

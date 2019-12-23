@@ -8,6 +8,7 @@
 
 from functools import wraps
 from inspect import signature
+from pathlib import Path
 import time
 from types import FunctionType
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
@@ -90,13 +91,13 @@ def is_nested(dictionary: Dict[Any, Any]) -> bool:
 
 def listify(
     variable: Any,
-    use_null: Optional[bool]  = False) -> Union[list, None]:
+    default_null: Optional[bool]  = False) -> Union[list, None]:
     """Stores passed variable as a list (if not already a list).
 
     Args:
         variable (any): variable to be transformed into a list to allow proper
             iteration.
-        use_null (boolean): whether to return None (True) or ['none']
+        default_null (boolean): whether to return None (True) or ['none']
             (False).
 
     Returns:
@@ -105,7 +106,7 @@ def listify(
 
     """
     if not variable:
-        if use_null:
+        if default_null:
             return None
         else:
             return ['none']
@@ -113,6 +114,24 @@ def listify(
         return variable
     else:
         return [variable]
+
+def _numify(variable: str) -> Union[int, float, str]:
+    """Attempts to convert 'variable' to a numeric type.
+
+    Args:
+        variable (str): variable to be converted.
+
+    Returns
+        variable (int, float, str) converted to numeric type, if possible.
+
+    """
+    try:
+        return int(variable)
+    except ValueError:
+        try:
+            return float(variable)
+        except ValueError:
+            raise TypeError
 
 def proxify(instance: object, proxies: Dict[str, str]) -> object:
     """Creates proxy names for attributes, properties, and methods.
@@ -141,12 +160,13 @@ def proxify(instance: object, proxies: Dict[str, str]) -> object:
 
 def stringify(
     variable: Union[str, List],
-    use_null: Optional[bool] = False) -> str:
+    default_null: Optional[bool] = False,
+    default_empty: Optional[bool] = False) -> str:
     """Converts one item list to a string (if not already a string).
 
     Args:
         variable (str, list): variable to be transformed into a string.
-        use_null (boolean): whether to return None (True) or ['none']
+        default_null (boolean): whether to return None (True) or ['none']
             (False).
 
     Returns:
@@ -155,8 +175,10 @@ def stringify(
 
     """
     if variable is None:
-        if use_null:
+        if default_null:
             return None
+        elif default_empty:
+            return []
         else:
             return ['none']
     elif isinstance(variable, str):
@@ -166,6 +188,38 @@ def stringify(
             return variable[0]
         except TypeError:
             return variable
+
+def typify(variable: str) -> Union[List, int, float, bool, str]:
+    """Converts stingsr to appropriate, supported datatypes.
+
+    The method converts strings to list (if ', ' is present), int, float,
+    or bool datatypes based upon the content of the string. If no
+    alternative datatype is found, the variable is returned in its original
+    form.
+
+    Args:
+        variable (str): string to be converted to appropriate datatype.
+
+    Returns:
+        variable (str, list, int, float, or bool): converted variable.
+    """
+    try:
+        variable = variable.split(', ')
+        return [numify(v) for v in variable]
+    except (AttributeError, TypeError):
+        pass
+    try:
+        return numify(variable)
+    except TypeError:
+        pass
+    if variable in ['True', 'true', 'TRUE']:
+        return True
+    elif variable in ['False', 'false', 'FALSE']:
+        return False
+    elif variable in ['None', 'none', 'NONE']:
+        return None
+    else:
+        return variable
 
 """ Decorators """
 

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Outline
+from simplify.core.typesetter import Option
 
 
 @dataclass
@@ -50,35 +50,35 @@ class Painter(SimpleDirector):
         return max_display
 
     def _draft_options(self) -> None:
-        self._options = ManuscriptOptions(options = {
-            'calibration': Outline(
+        self._options = SimpleOptions(options = {
+            'calibration': Option(
                 name = 'calibration',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {'y_true': 'y'},
                 critic_dependent = {'y_pred': 'predictions.outcomes'},
                 export_file = 'calibration.png'),
-            'cluster_tree': Outline(
+            'cluster_tree': Option(
                 name = 'cluster_tree',
                 module = 'seaborn',
                 algorithm = 'clustermap',
                 data_dependent = {'data': 'x'},
                 export_file = 'cluster_tree.png'),
-            'confusion': Outline(
+            'confusion': Option(
                 name = 'confusion',
                 module = 'seaborn',
                 algorithm = 'heatmap',
                 default = {'annot': True, 'fmt': 'g'},
                 critic_dependent = {'data': 'reports.confusion'},
                 export_file = 'confusion.png'),
-            'cumulative_gain': Outline(
+            'cumulative_gain': Option(
                 name = 'cumulative_gain',
                 module = 'skplt.metrics',
                 algorithm = 'plot_cumulative_gain',
                 data_dependent = {'y_true': 'y'},
                 critic_dependent = {'y_probas': 'probabilities.outcomes'},
                 export_file = 'cumulative_gain.png'),
-            'decision_boundaries': Outline(
+            'decision_boundaries': Option(
                 name = 'decision_boundaries',
                 module = 'mlxtend.plotting',
                 algorithm = 'plot_decision_regions',
@@ -86,110 +86,110 @@ class Painter(SimpleDirector):
                 data_dependent = {'X': 'x', 'y': 'y'},
                 critic_depdent = {'clf', 'estimator'},
                 export_file = 'decision_boundaries.png'),
-            'elbow': Outline(
+            'elbow': Option(
                 name = 'elbow_curve',
                 module = 'skplt.metrics',
                 algorithm = 'plot_elbow_curve',
                 data_dependent = {'X': 'x'},
                 critic_depdent = {'clf', 'estimator'},
                 export_file = 'elbow_curve.png'),
-            'heat_map': Outline(
+            'heat_map': Option(
                 name = 'heat_map',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'histogram': Outline(
+            'histogram': Option(
                 name = 'histogram',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'kde': Outline(
+            'kde': Option(
                 name = 'kde_plot',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'ks_statistic': Outline(
+            'ks_statistic': Option(
                 name = 'ks_stat',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'lift': Outline(
+            'lift': Option(
                 name = 'lift_curve',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'linear': Outline(
+            'linear': Option(
                 name = 'linear_regress',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'logistic': Outline(
+            'logistic': Option(
                 name = 'logistic_regress',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'pair_plot': Outline(
+            'pair_plot': Option(
                 name = 'pair_plot',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'pr_curve': Outline(
+            'pr_curve': Option(
                 name = 'pr_plot',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'residuals': Outline(
+            'residuals': Option(
                 name = 'residuals',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'roc_curve': Outline(
+            'roc_curve': Option(
                 name = 'roc_plot',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'shap_dependency': Outline(
+            'shap_dependency': Option(
                 name = 'shap_dependency',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'shap_force': Outline(
+            'shap_force': Option(
                 name = 'shap_force_plot',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'shap_heat_map': Outline(
+            'shap_heat_map': Option(
                 name = 'shap_heat_map',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'shap_interactions': Outline(
+            'shap_interactions': Option(
                 name = 'shap_interactions',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'shap_summary': Outline(
+            'shap_summary': Option(
                 name = 'shap_summary',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',
                 data_dependent = {},
                 export_file = 'calibration.png'),
-            'silhouette': Outline(
+            'silhouette': Option(
                 name = 'silhouette',
                 module = 'skplt.metrics',
                 algorithm = 'plot_calibration_curve',

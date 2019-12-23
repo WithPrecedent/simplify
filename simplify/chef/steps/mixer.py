@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Outline
+from simplify.core.typesetter import Option
 
 
 @dataclass
@@ -37,8 +37,8 @@ class Mixer(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = ManuscriptOptions(options = {
-        'polynomial': Outline(
+        self._options = SimpleOptions(options = {
+        'polynomial': Option(
             name = 'polynomial_mixer',
             module = 'sklearn.preprocessing',
             algorithm = 'PolynomialFeatures',
@@ -46,15 +46,15 @@ class Mixer(SimpleDirector):
                 'degree': 2,
                 'interaction_only': True,
                 'include_bias': True}),
-        'quotient': Outline(
+        'quotient': Option(
             name = 'quotient',
             module = None,
             algorithm = 'QuotientFeatures'),
-        'sum': Outline(
+        'sum': Option(
             name = 'sum',
             module = None,
             algorithm = 'SumFeatures'),
-        'difference': Outline(
+        'difference': Option(
             name = 'difference',
             module = None,
             algorithm = 'DifferenceFeatures')}

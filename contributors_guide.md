@@ -45,7 +45,7 @@ Any new subpackages, Books, Chapters, and Pages should follow a similar template
 
         getattr(import_module(self.options[key][0]), self.options[key][1])
 
-    For Page-level classes, a special class has been created to construct needed external and internal objects. It is the Outline class in the Contributor module. Follow the documentation there for creating Pages.
+    For Page-level classes, a special class has been created to construct needed external and internal objects. It is the Option class in the Contributor module. Follow the documentation there for creating Pages.
 
     Chapters should not require an module importation.
 

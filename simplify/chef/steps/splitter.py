@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Outline
+from simplify.core.typesetter import Option
 
 
 @dataclass
@@ -36,36 +36,36 @@ class Splitter(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = ManuscriptOptions(options = {
-            'group_kfold': Outline(
+        self._options = SimpleOptions(options = {
+            'group_kfold': Option(
                 name = 'group_kfold',
                 module = 'sklearn.model_selection',
                 algorithm = 'GroupKFold',
                 default = {'n_splits': 5},
                 runtime = {'random_state': 'seed'},
                 selected = True),
-            'kfold': Outline(
+            'kfold': Option(
                 name = 'kfold',
                 module = 'sklearn.model_selection',
                 algorithm = 'KFold',
                 default = {'n_splits': 5, 'shuffle': False},
                 runtime = {'random_state': 'seed'},
                 selected = True),
-            'stratified': Outline(
+            'stratified': Option(
                 name = 'stratified',
                 module = 'sklearn.model_selection',
                 algorithm = 'StratifiedKFold',
                 default = {'n_splits': 5, 'shuffle': False},
                 runtime = {'random_state': 'seed'},
                 selected = True),
-            'time': Outline(
+            'time': Option(
                 name = 'time',
                 module = 'sklearn.model_selection',
                 algorithm = 'TimeSeriesSplit',
                 default = {'n_splits': 5},
                 runtime = {'random_state': 'seed'},
                 selected = True),
-            'train_test': Outline(
+            'train_test': Option(
                 name = 'train_test',
                 module = 'sklearn.model_selection',
                 algorithm = 'ShuffleSplit',

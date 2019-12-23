@@ -15,12 +15,49 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core.defaults import Defaults
-from simplify.core.inventory import SimpleInventory
-from simplify.core.state import SimpleState
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
+
+
+INGREDIENTS = {
+    'default_df': 'df',
+    'options': {
+        'unsplit': {
+            'train': 'full_suffix',
+            'test': None},
+        'train_test': {
+            'train': 'train_suffix',
+            'test': 'test_suffix'},
+        'train_val': {
+            'train': 'train_suffix',
+            'test': 'test_suffix'},
+        'full': {
+            'train': 'full_suffix',
+            'test': 'full_suffix'}},
+    'data_prefixes': ['x', 'y'],
+    'train_suffix': 'train',
+    'test_suffix': 'test',
+    'validation_suffix': 'val',
+    'full_suffix': '',
+    'datatypes': {
+        'boolean': bool,
+        'float': float,
+        'integer': int,
+        'string': object,
+        'categorical': CategoricalDtype,
+        'list': list,
+        'datetime': datetime64,
+        'timedelta': timedelta},
+    'default_values': {
+        'boolean': False,
+        'float': 0.0,
+        'integer': 0,
+        'string': '',
+        'categorical': '',
+        'list': [],
+        'datetime': 1/1/1900,
+        'timedelta': 0}}
 
 """ Ingredients Decorators """
 
@@ -71,7 +108,7 @@ def backup_df(return_df: Optional[bool] = False) -> Callable:
 #         method (method): wrapped method.
 
 #     Returns:
-#         Callable:  with 'columns' parameter that combines items from 'columns',
+#         Callable: with 'columns' parameter that combines items from 'columns',
 #             'prefixes', 'suffixes', and 'mask' parameters into a single list
 #             of column names using the 'make_column_list' method.
 
@@ -177,7 +214,6 @@ class Ingredients(object):
 
     def __post_init__(self) -> None:
         """Sets default values and calls appropriate creation methods."""
-        self.defaults = Defaults()
         self = self.defaults.apply(instance = self)
         self.draft()
         if self.auto_publish:
@@ -570,20 +606,20 @@ class Ingredients(object):
             pass
         try:
             temp_list = []
-            for prefix in listify(prefixes, use_null = True):
+            for prefix in listify(prefixes, default_null = True):
                 temp_list = [col for col in df if col.startswith(prefix)]
                 column_names.extend(temp_list)
         except TypeError:
             pass
         try:
             temp_list = []
-            for prefix in listify(suffixes, use_null = True):
+            for prefix in listify(suffixes, default_null = True):
                 temp_list = [col for col in df if col.endswith(suffix)]
                 column_names.extend(temp_list)
         except TypeError:
             pass
         try:
-            column_names.extend(listify(columns, use_null = True))
+            column_names.extend(listify(columns, default_null = True))
         except TypeError:
             pass
         return deduplicate(iterable = column_names)
@@ -873,43 +909,34 @@ class Ingredients(object):
         return self
 
 
-@dataclass
-class DataFile(SimpleInventory):
-    """Manages data importing and exporting for siMpLify."""
-    folder_path: str
-    file_name: str
-    file_format: 'FileFormat'
-
-    def __post_init__(self):
-        return self
 
 
-@dataclass
-class DataState(SimpleState):
-    """State machine for siMpLify project workflow.
+# @dataclass
+# class DataState(SimpleState):
+#     """State machine for siMpLify project workflow.
 
-    Args:
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. If 'name' is not
-            provided, __class__.__name__.lower() is used instead.
-        state (Optional[str]): initial state. Defaults to 'unsplit'.
+#     Args:
+#         name (Optional[str]): designates the name of the class used for internal
+#             referencing throughout siMpLify. If the class needs settings from
+#             the shared Idea instance, 'name' should match the appropriate
+#             section name in Idea. When subclassing, it is a good idea to use
+#             the same 'name' attribute as the base class for effective
+#             coordination between siMpLify classes. 'name' is used instead of
+#             __class__.__name__ to make such subclassing easier. If 'name' is not
+#             provided, __class__.__name__.lower() is used instead.
+#         state (Optional[str]): initial state. Defaults to 'unsplit'.
 
-    """
-    name: Optional[str] = 'data_state_machine'
-    state: Optional[str] = 'unsplit'
+#     """
+#     name: Optional[str] = 'data_state_machine'
+#     state: Optional[str] = 'unsplit'
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        return self
+#     def __post_init__(self) -> None:
+#         super().__post_init__()
+#         return self
 
-    """ Core siMpLify Methods """
+#     """ Core siMpLify Methods """
 
-    def draft(self) -> None:
-        # Sets possible states
-        self.states = ['unsplit', 'train_test', 'train_val', 'full']
-        return self
+#     def draft(self) -> None:
+#         # Sets possible states
+#         self.states = ['unsplit', 'train_test', 'train_val', 'full']
+#         return self

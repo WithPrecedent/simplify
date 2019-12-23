@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Outline
+from simplify.core.typesetter import Option
 
 
 @dataclass
@@ -38,15 +38,15 @@ class Modeler(SimpleDirector):
 
     def _add_gpu_steps_classify(self) -> None:
         self.options.update({
-            'forest_inference': Outline(
+            'forest_inference': Option(
                 name = 'forest_inference',
                 module = 'cuml',
                 algorithm = 'ForestInference'),
-            'random_forest': Outline(
+            'random_forest': Option(
                 name = 'random_forest',
                 module = 'cuml',
                 algorithm = 'RandomForestClassifier'),
-            'logit': Outline(
+            'logit': Option(
                 name = 'logit',
                 module = 'cuml',
                 algorithm = 'LogisticRegression')})
@@ -54,11 +54,11 @@ class Modeler(SimpleDirector):
 
     def _add_gpu_steps_cluster(self) -> None:
         self.options.update({
-            'dbscan': Outline(
+            'dbscan': Option(
                 name = 'dbscan',
                 module = 'cuml',
                 algorithm = 'DBScan'),
-            'kmeans': Outline(
+            'kmeans': Option(
                 name = 'kmeans',
                 module = 'cuml',
                 algorithm = 'KMeans')})
@@ -66,67 +66,67 @@ class Modeler(SimpleDirector):
 
     def _add_gpu_steps_regress(self) -> None:
         self.options.update({
-            'lasso': Outline(
+            'lasso': Option(
                 name = 'lasso',
                 module = 'cuml',
                 algorithm = 'Lasso'),
-            'ols': Outline(
+            'ols': Option(
                 name = 'ols',
                 module = 'cuml',
                 algorithm = 'LinearRegression'),
-            'ridge': Outline(
+            'ridge': Option(
                 name = 'ridge',
                 module = 'cuml',
                 algorithm = 'RidgeRegression')})
         return self
 
     def _draft_classify(self) -> None:
-        self._options = ManuscriptOptions(options = {
-            'adaboost': Outline(
+        self._options = SimpleOptions(options = {
+            'adaboost': Option(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',
                 algorithm = 'AdaBoostClassifier'),
-            'baseline_classifier': Outline(
+            'baseline_classifier': Option(
                 name = 'baseline_classifier',
                 module = 'sklearn.dummy',
                 algorithm = 'DummyClassifier',
                 required = {'strategy': 'most_frequent'}),
-            'logit': Outline(
+            'logit': Option(
                 name = 'logit',
                 module = 'sklearn.linear_model',
                 algorithm = 'LogisticRegression'),
-            'random_forest': Outline(
+            'random_forest': Option(
                 name = 'random_forest',
                 module = 'sklearn.ensemble',
                 algorithm = 'RandomForestClassifier'),
-            'svm_linear': Outline(
+            'svm_linear': Option(
                 name = 'svm_linear',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'linear', 'probability': True}),
-            'svm_poly': Outline(
+            'svm_poly': Option(
                 name = 'svm_poly',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'poly', 'probability': True}),
-            'svm_rbf': Outline(
+            'svm_rbf': Option(
                 name = 'svm_rbf',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'rbf', 'probability': True}),
-            'svm_sigmoid': Outline(
+            'svm_sigmoid': Option(
                 name = 'svm_sigmoid ',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'sigmoid', 'probability': True}),
-            'tensorflow': Outline(
+            'tensorflow': Option(
                 name = 'tensorflow',
                 module = 'tensorflow',
                 algorithm = None,
                 default = {
                     'batch_size': 10,
                     'epochs': 2}),
-            'xgboost': Outline(
+            'xgboost': Option(
                 name = 'xgboost',
                 module = 'xgboost',
                 algorithm = 'XGBClassifier',
@@ -134,109 +134,109 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_cluster(self) -> None:
-        self._options = ManuscriptOptions(options = {
-            'affinity': Outline(
+        self._options = SimpleOptions(options = {
+            'affinity': Option(
                 name = 'affinity',
                 module = 'sklearn.cluster',
                 algorithm = 'AffinityPropagation'),
-            'agglomerative': Outline(
+            'agglomerative': Option(
                 name = 'agglomerative',
                 module = 'sklearn.cluster',
                 algorithm = 'AgglomerativeClustering'),
-            'birch': Outline(
+            'birch': Option(
                 name = 'birch',
                 module = 'sklearn.cluster',
                 algorithm = 'Birch'),
-            'dbscan': Outline(
+            'dbscan': Option(
                 name = 'dbscan',
                 module = 'sklearn.cluster',
                 algorithm = 'DBSCAN'),
-            'kmeans': Outline(
+            'kmeans': Option(
                 name = 'kmeans',
                 module = 'sklearn.cluster',
                 algorithm = 'KMeans'),
-            'mean_shift': Outline(
+            'mean_shift': Option(
                 name = 'mean_shift',
                 module = 'sklearn.cluster',
                 algorithm = 'MeanShift'),
-            'spectral': Outline(
+            'spectral': Option(
                 name = 'spectral',
                 module = 'sklearn.cluster',
                 algorithm = 'SpectralClustering'),
-            'svm_linear': Outline(
+            'svm_linear': Option(
                 name = 'svm_linear',
                 module = 'sklearn.cluster',
                 algorithm = 'OneClassSVM'),
-            'svm_poly': Outline(
+            'svm_poly': Option(
                 name = 'svm_poly',
                 module = 'sklearn.cluster',
                 algorithm = 'OneClassSVM'),
-            'svm_rbf': Outline(
+            'svm_rbf': Option(
                 name = 'svm_rbf',
                 module = 'sklearn.cluster',
                 algorithm = 'OneClassSVM,'),
-            'svm_sigmoid': Outline(
+            'svm_sigmoid': Option(
                 name = 'svm_sigmoid',
                 module = 'sklearn.cluster',
                 algorithm = 'OneClassSVM')}
         return self
 
     def _draft_regress(self) -> None:
-        self._options = ManuscriptOptions(options = {
-            'adaboost': Outline(
+        self._options = SimpleOptions(options = {
+            'adaboost': Option(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',
                 algorithm = 'AdaBoostRegressor'),
-            'baseline_regressor': Outline(
+            'baseline_regressor': Option(
                 name = 'baseline_regressor',
                 module = 'sklearn.dummy',
                 algorithm = 'DummyRegressor',
                 required = {'strategy': 'mean'}),
-            'bayes_ridge': Outline(
+            'bayes_ridge': Option(
                 name = 'bayes_ridge',
                 module = 'sklearn.linear_model',
                 algorithm = 'BayesianRidge'),
-            'lasso': Outline(
+            'lasso': Option(
                 name = 'lasso',
                 module = 'sklearn.linear_model',
                 algorithm = 'Lasso'),
-            'lasso_lars': Outline(
+            'lasso_lars': Option(
                 name = 'lasso_lars',
                 module = 'sklearn.linear_model',
                 algorithm = 'LassoLars'),
-            'ols': Outline(
+            'ols': Option(
                 name = 'ols',
                 module = 'sklearn.linear_model',
                 algorithm = 'LinearRegression'),
-            'random_forest': Outline(
+            'random_forest': Option(
                 name = 'random_forest',
                 module = 'sklearn.ensemble',
                 algorithm = 'RandomForestRegressor'),
-            'ridge': Outline(
+            'ridge': Option(
                 name = 'ridge',
                 module = 'sklearn.linear_model',
                 algorithm = 'Ridge'),
-            'svm_linear': Outline(
+            'svm_linear': Option(
                 name = 'svm_linear',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'linear', 'probability': True}),
-            'svm_poly': Outline(
+            'svm_poly': Option(
                 name = 'svm_poly',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'poly', 'probability': True}),
-            'svm_rbf': Outline(
+            'svm_rbf': Option(
                 name = 'svm_rbf',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'rbf', 'probability': True}),
-            'svm_sigmoid': Outline(
+            'svm_sigmoid': Option(
                 name = 'svm_sigmoid ',
                 module = 'sklearn.svm',
                 algorithm = 'SVC',
                 required = {'kernel': 'sigmoid', 'probability': True}),
-            'xgboost': Outline(
+            'xgboost': Option(
                 name = 'xgboost',
                 module = 'xgboost',
                 algorithm = 'XGBRegressor',
