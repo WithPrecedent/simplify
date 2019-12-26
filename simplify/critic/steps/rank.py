@@ -77,7 +77,7 @@ class Rank(CriticTechnique):
 
     def draft(self) -> None:
         super().draft()
-        self.order_setting = 'ranking_steps'
+        self.steps_setting = 'ranking_steps'
         return self
 
 

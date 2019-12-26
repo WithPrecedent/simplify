@@ -1,6 +1,6 @@
 """
 .. module:: editors
-:synopsis: constructs and applies manuscripts
+:synopsis: constructs manuscripts
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -9,7 +9,6 @@
 from dataclasses import dataclass
 from dataclasses import field
 from itertools import product
-from multiprocessing import Pool
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 from simplify.core.base import SimplePublisher
@@ -21,7 +20,7 @@ from simplify.core.utilities import listify
 
 
 @dataclass
-class Editor(SimplePublisher):
+class Author(SimplePublisher):
     """Creates Book instances.
 
     Args:
@@ -37,43 +36,73 @@ class Editor(SimplePublisher):
 
     """ Private Methods """
 
-    def _draft_order(self, manuscript: 'Book') -> 'Book':
-        """Drafts 'order' for 'manuscript'.
+    def _draft_library(self,
+            items: Union[List[str], Dict[str, Any], str]) -> None:
+        """Converts selected values in 'mapping' dictionary to Classes.
 
         Args:
-            manuscript ('Book'): Book instance to be modified.
-
-        Returns:
-            manuscript ('Book'): Book instance with modifications made.
+            items (Union[List[str], Dict[str, Any], str]): list of keys,
+                dictionary, or a string indicating which 'items' should be
+                loaded. If a dictionary is passed, its keys will be used to
+                find matches in the 'mapping' dictionary.
 
         """
-        # Validates 'order' or attempts to get 'order' from 'idea'.
-        if not manuscript.order:
+        if isinstance(items, dict):
+            items = list(items.items())
+        for item in listify(items):
             try:
-                manuscript.order = SimpleSequence(
-                    sequence = (
-                        manuscript.project.idea[manuscript.name]['_'.join(
-                            [manuscript.name, 'steps'])]))
-            except KeyError:
-                manuscript.order = SimpleSequence()
-        elif not isinstance(manuscript.order, SimpleSequence):
-            manuscript.order = SimpleSequence(sequence = manuscript.order)
-        return manuscript
+                # Lazily loads all selected Resource instances.
+                getattr(self, self.mapping)[item] = getattr(
+                    self, self.mapping)[item].load()
+            except (KeyError, AttributeError):
+                pass
+        return self
 
-    def _draft_chapters(self, manuscript: 'Book') -> 'Book':
-        """Creates cartesian product of all possible 'techniques'.
+    def _publish_library(self,
+            items: Union[List[str], Dict[str, Any], str]) -> None:
+        """Loads, creates, and finalizes instances in the active dictionary.
 
         Args:
-            manuscript ('Book'): Book instance to be modified.
-
-        Returns:
-            manuscript ('Book'): Book instance with modifications made.
+            items (Union[List[str], Dict[str, Any], str]): list of keys,
+                dictionary, or a string indicating which 'items' should be
+                instanced. If a dictionary is passed, its keys will be used to
+                find matches in the 'mapping' dictionary.
 
         """
-        # Initiablizes 'chapters' for 'manuscript'.
-        manuscript.chapters = Chapters()
-        return manuscript
+        if isinstance(items, dict):
+            items = list(items.items())
+        for item in listify(items):
+            try:
+                instance = getattr(self, self.mapping)[item](
+                    project = self.project)
+                instance.publish()
+                instance = getattr(self, self.mapping)[item] = instance
+            except (KeyError, AttributeError):
+                pass
+        return self
 
+    def _publish_steps(self, book: 'Book') -> 'Book':
+        """Drafts 'steps' for 'book'.
+
+        Args:
+            book ('Book'): Book instance to be modified.
+
+        Returns:
+            book ('Book'): Book instance with modifications made.
+
+        """
+        # Validates 'steps' or attempts to get 'steps' from 'idea'.
+        if not book.steps:
+            try:
+                book.steps = SimpleSequence(
+                    sequence = (
+                        book.project.idea[book.name]['_'.join(
+                            [book.name, 'steps'])]))
+            except KeyError:
+                book.steps = SimpleSequence()
+        elif not isinstance(book.steps, SimpleSequence):
+            book.steps = SimpleSequence(sequence = book.steps)
+        return book
 
     def _publish_chapter_metadata(self, number: int) -> Dict[str, Any]:
         """Finalizes metadata for Chapter instance.
@@ -87,7 +116,7 @@ class Editor(SimplePublisher):
         """
         metadata = {'number': number + 1}
         try:
-            metadata.update(manuscript.metadata)
+            metadata.update(book.metadata)
         except AttributeError:
             pass
         return metadata
@@ -102,9 +131,9 @@ class Editor(SimplePublisher):
             book ('Book'): Book instance with modifications made.
 
         """
-        # Creates a list of lists of techniques for each step in 'order'.
+        # Creates a list of lists of techniques for each step in 'steps'.
         plans = []
-        for step in book.order:
+        for step in book.steps:
             try:
                 key = '_'.join([step, 'techniques'])
                 plans.append(listify(self.project.idea[book.name][key]))
@@ -117,13 +146,26 @@ class Editor(SimplePublisher):
                 chapters.chapter_type(
                     project = self.project,
                     chapters = chapters,
-                    order = dict(zip(book.order, steps)),
+                    steps = dict(zip(book.steps, steps)),
                     metadata = self._publish_chapter_metadata(number = i)))
         return book
 
     """ Core siMpLify Methods """
 
-    def draft(self, manuscript: 'Book') -> 'Book':
+    def draft(self, outline: 'Resource') -> 'Book':
+        """Drafts initial attributes and settings of a Book instance.
+
+        Args:
+            outline ('Resource'): instructions for Book creation.
+
+        Returns:
+            Book instance.
+
+        """
+        book = outline.load()
+        return book(project = self.project, name = outline.name)
+
+    def publish(self, book: 'Book') -> 'Book':
         """Drafts initial attributes and settings of 'manuscript'.
 
         Args:
@@ -133,23 +175,9 @@ class Editor(SimplePublisher):
             manuscript ('Book'): Book instance with modifications made.
 
         """
-        manuscript = self._draft_idea(manuscript = manuscript)
-        manuscript = self._draft_options(manuscript = manuscript)
-        manuscript = self._draft_order(manuscript = manuscript)
-        return manuscript
-
-    def publish(self, manuscript: 'Book') -> 'Book':
-        """Drafts initial attributes and settings of 'manuscript'.
-
-        Args:
-            manuscript ('Book'): Book instance to be modified.
-
-        Returns:
-            manuscript ('Book'): Book instance with modifications made.
-
-        """
-        manuscript = self._publish_options(manuscript = manuscript)
-        manuscript = self._publish_chapters(manuscript = manuscript)
+        book = self._publish_idea(manuscript = book)
+        book = self._publish_options(manuscript = book)
+        book = self._publish_chapters(manuscript = manuscript)
         return manuscript
 
 
@@ -196,6 +224,7 @@ class Contributor(SimplePublisher):
         """
         manuscript = self._publish_pages(manuscript = manuscript)
         return manuscript
+
 
 @dataclass
 class Researcher(SimplePublisher):
@@ -273,120 +302,4 @@ class Researcher(SimplePublisher):
         manuscript = self._draft_parameters(
             manuscript = manuscript,
             technique = technique)
-        return manuscript
-
-@dataclass
-class Worker(object):
-    """Applies methods to siMpLify class instances.
-
-    Args:
-        project ('Project'): a related director class instance.
-
-    """
-    project: 'Project'
-
-    def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
-        super().__post_init__()
-        return self
-
-    def _apply_gpu(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[Union['Ingredients', 'SimpleManuscript']] = None,
-            **kwargs) -> NotImplementedError:
-        """Applies objects in 'manuscript' to 'data'
-
-        Args:
-            manuscript ('SimpleManuscript'): siMpLify class instance to be
-                modified.
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): an
-                Ingredients instance containing external data or a published
-                SimpleManuscript. Defaults to None.
-            kwargs: any additional parameters to pass to a related
-                SimpleManuscript's 'apply' method.
-
-        Raises:
-            NotImplementedError: until dynamic GPU support is added.
-
-        """
-        raise NotImplementedError(
-            'GPU support outside of modeling is not yet supported')
-
-    def _apply_multi_core(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[Union['Ingredients',
-                'SimpleManuscript']] = None) -> 'SimpleManuscript':
-        """Applies objects in 'manuscript' to 'data'
-
-        Args:
-            manuscript ('SimpleManuscript'): siMpLify class instance to be
-                modified.
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): an
-                Ingredients instance containing external data or a published
-                SimpleManuscript. Defaults to None.
-
-        Returns:
-            manuscript ('SimpleManuscript'): siMpLify class instance with
-                modifications made.
-
-        """
-        with Pool() as pool:
-            pool.map(manuscript.apply, data)
-        pool.close()
-        return self
-
-    def _apply_single_core(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[Union['Ingredients', 'SimpleManuscript']] = None,
-            **kwargs) -> 'SimpleManuscript':
-        """Applies objects in 'manuscript' to 'data'
-
-        Args:
-            manuscript ('SimpleManuscript'): siMpLify class instance to be
-                modified.
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): an
-                Ingredients instance containing external data or a published
-                SimpleManuscript. Defaults to None.
-            kwargs: any additional parameters to pass to a related
-                SimpleManuscript's 'apply' method.
-
-        Returns:
-            manuscript ('SimpleManuscript'): siMpLify class instance with
-                modifications made.
-
-        """
-        manuscript.apply(data = data, **kwargs)
-        return self
-
-    """ Core siMpLify Methods """
-
-    def apply(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[Union['Ingredients', 'SimpleManuscript']] = None,
-            **kwargs) -> 'SimpleManuscript':
-        """Applies objects in 'manuscript' to 'data'
-
-        Args:
-            manuscript ('SimpleManuscript'): siMpLify class instance to be
-                modified.
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): an
-                Ingredients instance containing external data or a published
-                SimpleManuscript. Defaults to None.
-            kwargs: any additional parameters to pass to a related
-                SimpleManuscript's options' 'apply' method.
-
-        Returns:
-            manuscript ('SimpleManuscript'): siMpLify class instance with
-                modifications made.
-
-        """
-        if self.parallelize and not kwargs:
-            self._apply_multi_core(
-                manuscript = manuscript,
-                data = data)
-        else:
-            self._apply_single_core(
-                manuscript = manuscript,
-                data = data,
-                **kwargs)
         return manuscript

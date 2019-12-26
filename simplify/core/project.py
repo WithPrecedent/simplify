@@ -16,18 +16,17 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleOption
-from simplify.core.editors import Author
-from simplify.core.editors import Publisher
-from simplify.core.editors import Worker
+from simplify.core.base import SimplePublisher
 from simplify.core.idea import Idea
 from simplify.core.ingredients import Ingredients
 from simplify.core.inventory import Inventory
+from simplify.core.library import Library
+from simplify.core.library import Resource
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Project(object):
+class Project(SimplePublisher):
     """Controller class for siMpLify projects.
 
     Args:
@@ -48,11 +47,11 @@ class Project(object):
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Ingredients instance. Default is None.
-        steps (Optional[List[str], str]): ordered list of steps to execute. Each
-            step should match a key in 'options'. Defaults to an empty list.
-        options (Optional[Union['SimpleOptions', Dict[str, 'Book']]]):
+        options (Optional[Union['Library', Dict[str, 'Book']]]):
             allows setting of 'options' property with an argument. Defaults to
             an empty dictionary.
+        steps (Optional[List[str], str]): ordered list of steps to execute. Each
+            step should match a key in 'options'. Defaults to an empty list.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced.
         auto_apply (Optional[bool]): whether to call the 'publish' method when
@@ -68,7 +67,7 @@ class Project(object):
             provided, __class__.__name__.lower() is used instead.
 
     """
-    idea: Union['Idea', str]
+    idea: Union['Idea', str] = None
     inventory: Optional[Union['Inventory', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
@@ -76,9 +75,9 @@ class Project(object):
         pd.Series,
         np.ndarray,
         str]] = None
-    steps: Optional[Union[List[str], str]] = field(default_factory = list)
-    options: Optional[Union['SimpleOptions', Dict[str, 'Book']]] = field(
+    options: Optional[Union['Library', Dict[str, 'Book']]] = field(
         default_factory = dict)
+    steps: Optional[Union[List[str], str]] = field(default_factory = list)
     auto_publish: Optional[bool] = True
     auto_apply: Optional[bool] = False
     name: Optional[str] = 'simplify'
@@ -87,6 +86,9 @@ class Project(object):
         """Initializes class attributes and calls appropriate methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
+        # Checks 'idea' to make sure it was passed.
+        if self.idea is None:
+            raise AttributeError('Project requires idea to be passed.')
         # Validates 'idea', 'inventory', and 'ingredients'.
         self.idea, self.inventory, self.ingredients = startup(
             idea = self.idea,
@@ -108,7 +110,7 @@ class Project(object):
     def __call__(self):
         """Drafts, publishes, and applies Project.
 
-        This requires an Idea and Ingredients arguments to be passed in order
+        This requires an Idea and Ingredients arguments to be passed in steps
         to work properly.
 
         Calling Project as a function is compatible with and used by the
@@ -126,46 +128,35 @@ class Project(object):
 
     def draft(self) -> None:
         """Sets initial attributes."""
-        # Declares default options.
-        self.default_options = {
-            'farmer': SimpleOption(
-                name = 'farmer',
-                module = 'simplify.farmer',
-                component = 'Almanac'),
-            'chef': SimpleOption(
-                name = 'chef',
-                module = 'simplify.chef',
-                component = 'Cookbook'),
-            'actuary': SimpleOption(
-                name = 'actuary',
-                module = 'simplify.actuary',
-                component = 'Ledger'),
-            'critic': SimpleOption(
-                name = 'critic',
-                module = 'simplify.critic',
-                component = 'Collection'),
-            'artist': SimpleOption(
-                name = 'artist',
-                module = 'simplify.artist',
-                component = 'Canvas')}
-        # Creates Author instance and drafts 'steps' and 'options'.
-        self.author = Author(project = self)
-        self = self.author.draft(project = self)
+        # Sets 'library' if not passed.
+        if self.options:
+            self.library = Library(
+                project = self,
+                collection = self.options)
+        else:
+            self.library = Library(
+                project = self,
+                collection = DEFAULT_LIBRARY)
+        self._draft_steps(manuscript = self)
+        self.library.draft(items = self.steps)
+        # Sets active dictionary for state management.
+        self.active = 'options'
+        # Creates Editor instance for Book, Chapter, and Page construction.
+        self.editor = Editor(project = self)
         return self
 
     def publish(self, steps: Optional[Union[List[str], str]] = None) -> None:
-        """Finalizes steps by creating Book instances in options.
+        """Finalizes iterable by creating Book instances.
 
         Args:
-            steps (Optional[Union[List[str], str]]):
+            steps (Optional[Union[List[str], str]]): option(s) to publish.
 
         """
         # If optional 'steps' passed, they are assigned to 'steps' attribute.
         if steps is not None:
             self.steps = steps
-        # Creates Publisher instance and loads and instances selected 'options'.
-        self.publisher = Publisher(project = self)
-        self = self.publisher.publish(project = self)
+        # Has 'library' publish selected options.
+        self.library.publish(items = self.steps)
         return self
 
     def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
@@ -177,15 +168,36 @@ class Project(object):
         """
         if data:
             self.ingredients = data
-        if self.conserve_memory:
-            del self.author
-            del self.publisher
         self.worker = Worker(related = self)
         self = self.worker.apply(
             project = self,
             data = self.ingredients,
             **kwargs)
         return self
+
+""" Default Project Library """
+
+DEFAULT_LIBRARY = {
+    'farmer': Resource(
+        name = 'farmer',
+        module = 'simplify.farmer',
+        component = 'Almanac'),
+    'chef': Resource(
+        name = 'chef',
+        module = 'simplify.chef',
+        component = 'Cookbook'),
+    'actuary': Resource(
+        name = 'actuary',
+        module = 'simplify.actuary',
+        component = 'Ledger'),
+    'critic': Resource(
+        name = 'critic',
+        module = 'simplify.critic',
+        component = 'Collection'),
+    'artist': Resource(
+        name = 'artist',
+        module = 'simplify.artist',
+        component = 'Canvas')}
 
 """ Builder Functions """
 
@@ -346,8 +358,11 @@ def create_inventory(
     """
     if isinstance(inventory, Inventory):
         return inventory
-    elif Path.is_dir(inventory):
-        return Inventory(idea = idea, root_folder = inventory)
+    elif isinstance(inventory, str):
+        return Inventory(
+            project = project,
+            idea = idea,
+            root_folder = inventory)
     else:
         raise TypeError('inventory must be Inventory type or folder path')
 

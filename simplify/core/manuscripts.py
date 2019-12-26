@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
+from simplify.core.base import Resource
 from simplify.core.base import SimpleOptions
 from simplify.core.utilities import listify
 from simplify.core.utilities import numpy_shield
@@ -28,19 +29,24 @@ class Book(SimpleOptions):
 
     Args:
         project ('Project'): associated Project instance.
-        options (Optional[Dict[str, 'SimpleOption']]): SimpleOptions instance or
+        options (Optional[Dict[str, 'Resource']]): SimpleOptions instance or
             a SimpleOptions-compatible dictionary. Defaults to an empty
             dictionary.
-        order (Optional[Union[List[str], str]]): order of key(s) to iterate in
-            'options'. Also, if not reset by the user, 'order' is used if the
+        steps (Optional[Union[List[str], str]]): steps of key(s) to iterate in
+            'options'. Also, if not reset by the user, 'steps' is used if the
             'default' property is accessed. Defaults to an empty list.
 
     """
-    project: 'Project'
-    options: Optional[Dict[str, 'SimpleOption']] = field(default_factory = dict)
-    order: Optional[Union[List[str], str]] = field(default_factory = list)
+    project: 'Project' = None
+    options: Optional[Dict[str, 'Resource']] = field(default_factory = dict)
+    steps: Optional[Union['SimpleSequence', List[str], str]] = field(
+        default_factory = list)
     name: Optional[str] = None
-    _simplify_type: Optional[str] = 'Book'
+    chapter_type: Optional['Chapter'] = None
+    iterable: Optional[str] = 'chapters'
+    metadata: Optional[Dict[str, Any]] = field(default_factory = dict)
+    file_format: Optional[str] = 'pickle'
+    export_folder: Optional[str] = 'book'
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
@@ -49,21 +55,49 @@ class Book(SimpleOptions):
             self.name = self.__class__.__name__.lower()
         # Calls parent method for initialization.
         super().__post_init__()
-        # Sets default 'iterable' if none exists.
-        if not hasattr(self, 'iterable'):
-            self.iterable = 'chapters'
         return self
 
-@dataclass
-class Chapters(SimpleSequence):
-    """Stores a set of Chapter instances.
+    """ Core SiMpLify Methods """
 
-    Args:
+    def apply(self,
+            options: Optional[Union[List[str], Dict[str, Any], str]] = None,
+            data: Optional[Union['Ingredients', 'Book']] = None,
+            **kwargs) -> Union['Ingredients', 'Book']:
+        """Calls 'apply' method for published option matching 'step'.
 
-    """
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        return self
+        Args:
+            options (Optional[Union[List[str], Dict[str, Any], str]]): ordered
+                options to be applied. If none are passed, the 'published' keys
+                are used. Defaults to None
+            data (Optional[Union['Ingredients', 'Book']]): a siMpLify object for
+                the corresponding 'options' to apply. Defaults to None.
+            kwargs: any additional parameters to pass to the options' 'apply'
+                method.
+
+        Returns:
+            Union['Ingredients', 'Book'] is returned if data is passed;
+                otherwise nothing is returned.
+
+        """
+        if isinstance(options, dict):
+            options = list(options.keys())
+        elif options is None:
+            options = self.default
+        self._change_active(new_active = 'applied')
+        for option in options:
+            if data is None:
+                getattr(self, self.active)[option].apply(**kwargs)
+            else:
+                data = getattr(self, self.active)[option].apply(
+                    data = data,
+                    **kwargs)
+            getattr(self, self.active)[option] = getattr(
+                self, self.active)[option]
+        if data is None:
+            return self
+        else:
+            return data
+
 
 @dataclass
 class Chapter(SimpleOptions):
@@ -77,16 +111,16 @@ class Chapter(SimpleOptions):
             Defaults to an empty dictionary.
 
     """
-    book: 'Book'
+    book: 'Book' = None
+    name: Optional[str] = None
+    iterable: Optional[str] = 'book.steps'
     metadata: Optional[Dict[str, Any]] = field(default_factory = dict)
-    _simplify_type: Optional[str] = 'Chapter'
+    file_format: Optional[str] = 'pickle'
+    export_folder: Optional[str] = 'chapter'
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        if not hasattr(self, 'iterable'):
-            self.iterable = 'pages'
         return self
-
 
     """ Private Methods """
 
@@ -109,8 +143,8 @@ class Chapter(SimpleOptions):
         """
         if data is not None:
             self.ingredients = data
-        for step in self.order:
-            self.book.options[step].apply(data = self.ingredients, **kwargs)
+        for step in getattr(self, self.iterable):
+            self.book[step].apply(data = self.ingredients, **kwargs)
             self._apply_extra_processing()
         return self
 
@@ -120,7 +154,7 @@ class Page(SimpleOptions):
     """Stores, combines, and applies Algorithm and Parameters instances.
 
     Args:
-        technique (str): designates the name of the class used for internal
+        name (str): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
             section name in Idea. When subclassing, it is a good idea to use
@@ -130,8 +164,10 @@ class Page(SimpleOptions):
             provided, __class__.__name__.lower() is used instead.
 
     """
-    technique: str = None
-    _simplify_type: Optional[str] = 'Page'
+    book: 'Book' = None
+    name: Optional[str] = None
+    file_format: Optional[str] = 'pickle'
+    export_folder: Optional[str] = 'chapter'
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -307,7 +343,7 @@ class Page(SimpleOptions):
 
 
 @dataclass
-class Algorithm(SimpleManuscript):
+class Algorithm(object):
     """Base class for building an algorithm for a Page subclass instance.
 
     Args:
@@ -518,7 +554,7 @@ class Parameters(SimpleOptions):
 
 
 @dataclass
-class Reference(SimpleManuscript):
+class Reference(object):
     """Base class for drafting and publishing Reference instances.
 
     Args:
@@ -538,7 +574,7 @@ class Reference(SimpleManuscript):
 
 
 @dataclass
-class PageOption(SimpleOption):
+class PageOption(Resource):
     """Contains settings for creating an Algorithm and Parameters.
 
     Args:

@@ -63,7 +63,7 @@ To understand a typical use-case for siMplify, let's examine a project that omit
 
 As an example of siMpLify's functionality, let's review the Chef subpackage. It allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling ingredients based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
 
-By default, the Chef divides the feature engineering and modeling process into eight major steps that can be sequenced in different orders (or supplemented with
+By default, the Chef divides the feature engineering and modeling process into eight major steps that can be sequenced in different stepss (or supplemented with
 custom steps and steps):
 
 * Scale: converts numerical features into a common scale, using scikit-learn methods.

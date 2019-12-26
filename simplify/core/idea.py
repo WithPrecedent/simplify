@@ -32,7 +32,7 @@ class Idea(SimpleSettings):
     the base ConfigParser including:
         1) All values in ConfigParser are strings by default.
         2) The nested structure for getting items creates verbose code.
-        3) It uses OrderedDict (python 3.6+ orders regular dictionaries).
+        3) It uses OrderedDict (python 3.6+ stepss regular dictionaries).
 
     To use the Idea class, the user can either pass to 'configuration':
         1) a file path, which will automatically be loaded into Idea;
@@ -131,19 +131,17 @@ class Idea(SimpleSettings):
             converted to other datatypes (True) or left alone (False). If
             'configuration' was imported, a False value will leave all values as
             strings. Defaults to True.
-        auto_publish (Optional[bool]): whether to call the 'publish' method when
-            the class is instanced. Defaults to True.
 
     """
     project: 'Project'
     configuration: Union[Dict[str, Dict[str, Any]], str] = field(
         default_factory = dict)
     infer_types: Optional[bool] = True
-    auto_publish: Optional[bool] = True
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
         super().__post_init__()
+        self.draft()
         return self
 
     """ Dunder Methods """
@@ -242,17 +240,37 @@ class Idea(SimpleSettings):
                 new_bundle[key] = inner_bundle
             else:
                 new_bundle[key] = typify(value)
-        setattr(self, self.active, new_bundle)
+        self.configuration = new_bundle
         return self
 
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        """Creates Defaults instance and injects default values, if needed."""
-        return self
-
-    def publish(self) -> None:
         """Creates 'configuration' dictionary from 'passed_configuration'."""
         if self.infer_types:
             self._infer_types()
         return self
+
+    def apply(self, instance: object) -> object:
+        """Injects appropriate attributes into 'instance'.
+
+        Args:
+            instance (object): siMpLify class instance to be modified.
+
+        Returns:
+            instance (object): siMpLify class instance with modifications made.
+
+        """
+        sections = ['general', instance.name]
+        try:
+            sections.extend(listify(instance.idea_sections))
+        except AttributeError:
+            pass
+        for section in sections:
+            try:
+                for key, value in self.project.idea[section].items():
+                    if not hasattr(instance, key):
+                        setattr(instance, key, value)
+            except KeyError:
+                pass
+        return instance

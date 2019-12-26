@@ -16,8 +16,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
+from simplify.core.base import SimpleDistributor
 from simplify.core.base import SimpleSettings
-from simplify.core.base import SimpleOption
+from simplify.core.base import SimplePath
 from simplify.core.utilities import listify
 
 
@@ -43,8 +44,6 @@ class Inventory(SimpleSettings):
         datetime_naming (Optional[bool]): whether the date and time should be
             used to create Book subfolders (so that prior results are not
             overwritten). Defaults to True.
-        auto_publish (Optional[bool]): whether to call the 'publish' method when
-            a subclass is instanced. Defaults to True
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -55,18 +54,17 @@ class Inventory(SimpleSettings):
             provided, __class__.__name__.lower() is used instead.
 
     """
-    idea: 'Idea'
+    idea: 'Idea' = None
     root_folder: Optional[Union[str, List[str]]] = field(
         default_factory = ['', ''])
     data_folder: Optional[str] = 'data'
     results_folder: Optional[str] = 'results'
     datetime_naming: Optional[bool] = True
-    auto_publish: Optional[bool] = True
     name: Optional[str] = 'files'
 
     def __post_init__(self) -> None:
         """Processes passed arguments to prepare class instance."""
-        # Injects general attributes for shared Idea instance.
+        # Injects attributes from 'idea'.
         self = self.idea.apply(instance = self)
         # Automatically calls 'draft' method.
         self.draft()
@@ -102,8 +100,6 @@ class Inventory(SimpleSettings):
             return getattr(self.exporter, attribute)
         elif attribute in ['add_default_kwargs']:
             return getattr(self.pathifier.kwargifier, 'add')
-        else:
-            return super().__getattr__(attribute = attribute)
 
     """ Public Methods """
 
@@ -161,8 +157,8 @@ class Inventory(SimpleSettings):
     def draft(self) -> None:
         """Creates default folder and file settings."""
         self.root_folder = Path(self.root_folder)
-        self.results_folder = self.root_folder.joinpath(self.results_folder)
         self.data_folder = self.root_folder.joinpath(self.data_folder)
+        self.results_folder = self.root_folder.joinpath(self.results_folder)
         return self
 
     def publish(self) -> None:
@@ -173,12 +169,12 @@ class Inventory(SimpleSettings):
                 self.results_folders: [],
                 self.data_folders: [self.data_subfolders]},
             related = self)
-        self.importer = Importer(
+        self.data_importer = Importer(
             file_names = self.import_file_names,
             folders = self.import_data_folders,
             file_formats = self.import_file_formats,
             related = self)
-        self.exporter = Exporter(
+        self.data_exporter = Exporter(
             file_names = self.export_file_names,
             folders = self.export_data_folders,
             file_formats = self.export_file_formats,
@@ -195,14 +191,19 @@ class Inventory(SimpleSettings):
 
 
 @dataclass
-class Folders(SimpleOptions):
-    """Creates and stores folder paths."""
+class DataFolders(SimplePath):
+    """Creates and stores data folder paths.
 
-    root_folder: Union[str, Path] = None
-    subfolders: Union[List[str], Dict[str, str], str] = field(
-        default_factory = dict)
-    defaults: Optional[Union[List[str], str]] = field(default_factory = list)
-    related: 'Inventory'
+    Args:
+        inventory ('Inventory): related Inventory instance.
+        folder (str): folder where 'names' are or should be.
+        names (Dict[str, str]): dictionary where keys are names of states and
+            values are Path objects linked to those states.
+
+    """
+    inventory: 'Inventory'
+    folder: str
+    names: Dict[str, str]
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
@@ -351,7 +352,7 @@ class Folders(SimpleOptions):
 
     def draft(self) -> None:
         """Creates root folder for instance."""
-        self.root_folder = pathlibify(path = self.root_folder)
+        self.root_folder = self._pathlibify(path = self.root_folder)
         getattr(self, self.state)['root'] = self.root_folder
         self._publish_path(path = self.root_folder)
         return self
@@ -372,7 +373,7 @@ class Pathifier(object):
         related ('Inventory'): related Inventory instance.
 
     """
-    related: 'Inventory'
+    related: 'Inventory' = None
 
     def __post_init__(self) -> None:
         return self
@@ -380,7 +381,7 @@ class Pathifier(object):
     """ Private Methods """
 
     def _set_folder(self,
-            distributor: 'Distributor',
+            distributor: 'SimpleDistributor',
             file_format: Optional[str] = None) -> Path:
         """Selects 'folder' or default value.
 
@@ -401,7 +402,7 @@ class Pathifier(object):
         return folder
 
     def _set_file_name(self,
-            distributor: 'Distributor',
+            distributor: 'SimpleDistributor',
             file_format: Optional[str] = None) -> str:
         """Selects 'file_name' or default values.
 
@@ -417,7 +418,7 @@ class Pathifier(object):
         return file_name
 
     def _set_file_format(self,
-            distributor: 'Distributor',
+            distributor: 'SimpleDistributor',
             file_format: Optional[str] = None) -> str:
         """Selects 'file_format' or default value.
 
@@ -453,7 +454,7 @@ class Pathifier(object):
     """ Core siMpLify Methods """
 
     def apply(self,
-            distributor: 'Distributor',
+            distributor: 'SimpleDistributor',
             file_path: Optional[str] = None,
             folder: Optional[str] = None,
             file_name: Optional[str] = None,
@@ -497,7 +498,7 @@ class Kwargifier(object):
         related ('Inventory'): related Inventory instance.
 
     """
-    related: 'Inventory'
+    related: 'Inventory' = None
 
     def __post_init__(self) -> None:
         return self
@@ -521,64 +522,14 @@ class Kwargifier(object):
 
 
 @dataclass
-class Distributor(ABC):
-    """Base class for siMpLify Importer and Exporter."""
-
-    def __post_init__(self) -> None:
-        self.draft()
-        if self.auto_publish:
-            self.publish()
-        return self
-
-    """ Private Methods """
-
-    def _check_kwargs(self,
-            variables_to_check: List[str],
-            passed_kwargs: Dict[str, Any]) -> Dict[str, Any]:
-        """Selects kwargs for particular methods.
-
-        If a needed argument was not passed, default values are used.
-
-        Args:
-            variables_to_check (List[str]): variables to check for values.
-            passed_kwargs (Dict[str, Any]): kwargs passed to method.
-
-        Returns:
-            new_kwargs (Dict[str, Any]): kwargs with only relevant parameters.
-
-        """
-        new_kwargs = passed_kwargs
-        for variable in variables_to_check:
-            if not variable in passed_kwargs:
-                if variable in self.default_kwargs:
-                    new_kwargs.update(
-                        {variable: self.inventory.default_kwargs[variable]})
-                elif hasattr(self, variable):
-                    new_kwargs.update({variable: getattr(self, variable)})
-        return new_kwargs
-
-    """ Composite Management Methods """
-
-    """ Core siMpLify Methods """
-
-    def draft(self) -> None:
-        self._options = SimpleOptions(options = {
-            'csv': 'csv',
-            'matplotlib': 'mp',
-            'pandas': 'pd',
-            'pickle': 'pickle'})
-        return self
-
-
-@dataclass
-class Importer(Distributor):
+class Importer(SimpleDistributor):
     """Manages file importing for siMpLify.
 
     Args:
-        related ('Inventory'): related Inventory instance.
+        inventory ('Inventory'): related Inventory instance.
 
     """
-    related: 'Inventory'
+    inventory: 'Inventory' = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -587,14 +538,25 @@ class Importer(Distributor):
     """ Private Methods """
 
     def _draft_defaults(self) -> None:
-        self.folders = {
-            'sow': 'raw',
-            'reap': 'raw',
-            'clean': 'interim',
-            'bale': 'interim',
-            'deliver': 'interim',
-            'chef': 'processed',
-            'critic': 'processed'}
+        self.data_folders = SimplePath(
+            inventory = self,
+            folder = self.inventory.data_folder,
+            names = {
+                'sow': 'raw',
+                'reap': 'raw',
+                'clean': 'interim',
+                'bale': 'interim',
+                'deliver': 'interim',
+                'chef': 'processed',
+                'actuary': 'processed',
+                'critic': 'processed',
+                'artist': 'processed'})
+        self.results_folders = SimplePath(
+            inventory = self,
+            folder = self.inventory.results_folder,
+            names = {
+                'book': 'book',
+                'chapter': 'chapter'})
         self.file_names = {
             'sow': None,
             'harvest': None,
@@ -702,14 +664,14 @@ class Importer(Distributor):
 
 
 @dataclass
-class Exporter(Distributor):
+class Exporter(SimpleDistributor):
     """Manages file exporting for siMpLify.
 
     Args:
         related ('Inventory'): related Inventory instance.
 
     """
-    related: 'Inventory'
+    related: 'Inventory' = None
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -849,7 +811,7 @@ class FileFormats(SimpleOptions):
         related ('Inventory'): related Inventory instance.
 
     """
-    related: 'Pathifier'
+    related: 'Pathifier' = None
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""

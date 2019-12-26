@@ -53,7 +53,7 @@ Any new subpackages, Books, Chapters, and Pages should follow a similar template
 
 4. When composing objects through a loosely coupled hierarchy, it is important to provide connections in both directions. For example, the Chapter class has methods to 'add_page' and 'add_book' which automatically change local attributes ('pages' and 'book') accordingly. This is done so that any class in a composite tree can access attributes from other classes in that tree without passing numerous arguments.
 
-## siMpLify Resources
+## siMpLify Resource
 
 1. All file management should be perfomed throught the shared Inventory instance.
 

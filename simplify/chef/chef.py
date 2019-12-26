@@ -13,12 +13,13 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
+from simplify.core.base import Resource
 from simplify.core.manuscript import SimpleManuscript
 from simplify.core.book import Book
 from simplify.core.chapter import Chapter
 from simplify.core.content import Content
 from simplify.core.creator import SimpleCreator
-from simplify.core.outline import Option
+
 from simplify.core.page import Page
 from simplify.core.utilities import listify
 
@@ -415,13 +416,46 @@ class Essence(PageOption):
 
 
 @dataclass
-class CookbookOption(SimpleOption):
+class CookbookContents(Resource):
     name: str = 'cookbook'
-    module: str = 'current'
+    module: str = 'simplify.chef.chef'
     component: str = 'Cookbook'
     steps: Optional[Union[List[str], str]] = None
     chapter_type: Optional['Chapter'] = Recipe
-    chapter_iterable: Optional[str] = 'recipes'
+    iterable: Optional[str] = 'recipes'
     metadata: Optional[Dict[str, Any]] = None
     file_format: Optional[str] = 'pickle'
     export_folder: Optional[str] = 'book'
+    default_options: Optional[Dict[str, 'Resource']] = {
+        'scaler': Resource(
+            name = 'scaler',
+            module = 'simplify.chef.steps.scaler',
+            component = 'Scaler'),
+        'splitter': Resource(
+            name = 'scaler',
+            module = 'simplify.chef.steps.splitter',
+            component = 'Splitter'),
+        'encoder': Resource(
+            name = 'scaler',
+            module = 'simplify.chef.steps.encoder',
+            component = 'Encoder'),
+        'mixer': Resource(
+            name = 'scaler',
+            module = 'simplify.chef.steps.mixer',
+            component = 'Mixer'),
+        'cleaver': Resource(
+            name = 'scaler',
+            module = 'simplify.chef.steps.cleaver',
+            component = 'Cleaver'),
+        'sampler': Resource(
+            name = 'scaler',
+            module = 'simplify.chef.steps.sampler',
+            component = 'Sampler'),
+        'reducer': Resource(
+            name = 'scaler',
+            module = 'simplify.chef.steps.reducer',
+            component = 'Reducer'),
+        'modeler': Resource(
+            name = 'scaler',
+            module = 'simplify.chef.steps.modeler',
+            component = 'Modeler')})

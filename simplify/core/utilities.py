@@ -21,8 +21,8 @@ import pandas as pd
 """ Functions """
 
 def add_prefix(
-    iterable: Union[Dict[str, Any], List],
-    prefix: str) -> Union[Dict[str, Any], List]:
+        iterable: Union[Dict[str, Any], List],
+        prefix: str) -> Union[Dict[str, Any], List]:
     """Adds prefix to each item in a list or keys in a dict.
 
     An underscore is automatically added after the string prefix.
@@ -40,8 +40,8 @@ def add_prefix(
         return [prefix + '_' + item for item in iterable]
 
 def add_suffix(
-    iterable: Union[Dict[str, Any], List],
-    suffix: str) -> Union[Dict[str, Any], List]:
+        iterable: Union[Dict[str, Any], List],
+        suffix: str) -> Union[Dict[str, Any], List]:
     """Adds suffix to each item in a list or keys in a dict.
 
     An underscore is automatically added after the string suffix.
@@ -59,7 +59,7 @@ def add_suffix(
         return [item + '_' + suffix for item in iterable]
 
 def deduplicate(iterable: Union[List, pd.DataFrame, pd.Series]) -> (
-    Union[List, pd.DataFrame, pd.Series]):
+        Union[List, pd.DataFrame, pd.Series]):
     """Deduplicates list, pandas DataFrame, or pandas Series.
 
     Args:
@@ -90,8 +90,8 @@ def is_nested(dictionary: Dict[Any, Any]) -> bool:
     return any(isinstance(d, dict) for d in dictionary.values())
 
 def listify(
-    variable: Any,
-    default_null: Optional[bool]  = False) -> Union[list, None]:
+        variable: Any,
+        default_null: Optional[bool]  = False) -> Union[list, None]:
     """Stores passed variable as a list (if not already a list).
 
     Args:
@@ -115,7 +115,7 @@ def listify(
     else:
         return [variable]
 
-def _numify(variable: str) -> Union[int, float, str]:
+def numify(variable: str) -> Union[int, float, str]:
     """Attempts to convert 'variable' to a numeric type.
 
     Args:
@@ -132,6 +132,27 @@ def _numify(variable: str) -> Union[int, float, str]:
             return float(variable)
         except ValueError:
             raise TypeError
+
+def pathlibify(path: Union[str, Path]) -> Path:
+    """Converts string 'path' to pathlib Path object.
+
+    Args:
+        path (Union[str, Path]): either a string representation of a path or a
+            Path object.
+
+    Returns:
+        Path object.
+
+    Raises:
+        TypeError if 'path' is neither a str or Path type.
+
+    """
+    if isinstance(path, str):
+        return Path(path)
+    elif isinstance(path, Path):
+        return path
+    else:
+        raise TypeError('path must be str or Path type')
 
 def proxify(instance: object, proxies: Dict[str, str]) -> object:
     """Creates proxy names for attributes, properties, and methods.
@@ -159,9 +180,9 @@ def proxify(instance: object, proxies: Dict[str, str]) -> object:
     return instance
 
 def stringify(
-    variable: Union[str, List],
-    default_null: Optional[bool] = False,
-    default_empty: Optional[bool] = False) -> str:
+        variable: Union[str, List],
+        default_null: Optional[bool] = False,
+        default_empty: Optional[bool] = False) -> str:
     """Converts one item list to a string (if not already a string).
 
     Args:
@@ -263,9 +284,9 @@ def timer(process: Optional[str] = None) -> Callable:
     return shell_timer
 
 def localize_arguments(
-    override: Optional[bool] = True,
-    excludes: Optional[List[str]] = None,
-    includes: Optional[List[str]] = None) -> Callable:
+        override: Optional[bool] = True,
+        excludes: Optional[List[str]] = None,
+        includes: Optional[List[str]] = None) -> Callable:
     """Converts passed arguments into local attributes in the class instance.
 
     The created attributes use the same names as the keyword parameters.
@@ -296,8 +317,8 @@ def localize_arguments(
     return shell_localize_arguments
 
 def use_local_backups(
-    excludes: Optional[List[str]] = None,
-    includes: Optional[List[str]] = None) -> Callable:
+        excludes: Optional[List[str]] = None,
+        includes: Optional[List[str]] = None) -> Callable:
     """Decorator which uses class instance attributes for unpassed parameters.
 
     If an optional parameter is not passed, the decorator looks for an attribute

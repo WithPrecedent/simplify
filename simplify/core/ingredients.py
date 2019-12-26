@@ -10,10 +10,13 @@ from dataclasses import dataclass
 from functools import wraps
 from inspect import signature, Signature
 import os
+from datetime import timedelta
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
+from numpy import datetime64
 import pandas as pd
+from pandas.api.types import CategoricalDtype
 
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
