@@ -52,7 +52,7 @@ class Book(SimpleManuscript):
 
     """
     project: Optional['Project'] = None
-    name: Optional[List[str], str] = None
+    name: Optional[str] = None
     steps: List[str] = field(default_factory = list)
     contents: Optional['SimpleContents'] = field(default_factory = dict)
     chapters: Optional[List['Chapter']] = field(default_factory = list)

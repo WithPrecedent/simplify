@@ -21,7 +21,7 @@
 # from simplify.core.bundles import SimpleContents
 # from simplify.core.page import Page
 # from simplify.core.project import Project
-# from simplify.core.ingredients import Ingredients
+# from simplify.core.data import Ingredients
 # from simplify.core.inventory import Inventory
 # from simplify.core.idea import Idea
 

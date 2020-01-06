@@ -14,7 +14,10 @@ from collections.abc import MutableMapping
 from collections.abc import MutableSequence
 from dataclasses import dataclass
 from dataclasses import field
+from functools import update_wrapper
+from functools import wraps
 from importlib import import_module
+from inspect import signature
 from multiprocessing import Pool
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
@@ -435,8 +438,68 @@ class SimpleContents(SimpleOptions):
         """
         self.null_value = null_value
         return self
+    
 
+def SimpleConformer(ABC):
+    """Base class decorator to convert arguments to proper types."""
 
+    def __init__(self,
+            callable: Callable,
+            conformers: Optional[Dict[str, Callable]] = None) -> None:
+        """Sets initial conformer options.
+
+        Args:
+            callable (Callable): wrapped method, function, or callable class.
+            conformers Optional[Dict[str, Callable]]: keys are names of 
+                parameters and values are functions to convert or validate 
+                passed arguments. Those functions must return a completed
+                object and take only a single passed passed argument. Defaults
+                to None.
+
+        """
+        self.callable = callable
+        update_wrapper(self, self.callable)
+        if self.conformers is None:
+            self.conformers = {}
+        return self
+
+    """ Required Wrapper Method """
+
+    def __call__(self) -> Callable:
+        """Converts arguments of 'callable' to appropriate type.
+
+        Returns:
+            Callable: with all arguments converted to appropriate types.
+
+        """
+        call_signature = signature(self.callable)
+        @wraps(self.callable)
+        def wrapper(self, *args, **kwargs):
+            arguments = dict(call_signature.bind(*args, **kwargs).arguments)
+            arguments = self.apply(arguments = arguments)
+            return self.callable(self, **arguments)
+        return wrapper
+
+    """ Core siMpLify Methods """
+
+    def apply(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Converts values of 'arguments' to proper types.
+        
+        Args:
+            arguments (Dict[str, Any]): arguments with values to be converted.
+
+        Returns:
+            Dict[str, Any]: arguments with converted values.
+
+        """
+        for argument, conformer in self.conformers.items():
+            try:
+                arguments[argument] = conformer(arguments[argument])
+            except KeyError:
+                pass
+        return arguments
+    
+    
 @dataclass
 class SimpleState(Container):
     """Base class for state management."""

@@ -11,6 +11,8 @@ from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import timedelta
+from functools import wraps
+from inspect import signature
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import numpy as np
@@ -18,7 +20,11 @@ from numpy import datetime64
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
+from simplify.core.base import SimpleOptions
 from simplify.core.base import SimpleState
+from simplify.core.base import SimpleType
+from simplify.core.conformers import ColumnsConformer
+from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
 
@@ -155,19 +161,14 @@ class Ingredients(MutableMapping):
 
         """
         # Looks for 'attribute' in the 'default' Ingredient instance.
+        print('test', attribute)
+        print('test', self.default)
+        print('test', self.ingredients[self.default])
         try:
-            return getattr(getattr(self, self.default), attribute)
-        except AttributeError:
+            return getattr(self.ingredients[self.default], attribute)
+        except KeyError:
             # Looks for 'attribute' as an item in 'ingredients'.
-            try:
-                return self.ingredients[attribute]
-            except KeyError:
-                # Looks for 'attribute' in 'state'.
-                try:
-                    return getattr(self.state, attribute)
-                except AttributeError:
-                    raise AttributeError(' '.join(
-                        [attribute, 'is not in', self.__class__.__.name__]))
+            return self.ingredients[attribute]
 
     def __add__(self, other: 'Ingredient') -> None:
         """Adds 'other' to the 'ingredients' dictionary.
@@ -200,61 +201,6 @@ class Ingredients(MutableMapping):
         """
         self.ingredients[name] = ingredient
         return self
-
-
-""" Ingredient Decorator """
-
-def make_columns(method: Callable, *args, **kwargs) -> Callable:
-    """Decorator which creates a complete column list from passed arguments.
-
-    If 'prefixes', 'suffixes', or 'mask' are passed to the wrapped method, they
-    are combined with any passed 'columns' to form a list of 'columns' that are
-    ultimately passed to the wrapped method.
-
-    Args:
-        method (Callable): wrapped method.
-
-    Returns:
-        Callable: with 'columns' parameter that combines items from 'columns',
-            'prefixes', 'suffixes', and 'mask' parameters into a single list
-            of column names using the 'make_column_list' method.
-
-    """
-    call_signature = signature(method)
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        new_arguments = {}
-        parameters = dict(call_signature.parameters)
-        arguments = dict(call_signature.bind(*args, **kwargs).arguments)
-        unpassed = list(parameters.keys() - arguments.keys())
-        if 'columns' in unpassed:
-            columns = []
-        else:
-            columns = listify(arguments['columns'])
-        try:
-            columns.extend(
-                self.make_column_list(prefixes = arguments['prefixes']))
-            del arguments['prefixes']
-        except KeyError:
-            pass
-        try:
-            columns.extend(
-                self.make_column_list(suffixes = arguments['suffixes']))
-            del arguments['suffixes']
-        except KeyError:
-            pass
-        try:
-            columns.extend(
-                self.make_column_list(mask = arguments['mask']))
-            del arguments['mask']
-        except KeyError:
-            pass
-        if not columns:
-            columns = list(self.columns.keys())
-        arguments['columns'] = deduplicate(columns)
-        # method.__signature__ = Signature(arguments)
-        return method(self, **arguments)
-    return wrapper
 
 
 @dataclass
@@ -509,7 +455,7 @@ class Ingredient(Collection):
         self.df = func(self.df, **kwargs)
         return self
 
-    @make_columns
+    @ColumnConformer
     def change_datatype(self,
             columns: [Union[List[str], str]],
             datatype: str) -> None:
@@ -556,7 +502,7 @@ class Ingredient(Collection):
         self.downcast()
         return self
 
-    @make_columns
+    @ColumnConformer
     def downcast(self,
             columns: Optional[Union[List[str], str]] = None,
             allow_unsigned: Optional[bool] = True) -> None:
@@ -607,7 +553,7 @@ class Ingredient(Collection):
                 raise KeyError(' '.join([column, ' is not in df']))
         return self
 
-    @make_columns
+    @ColumnConformer
     def drop_columns(self,
             columns: Optional[Union[List[str], str]] = None) -> None:
         """Drops list of columns and columns with prefixes listed.
@@ -623,7 +569,7 @@ class Ingredient(Collection):
             self.df.drop(columns, inplace = True)
         return self
 
-    @make_columns
+    @ColumnConformer
     def get_series(self,
             columns: Optional[Union[List[str], str]] = None) -> None:
         """Creates a Series (row) with the 'columns' dict.
@@ -674,59 +620,7 @@ class Ingredient(Collection):
             pass
         return self
 
-    def make_column_list(self,
-            df: Optional[pd.DataFrame] = None,
-            columns: Optional[Union[List[str], str]] = None,
-            prefixes: Optional[Union[List[str], str]] = None,
-            suffixes: Optional[Union[List[str], str]] = None,
-            mask: Optional[Union[List[bool]]] = None) -> None:
-        """Dynamically creates a new column list from a list of columns, lists
-        of prefixes, and/or boolean mask.
 
-        This method serves as the basis for the 'column_lists' decorator which
-        allows users to pass 'prefixes', 'columns', and 'mask' to a wrapped
-        method with a 'columns' argument. Those three arguments are then
-        combined into the final 'columns' argument.
-
-        Args:
-            df (DataFrame): pandas object.
-            columns (list or str): column names to be included.
-            prefixes (list or str): list of prefixes for columns to be included.
-            suffixes (list or str): list of suffixes for columns to be included.
-            mask (numpy array, list, or Series, of booleans): mask for columns
-                to be included.
-
-        Returns:
-            column_names (list): column names created from 'columns',
-                'prefixes', and 'mask'.
-
-        """
-        column_names = []
-        try:
-            for boolean, feature in zip(mask, list(df.columns)):
-                if boolean:
-                    column_names.append(feature)
-        except TypeError:
-            pass
-        try:
-            temp_list = []
-            for prefix in listify(prefixes, default_null = True):
-                temp_list = [col for col in df if col.startswith(prefix)]
-                column_names.extend(temp_list)
-        except TypeError:
-            pass
-        try:
-            temp_list = []
-            for prefix in listify(suffixes, default_null = True):
-                temp_list = [col for col in df if col.endswith(suffix)]
-                column_names.extend(temp_list)
-        except TypeError:
-            pass
-        try:
-            column_names.extend(listify(columns, default_null = True))
-        except TypeError:
-            pass
-        return deduplicate(iterable = column_names)
 
 
 @dataclass
