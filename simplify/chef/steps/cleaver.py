@@ -39,7 +39,7 @@ class Cleaver(SimpleDirector):
 
     # def _cleave(self, ingredients):
     #     if self.step != 'all':
-    #         cleave = self.options[self.step]
+    #         cleave = self.library[self.step]
     #         drop_list = [i for i in self.test_columns if i not in cleave]
     #         for col in drop_list:
     #             if col in ingredients.x_train.columns:
@@ -50,22 +50,22 @@ class Cleaver(SimpleDirector):
     #     return ingredients
 
     # def _publish_cleaves(self):
-    #     for group, columns in self.options.items():
+    #     for group, columns in self.library.items():
     #         self.test_columns.extend(columns)
     #     if self.parameters['include_all']:
-    #         self.options.update({'all': self.test_columns})
+    #         self.library.update({'all': self.test_columns})
     #     return self
 
     # def add(self, cleave_group, columns):
     #     """For the cleavers in siMpLify, this step alows users to manually
     #     add a new cleave group to the cleaver dictionary.
     #     """
-    #     self.options.update({cleave_group: columns})
+    #     self.library.update({cleave_group: columns})
     #     return self
 
     def draft(self) -> None:
         super().draft()
-        self._options = SimpleOptions(options = {
+        self._options = SimpleContents(options = {
         'compare': Option(
             name = 'compare',
             module = None,

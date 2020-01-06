@@ -17,13 +17,13 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import pandas as pd
 
 from simplify.core.base import SimpleDistributor
-from simplify.core.base import SimpleSettings
+from simplify.core.base import SimpleContents
 from simplify.core.base import SimplePath
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Inventory(SimpleSettings):
+class Inventory(SimpleContents):
     """Manages files and folders for siMpLify.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -127,7 +127,7 @@ class Inventory(SimpleSettings):
         """Creates folder path for iterable-specific exports.
 
         Args:
-            chapter (Chapter): an instance of SimplePackage.
+            chapter (Chapter): an instance of SimpleBook.
             name (string): name of attribute for the folder path to be stored
                 and the prefix of the folder to be created on disk.
 
@@ -227,7 +227,7 @@ class DataFolders(SimplePath):
             self = self.bundle
         elif not isinstance(self.bundle, (list, dict, str)):
             raise TypeError(
-                'bundle must be a dict, list, str, or SimpleOptions type')
+                'bundle must be a dict, list, str, or SimpleContents type')
         return self
 
     def _pathlibify(self, path: Union[str, Path]) -> Path:
@@ -517,7 +517,7 @@ class Kwargifier(object):
                 'default_kwargs'.
 
         """
-        self.options(dict(zip(kwargs, settings)))
+        self.library(dict(zip(kwargs, settings)))
         return self
 
 
@@ -654,7 +654,7 @@ class Importer(SimpleDistributor):
         """
         try:
             return getattr(
-                globals()[self.options[file_format.associated_package]],
+                globals()[self.library[file_format.associated_package]],
                 file_format.import_method)(
                     file_path, **kwargs)
         except AttributeError:
@@ -804,7 +804,7 @@ class FileFormat(object):
 
 
 @dataclass
-class FileFormats(SimpleOptions):
+class FileFormats(SimpleContents):
     """Creates and stores file formats and file extensions.
 
     Args:

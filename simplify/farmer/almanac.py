@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 
 from simplify.core.utilities import local_backups
-from simplify.core.package import SimplePackage
+from simplify.core.package import SimpleBook
 from simplify.core.typesetter import FarmerTechnique
 
 
@@ -30,7 +30,7 @@ DEFAULT_OPTIONS = {
 
 
 @dataclass
-class Almanac(SimplePackage):
+class Almanac(SimpleBook):
     """Implements data parsing, wrangling, munging, merging, engineering, and
     cleaning methods for the siMpLify package.
 
@@ -46,7 +46,7 @@ class Almanac(SimplePackage):
             argument should only be passed if the user wishes to override the
             steps listed in the Idea settings or if the user is not using the
             Idea class.
-        plans(SimplePackage): instanced subclasses of SimplePackage for
+        plans(SimpleBook): instanced subclasses of SimpleBook for
             prepared tools for the Almanac.
         name(str): designates the name of the class which should be identical
             to the section of the idea configuration with relevant settings.
@@ -59,7 +59,7 @@ class Almanac(SimplePackage):
         auto_publish(bool): whether to call the 'publish' method when the
             class is instanced.
 
-    Since this class is a subclass to SimplePackage and SimpleDirector, all
+    Since this class is a subclass to SimpleBook and SimpleDirector, all
     documentation for those classes applies as well.
 
     """
@@ -118,7 +118,7 @@ class Almanac(SimplePackage):
     def _implement_file(self, ingredients):
         with open(
                 self.inventory.path_in, mode = 'r', errors = 'ignore',
-                encoding = self.options.idea['files']['file_encoding']) as a_file:
+                encoding = self.library.idea['files']['file_encoding']) as a_file:
             ingredients.source = a_file.implement()
             for step in self.steps:
                 data = step.implement(data = ingredients)
@@ -134,7 +134,7 @@ class Almanac(SimplePackage):
                 print(file_num + 1, 'files parsed')
             with open(
                     a_path, mode = 'r', errors = 'ignore',
-                    encoding = self.options.idea['files']['file_encoding']) as a_file:
+                    encoding = self.library.idea['files']['file_encoding']) as a_file:
                 ingredients.source = a_file.implement()
                 print(ingredients.df)
                 ingredients.df[self.index_column] = file_num + 1

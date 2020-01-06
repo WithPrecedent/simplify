@@ -55,11 +55,11 @@ class Combine(FarmerTechnique):
         return ingredients
 
     def draft(self) -> None:
-        self._options = SimpleOptions(options = {'all': self._combine_all,
+        self._options = SimpleContents(options = {'all': self._combine_all,
                         'any': self._combine_any,
                         'dict': self._dict}
         if isinstance(self.method, str):
-            self.algorithm = self.options[self.method]
+            self.algorithm = self.library[self.method]
         else:
             self.algorithm = self._dict
         return self

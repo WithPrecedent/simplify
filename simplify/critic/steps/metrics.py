@@ -115,7 +115,7 @@ class Metrics(CriticTechnique):
     # def edit(self, name, metric, special_type = None,
     #          special_parameters = None, negative_metric = False):
     #     """Allows user to manually add a metric to report."""
-    #     self.options.update({name: metric})
+    #     self.library.update({name: metric})
     #     if special_type in ['probability']:
     #         self.prob_options.update({name: metric})
     #     elif special_type in ['scorer']:

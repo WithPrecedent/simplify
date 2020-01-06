@@ -119,7 +119,7 @@ class ReTool(SimpleDirector):
                              'verbose': re.VERBOSE,
                              'ascii': re.ASCII}
         # Sets options for matcher classes.
-        self._options = SimpleOptions(options = {'organize': ReOrganize,
+        self._options = SimpleContents(options = {'organize': ReOrganize,
                         'parse': ReSearch,
                         'keyword': ReFrame}
         return self
@@ -131,7 +131,7 @@ class ReTool(SimpleDirector):
                       'datatypes': self.datatypes,
                       'edit_prefixes': self.edit_prefixes,
                       'section_prefix': self.section_prefix}
-        self.matcher = self.options[self.step](**parameters)
+        self.matcher = self.library[self.step](**parameters)
         self.matcher.default_values = self.default_values
         return self
 

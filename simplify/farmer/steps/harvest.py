@@ -51,7 +51,7 @@ class Harvest(SimpleIterable):
                                  'organizer_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}
-        algorithm = self.options[self.step](**self.parameters)
+        algorithm = self.library[self.step](**self.parameters)
         self._set_columns(algorithm)
         return algorithm
 
@@ -60,7 +60,7 @@ class Harvest(SimpleIterable):
                                  'parser_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}
-        algorithm = self.options[self.step](**self.parameters)
+        algorithm = self.library[self.step](**self.parameters)
         return algorithm
 
     def draft(self) -> None:

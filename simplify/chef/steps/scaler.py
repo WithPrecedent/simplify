@@ -37,7 +37,7 @@ class Scaler(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = SimpleOptions(options = {
+        self._options = SimpleContents(options = {
             'bins': Option(
                 name = 'bins',
                 module = 'sklearn.preprocessing',
@@ -124,9 +124,9 @@ class Scaler(SimpleDirector):
 #                 copy = self.parameters['copy'])
 #         del self.parameters['rescaler']
 #         self._publish_parameters()
-#         self.positive_tool = self.options['box_cox'](
+#         self.positive_tool = self.library['box_cox'](
 #                 method = 'box_cox', **self.parameters)
-#         self.negative_tool = self.options['yeo_johnson'](
+#         self.negative_tool = self.library['yeo_johnson'](
 #                 method = 'yeo_johnson', **self.parameters)
 #         return self
 

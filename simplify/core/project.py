@@ -16,13 +16,15 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from simplify.core.base import SimpleOutline
 from simplify.core.base import SimplePublisher
 from simplify.core.idea import Idea
 from simplify.core.ingredients import Ingredients
 from simplify.core.inventory import Inventory
-from simplify.core.library import Library
-from simplify.core.library import Resource
+from simplify.core.publishers import Author
+from simplify.core.publishers import Contributor
 from simplify.core.utilities import listify
+from simplify.core.workers import Worker
 
 
 @dataclass
@@ -75,9 +77,9 @@ class Project(SimplePublisher):
         pd.Series,
         np.ndarray,
         str]] = None
-    options: Optional[Union['Library', Dict[str, 'Book']]] = field(
-        default_factory = dict)
     steps: Optional[Union[List[str], str]] = field(default_factory = list)
+    library: Optional[Dict[str, 'SimpleOutline']] = field(
+        default_factory = dict)
     auto_publish: Optional[bool] = True
     auto_apply: Optional[bool] = False
     name: Optional[str] = 'simplify'
@@ -89,6 +91,8 @@ class Project(SimplePublisher):
         # Checks 'idea' to make sure it was passed.
         if self.idea is None:
             raise AttributeError('Project requires idea to be passed.')
+        # Sets 'project' to self.
+        super().__post_init__()
         # Validates 'idea', 'inventory', and 'ingredients'.
         self.idea, self.inventory, self.ingredients = startup(
             idea = self.idea,
@@ -116,7 +120,12 @@ class Project(SimplePublisher):
         Calling Project as a function is compatible with and used by the
         command line interface.
 
+        Raises:
+            ValueError if 'ingredients' not passed when Project is called as a
+                function.
+
         """
+        # Validates 'ingreidents'.
         if self.ingredients is None:
             raise ValueError('Calling Project requires ingredients')
         else:
@@ -124,25 +133,53 @@ class Project(SimplePublisher):
             self.__post__init()
         return self
 
+    """ Public Methods """
+
+    def add_package(self, name: str, module: str, book: str) -> None:
+        """Adds package to 'library'.
+
+        Args:
+            name (str): name of package. This is used as both the key to the
+                created SimpleOutline in 'library' and as the 'name' attribute
+                in the SimpleOutline.
+            module (str): import path for the package.
+            book (str): name of 'Book' class in 'module'.
+
+        """
+        self.library[name] = SimpleOutline(
+            name = name,
+            module = module,
+            book = book)
+        return self
+
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
         """Sets initial attributes."""
-        # Sets 'library' if not passed.
-        if self.options:
-            self.library = Library(
-                project = self,
-                collection = self.options)
-        else:
-            self.library = Library(
-                project = self,
-                collection = DEFAULT_LIBRARY)
-        self._draft_steps(manuscript = self)
-        self.library.draft(items = self.steps)
-        # Sets active dictionary for state management.
-        self.active = 'options'
-        # Creates Editor instance for Book, Chapter, and Page construction.
-        self.editor = Editor(project = self)
+        # Sets default package options available to Project.
+        self.default_library = {
+            'chef': SimpleOutline(
+                name = 'chef',
+                module = 'simplify.chef.chef',
+                component = 'Cookbook'),
+            'farmer': SimpleOutline(
+                name = 'farmer',
+                module = 'simplify.farmer.farmer',
+                component = 'Almanac'),
+            'actuary': SimpleOutline(
+                name = 'actuary',
+                module = 'simplify.actuary.actuary',
+                component = 'Ledger'),
+            'critic': SimpleOutline(
+                name = 'critic',
+                module = 'simplify.critic.critic',
+                component = 'Collection'),
+            'artist': SimpleOutline(
+                name = 'artist',
+                module = 'simplify.artist.artist',
+                component = 'Canvas')}
+        # Injects attributes from 'idea'.
+        self = self._draft_idea(manuscript = self)
         return self
 
     def publish(self, steps: Optional[Union[List[str], str]] = None) -> None:
@@ -154,9 +191,12 @@ class Project(SimplePublisher):
         """
         # If optional 'steps' passed, they are assigned to 'steps' attribute.
         if steps is not None:
-            self.steps = steps
-        # Has 'library' publish selected options.
-        self.library.publish(items = self.steps)
+            self.steps = listify(steps)
+        # Validates 'steps'.
+        self = self._publish_steps(manuscript = self)
+        # Sets 'library' to 'default_library' if 'library' not passed.
+        if not self.library:
+            self.library = default_library
         return self
 
     def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
@@ -166,38 +206,41 @@ class Project(SimplePublisher):
             data ('Ingredients'): data object for methods to be applied.
 
         """
+        # Assigns 'data' to 'ingredients' attribute, if passed.
         if data:
             self.ingredients = data
-        self.worker = Worker(related = self)
-        self = self.worker.apply(
-            project = self,
-            data = self.ingredients,
-            **kwargs)
+        # Creates 'author', 'contributor', and 'worker' to build and apply
+        # Book, Chapter, and Page instances.
+        self.author = Author(project = self)
+        self.contributor = Contributor(project = self)
+        self.worker = Worker(project = self)
+        # Iterates through each step, creating and applying needed Books,
+        # Chapters, and Pages for each step in the Project.
+        for step in self.steps:
+            # Drafts and publishes Book instance at 'step' in 'library'.
+            self.library[step] = self.author.draft(
+                outline = self.library[step])
+            self.library[step] = self.author.publish(
+                book = self.library[step])
+            # Drafts and publishes Chapter instance(s) for Book at 'step' in
+            # 'library'.
+            self.library[step] = self.contributor.draft(
+                book = self.library[step])
+            self.library[step] = self.contributor.publish(
+                book = self.library[step])
+            # Applies completed Book instance with Chapter instances to
+            # 'ingredients'.
+            if self.library[step].returns_data:
+                self.ingredients = self.worker.apply(
+                    book = self.library[step],
+                    data = self.ingredients,
+                    **kwargs)
+            else:
+                self.worker.apply(
+                    book = self.library[step],
+                    data = self.ingredients,
+                    **kwargs)
         return self
-
-""" Default Project Library """
-
-DEFAULT_LIBRARY = {
-    'farmer': Resource(
-        name = 'farmer',
-        module = 'simplify.farmer',
-        component = 'Almanac'),
-    'chef': Resource(
-        name = 'chef',
-        module = 'simplify.chef',
-        component = 'Cookbook'),
-    'actuary': Resource(
-        name = 'actuary',
-        module = 'simplify.actuary',
-        component = 'Ledger'),
-    'critic': Resource(
-        name = 'critic',
-        module = 'simplify.critic',
-        component = 'Collection'),
-    'artist': Resource(
-        name = 'artist',
-        module = 'simplify.artist',
-        component = 'Canvas')}
 
 """ Builder Functions """
 

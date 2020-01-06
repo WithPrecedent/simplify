@@ -15,14 +15,14 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.core.base import SimpleSettings
+from simplify.core.base import SimpleContents
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 from simplify.core.utilities import typify
 
 
 @dataclass
-class Idea(SimpleSettings):
+class Idea(SimpleContents):
     """Converts a data science idea into python.
 
     If 'configuration' is imported from a file, Idea creates a dictionary,
@@ -100,9 +100,9 @@ class Idea(SimpleSettings):
     Regardless of the idea_sections added, all Idea settings can be similarly
     accessed using dict keys or local attributes. For example:
 
-        self.options.idea['general']['seed'] # typical dict access step
+        self.library.idea['general']['seed'] # typical dict access step
 
-        self.options.idea['seed'] # if no section or other key is named 'seed'
+        self.library.idea['seed'] # if no section or other key is named 'seed'
 
         self.seed # works because 'seed' is in the 'general' section
 
@@ -133,13 +133,14 @@ class Idea(SimpleSettings):
             strings. Defaults to True.
 
     """
-    project: 'Project'
+    project: 'Project' = None
     configuration: Union[Dict[str, Dict[str, Any]], str] = field(
         default_factory = dict)
     infer_types: Optional[bool] = True
 
     def __post_init__(self) -> None:
         """Calls initialization methods and sets class instance defaults."""
+        self.mapping = 'configuration'
         super().__post_init__()
         self.draft()
         return self
@@ -268,7 +269,7 @@ class Idea(SimpleSettings):
             pass
         for section in sections:
             try:
-                for key, value in self.project.idea[section].items():
+                for key, value in self.configuration[section].items():
                     if not hasattr(instance, key):
                         setattr(instance, key, value)
             except KeyError:

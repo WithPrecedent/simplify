@@ -37,7 +37,7 @@ class Modeler(SimpleDirector):
     """ Private Methods """
 
     def _add_gpu_steps_classify(self) -> None:
-        self.options.update({
+        self.library.update({
             'forest_inference': Option(
                 name = 'forest_inference',
                 module = 'cuml',
@@ -53,7 +53,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _add_gpu_steps_cluster(self) -> None:
-        self.options.update({
+        self.library.update({
             'dbscan': Option(
                 name = 'dbscan',
                 module = 'cuml',
@@ -65,7 +65,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _add_gpu_steps_regress(self) -> None:
-        self.options.update({
+        self.library.update({
             'lasso': Option(
                 name = 'lasso',
                 module = 'cuml',
@@ -81,7 +81,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_classify(self) -> None:
-        self._options = SimpleOptions(options = {
+        self._options = SimpleContents(options = {
             'adaboost': Option(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',
@@ -134,7 +134,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_cluster(self) -> None:
-        self._options = SimpleOptions(options = {
+        self._options = SimpleContents(options = {
             'affinity': Option(
                 name = 'affinity',
                 module = 'sklearn.cluster',
@@ -182,7 +182,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_regress(self) -> None:
-        self._options = SimpleOptions(options = {
+        self._options = SimpleContents(options = {
             'adaboost': Option(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',

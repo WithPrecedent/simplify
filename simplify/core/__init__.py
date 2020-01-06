@@ -18,7 +18,7 @@
 # from simplify.core.book import Book
 # from simplify.core.chapter import Chapter
 # from simplify.core.content import Content
-# from simplify.core.bundles import SimpleOptions
+# from simplify.core.bundles import SimpleContents
 # from simplify.core.page import Page
 # from simplify.core.project import Project
 # from simplify.core.ingredients import Ingredients
@@ -66,19 +66,19 @@
 # """ Private Functions """
 
 # def _check_options(
-#         options: Union['SimpleOptions',
-#                        Dict[str, 'Option']]) -> 'SimpleOptions':
-#     """Checks if 'options' is a dict and prepares SimpleOptions instance.
+#         options: Union['SimpleContents',
+#                        Dict[str, 'Option']]) -> 'SimpleContents':
+#     """Checks if 'options' is a dict and prepares SimpleContents instance.
 
 #     Args:
-#         options (Union['SimpleOptions', Dict[str, Any]]):
+#         options (Union['SimpleContents', Dict[str, Any]]):
 
 #     Returns:
-#         completed SimpleOptions instance.
+#         completed SimpleContents instance.
 
 #     """
 #     if options is None:
-#         return SimpleOptions(options = {})
+#         return SimpleContents(options = {})
 #     elif isinstance(options, Dict):
 #         return make_options(options = options)
 #     else:
@@ -164,7 +164,7 @@
 #             pd.Series,
 #             np.ndarray,
 #             str]] = None,
-#         options: Optional[Union['SimpleOptions', Dict[str, 'Option']]] = None,
+#         options: Optional[Union['SimpleContents', Dict[str, 'Option']]] = None,
 #         steps: Optional[Union[List[str], str]] = None,
 #         name: Optional[str] = None,
 #         auto_publish: Optional[bool] = True) -> 'Book':
@@ -191,9 +191,9 @@
 #             subclasses to include. These names should match keys in the
 #             'options' attribute. If using the Idea instance settings, this
 #             argument should not be passed. Default is None.
-#         options (Optional['SimpleOptions', Dict[str, 'Option']]): either
-#             a SimpleOptions instance or a dictionary compatible with a
-#             SimpleOptions instance. Defaults to None.
+#         options (Optional['SimpleContents', Dict[str, 'Option']]): either
+#             a SimpleContents instance or a dictionary compatible with a
+#             SimpleContents instance. Defaults to None.
 #         name (Optional[str]): designates the name of the class used for internal
 #             referencing throughout siMpLify. If the class needs settings from
 #             the shared Idea instance, 'name' should match the appropriate
@@ -308,17 +308,17 @@
 #         error = 'idea must be Idea, str, or nested dict type'
 #         raise TypeError(error)
 
-# def make_options(options: Dict[str, 'Option']) -> 'SimpleOptions':
-#     """Creates a SimpleOptions instance.
+# def make_options(options: Dict[str, 'Option']) -> 'SimpleContents':
+#     """Creates a SimpleContents instance.
 
 #     Args:
-#         options: Dict[str, 'Option']: dict compatiable with SimpleOptions.
+#         options: Dict[str, 'Option']: dict compatiable with SimpleContents.
 
 #     Returns:
-#         SimpleOptions instance with 'options' dict.
+#         SimpleContents instance with 'options' dict.
 
 #     """
-#     return SimpleOptions(options = options)
+#     return SimpleContents(options = options)
 
 # def make_book(
 #         idea: Union[Dict[str, Dict[str, Any]], 'Idea'],
@@ -329,7 +329,7 @@
 #             pd.Series,
 #             np.ndarray,
 #             str]] = None,
-#         options: Optional[Union['SimpleOptions', Dict[str, 'Option']]] = None,
+#         options: Optional[Union['SimpleContents', Dict[str, 'Option']]] = None,
 #         steps: Optional[Union[List[str], str]] = None,
 #         name: Optional[str] = None,
 #         auto_publish: Optional[bool] = True) -> 'Book':
@@ -357,9 +357,9 @@
 #             subclasses to include. These names should match keys in the
 #             'options' attribute. If using the Idea instance settings, this
 #             argument should not be passed. Default is None.
-#         options (Optional['SimpleOptions', Dict[str, 'Option']]): either
-#             a SimpleOptions instance or a dictionary compatible with a
-#             SimpleOptions instance. Defaults to None.
+#         options (Optional['SimpleContents', Dict[str, 'Option']]): either
+#             a SimpleContents instance or a dictionary compatible with a
+#             SimpleContents instance. Defaults to None.
 #         name (Optional[str]): designates the name of the class used for internal
 #             referencing throughout siMpLify. If the class needs settings from
 #             the shared Idea instance, 'name' should match the appropriate
@@ -392,16 +392,16 @@
 # def make_chapter(
 #         name: Optional[str] = None,
 #         steps: Dict[str, str] = None,
-#         options: Optional[Union['SimpleOptions', Dict[str, 'Option']]] = None,
+#         options: Optional[Union['SimpleContents', Dict[str, 'Option']]] = None,
 #         metadata: Dict[str, Any] = None) -> 'Chapter':
 #     """Creates a Chapter instance.
 
 #     Args:
 #         steps (Dict[str, str]): ordered names of steps as keys and particular
 #             techniques as methods.
-#         options (Optional['SimpleOptions', Dict[str, 'Option']]): either
-#             a SimpleOptions instance or a dictionary compatible with a
-#             SimpleOptions instance. Defaults to None.
+#         options (Optional['SimpleContents', Dict[str, 'Option']]): either
+#             a SimpleContents instance or a dictionary compatible with a
+#             SimpleContents instance. Defaults to None.
 #         name (Optional[str]): designates the name of the class used for internal
 #             referencing throughout siMpLify. If the class needs settings from
 #             the shared Idea instance, 'name' should match the appropriate

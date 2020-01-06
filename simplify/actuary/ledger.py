@@ -70,7 +70,7 @@ class Ledger(Book):
             if df[column].dtype == bool:
                 df[column] = df[column].astype(int)
             if df[column].dtype.kind in 'bifcu':
-                for key, value in self.options.items():
+                for key, value in self.library.items():
                     if isinstance(value, str):
                         row[key] = getattr(df[column], value)()
                     elif isinstance(value, list):
@@ -86,7 +86,7 @@ class Ledger(Book):
         return self
 
     def _start_report(self):
-        self.columns = ['variable'] + (list(self.options.keys()))
+        self.columns = ['variable'] + (list(self.library.keys()))
         self.report = pd.DataFrame(columns = self.columns)
         return self
 
@@ -94,7 +94,7 @@ class Ledger(Book):
 
     def draft(self) -> None:
         """Sets default options for the Actuary's analysis."""
-        self._options = SimpleOptions(options = {
+        self._options = SimpleContents(options = {
             'summary': ('simplify.actuary.steps.summarize', 'Summarize'),
             'test': ('simplify.actuary.steps.test', 'Test')}
         # Sets plan container
