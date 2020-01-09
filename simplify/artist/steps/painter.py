@@ -50,7 +50,7 @@ class Painter(SimpleDirector):
         return max_display
 
     def _draft_options(self) -> None:
-        self._options = SimpleContents(options = {
+        self._options = Contents(options = {
             'calibration': Option(
                 name = 'calibration',
                 module = 'skplt.metrics',

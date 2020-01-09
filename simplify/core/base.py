@@ -28,7 +28,7 @@ from simplify.core.utilities import pathlibify
 
 @dataclass
 class SimpleOutline(Container):
-    """Object construction instructions used by SimplePublisher instances.
+    """Object construction techniques used by SimpleEditor instances.
 
     Ideally, this class should have no additional methods beyond the lazy
     loader ('load' method) and __contains__ dunder method.
@@ -47,7 +47,8 @@ class SimpleOutline(Container):
             __class__.__name__ to make such subclassing easier.
         module (str): name of module where object to incorporate is located
             (can either be a siMpLify or non-siMpLify module).
-        component (str): name of python object within 'module' to load.
+        component (str): name of attribute containing the name of the python
+            object within 'module' to load.
 
     """
     name: str
@@ -74,15 +75,17 @@ class SimpleOutline(Container):
         """Returns object from module based upon instance attributes.
 
         Returns:
-            object from module indicated in passed Option instance.
+            object: from module indicated in instance.
 
         """
-        return getattr(import_module(self.module), self.component)
+        return getattr(
+            import_module(self.module),
+            getattr(self, self.component))
 
 
 @dataclass
-class SimplePublisher(ABC):
-    """Base class for creating Projects, Books, Chapters, and Pages."""
+class SimpleEditor(ABC):
+    """Base class for creating Projects, Books, Chapters, and Contents."""
 
     def __post_init__(self) -> None:
         """ Sets initial attributes and calls 'draft' method."""
@@ -100,7 +103,7 @@ class SimplePublisher(ABC):
                 modified.
 
         Returns:
-            manuscript ('SimpleManuscript': 'SimpleManuscript' instance with
+            manuscript ('SimpleManuscript'): 'SimpleManuscript' instance with
                 modifications made.
 
         """
@@ -111,7 +114,8 @@ class SimplePublisher(ABC):
             pass
         for section in sections:
             try:
-                for key, value in self.project.idea[section].items():
+                for key, value in (
+                        self.project.idea.configuration[section].items()):
                     if not hasattr(manuscript, key):
                         setattr(manuscript, key, value)
             except KeyError:
@@ -155,47 +159,72 @@ class SimplePublisher(ABC):
 
 @dataclass
 class SimpleManuscript(Collection):
-    """Base class for Book, Chapter, and Page iterables."""
-
-    def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
-        # Sets default 'name' attribute if none exists.
-        if self.name is None:
-            self.name = self.__class__.__name__.lower()
-        # Automatically calls 'draft' method.
-        try:
-            self.draft()
-        except AttributeError:
-            pass
-        # Calls 'publish' method if 'auto_publish' is True.
-        if hasattr(self, 'auto_publish') and self.auto_publish:
-            self.publish()
-        # Calls 'apply' method if 'auto_apply' is True.
-        if hasattr(self, 'auto_apply') and self.auto_apply:
-            self.apply()
-        return self
+    """Base class for Book, Chapter, and Technique iterables."""
 
     """ Required ABC Methods """
 
-    def __contains__(self, item: str) -> bool:
+    def __contains__(self, key: str) -> bool:
         """Returns whether 'attribute' exists in the class iterable.
 
         Args:
-            item (str): name of item to check.
+            key (str): name of item to check.
 
         Returns:
-            bool: whether the 'item' exists in the class iterable.
+            bool: whether the 'key' exists in the class iterable.
 
         """
         return item in getattr(self, self.iterable)
 
     def __iter__(self) -> Iterable:
         """Returns class iterable."""
-        return iter(getattr(self, self.iterable))
+        if isinstance(getattr(self, self.iterable), dict):
+            return iter(getattr(self, self.iterable).items())
+        else:
+            return iter(getattr(self, self.iterable))
 
     def __len__(self) -> int:
         """Returns length of class iterable."""
         return len(getattr(self, self.iterable))
+
+
+@dataclass
+class SimpleWorker(ABC):
+    """Base class for applying SimpleManuscript subclass instances to data.
+
+    Args:
+        project ('Project'): a related Project instance.
+
+    """
+    project: 'Project'
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        return self
+
+    """ Core siMpLify Methods """
+
+    def apply(self,
+            book: 'Book',
+            data: Optional[Union['Ingredients', 'Book']] = None,
+            **kwargs) -> Union['Ingredients', 'Book']:
+        """Applies objects in 'manuscript' to 'data'
+
+        Args:
+            book ('Book'): Book instance with algorithms to apply to 'data'.
+            data (Optional[Union['Ingredients', 'Book']]): a data source for
+                the 'book' methods to be applied.
+            kwargs: any additional parameters to pass to a related
+                SimpleManuscript's options' 'apply' method.
+
+        Returns:
+            Union['Ingredients', 'Book']: data object with modifications
+                possibly made.
+
+        """
+        for chapter in book:
+            for step, technique in chapter:
+                data = technique.apply(data = data, **kwargs)
+        return book
 
 
 @dataclass
@@ -214,54 +243,54 @@ class SimpleOptions(MutableMapping, ABC):
 
     """ Required ABC Methods """
 
-    def __delitem__(self, item: str) -> None:
-        """Deletes item in the 'lexicon' dictionary.
-
-        Args:
-            item (str): name of key in the 'lexicon' dictionary.
-
-        """
-        try:
-            del getattr(self, self.lexicon)[item]
-        except KeyError:
-            pass
-        return self
-
-    def __getitem__(self, item: str) -> Any:
+    def __getitem__(self, key: str) -> Any:
         """Returns item in the 'lexicon' dictionary.
 
         If there are no matches, the method searches for a matching wildcard in
         attributes.
 
         Args:
-            item (str): name of key in the 'lexicon' dictionary.
+            key (str): name of key in the 'lexicon' dictionary.
 
         Returns:
             Any: item stored as a the 'lexicon' dictionary value.
 
         Raises:
-            KeyError: if 'item' is not found in the 'lexicon' dictionary.
+            KeyError: if 'key' is not found in the 'lexicon' dictionary.
 
         """
         try:
-            return getattr(self, self.lexicon)[item]
+            return getattr(self, self.lexicon)[key]
         except KeyError:
-            if item in self.wildcards:
-                return getattr(self, item)
+            if key in self.wildcards:
+                return getattr(self, key)
             else:
                 raise KeyError(' '.join(
-                    [item, 'is not in', self.__class__,__.name__]))
+                    [key, 'is not in', self.__class__.__name__]))
 
-    def __setitem__(self, item: str, value: Any) -> None:
-        """Sets 'item' in the 'lexicon' dictionary to 'value'.
+    def __delitem__(self, key: str) -> None:
+        """Deletes item in the 'lexicon' dictionary.
 
         Args:
-            item (str): name of key in the 'lexicon' dictionary.
-            value (Any): value to be paired with 'item' in the 'lexicon'
+            key (str): name of key in the 'lexicon' dictionary.
+
+        """
+        try:
+            del getattr(self, self.lexicon)[key]
+        except KeyError:
+            pass
+        return self
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Sets 'key' in the 'lexicon' dictionary to 'value'.
+
+        Args:
+            key (str): name of key in the 'lexicon' dictionary.
+            value (Any): value to be paired with 'key' in the 'lexicon'
                 dictionary.
 
         """
-        getattr(self, self.lexicon)[item] = value
+        getattr(self, self.lexicon)[key] = value
         return self
 
     def __iter__(self) -> Iterable:
@@ -284,23 +313,23 @@ class SimpleOptions(MutableMapping, ABC):
 
     """ Other Dunder Methods """
 
-    def __add__(self, other: Union['SimpleContents', Dict[str, Any]]) -> None:
+    def __add__(self, other: Union['Contents', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['SimpleContents', Dict[str, Any]]): another
-                'SimpleContents' instance or compatible dictionary.
+            other (Union['Contents', Dict[str, Any]]): another
+                'Contents' instance or compatible dictionary.
 
         """
         self.add(options = other)
         return self
 
-    def __iadd__(self, other: Union['SimpleContents', Dict[str, Any]]) -> None:
+    def __iadd__(self, other: Union['Contents', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['SimpleContents', Dict[str, Any]]): another
-                'SimpleContents' instance or compatible dictionary.
+            other (Union['Contents', Dict[str, Any]]): another
+                'Contents' instance or compatible dictionary.
 
         """
         self.add(options = other)
@@ -312,7 +341,7 @@ class SimpleOptions(MutableMapping, ABC):
             key: Optional[str] = None,
             value: Optional[Any] = None,
             options: Optional[Union[
-                'SimpleContents', Dict[str, Any]]] = None) -> None:
+                'Contents', Dict[str, Any]]] = None) -> None:
         """Combines arguments with the 'lexicon' dictionary.
 
         Args:
@@ -320,8 +349,8 @@ class SimpleOptions(MutableMapping, ABC):
                 None.
             value (Optional[Any]): item to store in the 'lexicon' dictionary.
                 Defaults to None.
-            options (Optional[Union['SimpleContents', Dict[str, Any]]]):
-                another 'SimpleContents' instance or a compatible dictionary.
+            options (Optional[Union['Contents', Dict[str, Any]]]):
+                another 'Contents' instance or a compatible dictionary.
                 Defaults to None.
 
         """
@@ -396,62 +425,18 @@ class SimpleOptions(MutableMapping, ABC):
         return self
 
 
-@dataclass
-class SimpleContents(SimpleOptions):
-    """Base class for storing options and strategies.
-
-    Args:
-        options (Optional[str, Any]): default stored dictionary. Defaults to an
-            empty dictionary.
-        null_value (Optional[Any]): value to return when 'none' is accessed.
-            Defaults to None.
-
-    """
-    options: Optional[Dict[str, Any]] = field(default_factory = dict)
-    null_value: Optional[Any] = None
-
-    def __post_init__(self) -> None:
-        """Sets name of internal 'lexicon' dictionary."""
-        self.wildcards = ['default', 'all', 'none']
-        super().__post_init__()
-        return self
-
-    """ Wildcard Properties """
-
-    @property
-    def none(self) -> None:
-        """Returns 'null_value'.
-
-        Returns:
-            'null_value' attribute or None.
-
-        """
-        return self.null_value
-
-    @none.setter
-    def none(self, null_value: Any) -> None:
-        """Sets 'none' to 'null_value'.
-
-        Args:
-            null_value (Any): value to return when 'none' is sought.
-
-        """
-        self.null_value = null_value
-        return self
-    
-
 def SimpleConformer(ABC):
     """Base class decorator to convert arguments to proper types."""
 
     def __init__(self,
             callable: Callable,
-            conformers: Optional[Dict[str, Callable]] = None) -> None:
-        """Sets initial conformer options.
+            validators: Optional[Dict[str, Callable]] = None) -> None:
+        """Sets initial validator options.
 
         Args:
             callable (Callable): wrapped method, function, or callable class.
-            conformers Optional[Dict[str, Callable]]: keys are names of 
-                parameters and values are functions to convert or validate 
+            validators Optional[Dict[str, Callable]]: keys are names of
+                parameters and values are functions to convert or validate
                 passed arguments. Those functions must return a completed
                 object and take only a single passed passed argument. Defaults
                 to None.
@@ -459,8 +444,8 @@ def SimpleConformer(ABC):
         """
         self.callable = callable
         update_wrapper(self, self.callable)
-        if self.conformers is None:
-            self.conformers = {}
+        if self.validators is None:
+            self.validators = {}
         return self
 
     """ Required Wrapper Method """
@@ -484,7 +469,7 @@ def SimpleConformer(ABC):
 
     def apply(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Converts values of 'arguments' to proper types.
-        
+
         Args:
             arguments (Dict[str, Any]): arguments with values to be converted.
 
@@ -492,14 +477,14 @@ def SimpleConformer(ABC):
             Dict[str, Any]: arguments with converted values.
 
         """
-        for argument, conformer in self.conformers.items():
+        for argument, validator in self.validators.items():
             try:
-                arguments[argument] = conformer(arguments[argument])
+                arguments[argument] = validator(arguments[argument])
             except KeyError:
                 pass
         return arguments
-    
-    
+
+
 @dataclass
 class SimpleState(Container):
     """Base class for state management."""
@@ -508,7 +493,7 @@ class SimpleState(Container):
     initial_state: Optional[str] = None
 
     def _post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
+        """Initializes class instance attributes."""
         # Automatically calls 'draft' method.
         self.draft()
         return self
@@ -576,7 +561,7 @@ class SimpleDistributor(ABC):
     """Base class for siMpLify Importer and Exporter."""
 
     def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
+        """Initializes class instance attributes."""
         self.draft()
         if self.auto_publish:
             self.publish()
@@ -612,7 +597,7 @@ class SimpleDistributor(ABC):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        self.library = SimpleContents(options = {
+        self.library = Contents(options = {
             'csv': 'csv',
             'matplotlib': 'mp',
             'pandas': 'pd',
@@ -636,53 +621,53 @@ class SimplePath(MutableMapping):
     names: Dict[str, str]
 
     def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
+        """Initializes class instance attributes."""
         # Automatically calls 'draft' method.
         self.draft()
         return self
 
     """ Required ABC Methods """
 
-    def __delitem__(self, item: str) -> None:
+    def __delitem__(self, key: str) -> None:
         """Deletes item in 'names'.
 
         Args:
-            item (str): name of key in 'names'.
+            key (str): name of key in 'names'.
 
         """
         try:
-            del self.names[item]
+            del self.names[key]
         except KeyError:
             pass
         return self
 
-    def __getitem__(self, item: str) -> Path:
+    def __getitem__(self, key: str) -> Path:
         """Returns item in 'names'.
 
         Args:
-            item (str): name of key in 'names'.
+            key (str): name of key in 'names'.
 
         Returns:
             Path: value stored as a 'names'.
 
         Raises:
-            KeyError: if 'item' is not found in 'names'.
+            KeyError: if 'key' is not found in 'names'.
 
         """
         try:
-            return self.names[item]
+            return self.names[key]
         except KeyError:
-            raise KeyError(' '.join([item, 'is not in Inventory']))
+            raise KeyError(' '.join([key, 'is not in Inventory']))
 
-    def __setitem__(self, item: str, value: Path) -> None:
-        """Sets 'item' in 'names' to 'value'.
+    def __setitem__(self, key: str, value: Path) -> None:
+        """Sets 'key' in 'names' to 'value'.
 
         Args:
-            item (str): name of key in 'names'.
-            value (Path): value to be paired with 'item' in 'names'.
+            key (str): name of key in 'names'.
+            value (Path): value to be paired with 'key' in 'names'.
 
         """
-        self.names[item] = value
+        self.names[key] = value
         return self
 
     def __iter__(self) -> Iterable:
@@ -734,16 +719,16 @@ class SimpleType(MutableMapping):
     """ Required ABC Methods """
 
     def __getitem__(self, key: str) -> Any:
-        """Returns key in the 'types' or 'reverse_types' dictionary.
+        """Returns key in the 'types' or 'reversed_types' dictionary.
 
         Args:
             key (str): name of key to find.
 
         Returns:
-            Any: value stored in 'types' or 'reverse_types' dictionaries.
+            Any: value stored in 'types' or 'reversed_types' dictionaries.
 
         Raises:
-            KeyError: if 'key' is neither found in 'types' nor 'reverse_types'
+            KeyError: if 'key' is neither found in 'types' nor 'reversed_types'
                 dictionaries.
 
         """
@@ -751,13 +736,13 @@ class SimpleType(MutableMapping):
             return self.types[key]
         except KeyError:
             try:
-                return self.reverse_types[key]
+                return self.reversed_types[key]
             except KeyError:
                 raise KeyError(' '.join(
-                    [key, 'is not in', self.__class__,__.name__]))
+                    [key, 'is not in', self.__class__.__name__]))
 
     def __setitem__(self, key: str, value: Any) -> None:
-        """Stoes arguments in 'types' and 'reverse_types' dictionaries.
+        """Stoes arguments in 'types' and 'reversed_types' dictionaries.
 
         Args:
             key (str): name of key to set.
@@ -765,11 +750,11 @@ class SimpleType(MutableMapping):
 
         """
         self.types[key] = value
-        self.reverse_types[value] = key
+        self.reversed_types[value] = key
         return self
 
     def __delitem__(self, key: str) -> None:
-        """Deletes key in the 'types' and 'reverse_types' dictionaries.
+        """Deletes key in the 'types' and 'reversed_types' dictionaries.
 
         Args:
             key (str): name of key to find.
@@ -778,11 +763,11 @@ class SimpleType(MutableMapping):
         try:
             value = self.types[key]
             del self.types[key]
-            del self.reverse_types[value]
+            del self.reversed_types[value]
         except KeyError:
             try:
-                value = self.reverse_types[key]
-                del self.reverse_types[key]
+                value = self.reversed_types[key]
+                del self.reversed_types[key]
                 del self.types[value]
             except KeyError:
                 pass

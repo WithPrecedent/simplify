@@ -81,7 +81,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_classify(self) -> None:
-        self._options = SimpleContents(options = {
+        self._options = Contents(options = {
             'adaboost': Option(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',
@@ -134,7 +134,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_cluster(self) -> None:
-        self._options = SimpleContents(options = {
+        self._options = Contents(options = {
             'affinity': Option(
                 name = 'affinity',
                 module = 'sklearn.cluster',
@@ -182,7 +182,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_regress(self) -> None:
-        self._options = SimpleContents(options = {
+        self._options = Contents(options = {
             'adaboost': Option(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',
@@ -265,7 +265,7 @@ class Modeler(SimpleDirector):
         return self
 
 
-def make_tensorflow_model(step: 'Page', parameters: dict) -> None:
+def make_tensorflow_model(step: 'Technique', parameters: dict) -> None:
     algorithm = None
     return algorithm
 
@@ -327,12 +327,12 @@ def make_tensorflow_model(step: 'Page', parameters: dict) -> None:
 
 
 
-def make_torch_model(step: 'Page', parameters: dict) -> None:
+def make_torch_model(step: 'Technique', parameters: dict) -> None:
     algorithm = None
     return algorithm
 
 
-def make_stan_model(step: 'Page', parameters: dict) -> None:
+def make_stan_model(step: 'Technique', parameters: dict) -> None:
     algorithm = None
     return algorithm
 

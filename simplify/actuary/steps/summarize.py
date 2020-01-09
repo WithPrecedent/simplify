@@ -41,7 +41,7 @@ class Summarize(SimpleDirector):
     def draft(self) -> None:
         """Sets options for Summarize class."""
         super().draft()
-        self._options = SimpleContents(options = {
+        self._options = Contents(options = {
             'count': Option(
                 name = 'count',
                 module = 'numpy.ndarray',

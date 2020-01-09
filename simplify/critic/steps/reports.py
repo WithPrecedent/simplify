@@ -64,7 +64,7 @@ class Reports(CriticTechnique):
 
     def draft(self) -> None:
         super().publish()
-        self._options = SimpleContents(options = {
+        self._options = Contents(options = {
             'classification': ('sklearn.metrics', 'classification_report'),
             'confusion': ('sklearn.metrics', 'confusion_matrix')}
         return self

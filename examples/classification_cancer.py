@@ -14,7 +14,6 @@ from simplify import Project
 cancer = load_breast_cancer()
 df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
                   columns = np.append(cancer['feature_names'], ['target']))
-
 # Sets root_folder for data and results exports.
 root_folder = os.path.join('..', '..')
 # Sets location of configuration settings for the project. Depending upon your
@@ -29,10 +28,11 @@ cancer_project = Project(
     inventory = root_folder,
     ingredients = df)
 # Converts label to boolean type to correct numpy default above.
-cancer_project.ingredients.change_datatype(columns = 'target',
-                                           datatype = 'boolean')
+cancer_project.ingredients.change_datatype(
+    columns = 'target',
+    datatype = 'boolean')
 # Fills missing data with appropriate default values based on column datatype.
-cancer_project.ingredients.smart_fill()
+# cancer_project.ingredients.smart_fill()
 # Iterates through every recipe and exports plots, explainers, and other
 # metrics from each recipe.
 cancer_project.apply()

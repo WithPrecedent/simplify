@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from simplify.core.book import Book
-from simplify.core.book import PageOutline
+from simplify.core.book import TechniqueOutline
 
 
 def auto_categorize(

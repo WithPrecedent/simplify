@@ -6,6 +6,7 @@
 :license: Apache-2.0
 """
 
+from configparser import ConfigParser
 from dataclasses import dataclass
 from dataclasses import field
 from importlib import import_module
@@ -15,14 +16,14 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 
-from simplify.core.base import SimpleContents
+from simplify.core.book import Contents
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 from simplify.core.utilities import typify
 
 
 @dataclass
-class Idea(SimpleContents):
+class Idea(Contents):
     """Converts a data science idea into python.
 
     If 'configuration' is imported from a file, Idea creates a dictionary,
@@ -139,91 +140,98 @@ class Idea(SimpleContents):
     infer_types: Optional[bool] = True
 
     def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
-        self.mapping = 'configuration'
+        """Initializes class instance attributes."""
+        self.lexicon = 'configuration'
         super().__post_init__()
         self.draft()
         return self
 
     """ Dunder Methods """
 
-    def __getitem__(self, item: str) -> Any:
+    def __getitem__(self, key: str) -> Union[Dict[str, Any], Any]:
         """Returns a section of the active dictionary or key within a section.
 
         Args:
-            item (str): the name of the dictionary key for which the value is
+            key (str): the name of the dictionary key for which the value is
                 sought.
 
         Returns:
-            Union[Dict[str, Any], Any]: dict if 'item' matches a section in
-                the active dictionary. If 'item' matches a key within a section,
+            Union[Dict[str, Any], Any]: dict if 'key' matches a section in
+                the active dictionary. If 'key' matches a key within a section,
                 the value, which can be any of the supported datatypes is
                 returned.
 
-        Raises:
-            KeyError: if 'item' not in the active dictionary.
-
         """
         try:
-            return self.configuration[item]
+            return self.configuration[key]
         except KeyError:
             for section in list(self.configuration.keys()):
                 try:
-                    return section[item]
+                    return self.configuration[section][key]
                     break
                 except KeyError:
                     pass
-            raise KeyError(' '.join([item, 'not found in Idea']))
 
-    def __setitem__(self, item: str, value: Dict[str, Any]) -> None:
+    def __setitem__(self, key: str, value: Dict[str, Any]) -> None:
         """Creates new key/value pair(s) in a section of the active dictionary.
 
         Args:
-            item (str): name of a section in the active dictionary.
+            key (str): name of a section in the active dictionary.
             value (Dict): the dictionary to be placed in that section.
 
         Raises:
-            TypeError if 'item' isn't a str or 'value' isn't a dict.
+            TypeError if 'key' isn't a str or 'value' isn't a dict.
 
         """
         try:
-            self.configuration[item].update(value)
+            self.configuration[key].update(value)
         except KeyError:
             try:
-                self.configuration[item] = value
+                self.configuration[key] = value
             except TypeError:
-                raise TypeError(' '.join(['item must be a str and value must',
-                    'be a dict type']))
+                raise TypeError(
+                    'item must be a str and value must be a dict type')
         return self
 
     """ Private Methods """
 
-    def _are_parameters(self, instance: object, section: str) -> bool:
-        """Returns whether value stores matching parameters for instance.
+    def _add_steps(self, instance: object) -> object:
+        """Injects 'steps' into 'instance'.
 
         Args:
-            instance (object): a class instance to which attributes should be
-                added.
-            section (str): name of a section of the configuration settings.
+            instance (object): siMpLify class instance to be modified.
 
         Returns:
-            bool: whether the section includes parameters and if those
-                parameters correspond to the class name or step name.
+            instance (object): siMpLify class instance with modifications made.
 
         """
-        if '_parameters' in section:
+        if not hasattr(instance, 'steps') or not instance.steps:
+            name = instance.name
+            instance.steps = listify(
+                self.configuration[name]['_'.join([name, 'steps'])],
+                use_empty = True)
+        return instance
+
+    def _add_parameters(self, instance: object) -> object:
+        """Injects 'parameters' into 'instance'.
+
+        Args:
+            instance (object): siMpLify class instance to be modified.
+
+        Returns:
+            instance (object): siMpLify class instance with modifications made.
+
+        """
+
+        try:
+            return instance.parameters == self.configuration['_'.join(
+                [instance.name, '_parameters'])]
+        except (AttributeError, KeyError):
             try:
-                return (instance.name == '_'.join(
-                    [instance.name, '_parameters']))
-            except AttributeError:
-                try:
-                    return (instance.technique == '_'.join(
-                        [instance.technique , '_parameters']))
-                except AttributeError:
-                    pass
-            return False
-        else:
-            return False
+                return instance.parameters == self.configuration['_'.join(
+                    [instance.technique, '_parameters'])]
+            except (AttributeError, KeyError):
+                return instance
 
     def _infer_types(self):
         """Converts stored values to appropriate datatypes.
@@ -267,11 +275,107 @@ class Idea(SimpleContents):
             sections.extend(listify(instance.idea_sections))
         except AttributeError:
             pass
+        if hasattr(instance, 'parameters') or not instance.parameters:
+            instance = self._add_parameters(instance = instance)
         for section in sections:
             try:
                 for key, value in self.configuration[section].items():
-                    if not hasattr(instance, key):
+                    if key.endswith('steps'):
+                        instance = self._add_steps(instance = instance)
+                    elif not hasattr(instance, key) or not getattr(self, key):
                         setattr(instance, key, value)
             except KeyError:
                 pass
         return instance
+
+
+""" Validator Function """
+
+def validate_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
+    """Creates an Idea instance from passed argument.
+
+    Args:
+        idea (Union[Dict[str, Dict[str, Any]], 'Idea']): a dict, a str file path
+            to an ini, csv, or py file with settings, or an Idea instance with a
+            'configuration' attribute.
+
+    Returns:
+        Idea instance, properly configured.
+
+    Raises:
+        TypeError: if 'idea' is neither a dict, str, nor Idea instance.
+
+    """
+    def _load_from_csv(file_path: str) -> Dict[str, Any]:
+        """Creates a configuration dictionary from a .csv file.
+
+        Args:
+            file_path (str): path to siMpLify-compatible .csv file.
+
+        Returns:
+            Dict[str, Any] of settings.
+
+        Raises:
+            FileNotFoundError: if the file_path does not correspond to a file.
+
+        """
+        try:
+            configuration = pd.read_csv(file_path, dtype = 'str')
+            return configuration.to_dict(orient = 'list')
+        except FileNotFoundError:
+            raise FileNotFoundError(' '.join(['configuration file ',
+                file_path, ' not found']))
+
+
+    def _load_from_ini(file_path: str) -> Dict[str, Any]:
+        """Creates a configuration dictionary from an .ini file.
+
+        Args:
+            file_path (str): path to configparser-compatible .ini file.
+
+        Returns:
+            Dict[str, Any] of configuration.
+
+        Raises:
+            FileNotFoundError: if the file_path does not correspond to a file.
+
+        """
+        try:
+            configuration = ConfigParser(dict_type = dict)
+            configuration.optionxform = lambda option: option
+            configuration.read(file_path)
+            return dict(configuration._sections)
+        except FileNotFoundError:
+            raise FileNotFoundError(' '.join(['configuration file ',
+                file_path, ' not found']))
+
+    def _load_from_py(file_path: str) -> Dict[str, Any]:
+        """Creates a configuration dictionary from a .py file.
+
+        Args:
+            file_path (str): path to python module with '__dict__' dict defined.
+
+        Returns:
+            Dict[str, Any] of configuration.
+
+        Raises:
+            FileNotFoundError: if the file_path does not correspond to a file.
+
+        """
+        try:
+            return getattr(import_module(file_path), '__dict__')
+        except FileNotFoundError:
+            raise FileNotFoundError(' '.join(['configuration file ',
+                file_path, ' not found']))
+
+    if isinstance(idea, Idea):
+        return idea
+    elif isinstance(idea, dict):
+        return Idea(configuration = idea)
+    elif isinstance(idea, str):
+        extension = str(Path(idea).suffix)[1:]
+        configuration = locals()['_'.join(['_load_from', extension])](
+            file_path = idea)
+        return Idea(configuration = configuration)
+    else:
+        raise TypeError('idea must be Idea, str, or nested dict type')

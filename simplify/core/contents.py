@@ -16,7 +16,7 @@ from simplify.core.utilities import listify
 
 
 @dataclass
-class SimpleContents(MutableMapping, ABC):
+class Contents(MutableMapping, ABC):
     """Base class for storing options and strategies."""
 
     def __post_init__(self) -> None:
@@ -31,54 +31,54 @@ class SimpleContents(MutableMapping, ABC):
 
     """ Required ABC Methods """
 
-    def __delitem__(self, item: str) -> None:
+    def __delitem__(self, key: str) -> None:
         """Deletes item in the 'lexicon' dictionary.
 
         Args:
-            item (str): name of key in the 'lexicon' dictionary.
+            key (str): name of key in the 'lexicon' dictionary.
 
         """
         try:
-            del getattr(self, self.lexicon)[item]
+            del getattr(self, self.lexicon)[key]
         except KeyError:
             pass
         return self
 
-    def __getitem__(self, item: str) -> Any:
+    def __getitem__(self, key: str) -> Any:
         """Returns item in the 'lexicon' dictionary.
 
         If there are no matches, the method searches for a matching wildcard in
         attributes.
 
         Args:
-            item (str): name of key in the 'lexicon' dictionary.
+            key (str): name of key in the 'lexicon' dictionary.
 
         Returns:
             Any: item stored as a the 'lexicon' dictionary value.
 
         Raises:
-            KeyError: if 'item' is not found in the 'lexicon' dictionary.
+            KeyError: if 'key' is not found in the 'lexicon' dictionary.
 
         """
         try:
-            return getattr(self, self.lexicon)[item]
+            return getattr(self, self.lexicon)[key]
         except KeyError:
             if item in self.wildcards:
-                return getattr(self, item)
+                return getattr(self, key)
             else:
                 raise KeyError(' '.join(
-                    [item, 'is not in', self.__class__,__.name__]))
+                    [key, 'is not in', self.__class__.__name__]))
 
-    def __setitem__(self, item: str, value: Any) -> None:
-        """Sets 'item' in the 'lexicon' dictionary to 'value'.
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Sets 'key' in the 'lexicon' dictionary to 'value'.
 
         Args:
-            item (str): name of key in the 'lexicon' dictionary.
-            value (Any): value to be paired with 'item' in the 'lexicon'
+            key (str): name of key in the 'lexicon' dictionary.
+            value (Any): value to be paired with 'key' in the 'lexicon'
                 dictionary.
 
         """
-        getattr(self, self.lexicon)[item] = value
+        getattr(self, self.lexicon)[key] = value
         return self
 
     def __iter__(self) -> Iterable:
@@ -101,23 +101,23 @@ class SimpleContents(MutableMapping, ABC):
 
     """ Other Dunder Methods """
 
-    def __add__(self, other: Union['SimpleContents', Dict[str, Any]]) -> None:
+    def __add__(self, other: Union['Contents', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['SimpleContents', Dict[str, Any]]): another
-                'SimpleContents' instance or compatible dictionary.
+            other (Union['Contents', Dict[str, Any]]): another
+                'Contents' instance or compatible dictionary.
 
         """
         self.add(options = other)
         return self
 
-    def __iadd__(self, other: Union['SimpleContents', Dict[str, Any]]) -> None:
+    def __iadd__(self, other: Union['Contents', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['SimpleContents', Dict[str, Any]]): another
-                'SimpleContents' instance or compatible dictionary.
+            other (Union['Contents', Dict[str, Any]]): another
+                'Contents' instance or compatible dictionary.
 
         """
         self.add(options = other)
@@ -129,7 +129,7 @@ class SimpleContents(MutableMapping, ABC):
             key: Optional[str] = None,
             value: Optional[Any] = None,
             options: Optional[Union[
-                'SimpleContents', Dict[str, Any]]] = None) -> None:
+                'Contents', Dict[str, Any]]] = None) -> None:
         """Combines arguments with the 'lexicon' dictionary.
 
         Args:
@@ -137,8 +137,8 @@ class SimpleContents(MutableMapping, ABC):
                 None.
             value (Optional[Any]): item to store in the 'lexicon' dictionary.
                 Defaults to None.
-            options (Optional[Union['SimpleContents', Dict[str, Any]]]):
-                another 'SimpleContents' instance or a compatible dictionary.
+            options (Optional[Union['Contents', Dict[str, Any]]]):
+                another 'Contents' instance or a compatible dictionary.
                 Defaults to None.
 
         """
@@ -261,7 +261,7 @@ class SimpleOptions():
         return self
 
 @dataclass
-class SimpleData(SimpleContents):
+class SimpleData(Contents):
     """Base class for storing pandas data objects."""
 
     datasets: Optional[Dict[str, Union[pd.Series, pd.DataFrame]]] = field(
@@ -269,7 +269,7 @@ class SimpleData(SimpleContents):
     default_dataset: Optional[str] = 'df'
 
     def _post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
+        """Initializes class instance attributes."""
         if not hasattr(self, 'lexicon'):
             self.lexicon = 'datasets'
         self.wildcards = ['default', 'all', 'train', 'test', 'val']
@@ -280,23 +280,23 @@ class SimpleData(SimpleContents):
 
     """ Dunder Methods """
 
-    def __add__(self, other: Union['SimpleContents', Dict[str, Any]]) -> None:
+    def __add__(self, other: Union['Contents', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['SimpleContents', Dict[str, Any]]): another
-                'SimpleContents' instance or compatible dictionary.
+            other (Union['Contents', Dict[str, Any]]): another
+                'Contents' instance or compatible dictionary.
 
         """
         self.add(options = other)
         return self
 
-    def __iadd__(self, other: Union['SimpleContents', Dict[str, Any]]) -> None:
+    def __iadd__(self, other: Union['Contents', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['SimpleContents', Dict[str, Any]]): another
-                'SimpleContents' instance or compatible dictionary.
+            other (Union['Contents', Dict[str, Any]]): another
+                'Contents' instance or compatible dictionary.
 
         """
         self.add(options = other)
@@ -322,7 +322,7 @@ class SimpleData(SimpleContents):
             key: Optional[str] = None,
             value: Optional[Any] = None,
             options: Optional[Union[
-                'SimpleContents', Dict[str, Any]]] = None) -> None:
+                'Contents', Dict[str, Any]]] = None) -> None:
         """Combines arguments with the 'lexicon' dictionary.
 
         Args:
@@ -330,8 +330,8 @@ class SimpleData(SimpleContents):
                 None.
             value (Optional[Any]): item to store in the 'lexicon' dictionary.
                 Defaults to None.
-            options (Optional[Union['SimpleContents', Dict[str, Any]]]):
-                another 'SimpleContents' instance or a compatible dictionary.
+            options (Optional[Union['Contents', Dict[str, Any]]]):
+                another 'Contents' instance or a compatible dictionary.
                 Defaults to None.
 
         """
@@ -351,7 +351,7 @@ class SimpleData(SimpleContents):
 
 
 @dataclass
-class SimpleDatatypes(SimpleContents):
+class SimpleDatatypes(Contents):
 
     self.datatypes = {
         'boolean': bool,

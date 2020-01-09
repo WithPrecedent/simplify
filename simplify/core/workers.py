@@ -15,11 +15,10 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleContents
-from simplify.core.base import SimpleOutline
+from simplify.core.book import Contents
+from simplify.core.base import BookOutline
 from simplify.core.utilities import listify
-from simplify.core.utilities import numpy_shield
-from simplify.core.utilities import XxYy
+from simplify.core.validators import DataConformer
 
 
 @dataclass
@@ -33,7 +32,7 @@ class Worker(object):
     project: 'Project'
 
     def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
+        """Initializes class instance attributes."""
         # Sets initial index location for iterable.
         self._position = 0
         return self
@@ -108,6 +107,8 @@ class Worker(object):
         manuscript.apply(data = data, **kwargs)
         return self
 
+    def _apply_technique(technique: )
+
     """ Core siMpLify Methods """
 
     def apply(self,
@@ -162,166 +163,34 @@ class Worker(object):
 
         """
         for chapter in book:
-            for step, technique in chapter.items():
+            for step, technique in chapter:
                 data = technique.apply(data = data,**kwargs)
         return book
 
 
-
-@dataclass
-class Book(SimpleContents):
-    """Stores and iterates Chapters.
-
-    Args:
-        project ('Project'): current associated project.
-
-    Args:
-        project ('Project'): associated Project instance.
-        options (Optional[Dict[str, 'SimpleOutline']]): SimpleContents instance or
-            a SimpleContents-compatible dictionary. Defaults to an empty
-            dictionary.
-        steps (Optional[Union[List[str], str]]): steps of key(s) to iterate in
-            'options'. Also, if not reset by the user, 'steps' is used if the
-            'default' property is accessed. Defaults to an empty list.
-
-    """
-    project: 'Project' = None
-    options: Optional[Dict[str, 'SimpleOutline']] = field(default_factory = dict)
-    steps: Optional[Union['SimpleSequence', List[str], str]] = field(
-        default_factory = list)
-    name: Optional[str] = None
-    chapter_type: Optional['Chapter'] = None
-    iterable: Optional[str] = 'chapters'
-    metadata: Optional[Dict[str, Any]] = field(default_factory = dict)
-    file_format: Optional[str] = 'pickle'
-    export_folder: Optional[str] = 'book'
-
-    def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
-        # Sets default 'name' attribute if none exists.
-        if self.name is None:
-            self.name = self.__class__.__name__.lower()
-        # Calls parent method for initialization.
-        super().__post_init__()
-        return self
-
-    """ Core SiMpLify Methods """
-
-    def apply(self,
-            options: Optional[Union[List[str], Dict[str, Any], str]] = None,
-            data: Optional[Union['Ingredients', 'Book']] = None,
-            **kwargs) -> Union['Ingredients', 'Book']:
-        """Calls 'apply' method for published option matching 'step'.
-
-        Args:
-            options (Optional[Union[List[str], Dict[str, Any], str]]): ordered
-                options to be applied. If none are passed, the 'published' keys
-                are used. Defaults to None
-            data (Optional[Union['Ingredients', 'Book']]): a siMpLify object for
-                the corresponding 'options' to apply. Defaults to None.
-            kwargs: any additional parameters to pass to the options' 'apply'
-                method.
-
-        Returns:
-            Union['Ingredients', 'Book'] is returned if data is passed;
-                otherwise nothing is returned.
-
-        """
-        if isinstance(options, dict):
-            options = list(options.keys())
-        elif options is None:
-            options = self.default
-        self._change_active(new_active = 'applied')
-        for option in options:
-            if data is None:
-                getattr(self, self.active)[option].apply(**kwargs)
-            else:
-                data = getattr(self, self.active)[option].apply(
-                    data = data,
-                    **kwargs)
-            getattr(self, self.active)[option] = getattr(
-                self, self.active)[option]
-        if data is None:
-            return self
-        else:
-            return data
-
-
-@dataclass
-class Chapter(SimpleContents):
-    """Iterator for a siMpLify process.
-
-    Args:
-        book ('Book'): current associated Book
-        metadata (Optional[Dict[str, Any]], optional): any metadata about the
-            Chapter. Unless a subclass replaces it, 'number' is automatically a
-            key created for 'metadata' to allow for better recordkeeping.
-            Defaults to an empty dictionary.
-
-    """
-    book: 'Book' = None
-    name: Optional[str] = None
-    iterable: Optional[str] = 'book.steps'
-    metadata: Optional[Dict[str, Any]] = field(default_factory = dict)
-    file_format: Optional[str] = 'pickle'
-    export_folder: Optional[str] = 'chapter'
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        return self
-
-    """ Private Methods """
-
-    def _apply_extra_processing(self) -> None:
-        """Extra actions to take."""
-        return self
-
     """ Core siMpLify Methods """
 
-    def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
-        """Applies stored 'options' to passed 'data'.
+    def _add_data_dependents(self, data: object) -> None:
+        """Completes parameter dictionary by adding data dependent parameters.
 
         Args:
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): a
-                siMpLify object for the corresponding 'step' to apply. Defaults
-                to None.
-            kwargs: any additional parameters to pass to the step's 'apply'
-                method.
+            data (object): data object with attributes for data dependent
+                parameters to be added.
+
+        Returns:
+            parameters with any data dependent parameters added.
 
         """
-        if data is not None:
-            self.ingredients = data
-        for step in getattr(self, self.iterable):
-            self.book[step].apply(data = self.ingredients, **kwargs)
-            self._apply_extra_processing()
+        if self.outline.data_dependents is not None:
+            for key, value in self.outline.data_dependents.items():
+                try:
+                    self.parameters.update({key, getattr(data, value)})
+                except KeyError:
+                    print('no matching parameter found for', key, 'in',
+                        data.name)
         return self
 
-
-@dataclass
-class Page(SimpleContents):
-    """Stores, combines, and applies Algorithm and Parameters instances.
-
-    Args:
-        name (str): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. If 'name' is not
-            provided, __class__.__name__.lower() is used instead.
-
-    """
-    book: 'Book' = None
-    name: Optional[str] = None
-    file_format: Optional[str] = 'pickle'
-    export_folder: Optional[str] = 'chapter'
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        return self
-
-    def _add_parameters_to_algorithm(self):
+    def _add_parameters_to_algorithm(self) -> None:
         """Attaches 'parameters' to the 'algorithm'."""
         try:
             self.algorithm = self.algorithm(**self.parameters)
@@ -354,8 +223,7 @@ class Page(SimpleContents):
         """
 
         """
-        if 'data_dependent' in self.outline:
-            self.parameters._build_data_dependent(data = data)
+        self._add_data_dependent(data = data)
         self._add_parameters_to_algorithm()
         try:
             self.algorithm.fit(
@@ -374,8 +242,7 @@ class Page(SimpleContents):
 
     """ Scikit-Learn Compatibility Methods """
 
-    @XxYy(truncate = True)
-    # @numpy_shield
+    @DataConformer
     def fit(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None,
@@ -413,8 +280,7 @@ class Page(SimpleContents):
             raise AttributeError(error)
         return self
 
-    @XxYy(truncate = True)
-    # @numpy_shield
+    @DataConformer
     def fit_transform(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None,
@@ -449,8 +315,7 @@ class Page(SimpleContents):
                               'algorithm has no fit_transform method'])
             raise TypeError(error)
 
-    @XxYy(truncate = True)
-    # @numpy_shield
+    @DataConformer
     def transform(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None,
@@ -488,3 +353,133 @@ class Page(SimpleContents):
         else:
             error = ' '.join([self.name, 'algorithm has no transform method'])
             raise AttributeError(error)
+
+
+
+# @dataclass
+# class Book(Contents):
+#     """Stores and iterates Chapters.
+
+#     Args:
+#         project ('Project'): current associated project.
+
+#     Args:
+#         project ('Project'): associated Project instance.
+#         options (Optional[Dict[str, 'BookOutline']]): Contents instance or
+#             a Contents-compatible dictionary. Defaults to an empty
+#             dictionary.
+#         steps (Optional[Union[List[str], str]]): steps of key(s) to iterate in
+#             'options'. Also, if not reset by the user, 'steps' is used if the
+#             'default' property is accessed. Defaults to an empty list.
+
+#     """
+#     project: 'Project' = None
+#     options: Optional[Dict[str, 'BookOutline']] = field(default_factory = dict)
+#     steps: Optional[Union['SimpleSequence', List[str], str]] = field(
+#         default_factory = list)
+#     name: Optional[str] = None
+#     chapter_type: Optional['Chapter'] = None
+#     iterable: Optional[str] = 'chapters'
+#     metadata: Optional[Dict[str, Any]] = field(default_factory = dict)
+#     file_format: Optional[str] = 'pickle'
+#     export_folder: Optional[str] = 'book'
+
+#     def __post_init__(self) -> None:
+#         """Initializes class instance attributes."""
+#         # Sets default 'name' attribute if none exists.
+#         if self.name is None:
+#             self.name = self.__class__.__name__.lower()
+#         # Calls parent method for initialization.
+#         super().__post_init__()
+#         return self
+
+#     """ Core SiMpLify Methods """
+
+#     def apply(self,
+#             options: Optional[Union[List[str], Dict[str, Any], str]] = None,
+#             data: Optional[Union['Ingredients', 'Book']] = None,
+#             **kwargs) -> Union['Ingredients', 'Book']:
+#         """Calls 'apply' method for published option matching 'step'.
+
+#         Args:
+#             options (Optional[Union[List[str], Dict[str, Any], str]]): ordered
+#                 options to be applied. If none are passed, the 'published' keys
+#                 are used. Defaults to None
+#             data (Optional[Union['Ingredients', 'Book']]): a siMpLify object for
+#                 the corresponding 'options' to apply. Defaults to None.
+#             kwargs: any additional parameters to pass to the options' 'apply'
+#                 method.
+
+#         Returns:
+#             Union['Ingredients', 'Book'] is returned if data is passed;
+#                 otherwise nothing is returned.
+
+#         """
+#         if isinstance(options, dict):
+#             options = list(options.keys())
+#         elif options is None:
+#             options = self.default
+#         self._change_active(new_active = 'applied')
+#         for option in options:
+#             if data is None:
+#                 getattr(self, self.active)[option].apply(**kwargs)
+#             else:
+#                 data = getattr(self, self.active)[option].apply(
+#                     data = data,
+#                     **kwargs)
+#             getattr(self, self.active)[option] = getattr(
+#                 self, self.active)[option]
+#         if data is None:
+#             return self
+#         else:
+#             return data
+
+
+# @dataclass
+# class Chapter(Contents):
+#     """Iterator for a siMpLify process.
+
+#     Args:
+#         book ('Book'): current associated Book
+#         metadata (Optional[Dict[str, Any]], optional): any metadata about the
+#             Chapter. Unless a subclass replaces it, 'number' is automatically a
+#             key created for 'metadata' to allow for better recordkeeping.
+#             Defaults to an empty dictionary.
+
+#     """
+#     book: 'Book' = None
+#     name: Optional[str] = None
+#     iterable: Optional[str] = 'book.steps'
+#     metadata: Optional[Dict[str, Any]] = field(default_factory = dict)
+#     file_format: Optional[str] = 'pickle'
+#     export_folder: Optional[str] = 'chapter'
+
+#     def __post_init__(self) -> None:
+#         super().__post_init__()
+#         return self
+
+#     """ Private Methods """
+
+#     def _apply_extra_processing(self) -> None:
+#         """Extra actions to take."""
+#         return self
+
+#     """ Core siMpLify Methods """
+
+#     def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
+#         """Applies stored 'options' to passed 'data'.
+
+#         Args:
+#             data (Optional[Union['Ingredients', 'SimpleManuscript']]): a
+#                 siMpLify object for the corresponding 'step' to apply. Defaults
+#                 to None.
+#             kwargs: any additional parameters to pass to the step's 'apply'
+#                 method.
+
+#         """
+#         if data is not None:
+#             self.ingredients = data
+#         for step in getattr(self, self.iterable):
+#             self.book[step].apply(data = self.ingredients, **kwargs)
+#             self._apply_extra_processing()
+#         return self

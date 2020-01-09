@@ -6,6 +6,7 @@
 :license: Apache-2.0
 """
 
+from datetime import datetime
 from functools import wraps
 from inspect import signature
 from pathlib import Path
@@ -58,6 +59,15 @@ def add_suffix(
     except TypeError:
         return [item + '_' + suffix for item in iterable]
 
+def datetime_string() -> str:
+    """Creates a string from current date and time.
+
+    Returns:
+        str with current date and time in Y/M/D/H/M format.
+
+    """
+    return datetime.now().strftime('%Y-%m-%d_%H-%M')
+
 def deduplicate(iterable: Union[List, pd.DataFrame, pd.Series]) -> (
         Union[List, pd.DataFrame, pd.Series]):
     """Deduplicates list, pandas DataFrame, or pandas Series.
@@ -91,7 +101,8 @@ def is_nested(dictionary: Dict[Any, Any]) -> bool:
 
 def listify(
         variable: Any,
-        default_null: Optional[bool]  = False) -> Union[list, None]:
+        default_null: Optional[bool]  = False,
+        default_empty: Optional[bool] = False) -> Union[list, None]:
     """Stores passed variable as a list (if not already a list).
 
     Args:
@@ -108,6 +119,8 @@ def listify(
     if not variable:
         if default_null:
             return None
+        elif default_empty:
+            return []
         else:
             return ['none']
     elif isinstance(variable, list):
@@ -131,7 +144,7 @@ def numify(variable: str) -> Union[int, float, str]:
         try:
             return float(variable)
         except ValueError:
-            raise TypeError
+            return variable
 
 def pathlibify(path: Union[str, Path]) -> Path:
     """Converts string 'path' to pathlib Path object.
@@ -224,36 +237,21 @@ def typify(variable: str) -> Union[List, int, float, bool, str]:
     Returns:
         variable (str, list, int, float, or bool): converted variable.
     """
-    try:
+    if ', ' in variable:
         variable = variable.split(', ')
         return [numify(v) for v in variable]
-    except (AttributeError, TypeError):
-        pass
-    try:
-        return numify(variable)
-    except TypeError:
-        pass
-    if variable in ['True', 'true', 'TRUE']:
-        return True
-    elif variable in ['False', 'false', 'FALSE']:
-        return False
-    elif variable in ['None', 'none', 'NONE']:
-        return None
     else:
-        return variable
+        variable = numify(variable)
+        if variable in ['True', 'true', 'TRUE']:
+            return True
+        elif variable in ['False', 'false', 'FALSE']:
+            return False
+        elif variable in ['None', 'none', 'NONE']:
+            return 'none'
+        else:
+            return variable
 
 """ Decorators """
-
-# def convert_time(seconds: int) -> Tuple(int, int, int):
-#     """Function that converts seconds into hours, minutes, and seconds.
-
-#     Args:
-#         seconds: an int containing a nubmer of seconds.
-
-#     """
-#     minutes, seconds = divmod(seconds, 60)
-#     hours, minutes = divmod(minutes, 60)
-#     return hours, minutes, seconds
 
 def timer(process: Optional[str] = None) -> Callable:
     """Decorator for computing the length of time a process takes.
@@ -368,144 +366,3 @@ def use_local_backups(
             return method(self, **arguments)
         return wrapper
     return shell_use_local_backups
-
-def XxYy(truncate: Optional[bool] = True) -> Callable:
-    """Converts 'X' and 'Y' to 'x' and 'y' in arguments with optional
-    truncation.
-
-    Because different packages use upper and lower case names for the core
-    independent and dependent variable names, this decorator converts passed
-    uppercase parameter names to their lowercase versions (used by siMpLify).
-
-    If 'truncate' is True, the named parameter is reduced to just 'x' or 'y'
-    and the '_train', '_test', and '_val' suffixes are dropped. This is
-    particularly useful for scikit-learn compatible methods.
-
-    Args:
-        method (Callable): wrapped method accepting lowercase versions of the
-            variables.
-        truncate (Optional[bool]): whether to discard the suffixes to the
-            variable names and just use the first character ('x' or 'y').
-            Defaults to True.
-
-    Returns:
-        method (Callable): method with arguments properly adjusted.
-
-    """
-    def shell_XxYy(method: Callable, *args, **kwargs):
-        def wrapper(self, *args, **kwargs):
-            arguments = signature(method).bind(self, *args, **kwargs).arguments
-            new_arguments = {}
-            for parameter, value in arguments.items():
-                if parameter in ['X', 'Y', 'X_train', 'Y_train', 'X_test', 'Y_test',
-                        'X_val', 'Y_val', 'x_train', 'y_train', 'x_test', 'y_test',
-                        'x_val', 'y_val']:
-                    if truncate:
-                        new_parameter = parameter[0]
-                    else:
-                        new_parameter = parameter
-                    new_arguments[new_parameter.lower()] = value
-                else:
-                    new_arguments[parameter] = value
-            return method(self, **new_arguments)
-        return wrapper
-    return shell_XxYy
-
-def numpy_shield(method: Callable) -> Callable:
-    """Stores and then reapplies feature names to passed pandas DataFrames.
-
-    If the Algorithm subclass 'step' attribute is 'none', the
-    Ingredients instance is returned unaltered.
-
-    If, however, there is a step other than 'none', the decorator allows
-    the passing of pandas DataFrame attributes to Ingredients even when the
-    algorithm used transforms those DataFrames to numpy ndarrays. The decorator
-    allows Ingredients attributes to be pandas DataFrames to be passed to a
-    method, have those DataFrames converted to numpy ndarrays and then restored
-    to pandas DataFrames with the original column names when the wrapped method
-    is complete.
-
-    Args:
-        method (method): wrapped method.
-
-    Returns:
-        result (Ingredients): with all transformed numpy ndarrays restored to
-            pandas DataFrames with the same column names.
-
-    """
-    dataframes_to_check = ['x_train', 'x_test', 'x', 'x_val']
-    series_to_restore = ['y_train', 'y_test', 'y', 'y_val']
-    @wraps(method)
-    def wrapper(self, *args, **kwargs):
-        arguments = signature(method).bind(self, *args, **kwargs).arguments
-        result = arguments['ingredients']
-        if self.step != 'none':
-            for df_attr in dataframes_to_check:
-                if not getattr(result, df_attr) is None:
-                    x_columns = list(getattr(result, df_attr).columns.values)
-                    break
-            result = method(self, *args, **kwargs)
-            for df_attr in dataframes_to_check:
-                if isinstance(getattr(result, df_attr), np.ndarray):
-                    if not getattr(result, df_attr) is None:
-                        setattr(result, df_attr, pd.DataFrame(
-                                getattr(result, df_attr),
-                                columns = x_columns))
-            for series in series_to_restore:
-                if isinstance(getattr(result, series), np.ndarray):
-                    if isinstance(getattr(result, series), np.ndarray):
-                        setattr(result, series, pd.Series(
-                                getattr(result, series),
-                                name = self.label))
-        return result
-    return wrapper
-
-
-# def columns_shield(method: Callable):
-#     """Checks conditions of Cookbook step and adjusts arguments and return
-#     value accordingly.
-
-#     If the Page subclass 'step' attribute is 'none', the Ingredients
-#     instance is returned unaltered.
-
-#     If, however, there is a step other than 'none', the decorator allows
-#     the passing of pandas DataFrame attributes to Ingredients even when the
-#     algorithm used transforms those DataFrames to numpy ndarrays. The decorator
-#     allows Ingredients attributes to be pandas DataFrames to be passed to a
-#     method, have those DataFrames converted to numpy ndarrays and then restored
-#     to pandas DataFrames with the original column names when the wrapped method
-#     is complete.
-
-#     Args:
-#         method(method): wrapped method.
-
-#     Returns:
-#         result(Ingredients instance): with all transformed numpy ndarrays
-#             restored to pandas DataFrames with the same column names.
-#     """
-#     dataframes_to_check = ['x_train', 'x_test', 'x', 'x_val']
-#     series_to_restore = ['y_train', 'y_test', 'y', 'y_val']
-#     @wraps(method)
-#     def wrapper(self, *args, **kwargs):
-#         arguments = signature(method).bind(self, *args, **kwargs).arguments
-#         result = arguments['ingredients']
-#         if hasattr(self, 'step') and self.step != 'none':
-#             for df_attr in dataframes_to_check:
-#                 if not getattr(result, df_attr) is None:
-#                     x_columns = list(getattr(result, df_attr).columns.values)
-#                     break
-#             result = method(self, *args, **kwargs)
-#             for df_attr in dataframes_to_check:
-#                 if isinstance(getattr(result, df_attr), np.ndarray):
-#                     if not getattr(result, df_attr) is None:
-#                         setattr(result, df_attr, pd.DataFrame(
-#                                 getattr(result, df_attr),
-#                                 columns = x_columns))
-#             for series in series_to_restore:
-#                 if isinstance(getattr(result, series), np.ndarray):
-#                     if isinstance(getattr(result, series), np.ndarray):
-#                         setattr(result, series, pd.Series(
-#                                 getattr(result, series),
-#                                 name = self.label))
-#         return result
-#     return wrapper

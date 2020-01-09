@@ -71,7 +71,7 @@ class Canvas(Book):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        self._options = SimpleContents(options = {
+        self._options = Contents(options = {
             'styler': ('simplify.artist.steps.styler', 'Styler'),
             'painter': ('simplify.artist.steps.paint', 'Painter'),
             'animator': ('simplify.artist.steps.animator', 'Animator')}

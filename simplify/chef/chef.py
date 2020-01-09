@@ -14,12 +14,12 @@ import numpy as np
 import pandas as pd
 
 from simplify.core.book import Book
-from simplify.core.book import PageOutline
+from simplify.core.book import TechniqueOutline
 
 
 OPTIONS = {
     'filler': {
-        'defaults': PageOutline(
+        'defaults': TechniqueOutline(
             name = 'defaults',
             module = 'simplify.chef.algorithms',
             component = 'smart_fill',
@@ -32,28 +32,28 @@ OPTIONS = {
                 'list': [],
                 'datetime': 1/1/1900,
                 'timedelta': 0}}),
-        'impute': PageOutline(
+        'impute': TechniqueOutline(
             name = 'defaults',
             module = 'sklearn.impute',
             component = 'SimpleImputer',
             default = {'defaults': {}}),
-        'knn_impute': PageOutline(
+        'knn_impute': TechniqueOutline(
             name = 'defaults',
             module = 'sklearn.impute',
             component = 'KNNImputer',
             default = {'defaults': {}})},
     'categorizer': {
-        'automatic': PageOutline(
+        'automatic': TechniqueOutline(
             name = 'automatic',
             module = 'simplify.chef.algorithms',
             component = 'auto_categorize',
             default = {'threshold': 10}),
-        'binary': PageOutline(
+        'binary': TechniqueOutline(
             name = 'binary',
             module = 'sklearn.preprocessing',
             component = 'Binarizer',
             default = {'threshold': 0.5}),
-        'bins': PageOutline(
+        'bins': TechniqueOutline(
             name = 'bins',
             module = 'sklearn.preprocessing',
             component = 'KBinsDiscretizer',
@@ -63,58 +63,58 @@ OPTIONS = {
             selected = True,
             required = {'encode': 'onehot'})},
     'scaler': {
-        'gauss': PageOutline(
+        'gauss': TechniqueOutline(
             name = 'gauss',
             module = None,
             component = 'Gaussify',
             default = {'standardize': False, 'copy': False},
             selected = True,
             required = {'rescaler': 'standard'}),
-        'maxabs': PageOutline(
+        'maxabs': TechniqueOutline(
             name = 'maxabs',
             module = 'sklearn.preprocessing',
             component = 'MaxAbsScaler',
             default = {'copy': False},
             selected = True),
-        'minmax': PageOutline(
+        'minmax': TechniqueOutline(
             name = 'minmax',
             module = 'sklearn.preprocessing',
             component = 'MinMaxScaler',
             default = {'copy': False},
             selected = True),
-        'normalize': PageOutline(
+        'normalize': TechniqueOutline(
             name = 'normalize',
             module = 'sklearn.preprocessing',
             component = 'Normalizer',
             default = {'copy': False},
             selected = True),
-        'quantile': PageOutline(
+        'quantile': TechniqueOutline(
             name = 'quantile',
             module = 'sklearn.preprocessing',
             component = 'QuantileTransformer',
             default = {'copy': False},
             selected = True),
-        'robust': PageOutline(
+        'robust': TechniqueOutline(
             name = 'robust',
             module = 'sklearn.preprocessing',
             component = 'RobustScaler',
             default = {'copy': False},
             selected = True),
-        'standard': PageOutline(
+        'standard': TechniqueOutline(
             name = 'standard',
             module = 'sklearn.preprocessing',
             component = 'StandardScaler',
             default = {'copy': False},
             selected = True)},
     'splitter': {
-        'group_kfold': PageOutline(
+        'group_kfold': TechniqueOutline(
             name = 'group_kfold',
             module = 'sklearn.model_selection',
             component = 'GroupKFold',
             default = {'n_splits': 5},
             runtime = {'random_state': 'seed'},
             selected = True),
-        'kfold': PageOutline(
+        'kfold': TechniqueOutline(
             name = 'kfold',
             module = 'sklearn.model_selection',
             component = 'KFold',
@@ -122,7 +122,7 @@ OPTIONS = {
             runtime = {'random_state': 'seed'},
             selected = True,
             required = {'shuffle': True}),
-        'stratified': PageOutline(
+        'stratified': TechniqueOutline(
             name = 'stratified',
             module = 'sklearn.model_selection',
             component = 'StratifiedKFold',
@@ -130,14 +130,14 @@ OPTIONS = {
             runtime = {'random_state': 'seed'},
             selected = True,
             required = {'shuffle': True}),
-        'time': PageOutline(
+        'time': TechniqueOutline(
             name = 'time',
             module = 'sklearn.model_selection',
             component = 'TimeSeriesSplit',
             default = {'n_splits': 5},
             runtime = {'random_state': 'seed'},
             selected = True),
-        'train_test': PageOutline(
+        'train_test': TechniqueOutline(
             name = 'train_test',
             module = 'sklearn.model_selection',
             component = 'ShuffleSplit',
@@ -146,78 +146,78 @@ OPTIONS = {
             required = {'n_splits': 1},
             selected = True)},
     'encoder': {
-        'backward': PageOutline(
+        'backward': TechniqueOutline(
             name = 'backward',
             module = 'category_encoders',
             component = 'BackwardDifferenceEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'basen': PageOutline(
+        'basen': TechniqueOutline(
             name = 'basen',
             module = 'category_encoders',
             component = 'BaseNEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'binary': PageOutline(
+        'binary': TechniqueOutline(
             name = 'binary',
             module = 'category_encoders',
             component = 'BinaryEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'dummy': PageOutline(
+        'dummy': TechniqueOutline(
             name = 'dummy',
             module = 'category_encoders',
             component = 'OneHotEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'hashing': PageOutline(
+        'hashing': TechniqueOutline(
             name = 'hashing',
             module = 'category_encoders',
             component = 'HashingEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'helmert': PageOutline(
+        'helmert': TechniqueOutline(
             name = 'helmert',
             module = 'category_encoders',
             component = 'HelmertEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'james_stein': PageOutline(
+        'james_stein': TechniqueOutline(
             name = 'james_stein',
             module = 'category_encoders',
             component = 'JamesSteinEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'loo': PageOutline(
+        'loo': TechniqueOutline(
             name = 'loo',
             module = 'category_encoders',
             component = 'LeaveOneOutEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'm_estimate': PageOutline(
+        'm_estimate': TechniqueOutline(
             name = 'm_estimate',
             module = 'category_encoders',
             component = 'MEstimateEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'ordinal': PageOutline(
+        'ordinal': TechniqueOutline(
             name = 'ordinal',
             module = 'category_encoders',
             component = 'OrdinalEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'polynomial': PageOutline(
+        'polynomial': TechniqueOutline(
             name = 'polynomial_encoder',
             module = 'category_encoders',
             component = 'PolynomialEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'sum': PageOutline(
+        'sum': TechniqueOutline(
             name = 'sum',
             module = 'category_encoders',
             component = 'SumEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'target': PageOutline(
+        'target': TechniqueOutline(
             name = 'target',
             module = 'category_encoders',
             component = 'TargetEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'woe': PageOutline(
+        'woe': TechniqueOutline(
             name = 'weight_of_evidence',
             module = 'category_encoders',
             component = 'WOEEncoder',
             data_dependent = {'cols': 'categoricals'})},
     'mixer': {
-        'polynomial': PageOutline(
+        'polynomial': TechniqueOutline(
             name = 'polynomial_mixer',
             module = 'sklearn.preprocessing',
             component = 'PolynomialFeatures',
@@ -225,120 +225,120 @@ OPTIONS = {
                 'degree': 2,
                 'interaction_only': True,
                 'include_bias': True}),
-        'quotient': PageOutline(
+        'quotient': TechniqueOutline(
             name = 'quotient',
             module = None,
             component = 'QuotientFeatures'),
-        'sum': PageOutline(
+        'sum': TechniqueOutline(
             name = 'sum',
             module = None,
             component = 'SumFeatures'),
-        'difference': PageOutline(
+        'difference': TechniqueOutline(
             name = 'difference',
             module = None,
             component = 'DifferenceFeatures')},
     'cleaver': {},
     'sampler': {
-        'adasyn': PageOutline(
+        'adasyn': TechniqueOutline(
             name = 'adasyn',
             module = 'imblearn.over_sampling',
             component = 'ADASYN',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'}),
-        'cluster': PageOutline(
+        'cluster': TechniqueOutline(
             name = 'cluster',
             module = 'imblearn.under_sampling',
             component = 'ClusterCentroids',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'}),
-        'knn': PageOutline(
+        'knn': TechniqueOutline(
             name = 'knn',
             module = 'imblearn.under_sampling',
             component = 'AllKNN',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'}),
-        'near_miss': PageOutline(
+        'near_miss': TechniqueOutline(
             name = 'near_miss',
             module = 'imblearn.under_sampling',
             component = 'NearMiss',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'}),
-        'random_over': PageOutline(
+        'random_over': TechniqueOutline(
             name = 'random_over',
             module = 'imblearn.over_sampling',
             component = 'RandomOverSampler',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'}),
-        'random_under': PageOutline(
+        'random_under': TechniqueOutline(
             name = 'random_under',
             module = 'imblearn.under_sampling',
             component = 'RandomUnderSampler',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'}),
-        'smote': PageOutline(
+        'smote': TechniqueOutline(
             name = 'smote',
             module = 'imblearn.over_sampling',
             component = 'SMOTE',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'}),
-        'smotenc': PageOutline(
+        'smotenc': TechniqueOutline(
             name = 'smotenc',
             module = 'imblearn.over_sampling',
             component = 'SMOTENC',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'},
             data_dependent = {'categorical_features': 'categoricals_indices'}),
-        'smoteenn': PageOutline(
+        'smoteenn': TechniqueOutline(
             name = 'smoteenn',
             module = 'imblearn.combine',
             component = 'SMOTEENN',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'}),
-        'smotetomek': PageOutline(
+        'smotetomek': TechniqueOutline(
             name = 'smotetomek',
             module = 'imblearn.combine',
             component = 'SMOTETomek',
             default = {'sampling_strategy': 'auto'},
             runtime = {'random_state': 'seed'})},
     'reducer': {
-        'kbest': PageOutline(
+        'kbest': TechniqueOutline(
             name = 'kbest',
             module = 'sklearn.feature_selection',
             component = 'SelectKBest',
             default = {'k': 10, 'score_func': 'f_classif'},
             selected = True),
-        'fdr': PageOutline(
+        'fdr': TechniqueOutline(
             name = 'fdr',
             module = 'sklearn.feature_selection',
             component = 'SelectFdr',
             default = {'alpha': 0.05, 'score_func': 'f_classif'},
             selected = True),
-        'fpr': PageOutline(
+        'fpr': TechniqueOutline(
             name = 'fpr',
             module = 'sklearn.feature_selection',
             component = 'SelectFpr',
             default = {'alpha': 0.05, 'score_func': 'f_classif'},
             selected = True),
-        'custom': PageOutline(
+        'custom': TechniqueOutline(
             name = 'custom',
             module = 'sklearn.feature_selection',
             component = 'SelectFromModel',
             default = {'threshold': 'mean'},
             runtime = {'estimator': 'algorithm'},
             selected = True),
-        'rank': PageOutline(
+        'rank': TechniqueOutline(
             name = 'rank',
             module = 'simplify.critic.rank',
             component = 'RankSelect',
             selected = True),
-        'rfe': PageOutline(
+        'rfe': TechniqueOutline(
             name = 'rfe',
             module = 'sklearn.feature_selection',
             component = 'RFE',
             default = {'n_features_to_select': 10, 'step': 1},
             runtime = {'estimator': 'algorithm'},
             selected = True),
-        'rfecv': PageOutline(
+        'rfecv': TechniqueOutline(
             name = 'rfecv',
             module = 'sklearn.feature_selection',
             component = 'RFECV',
@@ -347,156 +347,156 @@ OPTIONS = {
             selected = True)}}
 
 MODEL_OPTIONS = {
-    'classifier': {
-        'adaboost': PageOutline(
+    'classify': {
+        'adaboost': TechniqueOutline(
             name = 'adaboost',
             module = 'sklearn.ensemble',
             component = 'AdaBoostClassifier'),
-        'baseline_classifier': PageOutline(
+        'baseline_classifier': TechniqueOutline(
             name = 'baseline_classifier',
             module = 'sklearn.dummy',
             component = 'DummyClassifier',
             required = {'strategy': 'most_frequent'}),
-        'logit': PageOutline(
+        'logit': TechniqueOutline(
             name = 'logit',
             module = 'sklearn.linear_model',
             component = 'LogisticRegression'),
-        'random_forest': PageOutline(
+        'random_forest': TechniqueOutline(
             name = 'random_forest',
             module = 'sklearn.ensemble',
             component = 'RandomForestClassifier'),
-        'svm_linear': PageOutline(
+        'svm_linear': TechniqueOutline(
             name = 'svm_linear',
             module = 'sklearn.svm',
             component = 'SVC',
             required = {'kernel': 'linear', 'probability': True}),
-        'svm_poly': PageOutline(
+        'svm_poly': TechniqueOutline(
             name = 'svm_poly',
             module = 'sklearn.svm',
             component = 'SVC',
             required = {'kernel': 'poly', 'probability': True}),
-        'svm_rbf': PageOutline(
+        'svm_rbf': TechniqueOutline(
             name = 'svm_rbf',
             module = 'sklearn.svm',
             component = 'SVC',
             required = {'kernel': 'rbf', 'probability': True}),
-        'svm_sigmoid': PageOutline(
+        'svm_sigmoid': TechniqueOutline(
             name = 'svm_sigmoid ',
             module = 'sklearn.svm',
             component = 'SVC',
             required = {'kernel': 'sigmoid', 'probability': True}),
-        'tensorflow': PageOutline(
+        'tensorflow': TechniqueOutline(
             name = 'tensorflow',
             module = 'tensorflow',
             component = None,
             default = {
                 'batch_size': 10,
                 'epochs': 2}),
-        'xgboost': PageOutline(
+        'xgboost': TechniqueOutline(
             name = 'xgboost',
             module = 'xgboost',
             component = 'XGBClassifier',
             data_dependent = 'scale_pos_weight')},
     'cluster': {
-        'affinity': PageOutline(
+        'affinity': TechniqueOutline(
             name = 'affinity',
             module = 'sklearn.cluster',
             component = 'AffinityPropagation'),
-        'agglomerative': PageOutline(
+        'agglomerative': TechniqueOutline(
             name = 'agglomerative',
             module = 'sklearn.cluster',
             component = 'AgglomerativeClustering'),
-        'birch': PageOutline(
+        'birch': TechniqueOutline(
             name = 'birch',
             module = 'sklearn.cluster',
             component = 'Birch'),
-        'dbscan': PageOutline(
+        'dbscan': TechniqueOutline(
             name = 'dbscan',
             module = 'sklearn.cluster',
             component = 'DBSCAN'),
-        'kmeans': PageOutline(
+        'kmeans': TechniqueOutline(
             name = 'kmeans',
             module = 'sklearn.cluster',
             component = 'KMeans'),
-        'mean_shift': PageOutline(
+        'mean_shift': TechniqueOutline(
             name = 'mean_shift',
             module = 'sklearn.cluster',
             component = 'MeanShift'),
-        'spectral': PageOutline(
+        'spectral': TechniqueOutline(
             name = 'spectral',
             module = 'sklearn.cluster',
             component = 'SpectralClustering'),
-        'svm_linear': PageOutline(
+        'svm_linear': TechniqueOutline(
             name = 'svm_linear',
             module = 'sklearn.cluster',
             component = 'OneClassSVM'),
-        'svm_poly': PageOutline(
+        'svm_poly': TechniqueOutline(
             name = 'svm_poly',
             module = 'sklearn.cluster',
             component = 'OneClassSVM'),
-        'svm_rbf': PageOutline(
+        'svm_rbf': TechniqueOutline(
             name = 'svm_rbf',
             module = 'sklearn.cluster',
             component = 'OneClassSVM,'),
-        'svm_sigmoid': PageOutline(
+        'svm_sigmoid': TechniqueOutline(
             name = 'svm_sigmoid',
             module = 'sklearn.cluster',
             component = 'OneClassSVM')},
-    'regressor': {
-        'adaboost': PageOutline(
+    'regress': {
+        'adaboost': TechniqueOutline(
             name = 'adaboost',
             module = 'sklearn.ensemble',
             component = 'AdaBoostRegressor'),
-        'baseline_regressor': PageOutline(
+        'baseline_regressor': TechniqueOutline(
             name = 'baseline_regressor',
             module = 'sklearn.dummy',
             component = 'DummyRegressor',
             required = {'strategy': 'mean'}),
-        'bayes_ridge': PageOutline(
+        'bayes_ridge': TechniqueOutline(
             name = 'bayes_ridge',
             module = 'sklearn.linear_model',
             component = 'BayesianRidge'),
-        'lasso': PageOutline(
+        'lasso': TechniqueOutline(
             name = 'lasso',
             module = 'sklearn.linear_model',
             component = 'Lasso'),
-        'lasso_lars': PageOutline(
+        'lasso_lars': TechniqueOutline(
             name = 'lasso_lars',
             module = 'sklearn.linear_model',
             component = 'LassoLars'),
-        'ols': PageOutline(
+        'ols': TechniqueOutline(
             name = 'ols',
             module = 'sklearn.linear_model',
             component = 'LinearRegression'),
-        'random_forest': PageOutline(
+        'random_forest': TechniqueOutline(
             name = 'random_forest',
             module = 'sklearn.ensemble',
             component = 'RandomForestRegressor'),
-        'ridge': PageOutline(
+        'ridge': TechniqueOutline(
             name = 'ridge',
             module = 'sklearn.linear_model',
             component = 'Ridge'),
-        'svm_linear': PageOutline(
+        'svm_linear': TechniqueOutline(
             name = 'svm_linear',
             module = 'sklearn.svm',
             component = 'SVC',
             required = {'kernel': 'linear', 'probability': True}),
-        'svm_poly': PageOutline(
+        'svm_poly': TechniqueOutline(
             name = 'svm_poly',
             module = 'sklearn.svm',
             component = 'SVC',
             required = {'kernel': 'poly', 'probability': True}),
-        'svm_rbf': PageOutline(
+        'svm_rbf': TechniqueOutline(
             name = 'svm_rbf',
             module = 'sklearn.svm',
             component = 'SVC',
             required = {'kernel': 'rbf', 'probability': True}),
-        'svm_sigmoid': PageOutline(
+        'svm_sigmoid': TechniqueOutline(
             name = 'svm_sigmoid ',
             module = 'sklearn.svm',
             component = 'SVC',
             required = {'kernel': 'sigmoid', 'probability': True}),
-        'xgboost': PageOutline(
+        'xgboost': TechniqueOutline(
             name = 'xgboost',
             module = 'xgboost',
             component = 'XGBRegressor',
@@ -504,37 +504,37 @@ MODEL_OPTIONS = {
 
 GPU_OPTIONS = {
     'classify': {
-        'forest_inference': PageOutline(
+        'forest_inference': TechniqueOutline(
             name = 'forest_inference',
             module = 'cuml',
             component = 'ForestInference'),
-        'random_forest': PageOutline(
+        'random_forest': TechniqueOutline(
             name = 'random_forest',
             module = 'cuml',
             component = 'RandomForestClassifier'),
-        'logit': PageOutline(
+        'logit': TechniqueOutline(
             name = 'logit',
             module = 'cuml',
             component = 'LogisticRegression')},
     'cluster': {
-        'dbscan': PageOutline(
+        'dbscan': TechniqueOutline(
             name = 'dbscan',
             module = 'cuml',
             component = 'DBScan'),
-        'kmeans': PageOutline(
+        'kmeans': TechniqueOutline(
             name = 'kmeans',
             module = 'cuml',
             component = 'KMeans')},
     'regressor': {
-        'lasso': PageOutline(
+        'lasso': TechniqueOutline(
             name = 'lasso',
             module = 'cuml',
             component = 'Lasso'),
-        'ols': PageOutline(
+        'ols': TechniqueOutline(
             name = 'ols',
             module = 'cuml',
             component = 'LinearRegression'),
-        'ridge': PageOutline(
+        'ridge': TechniqueOutline(
             name = 'ridge',
             module = 'cuml',
             component = 'RidgeRegression')}}
@@ -550,9 +550,9 @@ def get_options(idea: 'Idea') -> Dict:
 
     """
     options = OPTIONS
-    options['model'] = MODEL_OPTIONS[idea['chef']['model_type']]
+    options['modeler'] = MODEL_OPTIONS[idea['chef']['model_type']]
     if idea['general']['gpu']:
-        options['model'].update(GPU_OPTIONS[idea['chef']['model_type']])
+        options['modeler'].update(GPU_OPTIONS[idea['chef']['model_type']])
     return options
 
 
@@ -574,11 +574,11 @@ class Cookbook(Book):
         steps (Optional[List[str], str]): ordered list of steps to execute. Each
             step should match a key in 'contents'. If a string is passed, it is
             converted to a 1-item list. Defaults to an empty list.
-        contents (Optional['SimpleContents']): stores SimpleOutlines or
-            subclasses in a SimpleContents instance which can be iterated in
+        contents (Optional['Contents']): stores SimpleOutlines or
+            subclasses in a Contents instance which can be iterated in
             'chapters'. Defaults to an empty dictionary.
         chapters (Optional[List['Chapter']]): a list of Chapter instances that
-            include a series of SimpleOutline or Page instances to be applied
+            include a series of SimpleOutline or Technique instances to be applied
             to passed data. Defaults to an empty list.
         iterable(Optional[str]): name of attribute for storing the main class
             instance iterable (called by __iter___). Defaults to 'recipes'.
@@ -595,7 +595,8 @@ class Cookbook(Book):
     project: 'Project' = None
     name: Optional[str] = 'chef'
     steps: List[str] = field(default_factory = list)
-    library: 'SimpleContents' = field(default_factory = dict)
+    outline: Optional['SimpleOutline'] = None
+    library: 'Contents' = field(default_factory = dict)
     chapters: List['Chapter'] = field(default_factory = list)
     iterable: Optional[str] = 'recipes'
     file_format: Optional[str] = 'pickle'
@@ -642,7 +643,7 @@ class Cookbook(Book):
         # columns = self.ingredients.make_column_list(
         #     prefixes = prefixes,
         #     columns = columns)
-        # self.library['cleaver'].add_pages(
+        # self.library['cleaver'].add_techniques(
         #     cleave_group = cleave_group,
         #     columns = columns)
         # self.cleaves.append(cleave_group)

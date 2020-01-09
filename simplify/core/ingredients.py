@@ -1,15 +1,15 @@
 """
 .. module:: ingredients
-:synopsis: data container for siMpLify
+:synopsis: data containment made simple
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
 
+from collections.abc import Collection
+from collections.abc import MutableMapping
 from dataclasses import dataclass
-from functools import wraps
-from inspect import signature, Signature
-import os
+from dataclasses import field
 from datetime import timedelta
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 
@@ -18,166 +18,291 @@ from numpy import datetime64
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from simplify.core.options import SimpleData
-from simplify.core.utilities import deduplicate
+from simplify.core.base import SimpleState
+from simplify.core.base import SimpleType
 from simplify.core.utilities import listify
 
 
-
-INGREDIENTS = {
-    'default_df': 'df',
-    'options': {
-        'unsplit': {
-            'train': 'full_suffix',
-            'test': None},
-        'train_test': {
-            'train': 'train_suffix',
-            'test': 'test_suffix'},
-        'train_val': {
-            'train': 'train_suffix',
-            'test': 'test_suffix'},
-        'full': {
-            'train': 'full_suffix',
-            'test': 'full_suffix'}},
-    'data_prefixes': ['x', 'y'],
-    'train_suffix': 'train',
-    'test_suffix': 'test',
-    'validation_suffix': 'val',
-    'full_suffix': ''}
-
-""" Ingredients Decorators """
-
-def backup_df(return_df: Optional[bool] = False) -> Callable:
-    """Substitutes the default DataFrame or Series if 'df' is not passed.
-
-    Args:
-        return_df (Optional[bool]): whether to return_df when 'df' was not
-            passed. Defaults to False.
-
-    Returns:
-        If 'df' is passed, a pandads DataFrame or Series is returned.
-        If 'df' is not passed, the local attribute in the class named the value
-            in 'default_df' is changed and 'self' is returned.
-
-    """
-    def shell_backup_df(method: Callable, *args, **kwargs):
-        def wrapper(self, *args, **kwargs):
-            call_signature = signature(method)
-            parameters = dict(call_signature.parameters)
-            arguments = dict(call_signature.bind(*args, **kwargs).arguments)
-            unpassed = list(parameters.keys() - arguments.keys())
-            if 'df' in unpassed:
-                arguments.update({'df': getattr(self, self.default_df)})
-                method.__signature__ = Signature(arguments)
-                if return_df:
-                    df = method(self, **arguments)
-                    return df
-                else:
-                    setattr(self,
-                        getattr(self, self.default_df),
-                        method(self, **arguments))
-                    return self
-            else:
-                df = method(self, **arguments)
-                return df
-        return wrapper
-    return shell_backup_df
-
-
-""" Ingredients Class """
-
 @dataclass
-class Ingredients(SimpleData):
-    """Stores pandas DataFrames and Series with related information about those
-    data containers.
-
-    Ingredients uses pandas DataFrames or Series for all data storage, but it
-    utilizes faster numpy methods where possible to increase performance.
-    DataFrames and Series stored in ingredients can be imported and exported
-    using the 'load' and 'save' methods in a class instance.
-
-    Ingredients adds easy-to-use methods for common feature engineering
-    steps. In addition, any user function can be applied to a DataFrame
-    or Series contained in Ingredients by using the 'apply' method (mirroring
-    the functionality of the pandas method).
+class Ingredients(MutableMapping):
+    """Contains a collection of data objects (Ingredient instances).
 
     Args:
-        name (str): designates the name of the class which should match the
-            section of settings in the Idea instance and other methods
-            throughout the siMpLify package. If subclassing siMpLify classes,
-            it is often a good idea to maintain to the same 'name' attribute
-            as the base class for effective coordination between siMpLify
-            classes.
-        df (DataFrame, Series, or str): either a pandas data object or a string
-            containing the complete path where a supported file type with data
-            is located. This argument should be passed if the user has a
-            pre-existing dataset and is not creating a new dataset with Farmer.
-        x, y, x_train, y_train, x_test, y_test, x_val, y_val
-            (DataFrames, Series, or str): These need not be passed when the
-            class is instanced. They are merely listed for users who already
-            have divided datasets and still wish to use the siMpLify package.
-        columns (dict): contains column names as keys and datatypes for values
-            for columns in a DataFrames or Series. Ingredients assumes that all
-            data containers within the instance are related and share a pool of
-            column names and types.
-        prefixes (dict): contains column prefixes as keys and datatypes for
-            values for columns in a DataFrames or Series. Ingredients assumes
-            that all data containers within the instance are related and share a
-            pool of column names and types.
-        auto_publish (Optional[bool]): whether to call the 'publish' method when
-            a subclass is instanced.
+        project (Optional['Project']): related Project or subclass instance.
+            Defaults to None.
+        ingredients (Optional[Dict[str, 'Ingredient']]): keys are names of the
+            data objects (e.g. 'x', 'y_train', etc.) and values are Ingredient
+            instances storing pandas data objects. Defaults to an empty
+            dictionary.
+        default (Optional[str]): name of data object in 'proxies' to apply
+            methods to by default, if a particular ingredient is not accessed.
+            Defaults to 'data'.
+        name (Optional[str]): this should be used to distinguish multiple sets
+            of unrelated data. Ordinarily, it is not needed. Defaults to
+            'proxies'.
 
     """
-    idea: 'Idea'
-    inventory: 'Inventory'
-    name: Optional[str] = 'ingredients'
-    df: Optional[pd.DataFrame] = None
-    default_df: Optional[str] = None
-    x: Optional[pd.DataFrame] = None
-    y: Optional[pd.DataFrame] = None
-    x_train: Optional[pd.DataFrame] = None
-    y_train: Optional[pd.DataFrame] = None
-    x_test: Optional[pd.DataFrame] = None
-    y_test: Optional[pd.DataFrame] = None
-    x_val: Optional[pd.DataFrame] = None
-    y_val: Optional[pd.DataFrame] = None
-    columns: Optional[Union[Dict[str, str]]] = None
-    prefixes: Optional[Union[Dict[str, str]]] = None
-    auto_publish: Optional[bool] = True
-    export_folder: str = 'data'
+    project: Optional['Project'] = None
+    ingredients: Optional[Dict[str, 'Ingredient']] = field(
+        default_factory = dict)
+    default: Optional[str] = 'data'
+    name: Optional[str] = 'ingredient'
 
     def __post_init__(self) -> None:
-        """Sets default values and calls appropriate creation methods."""
-        self.draft()
-        if self.auto_publish:
-            self.publish()
+        """Sets default attributes."""
+        for key, value in self.ingredients.items():
+            value.ingredients = self
+        self.proxies = DataProxies(ingredients = self)
+        self.wildcards = ['all', 'train', 'test', 'val']
+        self.state = SimpleState(
+            states = ['unsplit', 'xy', 'train_test', 'train_val', 'full'])
+        self.types = SimpleType(
+            types = {
+                'boolean': bool,
+                'float': float,
+                'integer': int,
+                'string': object,
+                'categorical': CategoricalDtype,
+                'list': list,
+                'datetime': datetime64,
+                'timedelta': timedelta})
+        self.default_values = {}
         return self
 
-    """ Dunder Methods """
+    """ Required ABC Methods """
 
-    def __getattr__(self, attribute: str) -> List[str]:
-        # Returns appropriate lists of columns.
-        if attribute in ['floats', 'integers', 'strings', 'lists', 'booleans',
-                         'categoricals', 'datetimes', 'timedeltas']:
+    def __getitem__(self, key: str) -> 'Ingredient':
+        """Returns Ingredient instance from 'ingredients' based on 'proxies'.
+
+        If there are no matches, the method searches for a matching wildcard
+        and tries to return the attribute matching that wildcard.
+
+        Args:
+            key (str): name of key in 'ingredients'.
+
+        Returns:
+            Ingredient: item stored as a 'ingredients' value.
+
+        Raises:
+            KeyError: if 'key' is not found in 'ingredients' and is not a
+                wildcard.
+
+        """
+        try:
+            return self.proxies[key]
+        except KeyError:
+            if item in self.wildcards:
+                return getattr(self, key)
+            else:
+                raise KeyError(' '.join([key, 'is not in', self.name]))
+
+    def __setitem__(self, key: str, value: 'Ingredient') -> None:
+        """Sets 'key' in 'ingredients' to 'value' based on 'proxies'.
+
+        Args:
+            key (str): name of key in 'ingredients'.
+            value ('Ingredient'): value to pair with 'key' in 'ingredients'.
+
+        """
+        self.proxies[key] = value
+        return self
+
+    def __delitem__(self, key: str) -> None:
+        """Deletes item in 'ingredients' based on 'proxies'.
+
+        Args:
+            key (str): name of key in 'ingredients'.
+
+        """
+        try:
+            del self.proxies[key]
+        except KeyError:
+            pass
+        return self
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable of 'ingredients'.
+
+        Returns:
+            Iterable of 'ingredients'.
+
+        """
+        return iter(self.ingredients)
+
+    def __len__(self) -> int:
+        """Returns length of 'ingredients'.
+
+        Returns:
+            Integer of length of 'ingredients'.
+
+        """
+        return len(self.ingredients)
+
+    """ Other Dunder Methods """
+
+    def __getattr__(self, attribute: str) -> Any:
+        """Tries to find attribute inside other attributes.
+
+        Args:
+            attribute (str): attribute to look for in other attributes.
+
+        Returns:
+            Any: attribute inside specific attributes.
+
+        Raises:
+            AttributeError: if 'attribute' is not found in any of the searched
+                attributes.
+
+        """
+        try:
+            return getattr(self.__dict__['proxies'][self.default], attribute)
+        except KeyError:
             try:
-                return self.__dict__[attribute]
+                # Looks for 'attribute' as an item in 'proxies'.
+                return self.__dict__['proxies'][attribute]
             except KeyError:
-                return self._get_columns_by_type(datatype = attribute[:-1])
+                pass
+
+    def __add__(self, other: 'Ingredient') -> None:
+        """Adds 'other' to 'proxies'.
+
+        Args:
+            other ('Ingredient'): an 'Ingredient' instance.
+
+        """
+        self.add(name = other.name, ingredient = other)
+        return self
+
+    def __iadd__(self, other: 'Ingredient') -> None:
+        """Adds 'other' to 'proxies'.
+
+        Args:
+            other ('Ingredient'): an 'Ingredient' instance.
+
+        """
+        self.add(name = other.name, ingredient = other)
+        return self
+
+    """ Public Methods """
+
+    def add(self, name: str, ingredient: 'Ingredient') -> None:
+        """Adds 'ingredient' to 'proxies'.
+
+        Args:
+            ingredient ('Ingredient'): an 'Ingredient' instance.
+
+        """
+        self.ingredients[name] = ingredient
+        return self
+
+
+@dataclass
+class Ingredient(Collection):
+    """A container of a pandas data object with related metadata.
+
+    Args:
+        data (Union[pd.DataFrame, pd.Series]): a stored pandas data object.
+        datatypes (Optional[Dict[str, str]]): keys are column names and values
+            are siMpLify proxy datatypes. Defaults to an empty dictionary.
+        prefixes (Optional[Dict[str, str]]): keys are column prefixes and
+            values are siMpLify proxy datatypes. Defaults to an empty
+            dictionary.
+        ingredients (Optional['Ingredients']): related 'Ingredients' instance.
+            Defaults to None.
+        name (Optional[str]): this should match the key used in a related
+            'Ingredients' instance, if one exists. This is used when any of the
+            'add' methods is used to add this Ingredient instance to an
+            'Ingredients' instance. Defaults to 'ingredient'.
+
+    """
+    data: Union[pd.DataFrame, pd.Series]
+    datatypes: Optional[Dict[str, str]] = field(default_factory = dict)
+    prefixes: Optional[Dict[str, str]] = field(default_factory = dict)
+    ingredients: Optional['Ingredients'] = None
+    name: Optional[str] = 'ingredient'
+
+    def _post_init__(self) -> None:
+        """Sets 'state' for data exporting."""
+        self.state = SimpleState(states = ['raw', 'interim', 'processed'])
+        return self
+
+    """ Required ABC Methods """
+
+    def __contains__(self, key: str) -> bool:
+        """Returns if 'key' is in 'columns' of the 'data' attribute.
+
+        Args:
+            key (str): item to check for existence.
+
+        Returns:
+            boolean value if 'key' is in 'data.columns'.
+
+        """
+        return key in self.data.columns
+
+    def __iter__(self) -> Iterable:
+        """Returns 'iterrows' method for 'data' attribute."""
+        return self.data.iterrows()
+
+    def __len__(self) -> int:
+        """Returns integer length of 'data' attribute."""
+        return len(self.data)
+
+    """ Other Dunder Methods """
+
+    def __getattr__(self, attribute: str) -> Any:
+        """Returns column lists or state-dependent variables.
+
+        Args:
+            attribute (str): attribute to look for.
+
+        Returns:
+            Any: attribute in state or List[str] of columns.
+
+        Raises:
+            AttributeError: if 'attribute' is not found in any of the searched
+                attributes.
+
+        """
+        # Returns appropriate lists of columns with datatype 'attribute'.
+        if attribute in self.ingredients.types:
+            return self._get_columns_by_type(datatype = attribute[:-1])
+        # Combines 'floats' and 'integers' into 'numerics'.
         elif attribute in ['numerics']:
             return self.floats + self.integers
+        # Returns list of 'dropped_columns' by comparing to '_start_columns'.
         elif attribute in ['dropped_columns']:
-            return self._start_columns - self.x_train.columns.values
+            return self._start_columns - list(self.datatypes.keys())
         else:
-            raise AttributeError(' '.join(
-                [self.name, 'does not contain', attribute]))
+            # Tries to apply method to pandas object itself.
+            try:
+                return getattr(self.data, attribute)
+            except:
+                raise AttributeError(' '.join(
+                    [attribute, 'is not in', self.name]))
 
-    def __setattr__(self, attribute: str, value: Any) -> None:
-        # Sets appropriate DataFrame based upon proxy mapping.
-        try:
-            if attribute in self.library:
-                self.library[attribute] = value
-        except (KeyError, AttributeError):
-            self.__dict__[attribute] = value
+    def __add__(self,
+            other: Union[pd.DataFrame, pd.Series, 'Ingredient']) -> None:
+        """Combines 'other' with 'proxies'.
+
+        Args:
+            other (Union[pd.DataFrame, pd.Series, 'Ingredient']): a pandas data
+                object or another 'Ingredient' instance.
+
+        """
+        self.add(ingredient = other)
+        return self
+
+    def __iadd__(self,
+            other: Union[pd.DataFrame, pd.Series, 'Ingredient']) -> None:
+        """Combines 'other' with 'proxies'.
+
+        Args:
+            other (Union[pd.DataFrame, pd.Series, 'Ingredient']): a pandas data
+                object or another 'Ingredient' instance.
+
+        """
+        self.add(ingredient = other)
         return self
 
     """ Private Methods """
@@ -193,132 +318,498 @@ class Ingredients(SimpleData):
                 the 'columns' attribute are returned.
 
         """
-        return columns or list(self.columns.keys())
+        if columns:
+            return listify(columns)
+        else:
+            return list(self.datatypes.keys())
 
+    def _convert_columns(self, raise_errors: Optional[bool] = False) -> None:
+        """Converts column data to the datatypes in 'datatypes' dictionary.
 
-    @backup_df
+        Args:
+            raise_errors (Optional[bool]): whether errors should be raised when
+                converting datatypes or ignored. Selecting False (the default)
+                risks type mismatches between the datatypes listed in the
+                'datatypes' dict and 'data', but it prevents the program from
+                being halted if an error is encountered.
 
+        """
+        if raise_errors:
+            raise_errors = 'raise'
+        else:
+            raise_errors = 'ignore'
+        for column, datatype in self.datatypes.items():
+            if not datatype in ['string']:
+                self.data[column].astype(
+                    dtype = self.ingredients.types[datatype],
+                    copy = False,
+                    errors = raise_errors)
+        # Attempts to downcast datatypes to simpler forms if possible.
+        self.downcast()
+        return self
+
+    def _crosscheck_columns(self) -> None:
+        """Harmonizes 'datatypes' dictionary with 'data' columns attribute."""
+        for column in list(self.data.columns.values()):
+            if column not in self.datatypes:
+                self.datatypes[column] = self._infer_type(column = column)
+        for column in list(self.datatypes.keys()):
+            if column not in self.data.columns:
+                del self.datatypes[column]
+        return self
 
     def _get_columns_by_type(self, datatype: str) -> List[str]:
         """Returns list of columns of the specified datatype.
 
         Args:
-            datatype (str): string matching datatype in 'all_columns'.
+            datatype (str): string matching datatype in 'datatypes'.
 
         Returns:
             list of columns matching the passed 'datatype'.
 
         """
-        return [k for k, v in self.columns.items() if v == datatype]
+        return [
+            key for key, value in self.datatypes.items() if value == datatype]
 
-    @backup_df
-
-
-    @backup_df
-
-
-    def _publish_data(self) -> None:
-        """Completes an Ingredients instance.
-
-        This method checks all attributes listed in 'dataframes' and converts
-        them, when possible, to pandas data containers.
-
-        If a 'dataframe' is a pandas data container or is None, no action is
-            taken.
-        If a 'dataframe' is a file path, the file is loaded into a DataFrame and
-            assigned to 'df'.
-        If a 'dataframe' is a file folder, a glob in 'inventory' is created.
-        If a 'dataframe' is a numpy array, it is converted to a pandas
-            DataFrame.
-
-        Raises:
-            TypeError: if 'dataframe' is neither a file path, file folder, None,
-                DataFrame, Series, or numpy array.
-
-        """
-        for stage, dataframes in self.library.items():
-            for dataframe in dataframes:
-                if (getattr(self, dataframe) is None
-                        or isinstance(getattr(self, dataframe), pd.Series)
-                        or isinstance(getattr(self, dataframe), pd.DataFrame)):
-                    pass
-                elif isinstance(dataframe, np.ndarray):
-                    setattr(
-                        self,
-                        getattr(self, dataframe),
-                         pd.DataFrame(data = getattr(self, dataframe)))
-                else:
-                    try:
-                        setattr(
-                            self,
-                            getattr(self, dataframe),
-                            self.inventory.load(
-                                folder = self.inventory.data,
-                                file_name = getattr(self, dataframe)))
-                    except FileNotFoundError:
-                        try:
-                            self.inventory.make_glob(folder = dataframe)
-                        except TypeError:
-                            raise TypeError(' '.join(
-                                ['df must be a file path, file folder,',
-                                 'DataFrame, Series, None, or numpy array']))
-        return self
-
-    """ Public Tool Methods """
-
-    @backup_df
-
-
-    @backup_df
-
-
-    # @make_columns_parameter
-
-
-
-    def save_dropped(self,
-            folder: Optional[str] = 'experiment',
-            file_name: Optional[str] = 'dropped_columns',
-            file_format: Optional[str] = 'csv') -> None:
-        """Saves 'dropped_columns' into a file.
+    def _get_indices(self, columns: Union[List[str], str]) -> List[bool]:
+        """Gets column indices for a list of column names.
 
         Args:
-            folder (str): file folder for file to be exported.
-            file_name (str): file name without extension of file to be exported.
-            file_format (str): file format name.
+            columns (Union[List[str], str]): name(s) of columns for which
+                indices are sought.
+
+        Returns:
+            bool mask for columns matching 'columns'.
 
         """
-        if self.dropped_columns:
-            if self.verbose:
-                print('Exporting dropped feature list')
-            self.inventory.save(
-                variable = self.dropped_columns,
-                folder = folder,
-                file_name = file_name,
-                file_format = file_format)
-        elif self.verbose:
-            print('No features were dropped during preprocessing.')
-        return
+        return [
+            self.data.columns.get_loc(column) for column in listify(columns)]
 
-    """ Core siMpLify Methods """
+    def _infer_type(self, column: pd.Series) -> str:
+        """Infers column datatype of a single column.
 
-    def draft(self) -> None:
-        """Sets defaults for Ingredients when class is instanced."""
-        # Creates object for all available datatypes.
-        # self.all_datatypes = DataTypes()
-        # Creates 'datatypes' and 'prefixes' dicts if they don't exist.
-        self.columns = self.columns or {}
-        self.prefixes = self.prefixes or {}
-        # Creates attribute names for user proxies to DataFrames.
-        self._make_dataframe_proxies()
+        This method is an alternative to default pandas methods which can use
+        complex datatypes (e.g., int8, int16, int32, int64, etc.) instead of
+        simple types.
+
+        Non-standard python datatypes cannot be inferred.
+
+        Args:
+            column (pd.Series): column for which datatype is sought.
+
+        Returns:
+            str: name of siMpLify proxy datatype name.
+
+        """
+        try:
+            self.datatypes[column] = self.data.select_dtypes(
+                    include = [datatype]).columns.to_list()[0]
+        except AttributeError:
+            pass
         return self
 
-    def publish(self) -> None:
-        # Creates data state machine instance.
-        self.state = DataState()
-        # Converts dataframes to appropriate forms.
-        self._publish_data()
-        # If 'columns' passed, checks to see if columns are in 'df'. Otherwise,
-        # datatypes are inferred.
-        self._initialize_datatypes()
+    def _initialize_datatypes(self) -> None:
+        """Initializes datatypes for stored pandas data object."""
+        if not self.datatypes:
+            self.infer_datatypes()
+        else:
+            self._crosscheck_columns()
+        self._start_columns = list(self.data.columns.values)
         return self
+
+    """ Public Methods """
+
+    def add(self,
+            other: Union[pd.DataFrame, pd.Series, 'Ingredient']) -> None:
+        """Combines 'other' with 'proxies'.
+
+        Args:
+            ingredient (Union[pd.DataFrame, pd.Series, 'Ingredient']): a pandas
+                data object or another 'Ingredient' instance.
+
+        ToDo:
+            Add functionality for all cases.
+
+        """
+        return self
+
+    def apply(self, callable: Callable, **kwargs) -> None:
+        """Applies 'callable' to 'data' atttribute with **kwargs).
+
+        Args:
+            callable (Callable): to be applied to 'data'.
+            kwargs: any arguments to be passed to 'callable'.
+
+        """
+        self.data = callable(self.data, **kwargs)
+        return self
+
+    def change_datatype(self,
+            columns: [Union[List[str], str]],
+            datatype: str) -> None:
+        """Changes column datatypes of 'columns'.
+
+        The 'datatype' becomes the new datatype for the columns in both the
+        'datatypes' dict and in reality - a method is called to try to convert
+        the column to the appropriate datatype.
+
+        Args:
+            columns ([Union[List[str], str]]): column name(s) for datatypes to
+                be changed.
+            datatype (str): contains name of the datatype to convert the
+                columns.
+
+        """
+        for column in listify(columns):
+            self.datatypes[column] = datatype
+        self._convert_columns()
+        return self
+
+    def downcast(self,
+            columns: Optional[Union[List[str], str]] = None,
+            allow_unsigned: Optional[bool] = True) -> None:
+        """Decreases memory usage by downcasting datatypes.
+
+        For numerical datatypes, the method attempts to cast the data to
+        unsigned integers if possible when 'allow_unsigned' is True. If more
+        data might be added later which, in the same column, has values less
+        than zero, 'allow_unsigned' should be set to False.
+
+        Args:
+            columns (Optional[Union[List[str], str]]): columns to downcast.
+            allow_unsigned (Optional[bool]): whether to allow downcasting to
+                unsigned integers.
+
+        Raises:
+            KeyError: if column in 'columns' is not in 'data'.
+
+        """
+        for column in self._check_columns(columns):
+            if self.datatypes[column] in ['boolean']:
+                self.data[column] = self.data[column].astype(bool)
+            elif self.datatypes[column] in ['integer', 'float']:
+                try:
+                    self.data[column] = pd.to_numeric(
+                        self.data[column],
+                        downcast = 'integer')
+                    if min(self.data[column] >= 0) and allow_unsigned:
+                        self.data[column] = pd.to_numeric(
+                            self.data[column],
+                            downcast = 'unsigned')
+                except ValueError:
+                    self.data[column] = pd.to_numeric(
+                        self.data[column],
+                        downcast = 'float')
+            elif self.datatypes[column] in ['categorical']:
+                self.data[column] = self.data[column].astype('category')
+            elif self.datatypes[column] in ['list']:
+                self.data[column].apply(
+                    listify,
+                    axis = 'columns',
+                    inplace = True)
+            elif self.datatypes[column] in ['datetime']:
+                self.data[column] = pd.to_datetime(self.data[column])
+            elif self.datatypes[column] in ['timedelta']:
+                self.data[column] = pd.to_timedelta(self.data[column])
+            else:
+                raise KeyError(' '.join([column, ' is not in data']))
+        return self
+
+    def drop_columns(self,
+            columns: Optional[Union[List[str], str]] = None) -> None:
+        """Drops specified 'columns'.
+
+        Args:
+            columns (Optional[Union[List[str], str]]): columns to drop.
+
+        """
+        try:
+            self.data.drop(columns, axis = 'columns', inplace = True)
+        except TypeError:
+            self.data.drop(columns, inplace = True)
+        return self
+
+    def get_series(self,
+            columns: Optional[Union[List[str], str]] = None) -> None:
+        """Creates a Series (row) with the 'datatypes' dict.
+
+        Default values are added to each item in the series so that pandas does
+        not automatically infer the datatype when a value is passed.
+
+        Args:
+            columns (Optional[Union[List[str], str]]): index names for pandas
+                Series.
+
+        Returns:
+            pd.Series with index names matching 'columns' keys and datatypes
+                matching 'datatypes' values.
+
+        """
+        row = pd.Series(index = self._check_columns(columns = columns))
+        # Fills series with default_values based on datatype.
+        for column, datatype in self.datatypes.items():
+            row[column] = self.ingredients.default_values[datatype]
+        return row
+
+    def indexify(self,
+            name: Optional[str] = 'index_universal',
+            assign_index: Optional[bool] = False) -> None:
+        """Creates a unique integer index for each row.
+
+        Args:
+            name (Optional[str]): column name for the index. Defaults to
+                'index_universal'.
+            assign_index (Optional[bool]): indicates whether the index
+                'column' should be made the actual index of the DataFrame.
+                Defaults to False.
+
+        Raises:
+            TypeError: if 'data' is not a DataFrame (usually because it is a
+                pandas Series).
+
+        """
+        try:
+            self.data[name] = range(1, len(self.data.index) + 1)
+            self.datatypes.update({name, 'integer'})
+            if assign_index:
+                self.data.set_index(name, inplace = True)
+        except (TypeError, AttributeError):
+            raise TypeError('To add an index, data must be a pandas DataFrame')
+        return self
+
+    def infer_datatypes(self) -> None:
+        """Infers column datatypes and adds those datatypes to 'datatypes'.
+
+        This method is an alternative to default pandas methods which can use
+        complex datatypes (e.g., int8, int16, int32, int64, etc.) instead of
+        simple types.
+
+        This methods also allows the user to choose which datatypes to look for
+        by changing the options in 'types'.
+
+        Non-standard python datatypes cannot be inferred.
+
+        """
+        try:
+            for proxy, datatype in self.types:
+                type_columns = data.select_dtypes(
+                    include = [datatype]).columns.to_list()
+                self.datatypes.update(
+                    dict.fromkeys(type_columns, proxy))
+        except AttributeError:
+            pass
+        return self
+
+
+@dataclass
+class DataProxies(MutableMapping):
+
+    ingredients: 'Ingredients'
+    test_suffixes: Dict[str, str] = field(default_factory = dict)
+    train_suffixes: Dict[str, str] = field(default_factory = dict)
+
+    def __post_init__(self) -> None:
+        if not self.test_suffixes:
+            self.test_suffixes = {
+                'unsplit': None,
+                'xy': '',
+                'train_test': '_test',
+                'train_val': '_test',
+                'full': '_train'}
+        if not self.train_suffixes:
+            self.train_suffixes = {
+                'unsplit': None,
+                'xy': '',
+                'train_test': '_train',
+                'train_val': '_train',
+                'full': '_train'}
+        return self
+
+    """ Required ABC Methods """
+
+    def __getitem__(self, key: str) -> 'Ingredient':
+        """Returns 'Ingredient' based upon current 'state'.
+
+        Args:
+            key (str): name of key in 'ingredients'.
+
+        Returns:
+            'Ingredient': an 'Ingredient' instance stored in 'ingredients'
+                based on 'state' in 'ingredients'
+
+        Raises:
+            ValueError: if access to train or test data is sought before data
+                has been split.
+
+        """
+        try:
+            dictionary = '_'.join([key.rsplit('_', 1), 'suffixes'])
+            if getattr(self, dictionary)[self.ingredients.state] is None:
+                raise ValueError(''.join(['Train and test data cannot be',
+                    'accessed until data is split']))
+            else:
+                new_key = ''.join(
+                    [key[0], getattr(self, dictionary)[self.ingredients.state]])
+                return self.ingredients.ingredients[new_key]
+        except TypeError:
+            return self.ingredients.ingredients[key]
+
+    def __setitem__(self, key: str, value: 'Ingredient') -> None:
+        """Sets 'key' to 'Ingredient' based upon current 'state'.
+
+        Args:
+            key (str): name of key to set in 'ingredients'.
+            value ('Ingredient'): 'Ingredient' instance to be added to
+                'ingredients'.
+
+        """
+        try:
+            dictionary = '_'.join([key.rsplit('_', 1), 'suffixes'])
+            new_key = ''.join(
+                [key[0], getattr(self, dictionary)[self.ingredients.state]])
+            self.ingredients.ingredients[new_key] = value
+        except ValueError:
+            self.ingredients.ingredients[key] = value
+
+    def __delitem__(self, key: str) -> None:
+        """Deletes 'key' in the 'ingredients' dictionary.
+
+        Args:
+            key (str): name of key in the 'ingredients' dictionary.
+
+        """
+        try:
+            dictionary = '_'.join([key.rsplit('_', 1), 'suffixes'])
+            new_key = ''.join(
+                [key[0], getattr(self, dictionary)[self.ingredients.state]])
+            self.ingredients.ingredients[new_key] = value
+        except ValueError:
+            try:
+                del self.ingredients.ingredients[key]
+            except KeyError:
+                pass
+
+    def __iter__(self) -> NotImplementedError:
+        raise NotImplementedError('DataProxies does not implement an iterable')
+
+    def __len__(self) -> int:
+        raise NotImplementedError('DataProxies does not implement length')
+
+
+""" Validator Functions """
+
+def validate_ingredients(
+        ingredients: Union[
+            'Ingredients',
+            pd.DataFrame,
+            pd.Series,
+            np.ndarray,
+            str,
+            List[Union[pd.DataFrame, pd.Series, np.ndarray, str]],
+            Dict[str, Union[
+                'Ingredient', pd.DataFrame, pd.Series, np.ndarray, str]]],
+        inventory: Optional['Inventory'] = None) -> 'Ingredients':
+    """Creates an Ingredients instance.
+
+    Args:
+        ingredients (Union['Ingredients', pd.DataFrame, pd.Series, np.ndarray,
+            str, List[Union[pd.DataFrame, pd.Series, np.ndarray, str]],
+            Dict[str, Union[pd.DataFrame, pd.Series, np.ndarray, str]]]):
+            Ingredients instance or information needed to create one.
+        inventory ('Inventory'): a Inventory instance.
+
+    Returns:
+        Ingredients instance, properly configured.
+
+    Raises:
+        TypeError: if 'ingredients' is neither a file path, file folder,
+            None, DataFrame, Series, numpy array, or Ingredients instance.
+
+    """
+    if isinstance(ingredients, Ingredients):
+        return ingredients
+    elif ingredients is None:
+        return Ingredients()
+    elif isinstance(ingredients, list):
+        data = {}
+        for i, ingredient in enumerate(ingredients):
+            data.update({''.join(['data'], str(i)): validate_ingredient(
+                ingredient = ingredient,
+                inventory = inventory)})
+        return Ingredients(ingredients = data)
+    elif isinstance(ingredients, dict):
+        data = {}
+        for name, ingredient in ingredients.items():
+            data[name] = validate_ingredient(
+                ingredient = ingredient,
+                inventory = inventory)
+        return Ingredients(ingredients = data)
+    elif isinstance(ingredients, (pd.Series, pd.DataFrame, np.ndarray, str)):
+        return Ingredients(ingredients = {
+            'data': validate_ingredient(
+                ingredient = ingredients,
+                inventory = inventory)})
+    else:
+        raise TypeError(' '.join(
+            ['ingredients must be a file path, file folder, DataFrame, Series',
+             'None, Ingredients, or numpy array']))
+
+def validate_ingredient(
+        ingredient: Union['Ingredient', pd.DataFrame, pd.Series, np.ndarray,
+            str],
+        inventory: 'Inventory') -> 'Ingredient':
+    """Creates an Ingredients instance.
+
+    Args:
+        ingredient (Union['Ingredient', pd.DataFrame, pd.Series, np.ndarray,
+            str]): Ingredient instance or information needed to create one.
+        inventory ('Inventory'): a Inventory instance.
+
+    Returns:
+        Ingredient instance, properly configured.
+
+    Raises:
+        TypeError: if 'ingredient' is neither a file path, file folder,
+            None, DataFrame, Series, numpy array, or Ingredient instance.
+
+    """
+    def get_ingredient(ingredient: str, inventory: 'Inventory') -> 'Ingredient':
+        """Creates an Ingredient instance from a source file.
+
+        Args:
+            ingredient (str):
+            inventory ('Inventory'): an Inventory instance.
+
+        Returns:
+            Ingredient instance.
+
+        """
+        try:
+            return Ingredient(
+                data = inventory.load(
+                    folder = inventory.data,
+                    file_name = ingredient))
+        except FileNotFoundError:
+            try:
+                return Ingredient(data = inventory.load(file_path = ingredient))
+            except FileNotFoundError:
+                try:
+                    inventory.create_batch(folder = ingredient)
+                    return Ingredient()
+                except FileNotFoundError:
+                    raise FileNotFoundError('ingredient not found')
+    if isinstance(ingredient, (pd.DataFrame, pd.Series)):
+        return Ingredient(data = ingredient)
+    elif isinstance(ingredient, str):
+        if inventory is None:
+            raise ValueError('inventory needed to load a data object')
+        else:
+            return get_ingredient(
+                ingredient = ingredient,
+                inventory = inventory)
+    elif isinstance(ingredient, np.ndarrray):
+        return Ingredient(data = pd.DataFrame(data = ingredient))
+    else:
+        raise TypeError(' '.join(
+            ['ingredient must be a file path, file folder, DataFrame, Series',
+             'None, or numpy array']))

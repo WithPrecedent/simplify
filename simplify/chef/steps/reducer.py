@@ -37,7 +37,7 @@ class Reducer(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = SimpleContents(options = {
+        self._options = Contents(options = {
             'kbest': Option(
                 name = 'kbest',
                 module = 'sklearn.feature_selection',

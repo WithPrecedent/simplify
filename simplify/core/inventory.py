@@ -17,13 +17,13 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Union
 import pandas as pd
 
 from simplify.core.base import SimpleDistributor
-from simplify.core.base import SimpleContents
+from simplify.core.book import Contents
 from simplify.core.base import SimplePath
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Inventory(SimpleContents):
+class Inventory(Contents):
     """Manages files and folders for siMpLify.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -138,7 +138,7 @@ class Inventory(SimpleContents):
         try:
             for step in listify(self.naming_classes):
                 self.active_chapter += '_'.join(
-                    [self.active_chapter, chapter.pages[step].technique])
+                    [self.active_chapter, chapter.techniques[step].technique])
         except AttributeError:
             pass
         subfolder = ''.join([subfolder, str(chapter.metadata['number'])])
@@ -206,7 +206,7 @@ class DataFolders(SimplePath):
     names: Dict[str, str]
 
     def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
+        """Initializes class instance attributes."""
         self.active = 'subfolders'
         self.data_subfolders = ['raw', 'interim', 'processed', 'external']
         super().__post_init__()
@@ -227,7 +227,7 @@ class DataFolders(SimplePath):
             self = self.bundle
         elif not isinstance(self.bundle, (list, dict, str)):
             raise TypeError(
-                'bundle must be a dict, list, str, or SimpleContents type')
+                'bundle must be a dict, list, str, or Contents type')
         return self
 
     def _pathlibify(self, path: Union[str, Path]) -> Path:
@@ -804,7 +804,7 @@ class FileFormat(object):
 
 
 @dataclass
-class FileFormats(SimpleContents):
+class FileFormats(Contents):
     """Creates and stores file formats and file extensions.
 
     Args:
@@ -814,7 +814,7 @@ class FileFormats(SimpleContents):
     related: 'Pathifier' = None
 
     def __post_init__(self) -> None:
-        """Calls initialization methods and sets class instance defaults."""
+        """Initializes class instance attributes."""
         super().__post_init__()
         return self
 
@@ -876,3 +876,31 @@ class FileFormats(SimpleContents):
                 import_method = '_import_text',
                 export_method = '_export_text')}
         return self
+
+
+""" Validator Function """
+
+def validate_inventory(
+        inventory: Union['Inventory', str],
+        idea: 'Idea') -> 'Inventory':
+    """Creates an Inventory instance from passed arguments.
+
+    Args:
+        inventory: Union['Inventory', str]: Inventory instance or root folder
+            for one.
+        idea ('Idea'): an Idea instance.
+
+    Returns:
+        Inventory instance, properly configured.
+
+    Raises:
+        TypeError if inventory is neither an Inventory instance nor string
+            folder path.
+
+    """
+    if isinstance(inventory, Inventory):
+        return inventory
+    elif isinstance(inventory, str):
+        return Inventory(idea = idea, root_folder = inventory)
+    else:
+        raise TypeError('inventory must be Inventory type or folder path')

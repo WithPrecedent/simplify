@@ -15,5 +15,5 @@ import pandas as pd
 
 from simplify.core.book import Book
 from simplify.core.book import Chapter
-from simplify.core.book import Page
+from simplify.core.book import Technique
 

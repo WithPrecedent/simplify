@@ -37,7 +37,7 @@ class Scaler(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = SimpleContents(options = {
+        self._options = Contents(options = {
             'bins': Option(
                 name = 'bins',
                 module = 'sklearn.preprocessing',
