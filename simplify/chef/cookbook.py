@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd

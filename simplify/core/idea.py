@@ -6,24 +6,24 @@
 :license: Apache-2.0
 """
 
+from collections.abc import MutableMapping
 from configparser import ConfigParser
 from dataclasses import dataclass
 from dataclasses import field
 from importlib import import_module
 from pathlib import Path
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.book import Contents
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 from simplify.core.utilities import typify
 
 
 @dataclass
-class Idea(Contents):
+class Idea(MutableMapping):
     """Converts a data science idea into python.
 
     If 'configuration' is imported from a file, Idea creates a dictionary,
@@ -101,9 +101,9 @@ class Idea(Contents):
     Regardless of the idea_sections added, all Idea settings can be similarly
     accessed using dict keys or local attributes. For example:
 
-        self.library.idea['general']['seed'] # typical dict access step
+        self.workers.idea['general']['seed'] # typical dict access step
 
-        self.library.idea['seed'] # if no section or other key is named 'seed'
+        self.workers.idea['seed'] # if no section or other key is named 'seed'
 
         self.seed # works because 'seed' is in the 'general' section
 
@@ -124,10 +124,8 @@ class Idea(Contents):
     Args:
         project (Optional['Project']): related Project or subclass instance.
             Defaults to None.
-        configuration (Union[Dict[str, Dict[str, Any]], str]): a file path or
-            two-level nested dictionary storing settings. If a file path is
-            passed, a nested dictionary will automatically be created from the
-            file and stored in 'configuration'. Defaults to an empty dictionary.
+        configuration (Dict[str, Dict[str, Any]]): a two-level nested
+            dictionary storing settings. Defaults to an empty dictionary.
         infer_types (Optional[bool]): whether values in 'configuration' are
             converted to other datatypes (True) or left alone (False). If
             'configuration' was imported, a False value will leave all values as
@@ -135,18 +133,19 @@ class Idea(Contents):
 
     """
     project: 'Project' = None
-    configuration: Union[Dict[str, Dict[str, Any]], str] = field(
-        default_factory = dict)
+    configuration: Dict[str, Dict[str, Any]] = field(default_factory = dict)
     infer_types: Optional[bool] = True
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
-        self.lexicon = 'configuration'
-        super().__post_init__()
-        self.draft()
+        # Validates 'configuration'.
+        if not isinstance(self.configuration, (MutableMapping, dict)):
+            self = create_idea(idea = self.configuration)
+        elif self.infer_types:
+            self._infer_types()
         return self
 
-    """ Dunder Methods """
+    """ Required ABC Methods """
 
     def __getitem__(self, key: str) -> Union[Dict[str, Any], Any]:
         """Returns a section of the active dictionary or key within a section.
@@ -193,23 +192,56 @@ class Idea(Contents):
                     'item must be a str and value must be a dict type')
         return self
 
+    def __delitem__(self, key: str) -> None:
+        """Deletes 'key' entry in 'configuration'.
+
+        Args:
+            key (str): name of key in 'configuration'.
+
+        """
+        try:
+            del self.configuration[key]
+        except KeyError:
+            pass
+        return self
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable of 'configuration'.
+
+        Returns:
+            Iterable stored in 'configuration'.
+
+        """
+        return iter(self.configuration.items())
+
+    def __len__(self) -> int:
+        """Returns length of 'configuration'.
+
+        Returns:
+            Integer: length of 'configuration'.
+
+        """
+        return len(self.configuration)
+
     """ Private Methods """
 
-    def _add_steps(self, instance: object) -> object:
-        """Injects 'steps' into 'instance'.
+    def _add_special(self, instance: object, attribute: str) -> object:
+        """Injects 'workers' into 'instance'.
 
         Args:
             instance (object): siMpLify class instance to be modified.
+            attribute (str): the name of attribute to check or add to 'instance'
+                which also match the suffix in 'configuration'.
 
         Returns:
             instance (object): siMpLify class instance with modifications made.
 
         """
-        if not hasattr(instance, 'steps') or not instance.steps:
+        if not hasattr(instance, attribute) or not getattr(instance, attribute):
             name = instance.name
-            instance.steps = listify(
-                self.configuration[name]['_'.join([name, 'steps'])],
-                use_empty = True)
+            setattr(instance, attribute, listify(
+                self.configuration[name]['_'.join([name, attribute])],
+                use_empty = True))
         return instance
 
     def _add_parameters(self, instance: object) -> object:
@@ -224,14 +256,15 @@ class Idea(Contents):
         """
 
         try:
-            return instance.parameters == self.configuration['_'.join(
-                [instance.name, '_parameters'])]
+            instance.parameters == self.configuration['_'.join(
+                [instance.name, 'parameters'])]
         except (AttributeError, KeyError):
             try:
-                return instance.parameters == self.configuration['_'.join(
-                    [instance.technique, '_parameters'])]
+                instance.parameters == self.configuration['_'.join(
+                    [instance.technique, 'parameters'])]
             except (AttributeError, KeyError):
-                return instance
+                pass
+        return instance
 
     def _infer_types(self):
         """Converts stored values to appropriate datatypes.
@@ -254,12 +287,6 @@ class Idea(Contents):
 
     """ Core siMpLify Methods """
 
-    def draft(self) -> None:
-        """Creates 'configuration' dictionary from 'passed_configuration'."""
-        if self.infer_types:
-            self._infer_types()
-        return self
-
     def apply(self, instance: object) -> object:
         """Injects appropriate attributes into 'instance'.
 
@@ -270,19 +297,30 @@ class Idea(Contents):
             instance (object): siMpLify class instance with modifications made.
 
         """
-        sections = ['general', instance.name]
+        sections = ['general']
+        try:
+            sections.append(instance.name)
+        except AttributeError:
+            pass
         try:
             sections.extend(listify(instance.idea_sections))
         except AttributeError:
             pass
-        if hasattr(instance, 'parameters') or not instance.parameters:
+        if hasattr(instance, 'parameters') and not instance.parameters:
             instance = self._add_parameters(instance = instance)
         for section in sections:
             try:
                 for key, value in self.configuration[section].items():
-                    if key.endswith('steps'):
-                        instance = self._add_steps(instance = instance)
-                    elif not hasattr(instance, key) or not getattr(self, key):
+                    if key.endswith('workers'):
+                        instance = self._add_special(
+                            instance = instance,
+                            attribute = 'workers')
+                    elif key.endswith('steps'):
+                        instance = self._add_special(
+                            instance = instance,
+                            attribute = 'steps')
+                    elif (not hasattr(instance, key)
+                            or not getattr(instance, key)):
                         setattr(instance, key, value)
             except KeyError:
                 pass
@@ -291,7 +329,7 @@ class Idea(Contents):
 
 """ Validator Function """
 
-def validate_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
+def create_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
     """Creates an Idea instance from passed argument.
 
     Args:
@@ -323,8 +361,8 @@ def validate_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
             configuration = pd.read_csv(file_path, dtype = 'str')
             return configuration.to_dict(orient = 'list')
         except FileNotFoundError:
-            raise FileNotFoundError(' '.join(['configuration file ',
-                file_path, ' not found']))
+            raise FileNotFoundError(' '.join(['configuration file',
+                file_path, 'not found']))
 
 
     def _load_from_ini(file_path: str) -> Dict[str, Any]:
@@ -346,8 +384,8 @@ def validate_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
             configuration.read(file_path)
             return dict(configuration._sections)
         except FileNotFoundError:
-            raise FileNotFoundError(' '.join(['configuration file ',
-                file_path, ' not found']))
+            raise FileNotFoundError(' '.join(['configuration file',
+                file_path, 'not found']))
 
     def _load_from_py(file_path: str) -> Dict[str, Any]:
         """Creates a configuration dictionary from a .py file.
@@ -365,14 +403,14 @@ def validate_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
         try:
             return getattr(import_module(file_path), '__dict__')
         except FileNotFoundError:
-            raise FileNotFoundError(' '.join(['configuration file ',
-                file_path, ' not found']))
+            raise FileNotFoundError(' '.join(['configuration file',
+                file_path, 'not found']))
 
     if isinstance(idea, Idea):
         return idea
-    elif isinstance(idea, dict):
+    elif isinstance(idea, (dict, MutableMapping)):
         return Idea(configuration = idea)
-    elif isinstance(idea, str):
+    elif isinstance(idea, (str, Path)):
         extension = str(Path(idea).suffix)[1:]
         configuration = locals()['_'.join(['_load_from', extension])](
             file_path = idea)

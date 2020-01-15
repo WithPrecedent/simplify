@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from math import ceil, sqrt
 import matplotlib.pyplot as plt
@@ -50,7 +50,7 @@ class Painter(SimpleDirector):
         return max_display
 
     def _draft_options(self) -> None:
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'calibration': Option(
                 name = 'calibration',
                 module = 'skplt.metrics',

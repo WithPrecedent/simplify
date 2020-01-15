@@ -8,552 +8,573 @@
 
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
+from simplify.core.base import SimpleCatalog
 from simplify.core.book import Book
-from simplify.core.book import TechniqueOutline
+from simplify.core.book import Algorithm
 
 
-OPTIONS = {
-    'filler': {
-        'defaults': TechniqueOutline(
-            name = 'defaults',
-            module = 'simplify.chef.algorithms',
-            component = 'smart_fill',
-            default = {'defaults': {
-                'boolean': False,
-                'float': 0.0,
-                'integer': 0,
-                'string': '',
-                'categorical': '',
-                'list': [],
-                'datetime': 1/1/1900,
-                'timedelta': 0}}),
-        'impute': TechniqueOutline(
-            name = 'defaults',
-            module = 'sklearn.impute',
-            component = 'SimpleImputer',
-            default = {'defaults': {}}),
-        'knn_impute': TechniqueOutline(
-            name = 'defaults',
-            module = 'sklearn.impute',
-            component = 'KNNImputer',
-            default = {'defaults': {}})},
-    'categorizer': {
-        'automatic': TechniqueOutline(
-            name = 'automatic',
-            module = 'simplify.chef.algorithms',
-            component = 'auto_categorize',
-            default = {'threshold': 10}),
-        'binary': TechniqueOutline(
-            name = 'binary',
-            module = 'sklearn.preprocessing',
-            component = 'Binarizer',
-            default = {'threshold': 0.5}),
-        'bins': TechniqueOutline(
-            name = 'bins',
-            module = 'sklearn.preprocessing',
-            component = 'KBinsDiscretizer',
-            default = {
-                'strategy': 'uniform',
-                'n_bins': 5},
-            selected = True,
-            required = {'encode': 'onehot'})},
-    'scaler': {
-        'gauss': TechniqueOutline(
-            name = 'gauss',
-            module = None,
-            component = 'Gaussify',
-            default = {'standardize': False, 'copy': False},
-            selected = True,
-            required = {'rescaler': 'standard'}),
-        'maxabs': TechniqueOutline(
-            name = 'maxabs',
-            module = 'sklearn.preprocessing',
-            component = 'MaxAbsScaler',
-            default = {'copy': False},
-            selected = True),
-        'minmax': TechniqueOutline(
-            name = 'minmax',
-            module = 'sklearn.preprocessing',
-            component = 'MinMaxScaler',
-            default = {'copy': False},
-            selected = True),
-        'normalize': TechniqueOutline(
-            name = 'normalize',
-            module = 'sklearn.preprocessing',
-            component = 'Normalizer',
-            default = {'copy': False},
-            selected = True),
-        'quantile': TechniqueOutline(
-            name = 'quantile',
-            module = 'sklearn.preprocessing',
-            component = 'QuantileTransformer',
-            default = {'copy': False},
-            selected = True),
-        'robust': TechniqueOutline(
-            name = 'robust',
-            module = 'sklearn.preprocessing',
-            component = 'RobustScaler',
-            default = {'copy': False},
-            selected = True),
-        'standard': TechniqueOutline(
-            name = 'standard',
-            module = 'sklearn.preprocessing',
-            component = 'StandardScaler',
-            default = {'copy': False},
-            selected = True)},
-    'splitter': {
-        'group_kfold': TechniqueOutline(
-            name = 'group_kfold',
-            module = 'sklearn.model_selection',
-            component = 'GroupKFold',
-            default = {'n_splits': 5},
-            runtime = {'random_state': 'seed'},
-            selected = True),
-        'kfold': TechniqueOutline(
-            name = 'kfold',
-            module = 'sklearn.model_selection',
-            component = 'KFold',
-            default = {'n_splits': 5, 'shuffle': False},
-            runtime = {'random_state': 'seed'},
-            selected = True,
-            required = {'shuffle': True}),
-        'stratified': TechniqueOutline(
-            name = 'stratified',
-            module = 'sklearn.model_selection',
-            component = 'StratifiedKFold',
-            default = {'n_splits': 5, 'shuffle': False},
-            runtime = {'random_state': 'seed'},
-            selected = True,
-            required = {'shuffle': True}),
-        'time': TechniqueOutline(
-            name = 'time',
-            module = 'sklearn.model_selection',
-            component = 'TimeSeriesSplit',
-            default = {'n_splits': 5},
-            runtime = {'random_state': 'seed'},
-            selected = True),
-        'train_test': TechniqueOutline(
-            name = 'train_test',
-            module = 'sklearn.model_selection',
-            component = 'ShuffleSplit',
-            default = {'test_size': 0.33},
-            runtime = {'random_state': 'seed'},
-            required = {'n_splits': 1},
-            selected = True)},
-    'encoder': {
-        'backward': TechniqueOutline(
-            name = 'backward',
-            module = 'category_encoders',
-            component = 'BackwardDifferenceEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'basen': TechniqueOutline(
-            name = 'basen',
-            module = 'category_encoders',
-            component = 'BaseNEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'binary': TechniqueOutline(
-            name = 'binary',
-            module = 'category_encoders',
-            component = 'BinaryEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'dummy': TechniqueOutline(
-            name = 'dummy',
-            module = 'category_encoders',
-            component = 'OneHotEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'hashing': TechniqueOutline(
-            name = 'hashing',
-            module = 'category_encoders',
-            component = 'HashingEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'helmert': TechniqueOutline(
-            name = 'helmert',
-            module = 'category_encoders',
-            component = 'HelmertEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'james_stein': TechniqueOutline(
-            name = 'james_stein',
-            module = 'category_encoders',
-            component = 'JamesSteinEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'loo': TechniqueOutline(
-            name = 'loo',
-            module = 'category_encoders',
-            component = 'LeaveOneOutEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'm_estimate': TechniqueOutline(
-            name = 'm_estimate',
-            module = 'category_encoders',
-            component = 'MEstimateEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'ordinal': TechniqueOutline(
-            name = 'ordinal',
-            module = 'category_encoders',
-            component = 'OrdinalEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'polynomial': TechniqueOutline(
-            name = 'polynomial_encoder',
-            module = 'category_encoders',
-            component = 'PolynomialEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'sum': TechniqueOutline(
-            name = 'sum',
-            module = 'category_encoders',
-            component = 'SumEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'target': TechniqueOutline(
-            name = 'target',
-            module = 'category_encoders',
-            component = 'TargetEncoder',
-            data_dependent = {'cols': 'categoricals'}),
-        'woe': TechniqueOutline(
-            name = 'weight_of_evidence',
-            module = 'category_encoders',
-            component = 'WOEEncoder',
-            data_dependent = {'cols': 'categoricals'})},
-    'mixer': {
-        'polynomial': TechniqueOutline(
-            name = 'polynomial_mixer',
-            module = 'sklearn.preprocessing',
-            component = 'PolynomialFeatures',
-            default = {
-                'degree': 2,
-                'interaction_only': True,
-                'include_bias': True}),
-        'quotient': TechniqueOutline(
-            name = 'quotient',
-            module = None,
-            component = 'QuotientFeatures'),
-        'sum': TechniqueOutline(
-            name = 'sum',
-            module = None,
-            component = 'SumFeatures'),
-        'difference': TechniqueOutline(
-            name = 'difference',
-            module = None,
-            component = 'DifferenceFeatures')},
-    'cleaver': {},
-    'sampler': {
-        'adasyn': TechniqueOutline(
-            name = 'adasyn',
-            module = 'imblearn.over_sampling',
-            component = 'ADASYN',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'}),
-        'cluster': TechniqueOutline(
-            name = 'cluster',
-            module = 'imblearn.under_sampling',
-            component = 'ClusterCentroids',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'}),
-        'knn': TechniqueOutline(
-            name = 'knn',
-            module = 'imblearn.under_sampling',
-            component = 'AllKNN',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'}),
-        'near_miss': TechniqueOutline(
-            name = 'near_miss',
-            module = 'imblearn.under_sampling',
-            component = 'NearMiss',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'}),
-        'random_over': TechniqueOutline(
-            name = 'random_over',
-            module = 'imblearn.over_sampling',
-            component = 'RandomOverSampler',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'}),
-        'random_under': TechniqueOutline(
-            name = 'random_under',
-            module = 'imblearn.under_sampling',
-            component = 'RandomUnderSampler',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'}),
-        'smote': TechniqueOutline(
-            name = 'smote',
-            module = 'imblearn.over_sampling',
-            component = 'SMOTE',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'}),
-        'smotenc': TechniqueOutline(
-            name = 'smotenc',
-            module = 'imblearn.over_sampling',
-            component = 'SMOTENC',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'},
-            data_dependent = {'categorical_features': 'categoricals_indices'}),
-        'smoteenn': TechniqueOutline(
-            name = 'smoteenn',
-            module = 'imblearn.combine',
-            component = 'SMOTEENN',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'}),
-        'smotetomek': TechniqueOutline(
-            name = 'smotetomek',
-            module = 'imblearn.combine',
-            component = 'SMOTETomek',
-            default = {'sampling_strategy': 'auto'},
-            runtime = {'random_state': 'seed'})},
-    'reducer': {
-        'kbest': TechniqueOutline(
-            name = 'kbest',
-            module = 'sklearn.feature_selection',
-            component = 'SelectKBest',
-            default = {'k': 10, 'score_func': 'f_classif'},
-            selected = True),
-        'fdr': TechniqueOutline(
-            name = 'fdr',
-            module = 'sklearn.feature_selection',
-            component = 'SelectFdr',
-            default = {'alpha': 0.05, 'score_func': 'f_classif'},
-            selected = True),
-        'fpr': TechniqueOutline(
-            name = 'fpr',
-            module = 'sklearn.feature_selection',
-            component = 'SelectFpr',
-            default = {'alpha': 0.05, 'score_func': 'f_classif'},
-            selected = True),
-        'custom': TechniqueOutline(
-            name = 'custom',
-            module = 'sklearn.feature_selection',
-            component = 'SelectFromModel',
-            default = {'threshold': 'mean'},
-            runtime = {'estimator': 'algorithm'},
-            selected = True),
-        'rank': TechniqueOutline(
-            name = 'rank',
-            module = 'simplify.critic.rank',
-            component = 'RankSelect',
-            selected = True),
-        'rfe': TechniqueOutline(
-            name = 'rfe',
-            module = 'sklearn.feature_selection',
-            component = 'RFE',
-            default = {'n_features_to_select': 10, 'step': 1},
-            runtime = {'estimator': 'algorithm'},
-            selected = True),
-        'rfecv': TechniqueOutline(
-            name = 'rfecv',
-            module = 'sklearn.feature_selection',
-            component = 'RFECV',
-            default = {'n_features_to_select': 10, 'step': 1},
-            runtime = {'estimator': 'algorithm'},
-            selected = True)}}
-
-MODEL_OPTIONS = {
-    'classify': {
-        'adaboost': TechniqueOutline(
-            name = 'adaboost',
-            module = 'sklearn.ensemble',
-            component = 'AdaBoostClassifier'),
-        'baseline_classifier': TechniqueOutline(
-            name = 'baseline_classifier',
-            module = 'sklearn.dummy',
-            component = 'DummyClassifier',
-            required = {'strategy': 'most_frequent'}),
-        'logit': TechniqueOutline(
-            name = 'logit',
-            module = 'sklearn.linear_model',
-            component = 'LogisticRegression'),
-        'random_forest': TechniqueOutline(
-            name = 'random_forest',
-            module = 'sklearn.ensemble',
-            component = 'RandomForestClassifier'),
-        'svm_linear': TechniqueOutline(
-            name = 'svm_linear',
-            module = 'sklearn.svm',
-            component = 'SVC',
-            required = {'kernel': 'linear', 'probability': True}),
-        'svm_poly': TechniqueOutline(
-            name = 'svm_poly',
-            module = 'sklearn.svm',
-            component = 'SVC',
-            required = {'kernel': 'poly', 'probability': True}),
-        'svm_rbf': TechniqueOutline(
-            name = 'svm_rbf',
-            module = 'sklearn.svm',
-            component = 'SVC',
-            required = {'kernel': 'rbf', 'probability': True}),
-        'svm_sigmoid': TechniqueOutline(
-            name = 'svm_sigmoid ',
-            module = 'sklearn.svm',
-            component = 'SVC',
-            required = {'kernel': 'sigmoid', 'probability': True}),
-        'tensorflow': TechniqueOutline(
-            name = 'tensorflow',
-            module = 'tensorflow',
-            component = None,
-            default = {
-                'batch_size': 10,
-                'epochs': 2}),
-        'xgboost': TechniqueOutline(
-            name = 'xgboost',
-            module = 'xgboost',
-            component = 'XGBClassifier',
-            data_dependent = 'scale_pos_weight')},
-    'cluster': {
-        'affinity': TechniqueOutline(
-            name = 'affinity',
-            module = 'sklearn.cluster',
-            component = 'AffinityPropagation'),
-        'agglomerative': TechniqueOutline(
-            name = 'agglomerative',
-            module = 'sklearn.cluster',
-            component = 'AgglomerativeClustering'),
-        'birch': TechniqueOutline(
-            name = 'birch',
-            module = 'sklearn.cluster',
-            component = 'Birch'),
-        'dbscan': TechniqueOutline(
-            name = 'dbscan',
-            module = 'sklearn.cluster',
-            component = 'DBSCAN'),
-        'kmeans': TechniqueOutline(
-            name = 'kmeans',
-            module = 'sklearn.cluster',
-            component = 'KMeans'),
-        'mean_shift': TechniqueOutline(
-            name = 'mean_shift',
-            module = 'sklearn.cluster',
-            component = 'MeanShift'),
-        'spectral': TechniqueOutline(
-            name = 'spectral',
-            module = 'sklearn.cluster',
-            component = 'SpectralClustering'),
-        'svm_linear': TechniqueOutline(
-            name = 'svm_linear',
-            module = 'sklearn.cluster',
-            component = 'OneClassSVM'),
-        'svm_poly': TechniqueOutline(
-            name = 'svm_poly',
-            module = 'sklearn.cluster',
-            component = 'OneClassSVM'),
-        'svm_rbf': TechniqueOutline(
-            name = 'svm_rbf',
-            module = 'sklearn.cluster',
-            component = 'OneClassSVM,'),
-        'svm_sigmoid': TechniqueOutline(
-            name = 'svm_sigmoid',
-            module = 'sklearn.cluster',
-            component = 'OneClassSVM')},
-    'regress': {
-        'adaboost': TechniqueOutline(
-            name = 'adaboost',
-            module = 'sklearn.ensemble',
-            component = 'AdaBoostRegressor'),
-        'baseline_regressor': TechniqueOutline(
-            name = 'baseline_regressor',
-            module = 'sklearn.dummy',
-            component = 'DummyRegressor',
-            required = {'strategy': 'mean'}),
-        'bayes_ridge': TechniqueOutline(
-            name = 'bayes_ridge',
-            module = 'sklearn.linear_model',
-            component = 'BayesianRidge'),
-        'lasso': TechniqueOutline(
-            name = 'lasso',
-            module = 'sklearn.linear_model',
-            component = 'Lasso'),
-        'lasso_lars': TechniqueOutline(
-            name = 'lasso_lars',
-            module = 'sklearn.linear_model',
-            component = 'LassoLars'),
-        'ols': TechniqueOutline(
-            name = 'ols',
-            module = 'sklearn.linear_model',
-            component = 'LinearRegression'),
-        'random_forest': TechniqueOutline(
-            name = 'random_forest',
-            module = 'sklearn.ensemble',
-            component = 'RandomForestRegressor'),
-        'ridge': TechniqueOutline(
-            name = 'ridge',
-            module = 'sklearn.linear_model',
-            component = 'Ridge'),
-        'svm_linear': TechniqueOutline(
-            name = 'svm_linear',
-            module = 'sklearn.svm',
-            component = 'SVC',
-            required = {'kernel': 'linear', 'probability': True}),
-        'svm_poly': TechniqueOutline(
-            name = 'svm_poly',
-            module = 'sklearn.svm',
-            component = 'SVC',
-            required = {'kernel': 'poly', 'probability': True}),
-        'svm_rbf': TechniqueOutline(
-            name = 'svm_rbf',
-            module = 'sklearn.svm',
-            component = 'SVC',
-            required = {'kernel': 'rbf', 'probability': True}),
-        'svm_sigmoid': TechniqueOutline(
-            name = 'svm_sigmoid ',
-            module = 'sklearn.svm',
-            component = 'SVC',
-            required = {'kernel': 'sigmoid', 'probability': True}),
-        'xgboost': TechniqueOutline(
-            name = 'xgboost',
-            module = 'xgboost',
-            component = 'XGBRegressor',
-            data_dependent = 'scale_pos_weight')}}
-
-GPU_OPTIONS = {
-    'classify': {
-        'forest_inference': TechniqueOutline(
-            name = 'forest_inference',
-            module = 'cuml',
-            component = 'ForestInference'),
-        'random_forest': TechniqueOutline(
-            name = 'random_forest',
-            module = 'cuml',
-            component = 'RandomForestClassifier'),
-        'logit': TechniqueOutline(
-            name = 'logit',
-            module = 'cuml',
-            component = 'LogisticRegression')},
-    'cluster': {
-        'dbscan': TechniqueOutline(
-            name = 'dbscan',
-            module = 'cuml',
-            component = 'DBScan'),
-        'kmeans': TechniqueOutline(
-            name = 'kmeans',
-            module = 'cuml',
-            component = 'KMeans')},
-    'regressor': {
-        'lasso': TechniqueOutline(
-            name = 'lasso',
-            module = 'cuml',
-            component = 'Lasso'),
-        'ols': TechniqueOutline(
-            name = 'ols',
-            module = 'cuml',
-            component = 'LinearRegression'),
-        'ridge': TechniqueOutline(
-            name = 'ridge',
-            module = 'cuml',
-            component = 'RidgeRegression')}}
-
-def get_options(idea: 'Idea') -> Dict:
-    """Returns options for chef package.
+@dataclass
+class ChefCatalog(SimpleCatalog):
+    """A dictonary of Algorithm options for the Chef subpackage.
 
     Args:
-        idea ('Idea'): an Idea instance.
-
-    Returns:
-        Dict: with options based upon settings in 'idea'.
+        dictionary (Optional[str, Any]): default stored dictionary. Defaults to
+            an empty dictionary.
+        wildcards (Optional[List[str]]): a list of corresponding properties
+            which access sets of dictionary keys. If none is passed, the two
+            included properties ('default' and 'all') are used.
+        defaults (Optional[List[str]]): a list of keys in 'dictionary' which
+            will be used to return items when 'default' is sought. If not
+            passed, 'default' will be set to all keys.
+        null_value (Optional[Any]): value to return when 'none' is accessed or
+            an item isn't found in 'dictionary'. Defaults to None.
 
     """
-    options = OPTIONS
-    options['modeler'] = MODEL_OPTIONS[idea['chef']['model_type']]
-    if idea['general']['gpu']:
-        options['modeler'].update(GPU_OPTIONS[idea['chef']['model_type']])
-    return options
+    dictionary: Optional[Dict[str, Any]] = field(default_factory = dict)
+    wildcards: Optional[List[str]] = field(default_factory = list)
+    defaults: Optional[List[str]] = field(default_factory = list)
+    null_value: Optional[Any] = None
+    project: 'Project' = None
+
+    def __post_init__(self) -> None:
+        """Initializes 'defaults' and 'wildcards'."""
+        super().__post_init__()
+        if not self.dictionary:
+            self._create_dictionary()
+        return self
+
+    def _create_dictionary(self) -> None:
+        self.dictionary = {
+            'filler': {
+                'defaults': Algorithm(
+                    name = 'defaults',
+                    module = 'simplify.chef.algorithms',
+                    algorithm = 'smart_fill',
+                    default = {'defaults': {
+                        'boolean': False,
+                        'float': 0.0,
+                        'integer': 0,
+                        'string': '',
+                        'categorical': '',
+                        'list': [],
+                        'datetime': 1/1/1900,
+                        'timedelta': 0}}),
+                'impute': Algorithm(
+                    name = 'defaults',
+                    module = 'sklearn.impute',
+                    algorithm = 'SimpleImputer',
+                    default = {'defaults': {}}),
+                'knn_impute': Algorithm(
+                    name = 'defaults',
+                    module = 'sklearn.impute',
+                    algorithm = 'KNNImputer',
+                    default = {'defaults': {}})},
+            'categorizer': {
+                'automatic': Algorithm(
+                    name = 'automatic',
+                    module = 'simplify.chef.algorithms',
+                    algorithm = 'auto_categorize',
+                    default = {'threshold': 10}),
+                'binary': Algorithm(
+                    name = 'binary',
+                    module = 'sklearn.preprocessing',
+                    algorithm = 'Binarizer',
+                    default = {'threshold': 0.5}),
+                'bins': Algorithm(
+                    name = 'bins',
+                    module = 'sklearn.preprocessing',
+                    algorithm = 'KBinsDiscretizer',
+                    default = {
+                        'strategy': 'uniform',
+                        'n_bins': 5},
+                    selected = True,
+                    required = {'encode': 'onehot'})},
+            'scaler': {
+                'gauss': Algorithm(
+                    name = 'gauss',
+                    module = None,
+                    algorithm = 'Gaussify',
+                    default = {'standardize': False, 'copy': False},
+                    selected = True,
+                    required = {'rescaler': 'standard'}),
+                'maxabs': Algorithm(
+                    name = 'maxabs',
+                    module = 'sklearn.preprocessing',
+                    algorithm = 'MaxAbsScaler',
+                    default = {'copy': False},
+                    selected = True),
+                'minmax': Algorithm(
+                    name = 'minmax',
+                    module = 'sklearn.preprocessing',
+                    algorithm = 'MinMaxScaler',
+                    default = {'copy': False},
+                    selected = True),
+                'normalize': Algorithm(
+                    name = 'normalize',
+                    module = 'sklearn.preprocessing',
+                    algorithm = 'Normalizer',
+                    default = {'copy': False},
+                    selected = True),
+                'quantile': Algorithm(
+                    name = 'quantile',
+                    module = 'sklearn.preprocessing',
+                    algorithm = 'QuantileTransformer',
+                    default = {'copy': False},
+                    selected = True),
+                'robust': Algorithm(
+                    name = 'robust',
+                    module = 'sklearn.preprocessing',
+                    algorithm = 'RobustScaler',
+                    default = {'copy': False},
+                    selected = True),
+                'standard': Algorithm(
+                    name = 'standard',
+                    module = 'sklearn.preprocessing',
+                    algorithm = 'StandardScaler',
+                    default = {'copy': False},
+                    selected = True)},
+            'splitter': {
+                'group_kfold': Algorithm(
+                    name = 'group_kfold',
+                    module = 'sklearn.model_selection',
+                    algorithm = 'GroupKFold',
+                    default = {'n_splits': 5},
+                    runtime = {'random_state': 'seed'},
+                    selected = True),
+                'kfold': Algorithm(
+                    name = 'kfold',
+                    module = 'sklearn.model_selection',
+                    algorithm = 'KFold',
+                    default = {'n_splits': 5, 'shuffle': False},
+                    runtime = {'random_state': 'seed'},
+                    selected = True,
+                    required = {'shuffle': True}),
+                'stratified': Algorithm(
+                    name = 'stratified',
+                    module = 'sklearn.model_selection',
+                    algorithm = 'StratifiedKFold',
+                    default = {'n_splits': 5, 'shuffle': False},
+                    runtime = {'random_state': 'seed'},
+                    selected = True,
+                    required = {'shuffle': True}),
+                'time': Algorithm(
+                    name = 'time',
+                    module = 'sklearn.model_selection',
+                    algorithm = 'TimeSeriesSplit',
+                    default = {'n_splits': 5},
+                    runtime = {'random_state': 'seed'},
+                    selected = True),
+                'train_test': Algorithm(
+                    name = 'train_test',
+                    module = 'sklearn.model_selection',
+                    algorithm = 'ShuffleSplit',
+                    default = {'test_size': 0.33},
+                    runtime = {'random_state': 'seed'},
+                    required = {'n_splits': 1},
+                    selected = True)},
+            'encoder': {
+                'backward': Algorithm(
+                    name = 'backward',
+                    module = 'category_encoders',
+                    algorithm = 'BackwardDifferenceEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'basen': Algorithm(
+                    name = 'basen',
+                    module = 'category_encoders',
+                    algorithm = 'BaseNEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'binary': Algorithm(
+                    name = 'binary',
+                    module = 'category_encoders',
+                    algorithm = 'BinaryEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'dummy': Algorithm(
+                    name = 'dummy',
+                    module = 'category_encoders',
+                    algorithm = 'OneHotEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'hashing': Algorithm(
+                    name = 'hashing',
+                    module = 'category_encoders',
+                    algorithm = 'HashingEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'helmert': Algorithm(
+                    name = 'helmert',
+                    module = 'category_encoders',
+                    algorithm = 'HelmertEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'james_stein': Algorithm(
+                    name = 'james_stein',
+                    module = 'category_encoders',
+                    algorithm = 'JamesSteinEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'loo': Algorithm(
+                    name = 'loo',
+                    module = 'category_encoders',
+                    algorithm = 'LeaveOneOutEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'm_estimate': Algorithm(
+                    name = 'm_estimate',
+                    module = 'category_encoders',
+                    algorithm = 'MEstimateEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'ordinal': Algorithm(
+                    name = 'ordinal',
+                    module = 'category_encoders',
+                    algorithm = 'OrdinalEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'polynomial': Algorithm(
+                    name = 'polynomial_encoder',
+                    module = 'category_encoders',
+                    algorithm = 'PolynomialEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'sum': Algorithm(
+                    name = 'sum',
+                    module = 'category_encoders',
+                    algorithm = 'SumEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'target': Algorithm(
+                    name = 'target',
+                    module = 'category_encoders',
+                    algorithm = 'TargetEncoder',
+                    data_dependent = {'cols': 'categoricals'}),
+                'woe': Algorithm(
+                    name = 'weight_of_evidence',
+                    module = 'category_encoders',
+                    algorithm = 'WOEEncoder',
+                    data_dependent = {'cols': 'categoricals'})},
+            'mixer': {
+                'polynomial': Algorithm(
+                    name = 'polynomial_mixer',
+                    module = 'sklearn.preprocessing',
+                    algorithm = 'PolynomialFeatures',
+                    default = {
+                        'degree': 2,
+                        'interaction_only': True,
+                        'include_bias': True}),
+                'quotient': Algorithm(
+                    name = 'quotient',
+                    module = None,
+                    algorithm = 'QuotientFeatures'),
+                'sum': Algorithm(
+                    name = 'sum',
+                    module = None,
+                    algorithm = 'SumFeatures'),
+                'difference': Algorithm(
+                    name = 'difference',
+                    module = None,
+                    algorithm = 'DifferenceFeatures')},
+            'cleaver': {},
+            'sampler': {
+                'adasyn': Algorithm(
+                    name = 'adasyn',
+                    module = 'imblearn.over_sampling',
+                    algorithm = 'ADASYN',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'}),
+                'cluster': Algorithm(
+                    name = 'cluster',
+                    module = 'imblearn.under_sampling',
+                    algorithm = 'ClusterCentroids',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'}),
+                'knn': Algorithm(
+                    name = 'knn',
+                    module = 'imblearn.under_sampling',
+                    algorithm = 'AllKNN',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'}),
+                'near_miss': Algorithm(
+                    name = 'near_miss',
+                    module = 'imblearn.under_sampling',
+                    algorithm = 'NearMiss',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'}),
+                'random_over': Algorithm(
+                    name = 'random_over',
+                    module = 'imblearn.over_sampling',
+                    algorithm = 'RandomOverSampler',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'}),
+                'random_under': Algorithm(
+                    name = 'random_under',
+                    module = 'imblearn.under_sampling',
+                    algorithm = 'RandomUnderSampler',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'}),
+                'smote': Algorithm(
+                    name = 'smote',
+                    module = 'imblearn.over_sampling',
+                    algorithm = 'SMOTE',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'}),
+                'smotenc': Algorithm(
+                    name = 'smotenc',
+                    module = 'imblearn.over_sampling',
+                    algorithm = 'SMOTENC',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'},
+                    data_dependent = {
+                        'categorical_features': 'categoricals_indices'}),
+                'smoteenn': Algorithm(
+                    name = 'smoteenn',
+                    module = 'imblearn.combine',
+                    algorithm = 'SMOTEENN',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'}),
+                'smotetomek': Algorithm(
+                    name = 'smotetomek',
+                    module = 'imblearn.combine',
+                    algorithm = 'SMOTETomek',
+                    default = {'sampling_strategy': 'auto'},
+                    runtime = {'random_state': 'seed'})},
+            'reducer': {
+                'kbest': Algorithm(
+                    name = 'kbest',
+                    module = 'sklearn.feature_selection',
+                    algorithm = 'SelectKBest',
+                    default = {'k': 10, 'score_func': 'f_classif'},
+                    selected = True),
+                'fdr': Algorithm(
+                    name = 'fdr',
+                    module = 'sklearn.feature_selection',
+                    algorithm = 'SelectFdr',
+                    default = {'alpha': 0.05, 'score_func': 'f_classif'},
+                    selected = True),
+                'fpr': Algorithm(
+                    name = 'fpr',
+                    module = 'sklearn.feature_selection',
+                    algorithm = 'SelectFpr',
+                    default = {'alpha': 0.05, 'score_func': 'f_classif'},
+                    selected = True),
+                'custom': Algorithm(
+                    name = 'custom',
+                    module = 'sklearn.feature_selection',
+                    algorithm = 'SelectFromModel',
+                    default = {'threshold': 'mean'},
+                    runtime = {'estimator': 'algorithm'},
+                    selected = True),
+                'rank': Algorithm(
+                    name = 'rank',
+                    module = 'simplify.critic.rank',
+                    algorithm = 'RankSelect',
+                    selected = True),
+                'rfe': Algorithm(
+                    name = 'rfe',
+                    module = 'sklearn.feature_selection',
+                    algorithm = 'RFE',
+                    default = {'n_features_to_select': 10, 'step': 1},
+                    runtime = {'estimator': 'algorithm'},
+                    selected = True),
+                'rfecv': Algorithm(
+                    name = 'rfecv',
+                    module = 'sklearn.feature_selection',
+                    algorithm = 'RFECV',
+                    default = {'n_features_to_select': 10, 'step': 1},
+                    runtime = {'estimator': 'algorithm'},
+                    selected = True)}}
+        model_options = {
+            'classify': {
+                'adaboost': Algorithm(
+                    name = 'adaboost',
+                    module = 'sklearn.ensemble',
+                    algorithm = 'AdaBoostClassifier'),
+                'baseline_classifier': Algorithm(
+                    name = 'baseline_classifier',
+                    module = 'sklearn.dummy',
+                    algorithm = 'DummyClassifier',
+                    required = {'strategy': 'most_frequent'}),
+                'logit': Algorithm(
+                    name = 'logit',
+                    module = 'sklearn.linear_model',
+                    algorithm = 'LogisticRegression'),
+                'random_forest': Algorithm(
+                    name = 'random_forest',
+                    module = 'sklearn.ensemble',
+                    algorithm = 'RandomForestClassifier'),
+                'svm_linear': Algorithm(
+                    name = 'svm_linear',
+                    module = 'sklearn.svm',
+                    algorithm = 'SVC',
+                    required = {'kernel': 'linear', 'probability': True}),
+                'svm_poly': Algorithm(
+                    name = 'svm_poly',
+                    module = 'sklearn.svm',
+                    algorithm = 'SVC',
+                    required = {'kernel': 'poly', 'probability': True}),
+                'svm_rbf': Algorithm(
+                    name = 'svm_rbf',
+                    module = 'sklearn.svm',
+                    algorithm = 'SVC',
+                    required = {'kernel': 'rbf', 'probability': True}),
+                'svm_sigmoid': Algorithm(
+                    name = 'svm_sigmoid ',
+                    module = 'sklearn.svm',
+                    algorithm = 'SVC',
+                    required = {'kernel': 'sigmoid', 'probability': True}),
+                'tensorflow': Algorithm(
+                    name = 'tensorflow',
+                    module = 'tensorflow',
+                    algorithm = None,
+                    default = {
+                        'batch_size': 10,
+                        'epochs': 2}),
+                'xgboost': Algorithm(
+                    name = 'xgboost',
+                    module = 'xgboost',
+                    algorithm = 'XGBClassifier',
+                    data_dependent = 'scale_pos_weight')},
+            'cluster': {
+                'affinity': Algorithm(
+                    name = 'affinity',
+                    module = 'sklearn.cluster',
+                    algorithm = 'AffinityPropagation'),
+                'agglomerative': Algorithm(
+                    name = 'agglomerative',
+                    module = 'sklearn.cluster',
+                    algorithm = 'AgglomerativeClustering'),
+                'birch': Algorithm(
+                    name = 'birch',
+                    module = 'sklearn.cluster',
+                    algorithm = 'Birch'),
+                'dbscan': Algorithm(
+                    name = 'dbscan',
+                    module = 'sklearn.cluster',
+                    algorithm = 'DBSCAN'),
+                'kmeans': Algorithm(
+                    name = 'kmeans',
+                    module = 'sklearn.cluster',
+                    algorithm = 'KMeans'),
+                'mean_shift': Algorithm(
+                    name = 'mean_shift',
+                    module = 'sklearn.cluster',
+                    algorithm = 'MeanShift'),
+                'spectral': Algorithm(
+                    name = 'spectral',
+                    module = 'sklearn.cluster',
+                    algorithm = 'SpectralClustering'),
+                'svm_linear': Algorithm(
+                    name = 'svm_linear',
+                    module = 'sklearn.cluster',
+                    algorithm = 'OneClassSVM'),
+                'svm_poly': Algorithm(
+                    name = 'svm_poly',
+                    module = 'sklearn.cluster',
+                    algorithm = 'OneClassSVM'),
+                'svm_rbf': Algorithm(
+                    name = 'svm_rbf',
+                    module = 'sklearn.cluster',
+                    algorithm = 'OneClassSVM,'),
+                'svm_sigmoid': Algorithm(
+                    name = 'svm_sigmoid',
+                    module = 'sklearn.cluster',
+                    algorithm = 'OneClassSVM')},
+            'regress': {
+                'adaboost': Algorithm(
+                    name = 'adaboost',
+                    module = 'sklearn.ensemble',
+                    algorithm = 'AdaBoostRegressor'),
+                'baseline_regressor': Algorithm(
+                    name = 'baseline_regressor',
+                    module = 'sklearn.dummy',
+                    algorithm = 'DummyRegressor',
+                    required = {'strategy': 'mean'}),
+                'bayes_ridge': Algorithm(
+                    name = 'bayes_ridge',
+                    module = 'sklearn.linear_model',
+                    algorithm = 'BayesianRidge'),
+                'lasso': Algorithm(
+                    name = 'lasso',
+                    module = 'sklearn.linear_model',
+                    algorithm = 'Lasso'),
+                'lasso_lars': Algorithm(
+                    name = 'lasso_lars',
+                    module = 'sklearn.linear_model',
+                    algorithm = 'LassoLars'),
+                'ols': Algorithm(
+                    name = 'ols',
+                    module = 'sklearn.linear_model',
+                    algorithm = 'LinearRegression'),
+                'random_forest': Algorithm(
+                    name = 'random_forest',
+                    module = 'sklearn.ensemble',
+                    algorithm = 'RandomForestRegressor'),
+                'ridge': Algorithm(
+                    name = 'ridge',
+                    module = 'sklearn.linear_model',
+                    algorithm = 'Ridge'),
+                'svm_linear': Algorithm(
+                    name = 'svm_linear',
+                    module = 'sklearn.svm',
+                    algorithm = 'SVC',
+                    required = {'kernel': 'linear', 'probability': True}),
+                'svm_poly': Algorithm(
+                    name = 'svm_poly',
+                    module = 'sklearn.svm',
+                    algorithm = 'SVC',
+                    required = {'kernel': 'poly', 'probability': True}),
+                'svm_rbf': Algorithm(
+                    name = 'svm_rbf',
+                    module = 'sklearn.svm',
+                    algorithm = 'SVC',
+                    required = {'kernel': 'rbf', 'probability': True}),
+                'svm_sigmoid': Algorithm(
+                    name = 'svm_sigmoid ',
+                    module = 'sklearn.svm',
+                    algorithm = 'SVC',
+                    required = {'kernel': 'sigmoid', 'probability': True}),
+                'xgboost': Algorithm(
+                    name = 'xgboost',
+                    module = 'xgboost',
+                    algorithm = 'XGBRegressor',
+                    data_dependent = 'scale_pos_weight')}}
+        gpu_options = {
+            'classify': {
+                'forest_inference': Algorithm(
+                    name = 'forest_inference',
+                    module = 'cuml',
+                    algorithm = 'ForestInference'),
+                'random_forest': Algorithm(
+                    name = 'random_forest',
+                    module = 'cuml',
+                    algorithm = 'RandomForestClassifier'),
+                'logit': Algorithm(
+                    name = 'logit',
+                    module = 'cuml',
+                    algorithm = 'LogisticRegression')},
+            'cluster': {
+                'dbscan': Algorithm(
+                    name = 'dbscan',
+                    module = 'cuml',
+                    algorithm = 'DBScan'),
+                'kmeans': Algorithm(
+                    name = 'kmeans',
+                    module = 'cuml',
+                    algorithm = 'KMeans')},
+            'regressor': {
+                'lasso': Algorithm(
+                    name = 'lasso',
+                    module = 'cuml',
+                    algorithm = 'Lasso'),
+                'ols': Algorithm(
+                    name = 'ols',
+                    module = 'cuml',
+                    algorithm = 'LinearRegression'),
+                'ridge': Algorithm(
+                    name = 'ridge',
+                    module = 'cuml',
+                    algorithm = 'RidgeRegression')}}
+        self.dictionary['modeler'] = model_options[
+            self.project.idea['chef']['model_type']]
+        if self.project.idea['general']['gpu']:
+            self.dictionary['modeler'].update(
+                gpu_options[idea['chef']['model_type']])
+        return self
 
 
 @dataclass
@@ -574,8 +595,8 @@ class Cookbook(Book):
         steps (Optional[List[str], str]): ordered list of steps to execute. Each
             step should match a key in 'contents'. If a string is passed, it is
             converted to a 1-item list. Defaults to an empty list.
-        contents (Optional['Contents']): stores SimpleOutlines or
-            subclasses in a Contents instance which can be iterated in
+        contents (Optional['SimpleCatalog']): stores SimpleOutlines or
+            subclasses in a SimpleCatalog instance which can be iterated in
             'chapters'. Defaults to an empty dictionary.
         chapters (Optional[List['Chapter']]): a list of Chapter instances that
             include a series of SimpleOutline or Technique instances to be applied
@@ -596,7 +617,7 @@ class Cookbook(Book):
     name: Optional[str] = 'chef'
     steps: List[str] = field(default_factory = list)
     outline: Optional['SimpleOutline'] = None
-    library: 'Contents' = field(default_factory = dict)
+    workers: 'SimpleCatalog' = field(default_factory = dict)
     chapters: List['Chapter'] = field(default_factory = list)
     iterable: Optional[str] = 'recipes'
     file_format: Optional[str] = 'pickle'
@@ -643,7 +664,7 @@ class Cookbook(Book):
         # columns = self.ingredients.make_column_list(
         #     prefixes = prefixes,
         #     columns = columns)
-        # self.library['cleaver'].add_techniques(
+        # self.workers['cleaver'].add_techniques(
         #     cleave_group = cleave_group,
         #     columns = columns)
         # self.cleaves.append(cleave_group)

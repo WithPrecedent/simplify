@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.typesetter import SimpleDirector
 from simplify.core.typesetter import Option
@@ -37,7 +37,7 @@ class Modeler(SimpleDirector):
     """ Private Methods """
 
     def _add_gpu_steps_classify(self) -> None:
-        self.library.update({
+        self.workers.update({
             'forest_inference': Option(
                 name = 'forest_inference',
                 module = 'cuml',
@@ -53,7 +53,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _add_gpu_steps_cluster(self) -> None:
-        self.library.update({
+        self.workers.update({
             'dbscan': Option(
                 name = 'dbscan',
                 module = 'cuml',
@@ -65,7 +65,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _add_gpu_steps_regress(self) -> None:
-        self.library.update({
+        self.workers.update({
             'lasso': Option(
                 name = 'lasso',
                 module = 'cuml',
@@ -81,7 +81,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_classify(self) -> None:
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'adaboost': Option(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',
@@ -134,7 +134,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_cluster(self) -> None:
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'affinity': Option(
                 name = 'affinity',
                 module = 'sklearn.cluster',
@@ -182,7 +182,7 @@ class Modeler(SimpleDirector):
         return self
 
     def _draft_regress(self) -> None:
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'adaboost': Option(
                 name = 'adaboost',
                 module = 'sklearn.ensemble',

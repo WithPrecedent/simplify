@@ -41,7 +41,7 @@ class Rank(CriticTechnique):
 
     def _get_permutation_importances(self, recipe):
         scorer = listify(self.metrics_steps)[0]
-        base_score, score_decreases = self.library[self.step](
+        base_score, score_decreases = self.workers[self.step](
                 score_func = scorer,
                 x = getattr(recipe.ingredients, 'x_' + self.data_to_review),
                 y = getattr(recipe.ingredients, 'y_' + self.data_to_review))
@@ -107,5 +107,5 @@ class RankSelect(CriticTechnique):
         return self
 
     def draft(self) -> None:
-        self._options = Contents(options = {}
+        self._options = SimpleCatalog(options = {}
         return self

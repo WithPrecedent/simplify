@@ -6,45 +6,15 @@
 :license: Apache-2.0
 """
 
+from collections.abc import Container
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+from simplify.core.base import SimpleCatalog
 from simplify.core.base import SimpleManuscript
-from simplify.core.base import SimpleOptions
 from simplify.core.base import SimpleOutline
-
-
-@dataclass
-class BookOutline(SimpleOutline):
-    """Object construction techniques used by SimpleEditor instances.
-
-    Ideally, this class should have no additional methods beyond the lazy
-    loader ('load' method) and __contains__ dunder method.
-
-    Users can use the idiom 'x in Option' to check if a particular attribute
-    exists and is not None. This means default values for optional arguments
-    should generally be set to None to allow use of that idiom.
-
-    Args:
-        name (str): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier.
-        module (str): name of module where object to incorporate is located
-            (can either be a siMpLify or non-siMpLify module).
-        component (str): name of attribute containing the name of the python
-            object within 'module' to load.
-        book (str): name of Book object in 'module' to load. Defaults to None.
-
-    """
-    name: str
-    module: str
-    component: str = 'book'
-    book: str = None
+from simplify.core.base import SimpleProgression
 
 
 @dataclass
@@ -61,59 +31,46 @@ class Book(SimpleManuscript):
             __class__.__name__ to make such subclassing easier. Defaults to
             None or __class__.__name__.lower() if super().__post_init__ is
             called.
-        steps (Optional[List[str], str]): ordered list of steps to execute. Each
-            step should match a key in 'contents'. If a string is passed, it is
-            converted to a 1-item list. Defaults to an empty list.
-        contents (Optional['Contents']): stores an Contents instance
-            or subclasses which can be iterated in 'chapters'. Defaults to an
-            empty dictionary.
-        chapters (Optional[List['Chapter']]): a list of Chapter instances that
-            include a series of Technique instances to be applied to passed
-            data. Defaults to an empty list.
+        techiques (Optional['SimpleCatalog']): a dictionary of options with
+            'Technique' instances stored by step. Defaults to an empty
+            'SimpleCatalog' instance.
         iterable(Optional[str]): name of attribute for storing the main class
             instance iterable (called by __iter___). Defaults to 'chapters'.
-        returns_data (Optional[bool]): whether the Book instance's 'apply'
-            method returns data when iterated. If False, nothing is returned.
-            If true, 'data' is returned. Defaults to True.
+        returns_data (Optional[bool]): whether the Scholar instance's 'apply'
+            expects data when the Book instance is iterated. If False, nothing
+            is returned. If true, 'data' is returned. Defaults to True.
 
     """
-    name: Optional[str] = None
+    name: str = None
     iterable: Optional[str] = 'chapters'
+    techniques: Optional['SimpleCatalog'] = field(
+        default_factory = SimpleCatalog)
+    chapters: Optional[List['Chapter']] = field(default_factory = list)
     returns_data: Optional[bool] = True
 
+    """ Public Methods """
 
-@dataclass
-class ChapterOutline(SimpleOutline):
-    """Object construction techniques used by SimpleEditor instances.
+    def add_chapters(self, chapters: Union['Chapter', List['Chapter']]) -> None:
+        if isinstance(chapters, list):
+            self.chapters.extend(chapters)
+        else:
+            self.chapters.append(chapters)
+        return self
 
-    Ideally, this class should have no additional methods beyond the lazy
-    loader ('load' method) and __contains__ dunder method.
+    def add_techniques(self, techniques: 'MutableMapping') -> None:
+        self.techniques.add(techniques = techniques)
+        return self
 
-    Users can use the idiom 'x in Option' to check if a particular attribute
-    exists and is not None. This means default values for optional arguments
-    should generally be set to None to allow use of that idiom.
+    """ Iterable Proxy Property """
 
-    Args:
-        name (str): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier.
-        module (str): name of module where object to incorporate is located
-            (can either be a siMpLify or non-siMpLify module).
-        component (str): name of attribute containing the name of the python
-            object within 'module' to load.
-        chapter (str): name of Chapter object in 'module' to load. Defaults to
-            None.
+    @property
+    def chapters(self) -> List['Chapter']:
+        return getattr(self, self.iterable)
 
-    """
-    name: str
-    module: str
-    component: str = 'chapter'
-    chapter: str = None
-    metadata: Optional[Dict[str, Any]] = field(default_factory = dict)
+    @chapters.setter
+    def chapters(self, name: str) -> None:
+        self.iterable = name
+        return self
 
 
 @dataclass
@@ -148,13 +105,27 @@ class Chapter(SimpleManuscript):
 
     """
     name: Optional[str] = None
-    number: Optional[int] = 0
     iterable: Optional[str] = 'techniques'
+    book: Optional['Book'] = None
+    number: Optional[int] = 0
+    techniques: Optional['SimpleProgression'] = field(
+        default_factory = SimpleProgression)
     returns_data: Optional[bool] = True
+
+    """ Iterable Proxy Property """
+
+    @property
+    def techniques(self) -> 'SimpleProgression':
+        return getattr(self, self.iterable)
+
+    @techniques.setter
+    def techniques(self, name: str) -> None:
+        self.iterable = name
+        return self
 
 
 @dataclass
-class TechniqueOutline(SimpleOutline):
+class Algorithm(SimpleOutline):
     """Contains settings for creating a Technique instance.
 
     Args:
@@ -168,9 +139,7 @@ class TechniqueOutline(SimpleOutline):
             provided, __class__.__name__.lower() is used instead.
         module (str): name of module where object to incorporate is located
             (can either be a siMpLify or non-siMpLify object).
-        component (str): name of attribute containing the name of the python
-            object within 'module' to load. Defaults to 'technique'.
-        technique: str = None
+        algorithm: str = None
         default: Optional[Dict[str, Any]] = field(default_factory = dict)
         required: Optional[Dict[str, Any]] = field(default_factory = dict)
         runtime: Optional[Dict[str, str]] = field(default_factory = dict)
@@ -181,8 +150,7 @@ class TechniqueOutline(SimpleOutline):
     """
     name: str
     module: str
-    component: str = 'technique'
-    technique: str = None
+    algorithm: str = None
     default: Optional[Dict[str, Any]] = field(default_factory = dict)
     required: Optional[Dict[str, Any]] = field(default_factory = dict)
     runtime: Optional[Dict[str, str]] = field(default_factory = dict)
@@ -192,7 +160,7 @@ class TechniqueOutline(SimpleOutline):
 
 
 @dataclass
-class Technique(SimpleManuscript):
+class Technique(Container):
     """Core iterable for sequences of methods to apply to passed data.
 
     Args:
@@ -215,9 +183,9 @@ class Technique(SimpleManuscript):
             If true, 'data' is returned. Defaults to True.
 
     """
-    book: Optional['Book'] = None
     name: Optional[str] = None
     technique: Optional[str] = None
+    algorithm: Optional[object] = None
     parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
     data_dependent: Optional[Dict[str, str]] = field(default_factory = dict)
     returns_data: Optional[bool] = True
@@ -235,11 +203,3 @@ class Technique(SimpleManuscript):
 
         """
         return item == self.technique
-
-    def __iter__(self) -> NotImplementedError:
-        """Technique instances cannot be iterated."""
-        raise NotImplementedError('Technique instances cannot be iterated.')
-
-    def __len__(self) -> NotImplementedError:
-        """Technique instances have no length."""
-        raise NotImplementedError('Technique instances have no length.')

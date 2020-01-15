@@ -78,7 +78,7 @@ largely been omitted from existing efforts to simplify machine learning.
 
 ### siMpLify Critic
 
-As part of any machine learning workflow, assessment of prepared models is an essential component. The Critic subpackage divides the evaluation process into four major stages:
+As part of any machine learning workflow, assessment of prepared models is an essential entity. The Critic subpackage divides the evaluation process into four major stages:
 * Summarize: building beyond the pandas describe method, this step includes a wide number of summary statistics for the user data, appropriately calculated based upon the data type of a particular variable.
 * Score: automatically determining the compatibility of various scikit-learn and/or user-provided metrics, results for each recipe are calcuated.
 * Evaluate: using explainers from shap, skater, and eli5, the various recipes are evaluated, feature importances calculated, and cumulative comparisons are made.

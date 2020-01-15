@@ -1,5 +1,5 @@
 """
-.. module:: idea tests
+.. module:: idea test
 :synopsis: tests Idea class
 :author: Corey Rayburn Yung
 :copyright: 2019

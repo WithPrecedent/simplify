@@ -10,13 +10,13 @@ from abc import ABC
 from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Contents(MutableMapping, ABC):
+class SimpleCatalog(MutableMapping, ABC):
     """Base class for storing options and strategies."""
 
     def __post_init__(self) -> None:
@@ -101,23 +101,23 @@ class Contents(MutableMapping, ABC):
 
     """ Other Dunder Methods """
 
-    def __add__(self, other: Union['Contents', Dict[str, Any]]) -> None:
+    def __add__(self, other: Union['SimpleCatalog', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['Contents', Dict[str, Any]]): another
-                'Contents' instance or compatible dictionary.
+            other (Union['SimpleCatalog', Dict[str, Any]]): another
+                'SimpleCatalog' instance or compatible dictionary.
 
         """
         self.add(options = other)
         return self
 
-    def __iadd__(self, other: Union['Contents', Dict[str, Any]]) -> None:
+    def __iadd__(self, other: Union['SimpleCatalog', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['Contents', Dict[str, Any]]): another
-                'Contents' instance or compatible dictionary.
+            other (Union['SimpleCatalog', Dict[str, Any]]): another
+                'SimpleCatalog' instance or compatible dictionary.
 
         """
         self.add(options = other)
@@ -129,7 +129,7 @@ class Contents(MutableMapping, ABC):
             key: Optional[str] = None,
             value: Optional[Any] = None,
             options: Optional[Union[
-                'Contents', Dict[str, Any]]] = None) -> None:
+                'SimpleCatalog', Dict[str, Any]]] = None) -> None:
         """Combines arguments with the 'lexicon' dictionary.
 
         Args:
@@ -137,8 +137,8 @@ class Contents(MutableMapping, ABC):
                 None.
             value (Optional[Any]): item to store in the 'lexicon' dictionary.
                 Defaults to None.
-            options (Optional[Union['Contents', Dict[str, Any]]]):
-                another 'Contents' instance or a compatible dictionary.
+            options (Optional[Union['SimpleCatalog', Dict[str, Any]]]):
+                another 'SimpleCatalog' instance or a compatible dictionary.
                 Defaults to None.
 
         """
@@ -155,113 +155,9 @@ class Contents(MutableMapping, ABC):
                     pass
         return self
 
-    """ Wildcard Properties """
-
-    @property
-    def all(self) -> List[str]:
-        """Returns list of keys of the 'lexicon' dictionary.
-
-        Returns:
-            List[str] of keys stored in the 'lexicon' dictionary.
-
-        """
-        return list(self.keys())
-
-    @property
-    def default(self) -> List[str]:
-        """Returns '_default' or list of keys of the 'lexicon' dictionary.
-
-        Returns:
-            List[str] of keys stored in '_default' or the 'lexicon' dictionary.
-
-        """
-        try:
-            return self._default
-        except AttributeError:
-            self._default = self.all
-            return self._default
-
-    @default.setter
-    def default(self, options: Union[List[str], str]) -> None:
-        """Sets '_default' to 'options'
-
-        Args:
-            'options' (Union[List[str], str]): list of keys in the lexicon
-                dictionary to return when 'default' is accessed.
-
-        """
-        self._default = listify(options)
-        return self
-
-    @default.deleter
-    def default(self, options: Union[List[str], str]) -> None:
-        """Removes 'options' from '_default'.
-
-        Args:
-            'options' (Union[List[str], str]): list of keys in the lexicon
-                dictionary to remove from '_default'.
-
-        """
-        for option in listify(options):
-            try:
-                del self._default[option]
-            except KeyError:
-                pass
-            except AttributeError:
-                self._default = self.all
-                del self.default[options]
-        return self
-
 
 @dataclass
-class SimpleOptions():
-    """Base class for storing options and strategies.
-
-    Args:
-        project (Optional['Project']): associated Project instance. Defaults to
-            None.
-        options (Optional[str, Any]): default stored dictionary. Defaults to an
-            empty dictionary.
-        null_value (Optional[Any]): value to return when 'none' is accessed.
-            Defaults to None.
-
-    """
-    project: Optional['Project'] = None
-    options: Optional[Dict[str, Any]] = field(default_factory = dict)
-    null_value: Optional[Any] = None
-
-    def __post_init__(self) -> None:
-        """Sets name of internal 'lexicon' dictionary."""
-        self.lexicon = 'options'
-        self.wildcards = ['default', 'all', 'none']
-        super().__post_init__()
-        return self
-
-    """ Wildcard Properties """
-
-    @property
-    def none(self) -> None:
-        """Returns 'null_value'.
-
-        Returns:
-            'null_value' attribute or None.
-
-        """
-        return self.null_value
-
-    @default.setter
-    def none(self, null_value: Any) -> None:
-        """Sets 'none' to 'null_value'.
-
-        Args:
-            null_value (Any): value to return when 'none' is sought.
-
-        """
-        self.null_value = null_value
-        return self
-
-@dataclass
-class SimpleData(Contents):
+class SimpleData(SimpleCatalog):
     """Base class for storing pandas data objects."""
 
     datasets: Optional[Dict[str, Union[pd.Series, pd.DataFrame]]] = field(
@@ -280,23 +176,23 @@ class SimpleData(Contents):
 
     """ Dunder Methods """
 
-    def __add__(self, other: Union['Contents', Dict[str, Any]]) -> None:
+    def __add__(self, other: Union['SimpleCatalog', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['Contents', Dict[str, Any]]): another
-                'Contents' instance or compatible dictionary.
+            other (Union['SimpleCatalog', Dict[str, Any]]): another
+                'SimpleCatalog' instance or compatible dictionary.
 
         """
         self.add(options = other)
         return self
 
-    def __iadd__(self, other: Union['Contents', Dict[str, Any]]) -> None:
+    def __iadd__(self, other: Union['SimpleCatalog', Dict[str, Any]]) -> None:
         """Combines argument with the 'lexicon' dictionary.
 
         Args:
-            other (Union['Contents', Dict[str, Any]]): another
-                'Contents' instance or compatible dictionary.
+            other (Union['SimpleCatalog', Dict[str, Any]]): another
+                'SimpleCatalog' instance or compatible dictionary.
 
         """
         self.add(options = other)
@@ -322,7 +218,7 @@ class SimpleData(Contents):
             key: Optional[str] = None,
             value: Optional[Any] = None,
             options: Optional[Union[
-                'Contents', Dict[str, Any]]] = None) -> None:
+                'SimpleCatalog', Dict[str, Any]]] = None) -> None:
         """Combines arguments with the 'lexicon' dictionary.
 
         Args:
@@ -330,8 +226,8 @@ class SimpleData(Contents):
                 None.
             value (Optional[Any]): item to store in the 'lexicon' dictionary.
                 Defaults to None.
-            options (Optional[Union['Contents', Dict[str, Any]]]):
-                another 'Contents' instance or a compatible dictionary.
+            options (Optional[Union['SimpleCatalog', Dict[str, Any]]]):
+                another 'SimpleCatalog' instance or a compatible dictionary.
                 Defaults to None.
 
         """
@@ -351,7 +247,7 @@ class SimpleData(Contents):
 
 
 @dataclass
-class SimpleDatatypes(Contents):
+class SimpleDatatypes(SimpleCatalog):
 
     self.datatypes = {
         'boolean': bool,

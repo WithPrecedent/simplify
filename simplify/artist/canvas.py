@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.chapter import Chapter
 from simplify.core.book import Book
@@ -71,7 +71,7 @@ class Canvas(Book):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'styler': ('simplify.artist.steps.styler', 'Styler'),
             'painter': ('simplify.artist.steps.paint', 'Painter'),
             'animator': ('simplify.artist.steps.animator', 'Animator')}

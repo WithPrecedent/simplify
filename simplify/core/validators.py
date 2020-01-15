@@ -11,12 +11,12 @@ from functools import wraps
 from importlib import import_module
 from inspect import signature
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, Tuple
 
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleConformer
+from simplify.core.base import SimpleValidator
 from simplify.core.idea import Idea
 from simplify.core.ingredients import Ingredient
 from simplify.core.ingredients import Ingredients
@@ -25,9 +25,9 @@ from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
 
-""" Conformer Decorators """
+""" Validator Decorators """
 
-def SimplifyConformer(SimpleConformer):
+def SimplifyValidator(SimpleValidator):
     """Decorator for converting siMpLify objects to proper types.
 
     By default, this decorator checks the following parameters:
@@ -46,14 +46,14 @@ def SimplifyConformer(SimpleConformer):
 
         """
         self.validators = {
-            'idea': validate_idea,
-            'ingredient': validate_ingredient,
-            'ingredients': validate_ingredients,
-            'inventory': validate_inventory}
+            'idea': create_idea,
+            'ingredient': create_ingredient,
+            'ingredients': create_ingredients,
+            'inventory': create_inventory}
         super().__init__()
         return self
 
-def DataConformer(SimpleConformer):
+def DataValidator(SimpleValidator):
     """Decorator for converting data objects to proper types.
 
     By default, this decorator checks any arguments that begin with 'x_', 'X_',
@@ -74,8 +74,8 @@ def DataConformer(SimpleConformer):
 
         """
         self.validators = {
-            'x': self._validate_df,
-            'y': self._validate_series}
+            'x': self._create_df,
+            'y': self._create_series}
         super().__init__()
         return self
 
@@ -104,13 +104,13 @@ def DataConformer(SimpleConformer):
 
     """ Private Methods """
 
-    def _validate_df(self, x: Union[pd.DataFrame, np.ndarray]) -> pd.DataFrame:
+    def _create_df(self, x: Union[pd.DataFrame, np.ndarray]) -> pd.DataFrame:
         if isinstance(x, np.ndarray):
             return pd.DataFrame(x, columns = self.x_columns)
         else:
             return x
 
-    def _validate_series(self, y: Union[pd.Series, np.ndarray]) -> pd.Series:
+    def _create_series(self, y: Union[pd.Series, np.ndarray]) -> pd.Series:
         if isinstance(y, np.ndarray):
             try:
                 return pd.Series(y, name = self.y_name)
@@ -187,7 +187,7 @@ def DataConformer(SimpleConformer):
         else:
             return result
 
-def ColumnsConformer(SimpleConformer):
+def ColumnsValidator(SimpleValidator):
     """Decorator for creating column lists for wrapped methods."""
 
     def __init__(self, callable: Callable) -> None:
@@ -198,10 +198,10 @@ def ColumnsConformer(SimpleConformer):
 
         """
         self.validators = {
-            'columns': self._validate_columns,
-            'prefixes': self._validate_prefixes,
-            'suffixes': self._validate_suffixes,
-            'mask': self._validate_mask}
+            'columns': self._create_columns,
+            'prefixes': self._create_prefixes,
+            'suffixes': self._create_suffixes,
+            'mask': self._create_mask}
         super().__init__()
         return self
 
@@ -224,7 +224,7 @@ def ColumnsConformer(SimpleConformer):
 
     """ Private Methods """
 
-    def _validate_columns(self,
+    def _create_columns(self,
         arguments: Dict[str, Union[List[str], str]]) -> Dict[str, List[str]]:
         try:
             arguments['columns'] = listify(arguments['columns'])
@@ -232,16 +232,7 @@ def ColumnsConformer(SimpleConformer):
             arguments['columns'] = []
         return arguments
 
-    def _validate_prefixes(self,
-        arguments: Dict[str, Union[List[str], str]]) -> Dict[str, List[str]]:
-        try:
-            arguments['columns'] = listify(arguments['columns'])
-        except KeyError:
-            arguments['columns'] = []
-        return arguments
-
-
-    def _validate_suffixes(self,
+    def _create_prefixes(self,
         arguments: Dict[str, Union[List[str], str]]) -> Dict[str, List[str]]:
         try:
             arguments['columns'] = listify(arguments['columns'])
@@ -250,7 +241,16 @@ def ColumnsConformer(SimpleConformer):
         return arguments
 
 
-    def _validate_mask(self,
+    def _create_suffixes(self,
+        arguments: Dict[str, Union[List[str], str]]) -> Dict[str, List[str]]:
+        try:
+            arguments['columns'] = listify(arguments['columns'])
+        except KeyError:
+            arguments['columns'] = []
+        return arguments
+
+
+    def _create_mask(self,
         arguments: Dict[str, Union[List[str], str]]) -> Dict[str, List[str]]:
         try:
             arguments['columns'] = listify(arguments['columns'])

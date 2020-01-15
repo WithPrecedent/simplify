@@ -12,7 +12,7 @@ from inspect import signature
 from pathlib import Path
 import time
 from types import FunctionType
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from more_itertools import unique_everseen
 import numpy as np
@@ -237,7 +237,9 @@ def typify(variable: str) -> Union[List, int, float, bool, str]:
     Returns:
         variable (str, list, int, float, or bool): converted variable.
     """
-    if ', ' in variable:
+    if isinstance(variable, bool):
+        return variable
+    elif ', ' in variable:
         variable = variable.split(', ')
         return [numify(v) for v in variable]
     else:

@@ -8,11 +8,12 @@
 
 import numpy as np
 import pandas as pd
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.idea import validate_idea
-from simplify.core.ingredients import validate_ingredients
-from simplify.core.inventory import validate_inventory
+from simplify.core.idea import create_idea
+from simplify.core.ingredients import create_ingredients
+from simplify.core.inventory import create_inventory
+from simplify.core.workers import create_workers
 
 
 def startup(
@@ -58,14 +59,17 @@ def startup(
         Idea, Inventory, Ingredients instances.
 
     """
-    idea = validate_idea(idea = idea)
+    idea = create_idea(idea = idea)
     idea.project = project
-    inventory = validate_inventory(
+    inventory = create_inventory(
         inventory = inventory,
         idea = idea)
     inventory.project = project
-    ingredients = validate_ingredients(
+    ingredients = create_ingredients(
         ingredients = ingredients,
         inventory = inventory)
     ingredients.project = project
-    return idea, inventory, ingredients
+    workers = create_workers(
+        workers = workers,
+        project = project)
+    return idea, inventory, ingredients, workers

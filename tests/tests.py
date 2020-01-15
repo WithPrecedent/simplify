@@ -1,6 +1,6 @@
 """
 .. module:: tests
-:synopsis: tests of core siMpLify components
+:synopsis: tests of core siMpLify entitys
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0

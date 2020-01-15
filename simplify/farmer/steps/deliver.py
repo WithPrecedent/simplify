@@ -48,11 +48,11 @@ class Deliver(SimpleIterable):
         return self
 
     def _publish_shapers(self, harvest):
-        self.algorithm = self.library[self.step](**self.parameters)
+        self.algorithm = self.workers[self.step](**self.parameters)
         return self
 
     def _publish_streamliners(self, harvest):
-        self.algorithm = self.library[self.step](**self.parameters)
+        self.algorithm = self.workers[self.step](**self.parameters)
         return self
 
     def draft(self) -> None:

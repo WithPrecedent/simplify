@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -41,7 +41,7 @@ class Summarize(SimpleDirector):
     def draft(self) -> None:
         """Sets options for Summarize class."""
         super().draft()
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'count': Option(
                 name = 'count',
                 module = 'numpy.ndarray',

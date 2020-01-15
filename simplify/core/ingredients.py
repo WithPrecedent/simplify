@@ -11,15 +11,15 @@ from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
 from datetime import timedelta
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 from numpy import datetime64
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from simplify.core.base import SimpleState
 from simplify.core.base import SimpleType
+from simplify.core.states import SimpleState
 from simplify.core.utilities import listify
 
 
@@ -698,7 +698,7 @@ class DataProxies(MutableMapping):
 
 """ Validator Functions """
 
-def validate_ingredients(
+def create_ingredients(
         ingredients: Union[
             'Ingredients',
             pd.DataFrame,
@@ -733,20 +733,20 @@ def validate_ingredients(
     elif isinstance(ingredients, list):
         data = {}
         for i, ingredient in enumerate(ingredients):
-            data.update({''.join(['data'], str(i)): validate_ingredient(
+            data.update({''.join(['data'], str(i)): create_ingredient(
                 ingredient = ingredient,
                 inventory = inventory)})
         return Ingredients(ingredients = data)
     elif isinstance(ingredients, dict):
         data = {}
         for name, ingredient in ingredients.items():
-            data[name] = validate_ingredient(
+            data[name] = create_ingredient(
                 ingredient = ingredient,
                 inventory = inventory)
         return Ingredients(ingredients = data)
     elif isinstance(ingredients, (pd.Series, pd.DataFrame, np.ndarray, str)):
         return Ingredients(ingredients = {
-            'data': validate_ingredient(
+            'data': create_ingredient(
                 ingredient = ingredients,
                 inventory = inventory)})
     else:
@@ -754,7 +754,7 @@ def validate_ingredients(
             ['ingredients must be a file path, file folder, DataFrame, Series',
              'None, Ingredients, or numpy array']))
 
-def validate_ingredient(
+def create_ingredient(
         ingredient: Union['Ingredient', pd.DataFrame, pd.Series, np.ndarray,
             str],
         inventory: 'Inventory') -> 'Ingredient':

@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.typesetter import SimpleDirector
 from simplify.core.typesetter import Option
@@ -37,7 +37,7 @@ class Reducer(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'kbest': Option(
                 name = 'kbest',
                 module = 'sklearn.feature_selection',
@@ -94,7 +94,7 @@ class Reducer(SimpleDirector):
     #     if not estimator:
     #         estimator = plan.model.algorithm
     #     self._set_parameters(estimator)
-    #     self.algorithm = self.library[self.step](**self.parameters)
+    #     self.algorithm = self.workers[self.step](**self.parameters)
     #     if len(ingredients.x_train.columns) > self.num_features:
     #         self.algorithm.fit(ingredients.x_train, ingredients.y_train)
     #         mask = ~self.algorithm.get_support()

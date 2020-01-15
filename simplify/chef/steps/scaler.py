@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.typesetter import SimpleDirector
 from simplify.core.typesetter import Option
@@ -37,7 +37,7 @@ class Scaler(SimpleDirector):
 
     def draft(self) -> None:
         super().draft()
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'bins': Option(
                 name = 'bins',
                 module = 'sklearn.preprocessing',
@@ -124,9 +124,9 @@ class Scaler(SimpleDirector):
 #                 copy = self.parameters['copy'])
 #         del self.parameters['rescaler']
 #         self._publish_parameters()
-#         self.positive_tool = self.library['box_cox'](
+#         self.positive_tool = self.workers['box_cox'](
 #                 method = 'box_cox', **self.parameters)
-#         self.negative_tool = self.library['yeo_johnson'](
+#         self.negative_tool = self.workers['yeo_johnson'](
 #                 method = 'yeo_johnson', **self.parameters)
 #         return self
 

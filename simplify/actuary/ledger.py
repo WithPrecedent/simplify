@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -70,7 +70,7 @@ class Ledger(Book):
             if df[column].dtype == bool:
                 df[column] = df[column].astype(int)
             if df[column].dtype.kind in 'bifcu':
-                for key, value in self.library.items():
+                for key, value in self.workers.items():
                     if isinstance(value, str):
                         row[key] = getattr(df[column], value)()
                     elif isinstance(value, list):
@@ -86,7 +86,7 @@ class Ledger(Book):
         return self
 
     def _start_report(self):
-        self.columns = ['variable'] + (list(self.library.keys()))
+        self.columns = ['variable'] + (list(self.workers.keys()))
         self.report = pd.DataFrame(columns = self.columns)
         return self
 
@@ -94,7 +94,7 @@ class Ledger(Book):
 
     def draft(self) -> None:
         """Sets default options for the Actuary's analysis."""
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'summary': ('simplify.actuary.steps.summarize', 'Summarize'),
             'test': ('simplify.actuary.steps.test', 'Test')}
         # Sets plan container

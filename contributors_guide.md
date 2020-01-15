@@ -1,6 +1,6 @@
 # Contribution Guidelines
 
-siMpLify uses a code structure patterned after the writing process. Each major subpackage in the siMpLify package  (Farmer, Chef, Actuary, Critic, Artist)creates a Book object which contains particular implementations (Chapters) which have one or more steps (Contents).
+siMpLify uses a code structure patterned after the writing process. Each major subpackage in the siMpLify package  (Farmer, Chef, Actuary, Critic, Artist)creates a Book object which contains particular implementations (Chapters) which have one or more steps (SimpleCatalog).
 
     Farmer creates an Almanac of Plans.
     Chef creates a Cookbook of Recipes.
@@ -8,7 +8,7 @@ siMpLify uses a code structure patterned after the writing process. Each major s
     Critic creates a Collection of Reviews.
     Artist creates a Canvas of Illustrations.
 
-siMpLify is fully extensible. Additional subpackages, Books, Chapters, and Contents can be added to a Project. To contribute to siMpLify, please follow these basic rules:
+siMpLify is fully extensible. Additional subpackages, Books, Chapters, and SimpleCatalog can be added to a Project. To contribute to siMpLify, please follow these basic rules:
 
 ## Style
 
@@ -31,7 +31,7 @@ please wrap them in a function or method (as with the 'add_suffix' and 'add_pref
     * publish: finalizes attributes after any runtime changes. (required).
     * apply: applies selected options to passed arguments (optional).
 
-Any new subpackages, Books, Chapters, and Contents should follow a similar template. All classes within siMpLify should use the new @dataclass accessor to minimize boilerplate code (introduced in python 3.7)
+Any new subpackages, Books, Chapters, and SimpleCatalog should follow a similar template. All classes within siMpLify should use the new @dataclass accessor to minimize boilerplate code (introduced in python 3.7)
 
 2. siMpLify lazily (runtime) loads most external and internal modules. This is done to lower overhead and incorporate "soft" dependencies. As a result, contributions hould follow these general idioms for importing objects within modules.
 
@@ -43,9 +43,9 @@ Any new subpackages, Books, Chapters, and Contents should follow a similar templ
 
         from importlib import import_module
 
-        getattr(import_module(self.library[key][0]), self.library[key][1])
+        getattr(import_module(self.workers[key][0]), self.workers[key][1])
 
-    For Technique-level classes, a special class has been created to construct needed external and internal objects. It is the Option class in the Contributor module. Follow the documentation there for creating Contents.
+    For Technique-level classes, a special class has been created to construct needed external and internal objects. It is the Option class in the Contributor module. Follow the documentation there for creating SimpleCatalog.
 
     Chapters should not require an module importation.
 
@@ -53,7 +53,7 @@ Any new subpackages, Books, Chapters, and Contents should follow a similar templ
 
 4. When composing objects through a loosely coupled hierarchy, it is important to provide connections in both directions. For example, the Chapter class has methods to 'add_technique' and 'add_book' which automatically change local attributes ('techniques' and 'book') accordingly. This is done so that any class in a composite tree can access attributes from other classes in that tree without passing numerous arguments.
 
-## siMpLify BookOutline
+## siMpLify Worker
 
 1. All file management should be perfomed throught the shared Inventory instance.
 
@@ -67,7 +67,7 @@ Any new subpackages, Books, Chapters, and Contents should follow a similar templ
 
 5. If you create a proxy for typing, please subclass the SimpleType class in simplify.core.typesetter, if possible.
 
-6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'stage' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Ingredients instance.
+6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'worker' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Ingredients instance.
 
 ## General
 

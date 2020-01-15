@@ -6,24 +6,28 @@
 :license: Apache-2.0
 """
 
+from abc import ABC
+from abc import abstractmethod
+from collections.abc import MutableMapping
 import csv
 from dataclasses import dataclass
 from dataclasses import field
 import datetime
 from pathlib import Path
-import pickle
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.base import SimpleDistributor
-from simplify.core.book import Contents
-from simplify.core.base import SimplePath
+from simplify.core.base import SimpleCatalog
+from simplify.core.base import SimpleOutline
+from simplify.core.states import create_states
+from simplify.core.utilities import datetime_string
+from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Inventory(Contents):
+class Inventory(MutableMapping):
     """Manages files and folders for siMpLify.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -31,6 +35,7 @@ class Inventory(Contents):
     pandas, and numpy objects.
 
     Args:
+        idea ('Idea'): ana instance with file-management related settings.
         root_folder (Optional[str]): the complete path from which the other
             paths and folders used by Inventory should be created. Defaults to
             the parent folder or the parent folder of the current working
@@ -38,373 +43,729 @@ class Inventory(Contents):
         data_folder (Optional[str]): the data subfolder name or a complete path
             if the 'data_folder' is not off of 'root_folder'. Defaults to
             'data'.
+        data_subfolders (Optional[List[str]]): Defaults to a list of ['raw',
+            'interim', 'processed', 'external'].
         results_folder (Optional[str]): the results subfolder name or a complete
             path if the 'results_folder' is not off of 'root_folder'. Defaults
             to 'results'.
-        datetime_naming (Optional[bool]): whether the date and time should be
-            used to create Book subfolders (so that prior results are not
-            overwritten). Defaults to True.
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. If 'name' is not
-            provided, __class__.__name__.lower() is used instead.
+        states (Optional[Union[List[str], 'SimpleState']]):
 
     """
-    idea: 'Idea' = None
-    root_folder: Optional[Union[str, List[str]]] = field(
-        default_factory = ['', ''])
+    idea: 'Idea'
+    root_folder: Optional[Union[str, List[str]]] = None
     data_folder: Optional[str] = 'data'
+    data_subfolders: Optional[List[str]] = None
     results_folder: Optional[str] = 'results'
-    datetime_naming: Optional[bool] = True
-    name: Optional[str] = 'files'
+    states: Optional[Union[List[str], 'SimpleState']] = None
 
     def __post_init__(self) -> None:
-        """Processes passed arguments to prepare class instance."""
+        """Creates initial attributes."""
+        # Uses defaults for 'data_subfolders, if not passed.
+        self.data_subfolders = self.data_subfolders or [
+            'raw',
+            'interim',
+            'processed',
+            'external']
         # Injects attributes from 'idea'.
+        self.idea_sections = ['files']
         self = self.idea.apply(instance = self)
-        # Automatically calls 'draft' method.
+        # Automatically calls 'draft' method to complete initialization.
         self.draft()
-        # Calls 'publish' method if 'auto_publish' is True.
-        if self.auto_publish:
-            self.publish()
         return self
 
-    """ Dunder Methods """
+    """ Required ABC Methods """
 
-    def __getattr__(self, attribute: str) -> Any:
-        """Passes specific 'attribute' to appropriate composite classes.
+    def __getitem__(self, key: str) -> Path:
+        """Returns value for 'key' in 'folders'.
 
         Args:
-            attribute (str): method or attribute sought.
-
-        Raises:
-            AttributeError: if 'attribute' is not found.
+            key (str): name of key in 'folders'.
 
         Returns:
-            Any: method or attribute from composite class.
+            Path: item stored as a 'folders'.
+
+        Raises:
+            KeyError: if 'key' is not in 'folders'.
 
         """
-        if attribute in ['add_tree', 'add_folders', 'make_batch']:
-            return getattr(self.folders, attribute)
-        elif attribute in ['add_format']:
-            return getattr(self.pathifier.file_formats.add)
-        elif attribute in ['load']:
-            return getattr(self.importer, 'apply')
-        elif attribute in ['save']:
-            return getattr(self.exporter, 'apply')
-        elif attribute in ['initialize_writer']:
-            return getattr(self.exporter, attribute)
-        elif attribute in ['add_default_kwargs']:
-            return getattr(self.pathifier.kwargifier, 'add')
-
-    """ Public Methods """
-
-    def add_book_folder(self, prefix: Optional[str] = 'book') -> None:
-        """Sets the book folder and corresponding attribute.
-
-        Args:
-            prefix (Optional[str]): either prefix to datetime naming or the
-                book folder name. Defaults to 'book'.
-
-        """
-        if self.datetime_naming:
-            self.active_book = '_'.join(
-                [prefix, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
-        else:
-            self.active_book = prefix
-        self.results.add_folders(
-            root_folder = self.results['root'],
-            subfolders = self.active_book)
-        return self
-
-    def add_chapter_folder(self,
-            chapter: 'Chapter',
-            name: Optional[str] = None) -> None:
-        """Creates folder path for iterable-specific exports.
-
-        Args:
-            chapter (Chapter): an instance of SimpleBook.
-            name (string): name of attribute for the folder path to be stored
-                and the prefix of the folder to be created on disk.
-
-        """
-        if not name:
-            name = 'chapter'
-        self.active_chapter = ''.join([name, '_'])
         try:
-            for step in listify(self.naming_classes):
-                self.active_chapter += '_'.join(
-                    [self.active_chapter, chapter.techniques[step].technique])
-        except AttributeError:
+            return self.folders[key]
+        except KeyError:
+            raise KeyError(' '.join([key, 'is not found in Inventory']))
+
+    def __delitem__(self, key: str) -> None:
+        """Deletes 'key' entry in 'folders'.
+
+        Args:
+            key (str): name of key in 'folders'.
+
+        """
+        try:
+            del self.folders[key]
+        except KeyError:
             pass
-        subfolder = ''.join([subfolder, str(chapter.metadata['number'])])
-        self.results.add_folders(
-            root_folder = self.active_book,
-            subfolders = self.active_chapter)
         return self
 
-    def change_stage(self, new_stage: str) -> None:
-        """Updates Inventory state for appropriate dict values to be chosen."""
-        self.stage = new_stage
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Sets 'key' in 'folders' to 'value'.
+
+        Args:
+            key (str): name of key in 'folders'.
+            value (Any): value to be paired with 'key' in 'folders'.
+
+        """
+        self.folders[key] = value
         return self
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable of 'folders'.
+
+        Returns:
+            Iterable stored in 'folders'.
+
+        """
+        return iter(self.folders.items())
+
+    def __len__(self) -> int:
+        """Returns length of 'folders'.
+
+        Returns:
+            Integer: length of 'folders'.
+
+        """
+        return len(self.folders)
+
+    """ Private Methods """
+
+    def _draft_root(self) -> None:
+        """Turns 'root_folder' into a Path object."""
+        self.root_folder = self.root_folder or ['..', '..']
+        if isinstance(self.root_folder, list):
+            root = Path.cwd()
+            for item in self.root_folder:
+                root = root.joinpath(item)
+            self.folders['root'] = root
+        else:
+            self.folders['root'] = Path(self.root_folder)
+        return self
+
+    def _draft_core_folders(self) -> None:
+        """Drafts initial data and results folders."""
+        self.folders['results'] = self.folders['root'].joinpath(
+            self.results_folder)
+        self._write_folder(folder = self.folders['results'])
+        self.folders['data'] = self.folders['root'].joinpath(
+            self.data_folder)
+        self._write_folder(folder = self.folders['data'])
+        for folder in self.data_subfolders:
+            self.folders['folder'] = self.folders['data'].joinpath(folder)
+            self._write_folder(folder = self.folders['folder'])
+        return self
+
+    def _draft_file_formats(self) -> None:
+        self.file_formats = SimpleCatalog(dictionary = {
+            'csv': FileFormat(
+                name = 'csv',
+                module = 'pandas',
+                extension = '.csv',
+                import_method = 'read_csv',
+                export_method = 'to_csv',
+                additional_kwargs = [
+                    'encoding',
+                    'index_col',
+                    'header',
+                    'usecols',
+                    'low_memory'],
+                test_size_parameter = 'nrows'),
+            'excel': FileFormat(
+                name = 'excel',
+                module = 'pandas',
+                extension = '.xlsx',
+                import_method = 'read_excel',
+                export_method = 'to_excel',
+                additional_kwargs = ['index_col', 'header', 'usecols'],
+                test_size_parameter = 'nrows'),
+            'feather': FileFormat(
+                name = 'feather',
+                module = 'pandas',
+                extension = '.feather',
+                import_method = 'read_feather',
+                export_method = 'to_feather',
+                required = {'nthreads': -1}),
+            'hdf': FileFormat(
+                name = 'hdf',
+                module = 'pandas',
+                extension = '.hdf',
+                import_method = 'read_hdf',
+                export_method = 'to_hdf',
+                additional_kwargs = ['columns'],
+                test_size_parameter = 'chunksize'),
+            'json': FileFormat(
+                name = 'json',
+                module = 'pandas',
+                extension = '.json',
+                import_method = 'read_json',
+                export_method = 'to_json',
+                additional_kwargs = ['encoding', 'columns'],
+                test_size_parameter = 'nrows'),
+            'stata': FileFormat(
+                name = 'stata',
+                module = 'pandas',
+                extension = '.dta',
+                import_method = 'read_stata',
+                export_method = 'to_stata',
+                test_size_parameter = 'chunksize'),
+            'text': FileFormat(
+                name = 'text',
+                module = None,
+                extension = '.txt',
+                import_method = '_import_text',
+                export_method = '_export_text'),
+            'png': FileFormat(
+                name = 'png',
+                module = 'seaborn',
+                extension = '.png',
+                export_method = 'save_fig',
+                required = {'bbox_inches': 'tight', 'format': 'png'}),
+            'pickle': FileFormat(
+                name = 'pickle',
+                module = None,
+                extension = '.pickle',
+                import_method = '_pickle_object',
+                export_method = '_unpickle_object')})
+        self.import_format_states = {
+            'sow': 'source_format',
+            'harvest': 'source_format',
+            'clean': 'interim_format',
+            'bale': 'interim_format',
+            'deliver': 'interim_format',
+            'chef': 'final_format',
+            'actuary': 'final_format',
+            'critic': 'final_format',
+            'artist': 'final_format'}
+        self.export_format_states = {
+            'sow': 'source_format',
+            'harvest': 'interim_format',
+            'clean': 'interim_format',
+            'bale': 'interim_format',
+            'deliver': 'final_format',
+            'chef': 'final_format',
+            'actuary': 'final_format',
+            'critic': 'final_format',
+            'artist': 'final_format'}
+        return self
+
+    def _draft_file_names(self) -> None:
+        self.import_file_names = {
+            'sow': None,
+            'harvest': None,
+            'clean': 'harvested_data',
+            'bale': 'cleaned_data',
+            'deliver': 'baled_data',
+            'chef': 'final_data',
+            'actuary': 'final_data',
+            'critic': 'final_data',
+            'artist': 'predicted_data'}
+        self.export_file_names = {
+            'sow': 'source_format',
+            'harvest': 'interim_format',
+            'clean': 'interim_format',
+            'bale': 'interim_format',
+            'deliver': 'final_format',
+            'chef': 'final_format',
+            'actuary': 'final_data',
+            'critic': 'predicted_data',
+            'artist': 'predicted_data'}
+        return self
+
+    def _draft_folders(self) -> None:
+        self.import_folders = {
+            'sow': 'raw',
+            'reap': 'raw',
+            'clean': 'interim',
+            'bale': 'interim',
+            'deliver': 'interim',
+            'chef': 'processed',
+            'actuary': 'processed',
+            'critic': 'processed',
+            'artist': 'processed'}
+        self.export_folders = {
+            'sow': 'raw',
+            'reap': 'interim',
+            'clean': 'interim',
+            'bale': 'interim',
+            'deliver': 'processed',
+            'chef': 'processed',
+            'actuary': 'processed',
+            'critic': 'processed',
+            'artist': 'processed'}
+        return self
+
+    def _make_unique_path(self, folder: Path, name: str) -> Path:
+        counter = 0
+        while True:
+            counter += 1
+            path = folder / name.format(counter)
+            if not path.exists():
+                return path
+
+    def _pathlibify(self,
+            folder: str,
+            name: Optional[str] = None,
+            extension: Optional[str] = None) -> Path:
+        """Converts strings to pathlib Path object.
+
+        Args:
+
+
+        Returns:
+            Path: formed from string arguments.
+
+        """
+        try:
+            folder = self.folders[folder]
+        except (KeyError, TypeError):
+            try:
+                if folder.is_dir():
+                    pass
+            except (AttributeError, TypeError):
+                folder = self.folders['root'].joinpath(folder)
+        if name and extension:
+            return folder.joinpath('.'.join([name, extension]))
+        elif isinstance(folder, Path):
+            return folder
+        else:
+            return Path(folder)
+
+    def _write_folder(self, folder: str) -> None:
+        """Writes folder to disk.
+
+        Args:
+            folder (str): writes folder to disk and any parent folders that are
+                needed.
+
+        """
+        Path.mkdir(folder, parents = True, exist_ok = True)
+        return self
+
+    """ File Input/Output Methods """
+
+    def load(self, file_path: str, file_format: str, **kwargs) -> Any:
+        if self.file_formats[file_format].module in ['pandas', 'numpy']:
+            importer = self.data_importer
+        else:
+            importer = self.results_importer
+        return importer.load(
+                file_path = file_path,
+                file_format = file_format,
+                **kwargs)
+
+    def save(self, instance: Any, file_format: str, **kwargs) -> None:
+        if self.file_formats[file_format].module in ['pandas', 'numpy']:
+            exporter = self.data_exporter
+        else:
+            exporter = self.results_exporter
+        exporter.save(instance = instance, file_format = file_format, **kwargs)
+        return self
+
+    def set_project_folder(self, name: Optional[str] = None) -> None:
+        if name is None:
+            name = '_'.join('project', datetime_string())
+        self.folders['project'] = self.folders['results'].joinpath(name)
+        return self
+
+    def set_chapter_folder(self,
+            prefix: Optional[str] = None,
+            name: Optional[str] = None) -> None:
+        prefix = prefix or 'chapter'
+        if name:
+            return self.folders['project'].joinpath('_'.join([prefix, name]))
+        else:
+            return self._make_unique_path(
+                folder = self.folders['project'],
+                name = '_'.join([prefix, '{:03d}']))
 
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        """Creates default folder and file settings."""
-        self.root_folder = Path(self.root_folder)
-        self.data_folder = self.root_folder.joinpath(self.data_folder)
-        self.results_folder = self.root_folder.joinpath(self.results_folder)
-        return self
-
-    def publish(self) -> None:
-        """Creates core folder trees and file options."""
-        self.folders = Folders(
-            root_folder = self.results_folder,
-            subfolders = {
-                self.results_folders: [],
-                self.data_folders: [self.data_subfolders]},
-            related = self)
+        """Initializes core paths and attributes."""
+        # Initializes 'state' for state management.
+        self.state = create_states(states = self.states)
+        # Initializes internal 'folders' dictionary.
+        self.folders = {}
+        # Transforms root folder path into a Path object.
+        self._draft_root()
+        # Creates basic folder structure and writes folders to disk.
+        self._draft_core_folders()
+        # Creates catalogs of file formats, folders, and file names.
+        self._draft_file_formats()
+        self._draft_folders()
+        self._draft_file_names()
+        # Creates importer and exporter instances for file management.
         self.data_importer = Importer(
-            file_names = self.import_file_names,
-            folders = self.import_data_folders,
-            file_formats = self.import_file_formats,
-            related = self)
+            inventory = self,
+            root_folder = self.data_folder,
+            folders = self.import_folders,
+            file_format_states = self.import_format_states,
+            file_names = self.import_file_names)
         self.data_exporter = Exporter(
-            file_names = self.export_file_names,
-            folders = self.export_data_folders,
-            file_formats = self.export_file_formats,
-            related = self)
-        self.file_formats = FileFormats(related = self)
-        self.pathifier = Pathifier(related = self)
-        self.kwargifier = Kwargifier(related = self)
+            inventory = self,
+            root_folder = self.data_folder,
+            folders = self.export_folders,
+            file_format_states = self.export_format_states,
+            file_names = self.export_file_names)
+        self.results_importer = Importer(
+            inventory = self,
+            root_folder = self.data_folder)
+        self.results_exporter = Exporter(
+            inventory = self,
+            root_folder = self.results_folder)
         return self
-
-    def apply(self, action: str, **kwargs) -> Callable:
-        """Leverages __getattr__ delegation to allow 'apply' method to be used.
-        """
-        return getattr(self, action)(**kwargs)
 
 
 @dataclass
-class DataFolders(SimplePath):
-    """Creates and stores data folder paths.
+class SimpleDistributor(ABC):
+    """Base class for siMpLify Importer and Exporter."""
 
-    Args:
-        inventory ('Inventory): related Inventory instance.
-        folder (str): folder where 'names' are or should be.
-        names (Dict[str, str]): dictionary where keys are names of states and
-            values are Path objects linked to those states.
-
-    """
-    inventory: 'Inventory'
-    folder: str
-    names: Dict[str, str]
+    inventory: 'Inventory' = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
-        self.active = 'subfolders'
-        self.data_subfolders = ['raw', 'interim', 'processed', 'external']
-        super().__post_init__()
-        self.publish()
+        # Creates 'Pathifier' instance for dynamic path creation.
+        self.pathifier = Pathifier(
+            inventory = self.inventory,
+            distributor = self)
         return self
 
     """ Private Methods """
 
-    def _validate(self) -> None:
-        """Validates type of passed 'bundle' argument.
+    def _check_kwargs(self,
+            file_format: 'FileFormat',
+            passed_kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        """Selects kwargs for particular methods.
 
-        Raises:
-            TypeError: if 'bundle' is neither a dictionary nor NestedBundle
-                instance or subclass.
-
-        """
-        if issubclass(self.bundle, NestedBundle):
-            self = self.bundle
-        elif not isinstance(self.bundle, (list, dict, str)):
-            raise TypeError(
-                'bundle must be a dict, list, str, or Contents type')
-        return self
-
-    def _pathlibify(self, path: Union[str, Path]) -> Path:
-        """Converts string 'path' to pathlib Path object.
+        If a needed argument was not passed, default values are used.
 
         Args:
-            path (Union[str, Path]): either a string representation of a path,
-                a key to the active stored dictionary, or a Path object.
+            variables_to_check (List[str]): variables to check for values.
+            passed_kwargs (Dict[str, Any]): kwargs passed to method.
 
         Returns:
-            Path object.
+            new_kwargs (Dict[str, Any]): kwargs with only relevant parameters.
 
         """
+        new_kwargs = passed_kwargs
+        for variable in file_format.addtional_kwargs:
+            if not variable in passed_kwargs:
+                if variable in self.inventory.default_kwargs:
+                    new_kwargs.update(
+                        {variable: self.inventory.default_kwargs[variable]})
+                elif hasattr(self.inventory, variable):
+                    new_kwargs.update(
+                        {variable: getattr(self.inventory, variable)})
+        return new_kwargs
+
+    def _check_file_format(self,
+            file_format: Union[str, 'FileFormat']) -> 'FileFormat':
+        """Selects 'file_format' or default value.
+
+        Args:
+            file_format (Union[str, 'FileFormat']): name of file format or a
+                'FileFormat' instance.
+
+        Returns:
+            str: completed file_format.
+
+        """
+        if isinstance(file_format, FileFormat):
+            return file_format
+        elif isinstance(file_format, str):
+            return self.inventory.file_formats[file_format]
+        else:
+            return self.inventory.file_formats[
+                self.file_formats[self.inventory.state]]
+
+    def _make_parameters(self,
+            file_format: 'FileFormat',
+            **kwargs) -> Dict[str, Any]:
+        parameters = self._check_kwargs(
+            file_format = file_format,
+            passed_kwargs = kwargs)
         try:
-            path = getattr(self, self.state)[path]
-        except (ValueError, TypeError, KeyError):
-            if isinstance(path, str):
-                return Path(path)
-            elif isinstance(path, Path):
-                return path
-            else:
-                raise TypeError('path must be str or Path type')
+            parameters.update(file_format.required)
+        except TypeError:
+            pass
+        if kwargs:
+            parameters.update(**kwargs)
+        return parameters
 
-    def _publish_path(self, path: Union[str, Path]) -> None:
-        """Finalizes, stores, and writes folder path.
 
-        Args:
-            path (Union[str, Path]): either a string representation of a path,
-                a key to the active stored dictionary, or a Path object.
+@dataclass
+class Importer(SimpleDistributor):
+    """Manages file importing for siMpLify.
 
-        """
-        pathlib_path = self._pathlibify(path = path)
-        getattr(self, self.state)[pathlib_path.parts[-1]] = pathlib_path
-        self._write_folder(folder = pathlib_path)
-        return self
+    Args:
+        inventory ('Inventory'): related Inventory instance.
 
-    def _write_folder(self, folder: Path) -> None:
-        """Creates folder if it doesn't already exist.
-
-        Args:
-            folder (Path): the path of the folder.
-
-        """
-        path.mkdir(parents = True, exist_ok = True)
-        return self
+    """
+    inventory: 'Inventory' = None
+    root_folder: Optional[str] = None
+    folders: Optional[Dict[str, str]] = field(default_factory = dict)
+    file_format_states: Optional[Dict[str, str]] = field(default_factory = dict)
+    file_names: Optional[Dict[str, str]] = field(default_factory = dict)
 
     """ Public Methods """
 
-    def add_folders(self,
-            root_folder: Union[str, Path],
-            subfolders: Union[List[str], Dict[str, str], str]) -> None:
-        """Adds a list of subfolders to an existing root_folder.
+    def load(self, **kwargs):
+        return self.apply(**kwargs)
 
-        For every subfolder created, an attribute with the same name will
-        also be created with its value corresponding to the full path of that
-        new subfolder.
+    def make_batch(self,
+            folder: Optional[str] = None,
+            file_format: Optional[str] = None,
+            include_subfolders: Optional[bool] = True) -> Iterable[str]:
+        """Creates a list of paths in 'folder_in' based upon 'file_format'.
+
+        If 'include_subfolders' is True, subfolders are searched as well for
+        matching 'file_format' files.
 
         Args:
-            root_folder (Union[str, Path]): path of folder where subfolders
-                should be created or name of attribute containing path of a
-                folder.
-            subfolders (Union[List[str], Dict[str, str], str]): subfolder
-                name(s) to be created.
+            folder (Optional[str]): path of folder or string corresponding to
+                class attribute with path.
+            file_format (Optional[str]): file format name.
+            include_subfolders (Optional[bool]): whether to include files in
+                subfolders when creating a batch.
 
         """
-        root = self._pathlibify(path = root_folder)
-        if isinstance(subfolders, dict):
-            self.add_tree(root_folder = root, subfolders = subfolders)
-        elif isinstance(subfolders, list) or isinstance(subfolders, str):
-            self.add_subfolders(root_folder = root, subfolders = subfolders)
+        folder = folder or self.inventory[self.folders[self.inventory.stage]]
+        file_format = self._check_file_format(file_format = file_format)
+        if include_subfolders:
+            return Path(folder).rglob('.'.join(['*', file_format.extension]))
         else:
-            raise TypeError('subfolders must be list, dict, or str type')
-        return self
+            return Path(folder).glob('.'.join(['*', file_format.extension]))
 
-    def add_subfolders(self,
-            root_folder: Union[str, Path],
-            subfolders: Union[List[str], str]) -> None:
-        """Creates a set of 'subfolders' off of 'root_folder'.
-
-        Each created folder name is also stored as a local attribute with the
-        same name as the created folder.
-
-        Args:
-            root_folder (str): the folder from which the tree branch should be
-                created.
-            subfolders (Union[List[str], str]): subfolder names to be created
-                off of 'root_folder'.
-
-        """
-        root = self._pathlibify(path = root_folder)
-        self._publish_path(path = root)
-        for subfolder in listify(subfolders):
-            pathlib_subfolder = self._pathlibify(path = subfolder)
-            self._publish_path(path = root.joinpath(pathlib_subfolder))
-        return self
-
-    def add_tree(self,
-            root_folder: Union[str, Path],
-            subfolders: Dict[str, Union[str, Dict]]) -> None:
-        """Adds folder tree to disk and adds corresponding attributes.
-
-        Args:
-            root_folder (Union[str, Path]): path of folder where subfolders
-                should be created or name of attribute containing path of a
-                folder.
-            subfolders (Dict[str, Union[str, Dict]]): a folder tree to be
-                created with corresponding attributes to the inventory instance.
-
-        """
-        root = self._pathlibify(path = root_folder)
-        self._publish_path(path = root)
-        for root_folder, folders in subfolders.items():
-            if isinstance(folders, dict):
-                self.add_tree(root_folder = root_folder, subfolders = folders)
-            else:
-                self.add_subfolders(
-                    root_folder = root,
-                    subfolders = folders)
-        return self
+    # def iterate_batch(self,
+    #         chapters: List[str],
+    #         ingredients: 'Ingredients' = None,
+    #         return_ingredients: Optional[bool] = True):
+    #     """Iterates through a list of files contained in self.batch and
+    #     applies the chapters created by a book method (or subclass).
+    #     Args:
+    #         chapters(list): list of chapter types (Recipe, Harvest, etc.)
+    #         ingredients(Ingredients): an instance of Ingredients or subclass.
+    #         return_ingredients(bool): whether ingredients should be returned by
+    #         this method.
+    #     Returns:
+    #         If 'return_ingredients' is True: an in instance of Ingredients.
+    #         If 'return_ingredients' is False, no value is returned.
+    #     """
+    #     if ingredients:
+    #         for file_path in self.batch:
+    #             ingredients.source = self.load(file_path = file_path)
+    #             for chapter in chapters:
+    #                 data = chapter.produce(data = ingredients)
+    #         if return_ingredients:
+    #             return ingredients
+    #         else:
+    #             return self
+    #     else:
+    #         for file_path in self.batch:
+    #             for chapter in chapters:
+    #                 chapter.produce()
+    #         return self
 
     """ Core siMpLify Methods """
 
-    def draft(self) -> None:
-        """Creates root folder for instance."""
-        self.root_folder = self._pathlibify(path = self.root_folder)
-        getattr(self, self.state)['root'] = self.root_folder
-        self._publish_path(path = self.root_folder)
-        return self
+    def apply(self,
+            file_path: Optional[str],
+            folder: Optional[str] = None,
+            file_name: Optional[str] = None,
+            file_format: Optional[Union[str, 'FileFormat']] = None,
+            **kwargs) -> Any:
+        """Imports file by calling appropriate method based on file_format.
 
-    def publish(self) -> None:
-        """Creates core folder tree."""
-        self.add_folders(
-            root_folder = self.root_folder,
-            subfolders = self.bundle)
+        If needed arguments are not passed, default values are used. If
+        file_path is passed, folder and file_name are ignored.
+
+        Args:
+            file_path (str): a complete file path for the file to be loaded.
+            file_format ('FileFormat'): object with information about how the
+                file should be loaded.
+            **kwargs: can be passed if additional options are desired specific
+                to the pandas or python method used internally.
+
+        Returns:
+            Any: depending upon method used for appropriate file format, a new
+                variable of a supported type is returned.
+
+        """
+        file_format = self._check_file_format(file_format = file_format)
+        file_path = self.pathifier.apply(
+            file_path = file_path,
+            folder = folder,
+            file_name = file_name,
+            file_format = file_format)
+        if file_format.module:
+            tool = file_format.load('import_method')
+        else:
+            tool = getattr(self, file_format.import_method)
+        parameters = self._make_parameters(file_format = file_format, **kwargs)
+        if sample_size:
+            parameters[file_format.sample_size_parameter] = sample_size
+        return tool(file_path, **parameters)
+
+
+@dataclass
+class Exporter(SimpleDistributor):
+    """Manages file exporting for siMpLify.
+
+    Args:
+        inventory ('Inventory'): related Inventory instance.
+
+    """
+    inventory: 'Inventory' = None
+    root_folder: Optional[str] = None
+    folders: Optional[Dict[str, str]] = field(default_factory = dict)
+    file_format_states: Optional[Dict[str, str]] = field(default_factory = dict)
+    file_names: Optional[Dict[str, str]] = field(default_factory = dict)
+
+    """ Private Methods """
+
+    def _check_boolean_out(self,
+            data: Union[pd.Series, pd.DataFrame]) -> (
+                Union[pd.Series, pd.DataFrame]):
+        """Converts True/False to 1/0 if 'boolean_out' is False.
+
+        Args:
+            data (Union[DataFrame, Series]): pandas object with some boolean
+                values.
+
+        Returns:
+            data (Union[DataFrame, Series]): either the original pandas data or
+                the dataset with True/False converted to 1/0.
+
+        """
+        # Checks whether True/False should be exported in data files. If
+        # 'boolean_out' is set to False, 1/0 are used instead.
+        if not self.inventory.boolean_out:
+            data.replace({True: 1, False: 0}, inplace = True)
+        return data
+
+    """ Public Methods """
+
+    # def initialize_writer(self,
+    #         file_path: str,
+    #         columns: List[str],
+    #         encoding: Optional[str] = None,
+    #         dialect: Optional[str] = 'excel') -> None:
+    #     """Initializes writer object for line-by-line exporting to a .csv file.
+
+    #     Args:
+    #         file_path (str): a complete path to the file being written to.
+    #         columns (List[str]): column names to be added to the first row of
+    #             the file as column headers.
+    #         encoding (str): a python encoding type.
+    #         dialect (str): the specific type of csv file created. Defaults to
+    #             'excel'.
+
+    #     """
+    #     if not columns:
+    #         error = 'initialize_writer requires columns as a list type'
+    #         raise TypeError(error)
+    #     with open(file_path, mode = 'w', newline = '',
+    #               encoding = self.file_encoding) as self.output_series:
+    #         self.writer = csv.writer(self.output_series, dialect = dialect)
+    #         self.writer.writerow(columns)
+    #     return self
+
+    # def iterate_writer(self):
+    #     return self
+
+
+    def save(self, **kwargs):
+        return self.apply(**kwargs)
+
+    """ Core siMpLify Methods """
+
+    def apply(self,
+            variable: Any,
+            file_path: str,
+            folder: Optional[str] = None,
+            file_name: Optional[str] = None,
+            file_format: Optional[Union[str, 'FileFormat']] = None,
+            **kwargs) -> None:
+        """Exports file by calling appropriate method based on file_format.
+
+        If needed arguments are not passed, default values are used. If
+        file_path is passed, folder and file_name are ignored.
+
+        Args:
+            variable (Any): the variable being exported.
+            file_path (str): a complete file path for the file to be saved.
+            file_format ('FileFormat'): object with information about how the
+                file should be saved.
+            **kwargs: can be passed if additional options are desired specific
+                to the pandas or python method used internally.
+
+        """
+        file_format = self._check_file_format(file_format = file_format)
+        file_path = self.pathifier.apply(
+            file_path = file_path,
+            folder = folder,
+            file_name = file_name,
+            file_format = file_format)
+        # Changes boolean values to 1/0 if 'boolean_out' is False.
+        if file_format.module in ['pandas']:
+            variable = self._check_boolean_out(data = variable)
+        if file_format.module:
+            tool = file_format.load('export_method')
+        else:
+            tool = getattr(self, file_format.export_method)
+        parameters = self._make_parameters(file_format = file_format, **kwargs)
+        tool(variable, file_path, **parameters)
         return self
 
 
 @dataclass
 class Pathifier(object):
-    """Builds completed file_paths.
+    """Builds file_paths based upon state.
 
     Args:
-        related ('Inventory'): related Inventory instance.
+        inventory ('Inventory): related 'Inventory' instance.
+        distributor ('SimpleDistributor'): related 'SimpleDistributor' instance.
 
     """
-    related: 'Inventory' = None
+    inventory: 'Inventory'
+    distributor: 'SimpleDistributor'
 
     def __post_init__(self) -> None:
         return self
 
     """ Private Methods """
 
-    def _set_folder(self,
-            distributor: 'SimpleDistributor',
-            file_format: Optional[str] = None) -> Path:
+    def _check_folder(self, folder: Optional[str] = None) -> str:
         """Selects 'folder' or default value.
 
         Args:
-            folder (Optional[str]): name of target folder. Defaults to None.
+            folder (Optional[str]): name of folder. Defaults to None.
 
         Returns:
-            str: completed folder.
+            str: completed file_name.
 
         """
         if not folder:
-            folder = distributor.folders[self.related.stage]
+            return self.inventory.folders[self.distributor.folders[
+                self.inventory.state]]
         else:
             try:
-                folder = self.related.folders[folder]
+                return self.inventory.folders[folder]
             except AttributeError:
-                pass
-        return folder
+                if isinstance(folder, str):
+                    return Path(folder)
+                else:
+                    return folder
 
-    def _set_file_name(self,
-            distributor: 'SimpleDistributor',
-            file_format: Optional[str] = None) -> str:
-        """Selects 'file_name' or default values.
+    def _check_file_name(self, file_name: Optional[str] = None) -> str:
+        """Selects 'file_name' or default value.
 
         Args:
             file_name (Optional[str]): name of file. Defaults to None.
@@ -414,24 +775,9 @@ class Pathifier(object):
 
         """
         if not file_name:
-            file_name = distributor.file_names[self.related.stage]
-        return file_name
-
-    def _set_file_format(self,
-            distributor: 'SimpleDistributor',
-            file_format: Optional[str] = None) -> str:
-        """Selects 'file_format' or default value.
-
-        Args:
-            file_format (Optional[str]): name of file format. Defaults to None.
-
-        Returns:
-            str: completed file_format.
-
-        """
-        if not file_format:
-            file_format = distributor.file_formats[self.related.stage]
-        return file_format
+            return self.distributor.file_names[self.inventory.state]
+        else:
+            return file_name
 
     def _make_path(self,
             folder: str,
@@ -448,17 +794,15 @@ class Pathifier(object):
             str: completed file path.
 
         """
-        return folder.joinpath(''.join(
-            [file_name, self.file_formats[file_format].extension]))
+        return folder.joinpath('.'.join([file_name, file_format.extension]))
 
     """ Core siMpLify Methods """
 
     def apply(self,
-            distributor: 'SimpleDistributor',
             file_path: Optional[str] = None,
             folder: Optional[str] = None,
             file_name: Optional[str] = None,
-            file_format: Optional[str] = None) -> Path:
+            file_format: 'FileFormat' = None) -> Path:
         """Creates file path from passed arguments.
 
         Args:
@@ -480,407 +824,28 @@ class Pathifier(object):
             return Path(file_path)
         else:
             return self._make_path(
-                folder = self._set_folder(
-                    distributor = distributor,
-                    folder = folder),
-                file_name = self._set_file_name(
-                    distributor = distributor,
-                    file_name = file_name),
-                file_format = self._set_file_format(
-                    distributor = distributor,
-                    file_format = file_format))
-
-@dataclass
-class Kwargifier(object):
-    """Builds completed file_paths.
-
-    Args:
-        related ('Inventory'): related Inventory instance.
-
-    """
-    related: 'Inventory' = None
-
-    def __post_init__(self) -> None:
-        return self
-
-    """ Public Methods """
-
-    def add_default_kwargs(self,
-            kwargs_keys: Union[List[str], str],
-            settings: Union[List[str], str]) -> None:
-        """Adds or replaces default keys and values for kwargs.
-
-        Args:
-            kwargs_keys (Union[List[str], str]): key(s) to change in
-                'default_kwargs'.
-            settings (Union[List[str], str]): values(s) to change in
-                'default_kwargs'.
-
-        """
-        self.library(dict(zip(kwargs, settings)))
-        return self
+                folder = self._check_folder(folder = folder),
+                file_name = self._check_file_name(file_name = file_name),
+                file_format = file_format)
 
 
 @dataclass
-class Importer(SimpleDistributor):
-    """Manages file importing for siMpLify.
-
-    Args:
-        inventory ('Inventory'): related Inventory instance.
-
-    """
-    inventory: 'Inventory' = None
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        return self
-
-    """ Private Methods """
-
-    def _draft_defaults(self) -> None:
-        self.data_folders = SimplePath(
-            inventory = self,
-            folder = self.inventory.data_folder,
-            names = {
-                'sow': 'raw',
-                'reap': 'raw',
-                'clean': 'interim',
-                'bale': 'interim',
-                'deliver': 'interim',
-                'chef': 'processed',
-                'actuary': 'processed',
-                'critic': 'processed',
-                'artist': 'processed'})
-        self.results_folders = SimplePath(
-            inventory = self,
-            folder = self.inventory.results_folder,
-            names = {
-                'book': 'book',
-                'chapter': 'chapter'})
-        self.file_names = {
-            'sow': None,
-            'harvest': None,
-            'clean': 'harvested_data',
-            'bale': 'cleaned_data',
-            'deliver': 'baled_data',
-            'chef': 'final_data',
-            'critic': 'final_data'}
-        self.file_formats = {
-            'sow': 'source_format',
-            'harvest': 'source_format',
-            'clean': 'interim_format',
-            'bale': 'interim_format',
-            'deliver': 'interim_format',
-            'chef': 'final_format',
-            'critic': 'final_format'}
-        return self
-
-    """ Public Methods """
-
-    def make_batch(self,
-            folder: Optional[str] = None,
-            file_format: Optional[str] = None,
-            include_subfolders: Optional[bool] = True) -> Iterable[str]:
-        """Creates a list of paths in 'folder_in' based upon 'file_format'.
-
-        If 'include_subfolders' is True, subfolders are searched as well for
-        matching 'file_format' files.
-
-        Args:
-            folder (Optional[str]): path of folder or string corresponding to
-                class attribute with path.
-            file_format (Optional[str]): file format name.
-            include_subfolders (Optional[bool]): whether to include files in
-                subfolders when creating a batch.
-
-        """
-
-        folder = self._check_folder(folder = folder)
-        file_format = self._check_file_format(file_format = file_format,
-                                              io_status = 'import')
-        extension = self.extensions[file_format]
-        return glob.glob(os.path.join(folder, '**', '*' + extension),
-                recursive = include_subfolders)
-
-    def iterate_batch(self,
-            chapters: List[str],
-            ingredients: 'Ingredients' = None,
-            return_ingredients: Optional[bool] = True):
-        """Iterates through a list of files contained in self.batch and
-        applies the chapters created by a book method (or subclass).
-        Args:
-            chapters(list): list of chapter types (Recipe, Harvest, etc.)
-            ingredients(Ingredients): an instance of Ingredients or subclass.
-            return_ingredients(bool): whether ingredients should be returned by
-            this method.
-        Returns:
-            If 'return_ingredients' is True: an in instance of Ingredients.
-            If 'return_ingredients' is False, no value is returned.
-        """
-        if ingredients:
-            for file_path in self.batch:
-                ingredients.source = self.load(file_path = file_path)
-                for chapter in chapters:
-                    data = chapter.produce(data = ingredients)
-            if return_ingredients:
-                return ingredients
-            else:
-                return self
-        else:
-            for file_path in self.batch:
-                for chapter in chapters:
-                    chapter.produce()
-            return self
-
-    """ Core siMpLify Methods """
-
-    def apply(self, file_path: str, file_format: 'FileFormat', **kwargs) -> Any:
-        """Imports file by calling appropriate method based on file_format.
-
-        If needed arguments are not passed, default values are used. If
-        file_path is passed, folder and file_name are ignored.
-
-        Args:
-            file_path (str): a complete file path for the file to be loaded.
-            file_format ('FileFormat'): object with information about how the
-                file should be loaded.
-            **kwargs: can be passed if additional options are desired specific
-                to the pandas or python method used internally.
-
-        Returns:
-            Any: depending upon method used for appropriate file format, a new
-                variable of a supported type is returned.
-
-        """
-        try:
-            return getattr(
-                globals()[self.library[file_format.associated_package]],
-                file_format.import_method)(
-                    file_path, **kwargs)
-        except AttributeError:
-            raise AttributeError(' '.join(
-                [file_format.import_method,
-                 'is not a recognized import method']))
-
-
-@dataclass
-class Exporter(SimpleDistributor):
-    """Manages file exporting for siMpLify.
-
-    Args:
-        related ('Inventory'): related Inventory instance.
-
-    """
-    related: 'Inventory' = None
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        return self
-
-    """ Private Methods """
-
-    def _check_boolean_out(self,
-            data: Union[pd.Series, pd.DataFrame]) -> (
-                Union[pd.Series, pd.DataFrame]):
-        """Converts True/False to 1/0 if 'boolean_out' is False.
-
-        Args:
-            data (Union[DataFrame, Series]): pandas object with some boolean
-                values.
-
-        Returns:
-            data (Union[DataFrame, Series]): either the original pandas data or
-                the dataset with True/False converted to 1/0.
-
-        """
-        # Checks whether True/False should be exported in data files. If
-        # 'boolean_out' is set to False, 1/0 are used instead.
-        if hasattr(self, 'boolean_out') and self.boolean_out == False:
-            data.replace({True: 1, False: 0}, inplace = True)
-        return data
-
-    def _draft_defaults(self) -> None:
-        self.folders = {
-            'sow': 'raw',
-            'reap': 'interim',
-            'clean': 'interim',
-            'bale': 'interim',
-            'deliver': 'processed',
-            'chef': 'processed',
-            'critic': 'recipe'}
-        self.file_names = {
-            'sow': None,
-            'harvest': 'harvested_data',
-            'clean': 'cleaned_data',
-            'bale': 'baled_data',
-            'deliver': 'final_data',
-            'chef': 'final_data',
-            'critic': 'predicted_data'}
-        self.file_formats: {
-            'sow': 'source_format',
-            'harvest': 'interim_format',
-            'clean': 'interim_format',
-            'bale': 'interim_format',
-            'deliver': 'final_format',
-            'chef': 'final_format',
-            'critic': 'final_format'}
-        return self
-
-    """ Public Methods """
-
-    def initialize_writer(self,
-            file_path: str,
-            columns: List[str],
-            encoding: Optional[str] = None,
-            dialect: Optional[str] = 'excel') -> None:
-        """Initializes writer object for line-by-line exporting to a .csv file.
-
-        Args:
-            file_path (str): a complete path to the file being written to.
-            columns (List[str]): column names to be added to the first row of
-                the file as column headers.
-            encoding (str): a python encoding type.
-            dialect (str): the specific type of csv file created. Defaults to
-                'excel'.
-
-        """
-        if not columns:
-            error = 'initialize_writer requires columns as a list type'
-            raise TypeError(error)
-        with open(file_path, mode = 'w', newline = '',
-                  encoding = self.file_encoding) as self.output_series:
-            self.writer = csv.writer(self.output_series, dialect = dialect)
-            self.writer.writerow(columns)
-        return self
-
-    def iterate_writer(self):
-        return self
-
-    """ Core siMpLify Methods """
-
-    def apply(self,
-            variable: Any,
-            file_path: str,
-            file_format: 'FileFormat',
-            **kwargs) -> None:
-        """Exports file by calling appropriate method based on file_format.
-
-        If needed arguments are not passed, default values are used. If
-        file_path is passed, folder and file_name are ignored.
-
-        Args:
-            variable (Any): the variable being exported.
-            file_path (str): a complete file path for the file to be saved.
-            file_format ('FileFormat'): object with information about how the
-                file should be saved.
-            **kwargs: can be passed if additional options are desired specific
-                to the pandas or python method used internally.
-
-        """
-        # Changes boolean values to 1/0 if self.boolean_out = False
-        if file_format.associated_package in ['pandas']:
-            variable = self._check_boolean_out(variable = variable)
-        try:
-            getattr(variable, file_format.export_method)(file_path, **kwargs)
-        except AttributeError:
-            raise AttributeError(' '.join(
-                [file_format.export_method,
-                 'is not a recognized export method']))
-        return self
-
-
-
-@dataclass
-class FileFormat(object):
+class FileFormat(SimpleOutline):
     """File format container."""
 
-    name: Optional[str] = 'file_format'
+    name: str
+    module: str
     extension: Optional[str] = None
     import_method: Optional[str] = None
     export_method: Optional[str] = None
-    addtional_kwargs: Optional[List[str]] = None
+    additional_kwargs: Optional[List[str]] = None
     required: Optional[Dict[str, Any]] = None
     test_size_parameter: Optional[str] = None
 
 
-@dataclass
-class FileFormats(Contents):
-    """Creates and stores file formats and file extensions.
-
-    Args:
-        related ('Inventory'): related Inventory instance.
-
-    """
-    related: 'Pathifier' = None
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        super().__post_init__()
-        return self
-
-    """ Core siMpLify Methods """
-    def draft(self) -> None:
-        self.bundle = {
-            'csv': FileFormat(
-                name = 'csv',
-                extension = '.csv',
-                import_method = 'read_csv',
-                export_method = 'to_csv',
-                additional_kwargs = [
-                    'encoding',
-                    'index_col',
-                    'header',
-                    'usecols',
-                    'low_memory'],
-                test_size_parameter = 'nrows'),
-            'excel': FileFormat(
-                name = 'excel',
-                extension = '.xlsx',
-                import_method = 'read_excel',
-                export_method = 'to_excel',
-                additional_kwargs = ['index_col', 'header', 'usecols'],
-                test_size_parameter = 'nrows'),
-            'feather': FileFormat(
-                name = 'feather',
-                extension = '.feather',
-                import_method = 'read_feather',
-                export_method = 'to_feather',
-                required = {'nthreads': -1}),
-            'hdf': FileFormat(
-                name = 'hdf',
-                extension = '.hdf',
-                import_method = 'read_hdf',
-                export_method = 'to_hdf',
-                additional_kwargs = ['columns'],
-                test_size_parameter = 'chunksize'),
-            'json': FileFormat(
-                name = 'json',
-                extension = '.json',
-                import_method = 'read_json',
-                export_method = 'to_json',
-                additional_kwargs = ['encoding', 'columns'],
-                test_size_parameter = 'nrows'),
-            'pickle': FileFormat(
-                name = 'pickle',
-                extension = '.pickle',
-                import_method = '_pickle_object',
-                export_method = '_unpickle_object'),
-            'png': FileFormat(
-                name = 'png',
-                extension = '.png',
-                export_method = 'save_fig',
-                required = {'bbox_inches': 'tight', 'format': 'png'}),
-            'text': FileFormat(
-                name = 'text',
-                extension = '.txt',
-                import_method = '_import_text',
-                export_method = '_export_text')}
-        return self
-
-
 """ Validator Function """
 
-def validate_inventory(
+def create_inventory(
         inventory: Union['Inventory', str],
         idea: 'Idea') -> 'Inventory':
     """Creates an Inventory instance from passed arguments.
@@ -900,7 +865,7 @@ def validate_inventory(
     """
     if isinstance(inventory, Inventory):
         return inventory
-    elif isinstance(inventory, str):
+    elif isinstance(inventory, (str, Path)):
         return Inventory(idea = idea, root_folder = inventory)
     else:
         raise TypeError('inventory must be Inventory type or folder path')

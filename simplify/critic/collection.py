@@ -7,7 +7,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -36,7 +36,7 @@ class Collection(Book):
 
     def draft(self) -> None:
         """Sets default options for the Critic's analysis."""
-        self._options = Contents(options = {
+        self._options = SimpleCatalog(options = {
             'explanation': ('simplify.critic.steps.explain', 'Explain'),
             'prediction': ('simplify.critic.steps.predict', 'Predict'),
             'probabilities': ('simplify.critic.steps.probability',

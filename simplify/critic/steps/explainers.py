@@ -101,9 +101,9 @@ class ShapExplain(CriticTechnique):
 
     def _set_method(self, recipe):
         if self.step in self.models:
-            self.method = self.library[self.models[self.step]]
+            self.method = self.workers[self.models[self.step]]
         else:
-            self.method = self.library['kernel']
+            self.method = self.workers['kernel']
         self.evaluator = self.method(
             model = recipe.model.algorithm,
             data = getattr(recipe.ingredients, 'x_' + self.data_to_review))
