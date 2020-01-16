@@ -1,13 +1,12 @@
 """
 .. module:: inventory
-:synopsis: file management made simple
+:synopsis: data science file management made simple
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
 
 from abc import ABC
-from abc import abstractmethod
 from collections.abc import MutableMapping
 import csv
 from dataclasses import dataclass
@@ -35,20 +34,24 @@ class Inventory(MutableMapping):
     pandas, and numpy objects.
 
     Args:
-        idea ('Idea'): ana instance with file-management related settings.
+        idea ('Idea'): an Idea instance with file-management related settings.
         root_folder (Optional[str]): the complete path from which the other
             paths and folders used by Inventory should be created. Defaults to
-            the parent folder or the parent folder of the current working
-            directory.
+            None. If not passed, the parent folder of the parent folder of the
+            current working directory is used.
         data_folder (Optional[str]): the data subfolder name or a complete path
             if the 'data_folder' is not off of 'root_folder'. Defaults to
             'data'.
-        data_subfolders (Optional[List[str]]): Defaults to a list of ['raw',
+        data_subfolders (Optional[List[str]]): subfolders for data to be
+            saved and loaded at different stages of a siMpLify project. Defaults
+            to None. If not provided, the CookieCutter data science list is used
+            (https://drivendata.github.io/cookiecutter-data-science/): ['raw',
             'interim', 'processed', 'external'].
         results_folder (Optional[str]): the results subfolder name or a complete
             path if the 'results_folder' is not off of 'root_folder'. Defaults
             to 'results'.
-        states (Optional[Union[List[str], 'SimpleState']]):
+        states (Optional[Union[List[str], 'SimpleState']]): diffrent Project
+            states or a 'SimpleState' instance. Defaults to None.
 
     """
     idea: 'Idea'
@@ -69,6 +72,9 @@ class Inventory(MutableMapping):
         # Injects attributes from 'idea'.
         self.idea_sections = ['files']
         self = self.idea.apply(instance = self)
+        # Initializes internal 'folders' dictionary to which dunder access
+        # methods are directed.
+        self.folders = {}
         # Automatically calls 'draft' method to complete initialization.
         self.draft()
         return self
@@ -163,6 +169,7 @@ class Inventory(MutableMapping):
         return self
 
     def _draft_file_formats(self) -> None:
+        """Drafts supported file formats and state-related mappings."""
         self.file_formats = SimpleCatalog(dictionary = {
             'csv': FileFormat(
                 name = 'csv',
@@ -256,6 +263,7 @@ class Inventory(MutableMapping):
         return self
 
     def _draft_file_names(self) -> None:
+        """Drafts default import and export file names for data."""
         self.import_file_names = {
             'sow': None,
             'harvest': None,
@@ -279,6 +287,13 @@ class Inventory(MutableMapping):
         return self
 
     def _draft_folders(self) -> None:
+        """Drafts default import and export folder names for data.
+
+        These folder names correspond to the data science CookieCutter tree
+        structure. If using an alternative method, these mappings need to
+        be replaced either through a subclass or by modifying the attributes.
+
+        """
         self.import_folders = {
             'sow': 'raw',
             'reap': 'raw',
@@ -302,6 +317,21 @@ class Inventory(MutableMapping):
         return self
 
     def _make_unique_path(self, folder: Path, name: str) -> Path:
+        """Creates a unique path to avoid overwriting a file or folder.
+
+        Thanks to RealPython for this bit of code:
+        https://realpython.com/python-pathlib/.
+
+        Args:
+            folder (Path): the folder where the file or folder will be located.
+            name (str): the basic name that should be used.
+
+        Returns:
+            Path: with a unique name. If the original name conflicts with an
+                existing file/folder, a counter is used to find a unique name
+                with the counter appended as a suffix to the original name.
+
+        """
         counter = 0
         while True:
             counter += 1
@@ -315,8 +345,13 @@ class Inventory(MutableMapping):
             extension: Optional[str] = None) -> Path:
         """Converts strings to pathlib Path object.
 
-        Args:
+        If 'name' and 'extension' are passed, a file path is created. Otherwise,
+        a folder path is created.
 
+        Args:
+            folder (str): folder for file location.
+            name (Optional[str]): the name of the file.
+            extension (Optional[str]): the extension of the file.
 
         Returns:
             Path: formed from string arguments.
@@ -337,12 +372,13 @@ class Inventory(MutableMapping):
         else:
             return Path(folder)
 
-    def _write_folder(self, folder: str) -> None:
+    def _write_folder(self, folder: Union[str, Path]) -> None:
         """Writes folder to disk.
 
+        Parent folders are created as needed.
+
         Args:
-            folder (str): writes folder to disk and any parent folders that are
-                needed.
+            folder (Union[str, Path]): intended folder to write to disk.
 
         """
         Path.mkdir(folder, parents = True, exist_ok = True)
@@ -350,33 +386,115 @@ class Inventory(MutableMapping):
 
     """ File Input/Output Methods """
 
-    def load(self, file_path: str, file_format: str, **kwargs) -> Any:
+    def load(self,
+            file_path: Optional[Union[str, Path]] = None,
+            folder: Optional[Union[str, Path]] = None,
+            file_name: Optional[str] = None,
+            file_format: Optional[Union[str, 'FileFormat']] = None,
+            **kwargs) -> Any:
+        """Imports file by calling appropriate method based on file_format.
+
+        If needed arguments are not passed, default values are used. If
+        file_path is passed, folder and file_name are ignored.
+
+        Args:
+            file_path (Optional[Union[str, Path]]): a complete file path.
+                Defaults to None.
+            folder (Optional[Union[str, Path]]): a complete folder path or the
+                name of a folder stored in 'inventory'. Defaults to None.
+            file_name (Optional[str]): file name without extension. Defaults to
+                None.
+            file_format (Optional[Union[str, 'FileFormat']]): object with
+                information about how the file should be loaded or the key to
+                such an object stored in 'inventory'. Defaults to None
+            **kwargs: can be passed if additional options are desired specific
+                to the pandas or python method used internally.
+
+        Returns:
+            Any: depending upon method used for appropriate file format, a new
+                variable of a supported type is returned.
+
+        """
         if self.file_formats[file_format].module in ['pandas', 'numpy']:
             importer = self.data_importer
         else:
             importer = self.results_importer
-        return importer.load(
+        return importer.apply(
                 file_path = file_path,
+                folder = folder,
+                file_name = file_name,
                 file_format = file_format,
                 **kwargs)
 
-    def save(self, instance: Any, file_format: str, **kwargs) -> None:
+    def save(self,
+            variable: Any,
+            file_path: Optional[Union[str, Path]] = None,
+            folder: Optional[Union[str, Path]] = None,
+            file_name: Optional[str] = None,
+            file_format: Optional[Union[str, 'FileFormat']] = None,
+            **kwargs) -> None:
+        """Exports file by calling appropriate method based on file_format.
+
+        If needed arguments are not passed, default values are used. If
+        file_path is passed, folder and file_name are ignored.
+
+        Args:
+            variable (Any): object to be save to disk.
+            file_path (Optional[Union[str, Path]]): a complete file path.
+                Defaults to None.
+            folder (Optional[Union[str, Path]]): a complete folder path or the
+                name of a folder stored in 'inventory'. Defaults to None.
+            file_name (Optional[str]): file name without extension. Defaults to
+                None.
+            file_format (Optional[Union[str, 'FileFormat']]): object with
+                information about how the file should be loaded or the key to
+                such an object stored in 'inventory'. Defaults to None
+            **kwargs: can be passed if additional options are desired specific
+                to the pandas or python method used internally.
+
+        """
         if self.file_formats[file_format].module in ['pandas', 'numpy']:
             exporter = self.data_exporter
         else:
             exporter = self.results_exporter
-        exporter.save(instance = instance, file_format = file_format, **kwargs)
+        exporter.apply(
+            variable = variable,
+            file_path = file_path,
+            folder = folder,
+            file_name = file_name,
+            file_format = file_format,
+            **kwargs)
         return self
 
     def set_project_folder(self, name: Optional[str] = None) -> None:
+        """Sets project folder for results for a Project instance to be saved.
+
+        Args:
+            name (Optional[str]): name of folder to use. Defaults to None. If
+                not passed, a unique folder name will be created with the
+                prefix of 'project_' and the suffix of the current date and
+                time.
+
+        """
         if name is None:
             name = '_'.join('project', datetime_string())
         self.folders['project'] = self.folders['results'].joinpath(name)
+        self._write_folder(folder = self.folders['project'])
         return self
 
     def set_chapter_folder(self,
             prefix: Optional[str] = None,
             name: Optional[str] = None) -> None:
+        """Sets chapter folder for results for a Chapter instance to be saved.
+
+        Args:
+            prefix (Optional[str]): prefix of folder to use. Defaults to None.
+                If not passed, the prefix 'chapter_' is used.
+            name (Optional[str]): suffix to chapter name to use. Defaults to
+                None. If not passed, the '_make_unique_path' method is called
+                to dynamically create a path.
+
+        """
         prefix = prefix or 'chapter'
         if name:
             return self.folders['project'].joinpath('_'.join([prefix, name]))
@@ -391,8 +509,6 @@ class Inventory(MutableMapping):
         """Initializes core paths and attributes."""
         # Initializes 'state' for state management.
         self.state = create_states(states = self.states)
-        # Initializes internal 'folders' dictionary.
-        self.folders = {}
         # Transforms root folder path into a Path object.
         self._draft_root()
         # Creates basic folder structure and writes folders to disk.
@@ -425,9 +541,14 @@ class Inventory(MutableMapping):
 
 @dataclass
 class SimpleDistributor(ABC):
-    """Base class for siMpLify Importer and Exporter."""
+    """Base class for siMpLify Importer and Exporter.
 
-    inventory: 'Inventory' = None
+    Args:
+        inventory ('Inventory'): a related Inventory instance.
+
+    """
+
+    inventory: 'Inventory'
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -447,11 +568,12 @@ class SimpleDistributor(ABC):
         If a needed argument was not passed, default values are used.
 
         Args:
-            variables_to_check (List[str]): variables to check for values.
+            file_format ('FileFormat'): an instance with information about
+                additional kwargs to search for.
             passed_kwargs (Dict[str, Any]): kwargs passed to method.
 
         Returns:
-            new_kwargs (Dict[str, Any]): kwargs with only relevant parameters.
+            Dict[str, Any]: kwargs with only relevant parameters.
 
         """
         new_kwargs = passed_kwargs
@@ -488,6 +610,17 @@ class SimpleDistributor(ABC):
     def _make_parameters(self,
             file_format: 'FileFormat',
             **kwargs) -> Dict[str, Any]:
+        """Creates complete parameters for a file input/output method.
+
+        Args:
+            file_format ('FileFormat'): an instance with information about the
+                needed and optional parameters.
+            kwargs: additional parameters to pass to an input/output method.
+
+        Returns:
+            Dict[str, Any]: parameters to be passed to an input/output method.
+
+        """
         parameters = self._check_kwargs(
             file_format = file_format,
             passed_kwargs = kwargs)
@@ -506,9 +639,24 @@ class Importer(SimpleDistributor):
 
     Args:
         inventory ('Inventory'): related Inventory instance.
+        root_folder (Optional[str]): the root folder for files to be loaded.
+            This should usually be the data or results folder from 'inventory'.
+            Defaults to None.
+        folders (Optional[Dict[str, str]]): mapping with keys of Project ststes
+            and values corresponding to folders stored in 'inventory'. Defaults
+            to an empty dictionary.
+        file_format_states (Optional[Dict[str, str]]): mapping with keys of
+            Project states and values corresponding to keys of 'file_formats'
+            in inventory. This mapping is used if different file formats are
+            used at different stages of the project (most often when the
+            original data format is not desired for long-term use). Defaults to
+            an empty dictionary.
+        file_names (Optional[Dict[str, str]]): mapping with keys of Project
+            states and values of default file names. Defaults to an empty
+            dictionary.
 
     """
-    inventory: 'Inventory' = None
+    inventory: 'Inventory'
     root_folder: Optional[str] = None
     folders: Optional[Dict[str, str]] = field(default_factory = dict)
     file_format_states: Optional[Dict[str, str]] = field(default_factory = dict)
@@ -517,23 +665,28 @@ class Importer(SimpleDistributor):
     """ Public Methods """
 
     def load(self, **kwargs):
+        """Calls 'apply' method with **kwergs."""
         return self.apply(**kwargs)
 
     def make_batch(self,
-            folder: Optional[str] = None,
-            file_format: Optional[str] = None,
-            include_subfolders: Optional[bool] = True) -> Iterable[str]:
-        """Creates a list of paths in 'folder_in' based upon 'file_format'.
+            folder: Optional[Union[str, Path]] = None,
+            file_format: Optional[Union[str, 'FileFormat']] = None,
+            include_subfolders: Optional[bool] = True) -> Iterable:
+        """Creates an iterable of paths for importing files.
 
         If 'include_subfolders' is True, subfolders are searched as well for
         matching 'file_format' files.
 
         Args:
-            folder (Optional[str]): path of folder or string corresponding to
-                class attribute with path.
-            file_format (Optional[str]): file format name.
+            folder (Optional[Union[str, Path]]): path of folder or string
+                corresponding to class attribute with path. Defaults to None.
+            file_format (Optional[Union[str, 'FileFormat']]): file format name
+                or a FileFormat instance. Defeaults to None.
             include_subfolders (Optional[bool]): whether to include files in
-                subfolders when creating a batch.
+                subfolders when creating a batch. Defaults to True
+
+        Returns:
+            Iterable: matching file paths.
 
         """
         folder = folder or self.inventory[self.folders[self.inventory.stage]]
@@ -576,8 +729,8 @@ class Importer(SimpleDistributor):
     """ Core siMpLify Methods """
 
     def apply(self,
-            file_path: Optional[str],
-            folder: Optional[str] = None,
+            file_path: Optional[Union[str, Path]] = None,
+            folder: Optional[Union[str, Path]] = None,
             file_name: Optional[str] = None,
             file_format: Optional[Union[str, 'FileFormat']] = None,
             **kwargs) -> Any:
@@ -587,9 +740,15 @@ class Importer(SimpleDistributor):
         file_path is passed, folder and file_name are ignored.
 
         Args:
-            file_path (str): a complete file path for the file to be loaded.
-            file_format ('FileFormat'): object with information about how the
-                file should be loaded.
+            file_path (Optional[Union[str, Path]]): a complete file path.
+                Defaults to None.
+            folder (Optional[Union[str, Path]]): a complete folder path or the
+                name of a folder stored in 'inventory'. Defaults to None.
+            file_name (Optional[str]): file name without extension. Defaults to
+                None.
+            file_format (Optional[Union[str, 'FileFormat']]): object with
+                information about how the file should be loaded or the key to
+                such an object stored in 'inventory'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -620,6 +779,21 @@ class Exporter(SimpleDistributor):
 
     Args:
         inventory ('Inventory'): related Inventory instance.
+        root_folder (Optional[str]): the root folder for files to be loaded.
+            This should usually be the data or results folder from 'inventory'.
+            Defaults to None.
+        folders (Optional[Dict[str, str]]): mapping with keys of Project ststes
+            and values corresponding to folders stored in 'inventory'. Defaults
+            to an empty dictionary.
+        file_format_states (Optional[Dict[str, str]]): mapping with keys of
+            Project states and values corresponding to keys of 'file_formats'
+            in inventory. This mapping is used if different file formats are
+            used at different stages of the project (most often when the
+            original data format is not desired for long-term use). Defaults to
+            an empty dictionary.
+        file_names (Optional[Dict[str, str]]): mapping with keys of Project
+            states and values of default file names. Defaults to an empty
+            dictionary.
 
     """
     inventory: 'Inventory' = None
@@ -680,16 +854,16 @@ class Exporter(SimpleDistributor):
     # def iterate_writer(self):
     #     return self
 
-
     def save(self, **kwargs):
+        """Calls 'apply' method with **kwargs."""
         return self.apply(**kwargs)
 
     """ Core siMpLify Methods """
 
     def apply(self,
             variable: Any,
-            file_path: str,
-            folder: Optional[str] = None,
+            file_path: Optional[Union[str, Path]] = None,
+            folder: Optional[Union[str, Path]] = None,
             file_name: Optional[str] = None,
             file_format: Optional[Union[str, 'FileFormat']] = None,
             **kwargs) -> None:
@@ -699,10 +873,16 @@ class Exporter(SimpleDistributor):
         file_path is passed, folder and file_name are ignored.
 
         Args:
-            variable (Any): the variable being exported.
-            file_path (str): a complete file path for the file to be saved.
-            file_format ('FileFormat'): object with information about how the
-                file should be saved.
+            variable (Any): object to be save to disk.
+            file_path (Optional[Union[str, Path]]): a complete file path.
+                Defaults to None.
+            folder (Optional[Union[str, Path]]): a complete folder path or the
+                name of a folder stored in 'inventory'. Defaults to None.
+            file_name (Optional[str]): file name without extension. Defaults to
+                None.
+            file_format (Optional[Union[str, 'FileFormat']]): object with
+                information about how the file should be loaded or the key to
+                such an object stored in 'inventory'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -749,7 +929,7 @@ class Pathifier(object):
             folder (Optional[str]): name of folder. Defaults to None.
 
         Returns:
-            str: completed file_name.
+            str: completed folder.
 
         """
         if not folder:
@@ -782,16 +962,17 @@ class Pathifier(object):
     def _make_path(self,
             folder: str,
             file_name: str,
-            file_format: str) -> str:
+            file_format: 'FileFormat') -> Path:
         """Creates completed file_path from passed arguments.
 
         Args:
             folder (str): name of target folder.
             file_name (str): name of file.
-            file_format (str): name of file format.
+            file_format ('FileFormat'): instance with instructions about the
+                selected file format.
 
         Returns:
-            str: completed file path.
+            Path: completed file path.
 
         """
         return folder.joinpath('.'.join([file_name, file_format.extension]))
@@ -811,8 +992,8 @@ class Pathifier(object):
                 'file_path' passed). Defaults to None.
             file_name (Optional[str]): name of file (not used if 'file_path'
                 passed). Defaults to None.
-            file_format (Optional[str]): name of file format (not used if '
-                file_path' passed). Defaults to None.
+            file_format (Optional['FileFormat']): instance with instructions
+                about the selected file format. Defaults to None.
 
         Returns:
             str of completed file path.
@@ -831,7 +1012,35 @@ class Pathifier(object):
 
 @dataclass
 class FileFormat(SimpleOutline):
-    """File format container."""
+    """File format information and instructions
+
+    Args:
+        name (str): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier.
+        module (str): name of module where object to incorporate is located
+            (can either be a siMpLify or non-siMpLify module).
+        extension (Optional[str]): actual file extension to use. Defaults to
+            None.
+        import_method (Optional[str]): name of import method in 'module' to
+            use. If module is None, the SimpleDistributor looks for the method
+            as a local attribute. Defaults to None.
+        export_method (Optional[str]): name of export method in 'module' to
+            use. If module is None, the SimpleDistributor looks for the method
+            as a local attribute. Defaults to None.
+        additional_kwargs (Optional[List[str]]): names of commonly used kwargs
+            for either the import or export method. Defaults to None.
+        required (Optional[Dict[str, Any]]): any required parameters that should
+            be passed to the import or export methods. Defaults to None.
+        test_size_parameter (Optional[str]): the name of the parameter for
+            loading a sample of data for the particular import method. Defaults
+            to None.
+
+    """
 
     name: str
     module: str
@@ -856,7 +1065,7 @@ def create_inventory(
         idea ('Idea'): an Idea instance.
 
     Returns:
-        Inventory instance, properly configured.
+        Inventory: instance, properly configured.
 
     Raises:
         TypeError if inventory is neither an Inventory instance nor string

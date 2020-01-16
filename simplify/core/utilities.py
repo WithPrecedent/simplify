@@ -223,6 +223,21 @@ def stringify(
         except TypeError:
             return variable
 
+def subsetify(dictionary: Dict[Any, Any], subset: List[Any]) -> Dict[Any, Any]:
+    """Returns a subset of a dictionary.
+
+    The returned subset is a dictionary with keys in 'subset'.
+
+    Args:
+        dictionary (Dict[Any, Any]): dict to be subsetted.
+        subset (List[Any]): list of keys to get key/values from dictionary.
+
+    Returns:
+        Dict[Any, Any]: with only keys in 'subset'
+
+    """
+    return {key: dictionary[key] for key in subset}
+
 def typify(variable: str) -> Union[List, int, float, bool, str]:
     """Converts stingsr to appropriate, supported datatypes.
 

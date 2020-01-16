@@ -74,7 +74,7 @@ class Project(MutableMapping):
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
-            'simplify'.
+            'project'.
 
     """
     idea: Union['Idea', str] = None
@@ -84,13 +84,24 @@ class Project(MutableMapping):
         'Ingredient',
         pd.DataFrame,
         np.ndarray,
-        str]] = None
+        str,
+        Dict[str, Union[
+            'Ingredient',
+            pd.DataFrame,
+            np.ndarray,
+            str],
+            List[Union[
+                'Ingredient',
+                pd.DataFrame,
+                np.ndarray,
+                str]]]]] = None
     workers: Optional[Union['Workers', List[str], str]] = field(
         default_factory = list)
     library: Optional['Library'] = field(default_factory = Library)
     auto_publish: Optional[bool] = True
     auto_apply: Optional[bool] = False
     name: Optional[str] = 'project'
+    identification: Optional[str] = field(default_factory = datetime_string)
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls appropriate methods.
@@ -104,8 +115,6 @@ class Project(MutableMapping):
         # Checks 'idea' to make sure it was passed.
         if self.idea is None:
             raise ValueError('Project requires an idea argument')
-        # Creates a unique 'id_number' from date and time.
-        self.id_number = datetime_string()
         # Validates 'idea', 'inventory', and 'ingredients'.
         self.idea, self.inventory, self.ingredients, self.workers = (
             simplify.startup(
@@ -241,24 +250,23 @@ class Project(MutableMapping):
 
     """ Private Methods """
 
-    def _create_workers(self) -> None:
+    def _create_workers(self,
+            workers: Optional[Union[List[str], str]] = None) -> None:
         """Creates SimpleEditor instances for each Worker."""
-        for name, worker in self.workers.items():
+        workers = workers or self.workers
+        for name, worker in workers.items():
             # For each worker, create an Author, Publisher, and Scholar instance
             # to draft, publish, and apply Book instances.
-            if not self.workers[name].author:
-                self.workers[name].author = self.workers[name].author(
-                    project = self,
-                    worker = worker)
-            if not self.workers[name].publisher:
-                self.workers[name].publisher = self.workers[name].publisher(
-                    project = self,
-                    worker = worker)
-            if not self.workers[name].scholar:
-                self.workers[name].scholar = self.workers[name].scholar(
-                    project = self,
-                    worker = worker)
-        return self
+            workers[name].author = self.workers[name].author(
+                project = self,
+                worker = worker)
+            workers[name].publisher = self.workers[name].publisher(
+                project = self,
+                worker = worker)
+            workers[name].scholar = self.workers[name].scholar(
+                project = self,
+                worker = worker)
+        return workers
 
     """ Public Methods """
 
@@ -279,8 +287,6 @@ class Project(MutableMapping):
 
     def draft(self) -> None:
         """Sets initial attributes."""
-        # Changes state.
-        self.state = 'draft'
         # Sets default package options available to Project.
         self.default_workers = {
             'chef': Worker(
@@ -292,25 +298,33 @@ class Project(MutableMapping):
             'farmer': Worker(
                 name = 'farmer',
                 module = 'simplify.farmer.farmer',
-                book = 'Almanac'),
+                book = 'Almanac',
+                scholar = 'Farmer',
+                options = 'FarmerCatalog'),
             'actuary': Worker(
                 name = 'actuary',
                 module = 'simplify.actuary.actuary',
-                book = 'Ledger'),
+                book = 'Ledger',
+                scholar = 'Actuary',
+                options = 'ActuaryCatalog'),
             'critic': Worker(
                 name = 'critic',
                 module = 'simplify.critic.critic',
-                book = 'Collection'),
+                book = 'Collection',
+                scholar = 'Critic,
+                options = 'CriticCatalog'),
             'artist': Worker(
                 name = 'artist',
                 module = 'simplify.artist.artist',
-                book = 'Canvas')}
+                book = 'Canvas',
+                scholar = 'Artist',
+                options = 'ArtistCatalog')}
         self.editors = {
             'author' : 'draft',
             'publisher': 'publish',
             'scholar': 'apply'}
         # Creates 'Worker' instances for each selected stage.
-        self._create_workers()
+        self.workers = self._create_workers()
         # Iterates through 'workers' and creates a skeleton of each Book.
         for name, worker in self.workers.items():
             # Drafts a Book instance for 'worker' and places it in 'library'.
@@ -329,7 +343,7 @@ class Project(MutableMapping):
         self.state = 'publish'
         # Assigns 'workers' argument to 'workers' attribute, if passed.
         if workers is not None:
-            self.workers = create_workers(workers = workers, project = self)
+            self.workers = create_workers(workers = workers)
         # Injects attributes from 'idea'.
         self = self.idea.apply(instance = self)
         # Iterates through 'workers' and finalizes each Book instance.
@@ -638,6 +652,8 @@ def Worker(SimpleOutline):
     options: Optional['SimpleCatalog'] = field(default_factory = SimpleCatalog)
     techniques: Dict[str, List[str]] = field(default_factory = dict)
 
+
+""" Validator Function """
 
 def create_workers(
         workers: Union['Workers', List[str], str],

@@ -23,6 +23,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
+from simplify.core.utilities import subsetify
 
 
 @dataclass
@@ -215,8 +216,8 @@ class SimpleCatalog(MutableMapping):
     corresponding keys are sought.
 
     Args:
-        dictionary (Optional[str, Any]): default stored dictionary. Defaults to
-            an empty dictionary.
+        dictionary (Optional[str, Any]): stored dictionary. Defaults to an empty
+            dictionary.
         wildcards (Optional[List[str]]): a list of corresponding properties
             which access sets of dictionary keys. If none is passed, the two
             included properties ('default' and 'all') are used.
@@ -325,7 +326,7 @@ class SimpleCatalog(MutableMapping):
             List[str]: keys stored in 'defaults' of 'dictionary'.
 
         """
-        return {key: self.dictionary[key] for key in self._default}
+        return subsetify(self.dictionary, self._default)
 
     @default.setter
     def default(self, keys: Union[List[str], str]) -> None:
