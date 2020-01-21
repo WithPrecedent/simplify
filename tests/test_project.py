@@ -6,24 +6,20 @@
 :license: Apache-2.0
 """
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
+from simplify.core.idea import Idea
 from simplify.core.project import Project
 
 
 def test_project():
-    project = Project(
-        idea = 'idea_settings.ini',
-        auto_publish = False)
-    print(project.iterable)
-    assert project.iterable == [
-        ('chef', 'draft'),
-        ('chef', 'publish'),
-        ('chef', 'apply'),
-        ('critic', 'draft'),
-        ('critic', 'publish'),
-        ('critic', 'apply')]
+    idea = Idea(
+        configuration = Path.cwd().joinpath('tests', 'idea_settings.ini'))
+    project = Project(idea = idea)
+    print('test', project.library)
     return
 
 if __name__ == '__main__':

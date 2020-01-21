@@ -7,6 +7,7 @@
 """
 
 from pathlib import Path
+
 from simplify.core.idea import Idea
 from simplify.core.inventory import Inventory
 

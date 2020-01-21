@@ -107,5 +107,5 @@ class RankSelect(CriticTechnique):
         return self
 
     def draft(self) -> None:
-        self._options = SimpleCatalog(options = {}
+        self._options = Repository(options = {}
         return self

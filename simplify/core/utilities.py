@@ -87,14 +87,14 @@ def deduplicate(iterable: Union[List, pd.DataFrame, pd.Series]) -> (
         return iterable.drop_duplicates(inplace = True)
 
 def is_nested(dictionary: Dict[Any, Any]) -> bool:
-    """Returns if passed 'dictionary' is nested at least one-level.
+    """Returns if passed 'contents' is nested at least one-level.
 
     Args:
         dictionary (dict): dict to be tested.
 
     Returns:
-        bool: indicating whether any value in the 'dictionary' is also a
-            dict (meaning that 'dictionary' is nested).
+        bool: indicating whether any value in the 'contents' is also a
+            dict (meaning that 'contents' is nested).
 
     """
     return any(isinstance(d, dict) for d in dictionary.values())
@@ -252,21 +252,29 @@ def typify(variable: str) -> Union[List, int, float, bool, str]:
     Returns:
         variable (str, list, int, float, or bool): converted variable.
     """
-    if isinstance(variable, bool):
-        return variable
-    elif ', ' in variable:
-        variable = variable.split(', ')
-        return [numify(v) for v in variable]
-    else:
-        variable = numify(variable)
-        if variable in ['True', 'true', 'TRUE']:
-            return True
-        elif variable in ['False', 'false', 'FALSE']:
-            return False
-        elif variable in ['None', 'none', 'NONE']:
-            return 'none'
-        else:
-            return variable
+    try:
+        return int(variable)
+    except ValueError:
+        try:
+            return float(variable)
+        except ValueError:
+            if variable.lower() in ['true', 'yes']:
+                return True
+            elif variable.lower() in ['false', 'no']:
+                return False
+            elif ', ' in variable:
+                variable = variable.split(', ')
+                return [numify(v) for v in variable]
+            else:
+                variable = numify(variable)
+                if variable in ['True', 'true', 'TRUE']:
+                    return True
+                elif variable in ['False', 'false', 'FALSE']:
+                    return False
+                elif variable in ['None', 'none', 'NONE']:
+                    return 'none'
+                else:
+                    return variable
 
 """ Decorators """
 

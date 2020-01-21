@@ -18,8 +18,8 @@ from numpy import datetime64
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from simplify.core.base import SimpleType
 from simplify.core.states import SimpleState
+from simplify.core.types import SimpleType
 from simplify.core.utilities import listify
 
 
@@ -643,7 +643,7 @@ class DataProxies(MutableMapping):
 
         """
         try:
-            dictionary = '_'.join([key.rsplit('_', 1), 'suffixes'])
+            contents = '_'.join([key.rsplit('_', 1), 'suffixes'])
             if getattr(self, dictionary)[self.ingredients.state] is None:
                 raise ValueError(''.join(['Train and test data cannot be',
                     'accessed until data is split']))
@@ -664,7 +664,7 @@ class DataProxies(MutableMapping):
 
         """
         try:
-            dictionary = '_'.join([key.rsplit('_', 1), 'suffixes'])
+            contents = '_'.join([key.rsplit('_', 1), 'suffixes'])
             new_key = ''.join(
                 [key[0], getattr(self, dictionary)[self.ingredients.state]])
             self.ingredients.ingredients[new_key] = value
@@ -679,7 +679,7 @@ class DataProxies(MutableMapping):
 
         """
         try:
-            dictionary = '_'.join([key.rsplit('_', 1), 'suffixes'])
+            contents = '_'.join([key.rsplit('_', 1), 'suffixes'])
             new_key = ''.join(
                 [key[0], getattr(self, dictionary)[self.ingredients.state]])
             self.ingredients.ingredients[new_key] = value

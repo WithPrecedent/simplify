@@ -6,27 +6,75 @@
 :license: Apache-2.0
 """
 
+from abc import ABC
 from dataclasses import dataclass
 from dataclasses import field
 from importlib import import_module
+from inspect import isclass
 from itertools import product
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.base import SimpleEditor
-from simplify.core.base import SimpleProgression
+from simplify.core.book import Chapter
+from simplify.core.repository import Repository
+from simplify.core.repository import Sequence
+from simplify.core.technique import Technique
 from simplify.core.utilities import listify
 from simplify.core.validators import DataValidator
 
 
 @dataclass
-class Author(SimpleEditor):
-    """ Drafts a skeleton Book instance.
+class Editor(ABC):
+    """Base class for creating and applying Manuscript subclasses.
 
     Args:
         project ('Project'): a related Project instance.
-        worker (str): name of the key to the Worker instance in the 'workers'
-            attribute of 'project' for which this Class should draft a Book
-            instance.
+        worker ('Worker'): the Worker instance for which a subclass should edit
+            or apply a Book instance.
+
+    """
+    project: 'Project'
+    worker: 'Worker'
+
+    def __post_init__(self) -> None:
+        """Adds attributes from an 'idea' in 'project'."""
+        try:
+            self = self.project.idea.apply(instance = self)
+        except AttributeError:
+            pass
+        return self
+
+    """ Core siMpLify Methods """
+
+    def draft(self) -> NotImplementedError:
+        """Creates skeleton of a Book instance."""
+        raise NotImplementedError(' '.join(
+            [self.__name__, 'has no draft method. Use Author instead.']))
+
+    def publish(self, step: str) -> NotImplementedError:
+        """Finalizes a Book instance and its Chapters and Techniques."""
+        raise NotImplementedError(' '.join(
+            [self.__name__, 'has no publish method. Use Publisher instead.']))
+
+    def apply(self, data: object) -> NotImplementedError:
+        """Applies Book instance to 'data'.
+
+        Args:
+            data (object): data object for a Book instance methods to be
+                applied.
+
+        """
+        raise NotImplementedError(' '.join(
+            [self.__name__, 'has no apply method. Use Scholar instead.']))
+
+
+@dataclass
+class Author(Editor):
+    """ Drafts a basic Book instance.
+
+    Args:
+        project ('Project'): a related Project instance.
+        worker (str): name of the key to the Worker and Book instances in
+            'project'.
 
     """
     project: 'Project'
@@ -41,20 +89,22 @@ class Author(SimpleEditor):
             Book: instance with only 'name' set.
 
         """
-        try:
-            # Checks to see if a matching Book instance was already created.
+        # Checks to see if a matching Book instance was already created.
+        if self.worker in self.project.library:
             return self.project.library[self.worker]
-        except KeyError:
+        else:
             # Loads a Book class based upon 'worker' attributes.
-            book = self.project.workers[self.worker].load('book')
+            book = self.project[self.worker].load('book')
             # Creates an empty class instance of a Book.
-            return book(name = self.worker)
+            return book(
+                name = self.worker,
+                techniques = self.project[self.worker].techniques)
 
     def _draft_steps(self) -> List[str]:
         """Creates a list of 'steps' from 'idea'."""
         # Checks existing 'worker' to see if 'steps' exists.
-        if self.workers[self.worker].steps:
-            return self.workers[self.worker].steps
+        if self.project[self.worker].steps:
+            return self.project[self.worker].steps
         else:
             try:
                 # Attempts to get 'steps' from 'idea'.
@@ -62,22 +112,23 @@ class Author(SimpleEditor):
                     [self.worker, 'steps'])])
             except KeyError:
                 return []
-            return self
 
-    def _draft_options(self) -> 'SimpleProgression':
+    def _draft_options(self) -> 'Repository':
         """Gets options for creating a Book contents.
 
         Returns:
-            'SimpleProgression': with coores
+            'Repository': with possible options included.
 
         """
-        module = self.project.workers[self.worker].module
-        try:
-            options = getattr(import_module(module), 'get_options')(
-                idea = self.project.idea)
-        except AttributeError:
-            options = getattr(import_module(module), 'DEFAULT_OPTIONS')
-        return SimpleProgression(options = options)
+        # Checks existing 'worker' to see if 'options' exists.
+        if isclass(self.project[self.worker].options):
+            return self.project[self.worker].options(
+                project = self.project)
+        elif isinstance(self.project[self.worker].options, str):
+            loaded = self.project[self.worker].load('options')
+            return loaded(project = self.project)
+        else:
+            return self.project[self.worker].options
 
     def _draft_techniques(self) -> Dict[str, List[str]]:
         """Creates 'techniques' for a Book.
@@ -87,12 +138,12 @@ class Author(SimpleEditor):
                 instance.
 
         """
-        try:
-            # Checks to see if 'techniques' already exists.
-            return self.project.workers[self.worker].techniques
-        except (KeyError, AttributeError):
+        # Checks to see if 'techniques' already exists.
+        if self.project[self.worker].techniques:
+            return self.projects[self.worker].techniques
+        else:
             techniques = {}
-            for step in self.project.workers[self.worker].steps:
+            for step in self.project[self.worker].steps:
                 try:
                     techniques[step] = listify(self.project.idea
                         [self.worker]['_'.join([step, 'techniques'])])
@@ -104,26 +155,25 @@ class Author(SimpleEditor):
 
     def draft(self) -> None:
         """Drafts initial attributes and settings of a Book instance. """
+        # Adds 'steps' to 'workers'.
+        self.project[self.worker].steps = self._draft_steps()
+        # Adds 'techniques' to 'workers'.
+        self.project[self.worker].techniques = self._draft_techniques()
+        # Adds 'steps' to 'workers'.
+        self.project[self.worker].options = self._draft_options()
         # Adds 'Book' to 'library'.
         self.project.library[self.worker] = self._draft_book()
-        # Adds 'steps' to 'workers'.
-        self.project.workers[self.worker].steps = self._draft_steps()
-        # Adds 'techniques' to 'workers'.
-        self.project.workers[self.worker].techniques = self._draft_techniques()
-        # Adds 'steps' to 'workers'.
-        self.project.workers[self.worker].options = self._draft_options()
         return self
 
 
 @dataclass
-class Publisher(SimpleEditor):
+class Publisher(Editor):
     """Finalizes Book instances.
 
     Args:
         project ('Project'): a related Project instance.
-        worker (str): name of the key to the Worker instance in the 'workers'
-            attribute of 'project' for which this Class should draft a Book
-            instance.
+        worker (str): name of the key to the Worker and Book instances in
+            'project'.
 
     """
     project: 'Project'
@@ -144,60 +194,69 @@ class Publisher(SimpleEditor):
     def _publish_techniques(self, book: 'Book') -> 'Book':
         """Publishes instanced 'techniques' for a Book instance.
 
+        Args:
+            book ('Book'): instance for 'techniques' to be added.
+
         Returns:
-            Book instance.
+            Book: instance, with 'techniques' added.
 
         """
-        techniques = self.project.workers[self.worker].techniques
-        for step, techniques in techniques.items():
+        drafted_techniques = self.project[self.worker].techniques
+        book.techniques = {}
+        for step, techniques in drafted_techniques.items():
             for technique in techniques:
-                book.techniques[step] = self.researcher.publish(
+                if step not in book.techniques:
+                    book.techniques[step] = {}
+                book.techniques[step][technique] = self.researcher.publish(
                     step = step,
                     technique = technique)
         return book
 
     def _publish_chapters(self, book: 'Book') -> 'Book':
+        """Publishes instanced 'chapters' for a Book instance.
+
+        Args:
+            book ('Book'): instance for 'chapters' to be added.
+
+        Returns:
+            Book: instance, with 'chapters' added.
+
         """
-        """
+        # Gets list of steps to pair with techniques.
+        drafted_steps = self.project.workers[self.worker].steps
         # Creates a list of lists of possible techniques.
-        possible = list(self.project.workers[self.worker].techniques.values())
+        possible = list(self.project[self.worker].techniques.values())
         # Converts 'possible' to a list of the Cartesian product.
         plans = list(map(list, product(*possible)))
         # Creates Chapter instance for every combination of step techniques.
         for i, techniques in enumerate(plans):
-            book.chapters.add(
-                self.contributor.publish(
+            book.add_chapters(
+                chapters = self.contributor.publish(
                     book = book,
                     number = i,
-                    techniques = techniques))
+                    techniques = dict(zip(drafted_steps, techniques))))
         return book
 
     """ Core siMpLify Methods """
 
-    def publish(self, worker: str) -> None:
-        """Finalizes Book instance, making all changes before application.
-
-        Args:
-            worker (str): name of Book in the 'library' or 'project'.
-
-        """
-        book = self.project.library[self.worker]
-        # Creates an 'options' attribute to allow publishing of 'techniques'.
-        book = self._publish_techniques(book = book)
+    def publish(self) -> None:
+        """Finalizes Book instance, making all changes before application."""
+        book = self.project[self.worker]
         # Creates 'chapters' for 'book'.
-        self.project.library[self.worker] = self._publish_chapters(book = book)
+        self.project[self.worker] = self._publish_chapters(book = book)
+        # Creates an 'options' attribute to allow publishing of 'techniques'.
+        self.project[self.worker]  = self._publish_techniques(book = book)
         return self
 
 
 @dataclass
-class Researcher(SimpleEditor):
+class Researcher(Editor):
     """Creates Technique instances for a Book instance.
 
     Args:
         project ('Project'): a related Project instance.
-        worker (str): name of the key to the Worker instance in the 'workers'
-            attribute of 'project' for which this Class should draft a Book
-            instance.
+        worker (str): name of the key to the Worker and Book instances in
+            'project'.
 
     """
     project: 'Project'
@@ -210,78 +269,86 @@ class Researcher(SimpleEditor):
             'selected',
             'required',
             # 'search',
-            'runtime',
-            'conditional']
-        # Declares 'options' for specific 'worker'.
-        self.options = self.project.workers[self.worker].options
+            'runtime',]
         super().__post_init__()
         return self
 
     """ Private Methods """
 
     def _publish_parameters(self,
-            outline: 'Algorithm') -> Dict[str, Any]:
-        """Creates 'parameters' for a 'Technique'.
+            outline: 'TechniqueDefinition',
+            technique: 'Technique') -> 'Technique':
+        """Creates 'parameters' for a 'Technique' using 'outline'.
 
+        Args:
+            outline ('TechniqueDefinition'): instructions for creating a
+                Technique instance.
+            technique ('Technique'): an instance for parameters to be added to.
+
+        Returns:
+            'Technique': instance with parameters added.
 
         """
         # Iterates through types of 'parameter_types'.
-        for parameter in self.parameter_types:
-            if parameter in ['conditional']:
-                getattr(chapter, chapter.iterable)[step] = (
-                    self._publish_conditional(
-                        book = book,
-                        technique = technique))
-            else:
-                getattr(chapter, chapter.iterable)[step] = (
-                    getattr(self, '_'.join(
-                        ['_publish', parameter]))(technique = technique))
+        for parameter_type in self.parameter_types:
+            if parameter_type in outline:
+                technique = getattr(self, '_'.join(
+                    ['_publish', parameter_type]))(
+                        outline = outline,
+                        technique = technique)
+        return technique
 
-    def _publish_idea(self, technique: 'Technique') -> 'Technique':
+    def _publish_idea(self,
+            outline: 'TechniqueDefinition',
+            technique: 'Technique') -> 'Technique':
         """Acquires parameters from Idea instance, if no parameters exist.
 
         Args:
-            technique ('Technique'): Technique instance to be modified.
+            outline ('TechniqueDefinition'): instructions for creating a
+                Technique instance.
+            technique ('Technique'): an instance for parameters to be added to.
 
         Returns:
-            'Technique': instance with modifications made.
+            'Technique': instance with parameters added.
 
         """
-        if not technique.parameters:
+        try:
+            technique.parameters.update(self.project.idea['_'.join(
+                [outline.name, 'parameters'])])
+        except KeyError:
             try:
-                technique.parameters.update(self.project.idea.configuration['_'.join(
-                    [technique.name, 'parameters'])])
-            except KeyError:
-                try:
-                    technique.parameters.update(
-                        self.project.idea.configuration['_'.join(
-                            [technique.technique, 'parameters'])])
-                except AttributeError:
-                    pass
+                technique.parameters.update(
+                    self.project.idea.configuration['_'.join(
+                        [technique.name, 'parameters'])])
+            except AttributeError:
+                pass
         return technique
 
-    def _publish_selected(self, technique: 'Technique') -> 'Technique':
-        """Limits parameters to those appropriate to the 'technique' 'technique'.
+    def _publish_selected(self,
+            outline: 'TechniqueDefinition',
+            technique: 'Technique') -> 'Technique':
+        """Limits parameters to those appropriate to the 'technique'.
 
-        If 'technique.techniquens.selected' is True, the keys from
-        'technique.outline.defaults' are used to select the final returned
-        parameters.
+        If 'outline.selected' is True, the keys from 'outline.defaults' are used
+        to select the final returned parameters.
 
-        If 'technique.outline.selected' is a list of parameter keys, then only
-        those parameters are selected for the final returned parameters.
+        If 'outline.selected' is a list of parameter keys, then only those
+        parameters are selected for the final returned parameters.
 
         Args:
-            technique ('Technique'): Technique instance to be modified.
+            outline ('TechniqueDefinition'): instructions for creating a
+                Technique instance.
+            technique ('Technique'): an instance for parameters to be added to.
 
         Returns:
-            'Technique': instance with modifications made.
+            'Technique': instance with parameters added.
 
         """
-        if technique.outline.selected:
-            if isinstance(technique.outline.selected, list):
-                parameters_to_use = technique.outline.selected
+        if outline.selected:
+            if isinstance(outline.selected, list):
+                parameters_to_use = outline.selected
             else:
-                parameters_to_use = list(technique.outline.default.keys())
+                parameters_to_use = list(outline.default.keys())
             new_parameters = {}
             for key, value in technique.parameters.items():
                 if key in parameters_to_use:
@@ -289,94 +356,82 @@ class Researcher(SimpleEditor):
             technique.parameters = new_parameters
         return technique
 
-    def _publish_required(self, technique: 'Technique') -> 'Technique':
+    def _publish_required(self,
+            outline: 'TechniqueDefinition',
+            technique: 'Technique') -> 'Technique':
         """Adds required parameters (mandatory additions) to 'parameters'.
 
         Args:
-            technique ('Technique'): Technique instance to be modified.
+            outline ('TechniqueDefinition'): instructions for creating a
+                Technique instance.
+            technique ('Technique'): an instance for parameters to be added to.
 
         Returns:
-            'Technique': instance with modifications made.
+            'Technique': instance with parameters added.
 
         """
         try:
-            technique.parameters.update(technique.outline.required)
+            technique.parameters.update(outline.required)
         except TypeError:
             pass
         return technique
 
-    def _publish_search(self, technique: 'Technique') -> 'Technique':
+    def _publish_search(self,
+            outline: 'TechniqueDefinition',
+            technique: 'Technique') -> 'Technique':
         """Separates variables with multiple options to search parameters.
 
         Args:
-            technique ('Technique'): Technique instance to be modified.
+            outline ('TechniqueDefinition'): instructions for creating a
+                Technique instance.
+            technique ('Technique'): an instance for parameters to be added to.
 
         Returns:
-            'Technique': instance with modifications made.
+            'Technique': instance with parameters added.
 
         """
         technique.space = {}
-        if technique.outline.hyperparameter_search:
-            new_parameters = {}
-            for parameter, values in technique.parameters.items():
-                if isinstance(values, list):
-                    if any(isinstance(i, float) for i in values):
-                        technique.space.update(
-                            {parameter: uniform(values[0], values[1])})
-                    elif any(isinstance(i, int) for i in values):
-                        technique.space.update(
-                            {parameter: randint(values[0], values[1])})
-                else:
-                    new_parameters.update({parameter: values})
-            technique.parameters = new_parameters
+        new_parameters = {}
+        for parameter, values in technique.parameters.items():
+            if isinstance(values, list):
+                if any(isinstance(i, float) for i in values):
+                    technique.space.update(
+                        {parameter: uniform(values[0], values[1])})
+                elif any(isinstance(i, int) for i in values):
+                    technique.space.update(
+                        {parameter: randint(values[0], values[1])})
+            else:
+                new_parameters.update({parameter: values})
+        technique.parameters = new_parameters
         return technique
 
-    def _publish_runtime(self, technique: 'Technique') -> 'Technique':
+    def _publish_runtime(self,
+            outline: 'TechniqueDefinition',
+            technique: 'Technique') -> 'Technique':
         """Adds parameters that are determined at runtime.
 
         The primary example of a runtime parameter throughout siMpLify is the
         addition of a random seed for a consistent, replicable state.
 
         Args:
-            technique ('Technique'): Technique instance to be modified.
+            outline ('TechniqueDefinition'): instructions for creating a
+                Technique instance.
+            technique ('Technique'): an instance for parameters to be added to.
 
         Returns:
-            'Technique': instance with modifications made.
+            'Technique': instance with parameters added.
 
         """
         try:
-            for key, value in technique.outline.runtime.items():
+            for key, value in outline.runtime.items():
                 try:
-                    technique.parameters.update({key: getattr(technique, value)})
+                    technique.parameters.update(
+                        {key: getattr(self.project, value)})
                 except AttributeError:
                     raise AttributeError(' '.join(
                         ['no matching runtime parameter', key, 'found']))
         except (AttributeError, TypeError):
             pass
-        return technique
-
-    def _publish_conditional(self, book: 'Book', technique: 'Technique') -> 'Technique':
-        """Modifies 'parameters' based upon various conditions.
-
-        A related class should have its own '_publish_conditional' method for
-        this method to modify 'published'. That method should have a
-        'parameters' and 'name' (str) argument and return the modified
-        'parameters'.
-
-        Args:
-            technique ('Technique'): Technique instance to be modified.
-
-        Returns:
-            'Technique': instance with modifications made.
-
-        """
-        if 'conditional' in technique.outline:
-            try:
-                technique.parameters = book._publish_conditional(
-                    name = technique.name,
-                    parameters = technique.parameters)
-            except AttributeError:
-                pass
         return technique
 
     """ Core siMpLify Methods """
@@ -394,472 +449,66 @@ class Researcher(SimpleEditor):
                 'data_dependent' attributes added.
 
         """
-
         if technique in ['none']:
             return None
         else:
-            instance = Technique(name = step, technique = technique)
-            outline = self.options[step][technique]
-            instance.algorithm = outline.load('algorithm')
-            instance.parameters = self._publish_parameters(outline = outline)
-            instance.data_dependent = outline.data_dependent
-        return instance
+            # Gets appropriate TechniqueDefinition and creates an instance.
+            outline = self.project.workers[self.worker].options[step][technique]
+            # outline = outline.load('algorithm')
+            # outline = outline(project = self)
+            # Creates a Technique instance and add attributes to it.
+            technique = Technique(name = step, technique = technique)
+            technique.algorithm = outline.load('algorithm')
+            technique.data_dependent = outline.data_dependent
+            technique.parameters = self._publish_parameters(
+                outline = outline,
+                technique = technique)
+        return technique
 
 
 @dataclass
-class Contributor(SimpleEditor):
+class Contributor(Editor):
     """Creates Chapter instances for a Book instance.
 
     Args:
         project ('Project'): a related Project instance.
-        worker (str): name of the key to the Worker instance in the 'workers'
-            attribute of 'project' for which this Class should draft a Book
-            instance.
+        worker (str): name of the key to the Worker and Book instances in
+            'project'.
 
     """
     project: 'Project'
     worker: str
 
-    def _publish_chapters(self) -> 'Book':
-        """Publishes 'chapters' for a Book instance.
-
-        Returns:
-            Book instance.
-
-        """
-        book = self.project.library[self.worker]
-        techniques = self.project.workers[self.worker].techniques
-        options = self.project.workers[self.worker].options
-        for step, techniques in techniques.items():
-            for technique in techniques:
-                algorithm = technique.load()
-                parameters = self.parametizer.apply(
-                    outline = options[technique])
-
-            techniques = self._get_techniques(step = step)
-            for technique in techniques:
-                self.project.library[step]['techniques'][technique] = (
-                    options[step][technique])
-
-            parameters = self._publish_parameters(worker = worker)
-
-        for i, step in enumerate(book.steps):
-            if not step in book.techniques:
-                book.techniques[step] = {}
-            for technique in listify(book.techniques[i]):
-                if not technique in ['none', None]:
-                    technique = (options[step][technique].load())
-                    book.contents[step][technique] = Technique(
-                        book = book,
-                        name = step,
-                        technique = technique,
-                        outline = options[step][technique])
-                    book.contents[step][technique].algorithm = (
-                        book.outline.load())
-        return book
-
-    def _publish_chapter_metadata(self,
-            book: 'Book',
-            number: int) -> Dict[str, Any]:
-        """Finalizes metadata for Chapter instance.
-
-        Args:
-            book ('Book'): Book instance to be modified.
-            number (int): chapter number; used for recordkeeping.
-
-        Returns:
-            Dict[str, Any]: metadata dict.
-
-        """
-        metadata = {'number': number + 1}
-        try:
-            metadata.update(book.metadata)
-        except AttributeError:
-            pass
-        return metadata
-
-
-
-@dataclass
-class Scholar(SimpleEditor):
-    """Base class for applying SimpleManuscript subclass instances to data.
-
-    Args:
-        project ('Project'): a related Project instance.
-        worker (str): name of the key to the Worker instance in the 'workers'
-            attribute of 'project' for which this Class should apply a Book
-            instance.
-
-    """
-    project: 'Project'
-    worker: str
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        return self
-
     """ Core siMpLify Methods """
 
-    def apply(self,
+    def publish(self,
             book: 'Book',
-            data: Optional[Union['Ingredients', 'Book']] = None,
-            **kwargs) -> Union['Ingredients', 'Book']:
-        """Applies objects in 'manuscript' to 'data'.
+            number: int,
+            techniques: Dict[str, str]) -> 'Book':
+        """Creates 'chapters' for 'book'.
 
         Args:
-            book ('Book'): Book instance with algorithms to apply to 'data'.
-            data (Optional[Union['Ingredients', 'Book']]): a data source for
-                the 'book' methods to be applied.
-            kwargs: any additional parameters to pass to a related
-                SimpleManuscript's options' 'apply' method.
+            book ('Book'): instance for chapters to be added.
 
         Returns:
-            Union['Ingredients', 'Book']: data object with modifications
-                possibly made.
+            'Book' with chapters added.
 
         """
-        for chapter in book:
-            for step, technique in chapter:
-                data = technique.apply(data = data, **kwargs)
-        return book
-
-@dataclass
-class Scholar(object):
-    """Applies methods to siMpLify class instances.
-
-    Args:
-        project ('Project'): a related director class instance.
-
-    """
-    project: 'Project'
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Sets initial index location for iterable.
-        self._position = 0
-        return self
-
-    """ Private Methods """
-
-    def _apply_gpu(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[Union['Ingredients', 'SimpleManuscript']] = None,
-            **kwargs) -> NotImplementedError:
-        """Applies objects in 'manuscript' to 'data'
-
-        Args:
-            manuscript ('SimpleManuscript'): siMpLify class instance to be
-                modified.
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): an
-                Ingredients instance containing external data or a published
-                SimpleManuscript. Defaults to None.
-            kwargs: any additional parameters to pass to a related
-                SimpleManuscript's 'apply' method.
-
-        Raises:
-            NotImplementedError: until dynamic GPU support is added.
-
-        """
-        raise NotImplementedError(
-            'GPU support outside of modeling is not yet supported')
-
-    def _apply_multi_core(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[Union['Ingredients',
-                'SimpleManuscript']] = None) -> 'SimpleManuscript':
-        """Applies objects in 'manuscript' to 'data'
-
-        Args:
-            manuscript ('SimpleManuscript'): siMpLify class instance to be
-                modified.
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): an
-                Ingredients instance containing external data or a published
-                SimpleManuscript. Defaults to None.
-
-        Returns:
-            manuscript ('SimpleManuscript'): siMpLify class instance with
-                modifications made.
-
-        """
-        with Pool() as pool:
-            pool.imap(manuscript.apply, data)
-        pool.close()
-        return self
-
-    def _apply_single_core(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[Union['Ingredients', 'SimpleManuscript']] = None,
-            **kwargs) -> 'SimpleManuscript':
-        """Applies objects in 'manuscript' to 'data'
-
-        Args:
-            manuscript ('SimpleManuscript'): siMpLify class instance to be
-                modified.
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): an
-                Ingredients instance containing external data or a published
-                SimpleManuscript. Defaults to None.
-            kwargs: any additional parameters to pass to a related
-                SimpleManuscript's 'apply' method.
-
-        Returns:
-            manuscript ('SimpleManuscript'): siMpLify class instance with
-                modifications made.
-
-        """
-        manuscript.apply(data = data, **kwargs)
-        return self
-
-    def _apply_technique(technique: )
-
-    """ Core siMpLify Methods """
-
-    def apply(self,
-            manuscript: 'SimpleManuscript',
-            data: Optional[Union['Ingredients', 'SimpleManuscript']] = None,
-            **kwargs) -> 'SimpleManuscript':
-        """Applies objects in 'manuscript' to 'data'
-
-        Args:
-            manuscript ('SimpleManuscript'): siMpLify class instance to be
-                modified.
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): an
-                Ingredients instance containing external data or a published
-                SimpleManuscript. Defaults to None.
-            kwargs: any additional parameters to pass to a related
-                SimpleManuscript's options' 'apply' method.
-
-        Returns:
-            manuscript ('SimpleManuscript'): siMpLify class instance with
-                modifications made.
-
-        """
-        if self.parallelize and not kwargs:
-            self._apply_multi_core(
-                manuscript = manuscript,
-                data = data)
-        else:
-            self._apply_single_core(
-                manuscript = manuscript,
-                data = data,
-                **kwargs)
-        return manuscript
-
-    def apply(self,
-            book: 'Book',
-            data: Optional[Union['Ingredients', 'Book']] = None,
-            **kwargs) -> Union['Ingredients', 'Book']:
-        """Applies objects in 'manuscript' to 'data'
-
-        Args:
-            manuscript ('SimpleManuscript'): siMpLify class instance to be
-                modified.
-            data (Optional[Union['Ingredients', 'SimpleManuscript']]): an
-                Ingredients instance containing external data or a published
-                SimpleManuscript. Defaults to None.
-            kwargs: any additional parameters to pass to a related
-                SimpleManuscript's options' 'apply' method.
-
-        Returns:
-            manuscript ('SimpleManuscript'): siMpLify class instance with
-                modifications made.
-
-        """
-        for chapter in book:
-            for step, technique in chapter:
-                data = technique.apply(data = data,**kwargs)
-        return book
-
-
-    """ Core siMpLify Methods """
-
-    def _add_data_dependents(self, data: object) -> None:
-        """Completes parameter dictionary by adding data dependent parameters.
-
-        Args:
-            data (object): data object with attributes for data dependent
-                parameters to be added.
-
-        Returns:
-            parameters with any data dependent parameters added.
-
-        """
-        if self.outline.data_dependents is not None:
-            for key, value in self.outline.data_dependents.items():
-                try:
-                    self.parameters.update({key, getattr(data, value)})
-                except KeyError:
-                    print('no matching parameter found for', key, 'in',
-                        data.name)
-        return self
-
-    def _add_parameters_to_algorithm(self) -> None:
-        """Attaches 'parameters' to the 'algorithm'."""
-        try:
-            self.algorithm = self.algorithm(**self.parameters)
-        except AttributeError:
-            try:
-                self.algorithm = self.algorithm(self.parameters)
-            except AttributeError:
-                pass
-        except TypeError:
-            pass
-        return self
-
-    """ Public Methods """
-
-    def draft(self):
-        """Creates 'algorithm' and 'outline' attributes."""
-        # Injects attributes from Idea instance, if values exist.
-        self = self.workers.idea.apply(instance = self)
-        self.outline = self.workers[self.technique]
-        self.algorithm = self.outline.load()
-        return self
-
-    def publish(self) -> None:
-        """Finalizes 'algorithm' and 'parameters' attributes."""
-        self.algorithm = self.algorithm.publish()
-        self.parameters = self.parameters.publish()
-        return self
-
-    def apply(self, data: object, **kwargs) -> object:
-        """
-
-        """
-        self._add_data_dependent(data = data)
-        self._add_parameters_to_algorithm()
-        try:
-            self.algorithm.fit(
-                getattr(data, ''.join(['x_', data.state])),
-                getattr(data, ''.join(['y_', data.state])))
-            setattr(
-                data, ''.join(['x_', data.state]),
-                self.algorithm.transform(getattr(
-                    data, ''.join(['x_', data.state]))))
-        except AttributeError:
-            try:
-                data = self.algorithm.apply(data = data)
-            except AttributeError:
-                pass
-        return data
-
-    """ Scikit-Learn Compatibility Methods """
-
-    @DataValidator
-    def fit(self,
-            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
-            y: Optional[Union[pd.Series, np.ndarray]] = None,
-            data: Optional[object] = None) -> None:
-        """Generic fit method for partial compatibility to sklearn.
-
-        Args:
-            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
-                variables/features.
-            y (Optional[Union[pd.Series, np.ndarray]]): dependent
-                variable/label.
-            data (Optional[Ingredients]): instance of Ingredients containing
-                pandas data objects as attributes.
-
-        Raises:
-            AttributeError if no 'fit' method exists for local 'algorithm'.
-
-        """
-        if x is not None:
-            try:
-                if y is None:
-                    self.algorithm.process.fit(x)
-                else:
-                    self.algorithm.process.fit(x, y)
-            except AttributeError:
-                error = ' '.join([self.design.name,
-                                  'algorithm has no fit method'])
-                raise AttributeError(error)
-        elif data is not None:
-            self.algorithm.process.fit(
-                getattr(data, ''.join(['x_', data.state])),
-                getattr(data, ''.join(['y_', data.state])))
-        else:
-            error = ' '.join([self.name, 'algorithm has no fit method'])
-            raise AttributeError(error)
-        return self
-
-    @DataValidator
-    def fit_transform(self,
-            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
-            y: Optional[Union[pd.Series, np.ndarray]] = None,
-            data: Optional[object] = None) -> (
-                Union[pd.DataFrame, 'Ingredients']):
-        """Generic fit_transform method for partial compatibility to sklearn
-
-        Args:
-            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
-                variables/features.
-            y (Optional[Union[pd.Series, np.ndarray]]): dependent
-                variable/label.
-            data (Optional[Ingredients]): instance of Ingredients containing
-                pandas data objects as attributes.
-
-        Returns:
-            transformed x or data, depending upon what is passed to the
-                method.
-
-        Raises:
-            TypeError if DataFrame, ndarray, or ingredients is not passed to
-                the method.
-
-        """
-        self.algorithm.process.fit(x = x, y = y, data = ingredients)
-        if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
-            return self.algorithm.process.transform(x = x, y = y)
-        elif data is not None:
-            return self.algorithm.process.transform(data = ingredients)
-        else:
-            error = ' '.join([self.name,
-                              'algorithm has no fit_transform method'])
-            raise TypeError(error)
-
-    @DataValidator
-    def transform(self,
-            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
-            y: Optional[Union[pd.Series, np.ndarray]] = None,
-            data: Optional[object] = None) -> (
-                Union[pd.DataFrame, 'Ingredients']):
-        """Generic transform method for partial compatibility to sklearn.
-
-        Args:
-            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
-                variables/features.
-            y (Optional[Union[pd.Series, np.ndarray]]): dependent
-                variable/label.
-            data (Optional[Ingredients]): instance of Ingredients containing
-                pandas data objects as attributes.
-
-        Returns:
-            transformed x or data, depending upon what is passed to the
-                method.
-
-        Raises:
-            AttributeError if no 'transform' method exists for local
-                'process'.
-
-        """
-        if hasattr(self.algorithm.process, 'transform'):
-            if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
-                if y is None:
-                    return self.algorithm.process.transform(x)
-                else:
-                    return self.algorithm.process.transform(x, y)
-            elif data is not None:
-                return self.algorithm.process.transform(
-                    X = getattr(data, 'x_' + data.state),
-                    Y = getattr(data, 'y_' + data.state))
-        else:
-            error = ' '.join([self.name, 'algorithm has no transform method'])
-            raise AttributeError(error)
+        # Creates a Chapter instance and add attributes to it.
+        chapter = Chapter(
+            name = '_'.join([*list(techniques.values())]),
+            number = number,
+            book = book,
+            techniques = techniques,
+            returns_data = book.returns_data)
+        # for step, technique in chapter.techniques.items():
+        #     chapter.techniques[step] = book.techniques[step][technique]
+        return chapter
 
 
 
 # @dataclass
-# class Book(SimpleCatalog):
+# class Book(Repository):
 #     """Stores and iterates Chapters.
 
 #     Args:
@@ -867,8 +516,8 @@ class Scholar(object):
 
 #     Args:
 #         project ('Project'): associated Project instance.
-#         options (Optional[Dict[str, 'Worker']]): SimpleCatalog instance or
-#             a SimpleCatalog-compatible dictionary. Defaults to an empty
+#         options (Optional[Dict[str, 'Worker']]): Repository instance or
+#             a Repository-compatible dictionary. Defaults to an empty
 #             dictionary.
 #         steps (Optional[Union[List[str], str]]): steps of key(s) to iterate in
 #             'options'. Also, if not reset by the user, 'steps' is used if the
@@ -889,8 +538,8 @@ class Scholar(object):
 #     def __post_init__(self) -> None:
 #         """Initializes class instance attributes."""
 #         # Sets default 'name' attribute if none exists.
-#         if self.name is None:
-#             self.name = self.__class__.__name__.lower()
+#         if self.worker is None:
+#             self.worker = self.__class__.__name__.lower()
 #         # Calls parent method for initialization.
 #         super().__post_init__()
 #         return self
@@ -938,7 +587,7 @@ class Scholar(object):
 
 
 # @dataclass
-# class Chapter(SimpleCatalog):
+# class Chapter(Repository):
 #     """Iterator for a siMpLify process.
 
 #     Args:
@@ -972,7 +621,7 @@ class Scholar(object):
 #         """Applies stored 'options' to passed 'data'.
 
 #         Args:
-#             data (Optional[Union['Ingredients', 'SimpleManuscript']]): a
+#             data (Optional[Union['Ingredients', 'Manuscript']]): a
 #                 siMpLify object for the corresponding 'step' to apply. Defaults
 #                 to None.
 #             kwargs: any additional parameters to pass to the step's 'apply'

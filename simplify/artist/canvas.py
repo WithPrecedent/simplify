@@ -71,7 +71,7 @@ class Canvas(Book):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        self._options = SimpleCatalog(options = {
+        self._options = Repository(options = {
             'styler': ('simplify.artist.steps.styler', 'Styler'),
             'painter': ('simplify.artist.steps.paint', 'Painter'),
             'animator': ('simplify.artist.steps.animator', 'Animator')}

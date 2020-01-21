@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-
+from abc import ABC
 from functools import wraps
 from importlib import import_module
 from inspect import signature
@@ -16,13 +16,73 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, 
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleValidator
 from simplify.core.idea import Idea
 from simplify.core.ingredients import Ingredient
 from simplify.core.ingredients import Ingredients
 from simplify.core.inventory import Inventory
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
+
+
+class SimpleValidator(ABC):
+    """Base class decorator to convert arguments to proper types."""
+
+    def __init__(self,
+            callable: Callable,
+            validators: Optional[Dict[str, Callable]] = None) -> None:
+        """Sets initial validator options.
+
+        Args:
+            callable (Callable): wrapped method, function, or callable class.
+            validators Optional[Dict[str, Callable]]: keys are names of
+                parameters and values are functions to convert or validate
+                passed arguments. Those functions must return a completed
+                object and take only a single passed passed argument. Defaults
+                to None.
+
+        """
+        self.callable = callable
+        update_wrapper(self, self.callable)
+        if self.validators is None:
+            self.validators = {}
+        return self
+
+    """ Required Wrapper Method """
+
+    def __call__(self) -> Callable:
+        """Converts arguments of 'callable' to appropriate type.
+
+        Returns:
+            Callable: with all arguments converted to appropriate types.
+
+        """
+        call_signature = signature(self.callable)
+        @wraps(self.callable)
+        def wrapper(self, *args, **kwargs):
+            arguments = dict(call_signature.bind(*args, **kwargs).arguments)
+            arguments = self.apply(arguments = arguments)
+            return self.callable(self, **arguments)
+        return wrapper
+
+    """ Core siMpLify Methods """
+
+    def apply(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Converts values of 'arguments' to proper types.
+
+        Args:
+            arguments (Dict[str, Any]): arguments with values to be converted.
+
+        Returns:
+            Dict[str, Any]: arguments with converted values.
+
+        """
+        for argument, validator in self.validators.items():
+            try:
+                arguments[argument] = validator(arguments[argument])
+            except KeyError:
+                pass
+        return arguments
+
 
 
 """ Validator Decorators """

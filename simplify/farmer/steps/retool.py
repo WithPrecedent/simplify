@@ -119,7 +119,7 @@ class ReTool(SimpleDirector):
                              'verbose': re.VERBOSE,
                              'ascii': re.ASCII}
         # Sets options for matcher classes.
-        self._options = SimpleCatalog(options = {'organize': ReOrganize,
+        self._options = Repository(options = {'organize': ReOrganize,
                         'parse': ReSearch,
                         'keyword': ReFrame}
         return self

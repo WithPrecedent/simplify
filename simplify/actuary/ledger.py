@@ -94,7 +94,7 @@ class Ledger(Book):
 
     def draft(self) -> None:
         """Sets default options for the Actuary's analysis."""
-        self._options = SimpleCatalog(options = {
+        self._options = Repository(options = {
             'summary': ('simplify.actuary.steps.summarize', 'Summarize'),
             'test': ('simplify.actuary.steps.test', 'Test')}
         # Sets plan container

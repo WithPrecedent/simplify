@@ -17,9 +17,9 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.base import SimpleCatalog
-from simplify.core.base import SimpleOutline
+from simplify.core.repository import Repository
 from simplify.core.states import create_states
+from simplify.core.types import Definition
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
@@ -170,7 +170,7 @@ class Inventory(MutableMapping):
 
     def _draft_file_formats(self) -> None:
         """Drafts supported file formats and state-related mappings."""
-        self.file_formats = SimpleCatalog(dictionary = {
+        self.file_formats = Repository(contents = {
             'csv': FileFormat(
                 name = 'csv',
                 module = 'pandas',
@@ -1011,7 +1011,7 @@ class Pathifier(object):
 
 
 @dataclass
-class FileFormat(SimpleOutline):
+class FileFormat(Definition):
     """File format information and instructions
 
     Args:
@@ -1076,5 +1076,7 @@ def create_inventory(
         return inventory
     elif isinstance(inventory, (str, Path)):
         return Inventory(idea = idea, root_folder = inventory)
+    elif inventory is None:
+        return Inventory(idea = idea)
     else:
         raise TypeError('inventory must be Inventory type or folder path')

@@ -16,13 +16,13 @@ import numpy as np
 import pandas as pd
 
 import simplify
-from simplify.core.base import SimpleCatalog
-from simplify.core.base import SimpleProgression
 from simplify.core.book import Book
 from simplify.core.editors import Author
 from simplify.core.editors import Publisher
 from simplify.core.ingredients import create_ingredients
-from simplify.core.scholars import Scholar
+from simplify.core.repository import Sequence
+from simplify.core.scholar import Scholar
+from simplify.core.types import Definition
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
 
@@ -89,15 +89,15 @@ class Project(MutableMapping):
             'Ingredient',
             pd.DataFrame,
             np.ndarray,
-            str],
-            List[Union[
-                'Ingredient',
-                pd.DataFrame,
-                np.ndarray,
-                str]]]]] = None
-    workers: Optional[Union['Workers', List[str], str]] = field(
-        default_factory = list)
-    library: Optional['Library'] = field(default_factory = Library)
+            str]],
+        List[Union[
+            'Ingredient',
+            pd.DataFrame,
+            np.ndarray,
+            str]]]] = None
+    workers: Optional[Union['Sequence', List[str], str]] = field(
+        default_factory = Sequence)
+    library: Optional['Sequence'] = field(default_factory = Sequence)
     auto_publish: Optional[bool] = True
     auto_apply: Optional[bool] = False
     name: Optional[str] = 'project'
@@ -116,12 +116,11 @@ class Project(MutableMapping):
         if self.idea is None:
             raise ValueError('Project requires an idea argument')
         # Validates 'idea', 'inventory', and 'ingredients'.
-        self.idea, self.inventory, self.ingredients, self.workers = (
+        self.idea, self.inventory, self.ingredients = (
             simplify.startup(
                 idea = self.idea,
                 inventory = self.inventory,
                 ingredients = self.ingredients,
-                workers = self.workers,
                 project = self))
         # Initializes 'state' for use by lookup methods.
         self.state = 'draft'
@@ -154,11 +153,11 @@ class Project(MutableMapping):
 
         """
         if self.state in ['draft']:
-            dictionary = self.workers
+            contents = self.workers
         else:
-            dictionary = self.library
+            contents = self.library
         try:
-            return dictionary[key]
+            return contents[key]
         except KeyError:
             raise KeyError(' '.join([key, 'is not in', self.name]))
 
@@ -173,10 +172,10 @@ class Project(MutableMapping):
 
         """
         if self.state in ['draft']:
-            dictionary = self.workers
+            contents = self.workers
         else:
-            dictionary = self.library
-        dictionary[key] = value
+            contents = self.library
+        contents[key] = value
         return self
 
     def __delitem__(self, key: str) -> None:
@@ -188,11 +187,11 @@ class Project(MutableMapping):
 
         """
         if self.state in ['draft']:
-            dictionary = self.workers
+            contents = self.workers
         else:
-            dictionary = self.library
+            contents = self.library
         try:
-            del dictionary[key]
+            del contents[key]
         except KeyError:
             pass
         return self
@@ -205,10 +204,10 @@ class Project(MutableMapping):
 
         """
         if self.state in ['draft']:
-            dictionary = self.workers
+            contents = self.workers
         else:
-            dictionary = self.library
-        return (iter(dictionary.items()))
+            contents = self.library
+        return iter(contents)
 
     def __len__(self) -> int:
         """Returns length of 'workers'.
@@ -218,10 +217,10 @@ class Project(MutableMapping):
 
         """
         if self.state in ['draft']:
-            dictionary = self.workers
+            contents = self.workers
         else:
-            dictionary = self.library
-        return len(dictionary)
+            contents = self.library
+        return len(contents)
 
     """ Other Dunder Methods """
 
@@ -248,39 +247,78 @@ class Project(MutableMapping):
             self.__post__init()
         return self
 
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return ' '.join(['Project Library:', *list(self.keys())])
+
     """ Private Methods """
 
     def _create_workers(self,
-            workers: Optional[Union[List[str], str]] = None) -> None:
-        """Creates SimpleEditor instances for each Worker."""
-        workers = workers or self.workers
+            workers: Union['Sequence', List[str], str]) -> None:
+        """Creates or validates 'workers'.
+
+        Args:
+            workers (Union['Sequence', List[str], str]): key(s) for Worker
+                instances in 'default_workers' or a completed Sequence
+                instance with Worker instances.
+
+        """
+        if not workers.contents:
+            try:
+                # Attempts to get 'workers' from 'idea'.
+                workers = listify(self.idea[self.name]['_'.join(
+                    [self.name, 'workers'])])
+            except KeyError:
+                pass
+        if isinstance(workers, (list, str)) and workers:
+            new_workers = {}
+            for worker in listify(workers):
+                new_workers[worker] = self.default_workers[worker]
+            return Sequence(contents = new_workers)
+        elif isinstance(workers, Sequence) and workers:
+            return workers
+        else:
+            return Sequence(contents = self.default_workers)
+
+    def _create_editors(self, workers: 'Sequence') -> None:
+        """Creates Editor instances for each Worker.
+
+        Args:
+            workers ('Sequence'): stored Worker instances.
+
+        """
         for name, worker in workers.items():
-            # For each worker, create an Author, Publisher, and Scholar instance
-            # to draft, publish, and apply Book instances.
-            workers[name].author = self.workers[name].author(
-                project = self,
-                worker = worker)
-            workers[name].publisher = self.workers[name].publisher(
-                project = self,
-                worker = worker)
-            workers[name].scholar = self.workers[name].scholar(
-                project = self,
-                worker = worker)
+            # For each worker, creates an Author and Publisher instance.
+            author = worker.load('author')
+            workers[name].author = author(project = self, worker = name)
+            publisher = worker.load('publisher')
+            workers[name].publisher = publisher(project = self, worker = name)
         return workers
 
     """ Public Methods """
 
-    def add_worker(self, name: str, **kwargs) -> None:
+    def add(self,
+            name: str,
+            worker: Optional['Worker'] = None,
+            **kwargs) -> None:
         """Adds subpackage to 'workers'.
 
         Args:
             name (str): name of subpackage. This is used as both the key to the
                 created Worker in 'workers' and as the 'name' attribute in the
                 Worker.
+            worker (Optional['Worker']): a completed instance. If not provided,
+                the method will assume all of the parameters needed to construct
+                a 'Worker' instance are in 'kwargs'.
             **kwargs: other attributes of a 'Worker' instance to pass.
 
         """
-        self.workers[name] = Worker(name = name, **kwargs)
+        if worker:
+            self.workers[name] = worker
+        else:
+            self.workers[name] = Worker(name = name, **kwargs)
         return self
 
     """ Core siMpLify Methods """
@@ -293,8 +331,7 @@ class Project(MutableMapping):
                 name = 'chef',
                 module = 'simplify.chef.chef',
                 book = 'Cookbook',
-                scholar = 'Chef',
-                options = 'ChefCatalog'),
+                options = 'Cookware'),
             'farmer': Worker(
                 name = 'farmer',
                 module = 'simplify.farmer.farmer',
@@ -311,7 +348,7 @@ class Project(MutableMapping):
                 name = 'critic',
                 module = 'simplify.critic.critic',
                 book = 'Collection',
-                scholar = 'Critic,
+                scholar = 'Critic',
                 options = 'CriticCatalog'),
             'artist': Worker(
                 name = 'artist',
@@ -319,16 +356,13 @@ class Project(MutableMapping):
                 book = 'Canvas',
                 scholar = 'Artist',
                 options = 'ArtistCatalog')}
-        self.editors = {
-            'author' : 'draft',
-            'publisher': 'publish',
-            'scholar': 'apply'}
         # Creates 'Worker' instances for each selected stage.
-        self.workers = self._create_workers()
+        self.workers = self._create_workers(workers = self.workers)
+        self.workers = self._create_editors(workers = self.workers)
         # Iterates through 'workers' and creates a skeleton of each Book.
         for name, worker in self.workers.items():
             # Drafts a Book instance for 'worker' and places it in 'library'.
-            self.library[name] = worker.author.draft()
+            worker.author.draft()
         return self
 
     def publish(self, workers: Optional[Union[List[str], str]] = None) -> None:
@@ -343,12 +377,12 @@ class Project(MutableMapping):
         self.state = 'publish'
         # Assigns 'workers' argument to 'workers' attribute, if passed.
         if workers is not None:
-            self.workers = create_workers(workers = workers)
+            self.workers = self._create_workers(workers = workers)
         # Injects attributes from 'idea'.
         self = self.idea.apply(instance = self)
         # Iterates through 'workers' and finalizes each Book instance.
         for name, worker in self.workers.items():
-            self.library[name] = worker.publisher.publish()
+            worker.publisher.publish()
         return self
 
     def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
@@ -362,265 +396,23 @@ class Project(MutableMapping):
         """
         # Changes state.
         self.state = 'apply'
+        # Creates a Scholar instance to apply Book instances to 'data'.
+        scholar = Scholar(project = self)
         # Assigns 'data' to 'ingredients' attribute and validates it.
         if data:
             self.ingredients = create_ingredients(ingredients = data)
         # Iterates through each worker, creating and applying needed Books,
         # Chapters, and Techniques for each worker in the Project.
-        for name, worker in self.workers.items():
-            if worker.book.returns_data:
-                self.ingredients = worker.scholar.apply(
-                    book = self.library[name],
-                    data = self.ingredients,
-                    **kwargs)
-            else:
-                worker.scholar.apply(
-                    book = self.library[name],
-                    data = self.ingredients,
-                    **kwargs)
-        return self
-
-
-
-# @dataclass
-# class Library(MutableMapping):
-#     """A state-dependent dictionary.
-
-#     Args:
-
-
-#     """
-
-#     project: 'Project'
-#     workers: Optional[Dict[str, 'Worker']] = field(default_factory = dict)
-#     books: Optional[Dict[str, 'Book']] = field(default_factory = dict)
-
-#     def __post_init__(self) -> None:
-#         self.stages = {
-#             'draft': 'workers',
-#             'publish': 'books',
-#             'apply': 'books'}
-#         return self
-
-#     """ Required ABC Methods """
-
-#     def __getitem__(self, key: str) -> Any:
-#         """Returns value for 'key' in the active dictionary.
-
-#         Args:
-#             key (str): name of key in the active dictionary.
-
-#         Returns:
-#             Any: item stored the active dictionary.
-
-#         """
-#         try:
-#             return getattr(self, self.stages[self.project.stage])[key]
-#         except KeyError:
-#             if key in ['all']:
-#                 return getattr(self, self.stages[self.project.stage])
-#             else:
-#                 raise KeyError(' '.join([key, 'is not in the library']))
-
-#     def __delitem__(self, key: str) -> None:
-#         """Deletes 'key' entry in the active dictionary.
-
-#         Args:
-#             key (str): name of key in the active dictionary.
-
-#         """
-#         try:
-#             del getattr(self, self.stages[self.project.stage])[key]
-#         except KeyError:
-#             pass
-#         return self
-
-#     def __setitem__(self, key: str, value: Any) -> None:
-#         """Sets 'key' in the active dictionary to 'value'.
-
-#         Args:
-#             key (str): name of key in the active dictionary.
-#             value (Any): value to be paired with 'key' in the active dictionary.
-
-#         """
-#         getattr(self, self.stages[self.project.stage])[key] = value
-#         return self
-
-#     def __iter__(self) -> Iterable:
-#         """Returns iterable of the active dictionary.
-
-#         Returns:
-#             Iterable stored in the active dictionary.
-
-#         """
-#         return iter(getattr(self, self.stages[self.project.stage]).items())
-
-#     def __len__(self) -> int:
-#         """Returns length of the active dictionary.
-
-#         Returns:
-#             Integer: length of the active dictionary.
-
-#         """
-#         return len(getattr(self, self.stages[self.project.stage]))
-
-#     """ Other Dunder Methods """
-
-#     def __add__(self,
-#             other: Union[
-#                 'Library', Dict[str, Union['Worker', 'Book']]]) -> None:
-#         """Combines argument with the active dictionary.
-
-#         Args:
-#             other (Union['Library', Dict[str, Union['Worker', 'Book']]]):
-#                 another 'Library' instance or compatible dictionary.
-
-#         """
-#         self.add(library = other)
-#         return self
-
-#     def __iadd__(self,
-#             other: Union[
-#                 'Library', Dict[str, Union['Worker', 'Book']]]) -> None:
-#         """Combines argument with the active dictionary.
-
-#         Args:
-#             other (Union['Library', Dict[str, Union['Worker', 'Book']]]):
-#                 another 'Library' instance or compatible dictionary.
-
-#         """
-#         self.add(library = other)
-#         return self
-
-#     """ Public Methods """
-
-#     def add(self,
-#             key: Optional[str] = None,
-#             value: Optional[Any] = None,
-#             options: Optional[Union[
-#                 'Library', Dict[str, Union['Worker', 'Book']]]] = None) -> None:
-#         """Combines arguments with the active dictionary.
-
-#         Args:
-#             key (Optional[str]): options key for 'value' to use. Defaults to
-#                 None.
-#             value (Optional[Any]): item to store in the active dictionary.
-#                 Defaults to None.
-#             library (Optional[Union['Library', Dict[str, Union['Worker',
-#                 'Book']]]]): another 'Library' instance or compatible
-#                 dictionary. Defaults to None.
-
-#         """
-#         if key is not None and value is not None:
-#             getattr(self, self.stages[self.project.stage])[key] = value
-#         if library is not None:
-#             try:
-#                 getattr(self, self.stages[self.project.stage]).update(
-#                     getattr(library, self.stages[self.project.stage])
-#             except AttributeError:
-#                 try:
-#                     getattr(self, self.stages[self.project.stage]).update(
-#                         library)
-#                 except (TypeError, AttributeError):
-#                     pass
-#         return self
-
-@dataclass
-def Library(SimpleProgression):
-
-    options: Optional[Dict[str, 'Book']] = field(default_factory = dict)
-    order: Optional[List[str]] = field(default_factory = list)
-
-    """ Other Dunder Methods """
-
-    def __add__(self, other: 'Book') -> None:
-        """Combines argument with 'options'.
-
-        Args:
-            other ('Book'): a 'Book' instance.
-
-        """
-        self.add(book = other)
-        return self
-
-    def __iadd__(self, other: 'Book') -> None:
-        """Combines argument with 'options'.
-
-        Args:
-            other ('Book'): a 'Book' instance.
-
-        """
-        self.add(book = other)
-        return self
-
-    """ Public Methods """
-
-    def add(self, book: 'Book', key: Optional[str] = None) -> None:
-        """Combines arguments with 'options'.
-
-        Args:
-            book ('Book'): a 'Book' instance.
-            key (Optional[str]): key name to link to 'book'. If not passed,
-                 the 'name' attribute of 'book' will be used.
-
-        """
-        if key:
-            self.options[key] = book
-        else:
-            self.options[book.name] = book
-        self.order.append(key)
+        for name, book in self.library.items():
+            self.library[name] = scholar.apply(
+                book = book,
+                data = self.ingredients)
         return self
 
 
 @dataclass
-def Workers(SimpleProgression):
-
-    options: Optional[Dict[str, 'Worker']] = field(default_factory = dict)
-    order: Optional[List[str]] = field(default_factory = list)
-
-    """ Other Dunder Methods """
-
-    def __add__(self, other: 'Worker') -> None:
-        """Combines argument with 'options'.
-
-        Args:
-            other ('Worker'): a 'Worker' instance.
-
-        """
-        self.add(worker = other)
-        return self
-
-    def __iadd__(self, other: 'Worker') -> None:
-        """Combines argument with 'options'.
-
-        Args:
-            other ('Worker'): a 'Worker' instance.
-
-        """
-        self.add(worker = other)
-        return self
-
-    """ Public Methods """
-
-    def add(self, worker: 'Worker', key: Optional[str] = None) -> None:
-        """Combines arguments with 'options'.
-
-        Args:
-            worker ('Worker'): a 'Worker' instance.
-            key (Optional[str]): key name to link to 'worker'. If not passed,
-                 the 'name' attribute of 'worker' will be used.
-
-        """
-        if key:
-            self.options[key] = worker
-        else:
-            self.options[worker.name] = worker
-        return self
-
-
-@dataclass
-def Worker(SimpleOutline):
-    """Object construction techniques used by SimpleEditor instances.
+class Worker(Definition):
+    """Object construction techniques used by Editor instances.
 
     Ideally, this class should have no additional methods beyond the lazy
     loader ('load' method) and __contains__ dunder method.
@@ -643,39 +435,11 @@ def Worker(SimpleOutline):
 
     """
     name: str
-    module: str
-    book: Optional['Book'] = Book
-    author: Optional['Author'] = Author
-    publisher: Optional['Publisher'] = Publisher
-    scholar: Optional['Scholar'] = Scholar
+    module: Optional[str] = 'simplify.core'
+    book: Optional['Book'] = 'Book'
+    author: Optional['Author'] = 'Author'
+    publisher: Optional['Publisher'] = 'Publisher'
+    scholar: Optional['Scholar'] = 'Scholar'
     steps: Optional[List[str]] = field(default_factory = list)
-    options: Optional['SimpleCatalog'] = field(default_factory = SimpleCatalog)
+    options: Optional['Sequence'] = field(default_factory = Sequence)
     techniques: Dict[str, List[str]] = field(default_factory = dict)
-
-
-""" Validator Function """
-
-def create_workers(
-        workers: Union['Workers', List[str], str],
-        project: 'Project') -> 'Workers':
-    """Creates or validates 'workers'.
-
-    Args:
-        workers: (Union['Workers', List[str], str]): either a 'Workers' instance,
-            a list of workers, or a single worker.
-        project ('Project'): a related 'Project' instance with a
-            'default_workers' dictionary.
-
-    Returns:
-        'Workers': an instance derived from 'workers' and/or 'project'.
-
-    """
-    if isinstance(workers, Workers):
-        return workers
-    elif isinstance(workers, (list, str)) and workers:
-        new_workers = {}
-        for worker in listify(workers):
-            new_workers[worker] = project.default_workers[worker]
-        return Workers(options = new_workers)
-    else:
-        return Workers(options = project.default_workers)

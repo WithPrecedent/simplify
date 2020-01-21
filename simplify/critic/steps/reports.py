@@ -64,7 +64,7 @@ class Reports(CriticTechnique):
 
     def draft(self) -> None:
         super().publish()
-        self._options = SimpleCatalog(options = {
+        self._options = Repository(options = {
             'classification': ('sklearn.metrics', 'classification_report'),
             'confusion': ('sklearn.metrics', 'confusion_matrix')}
         return self

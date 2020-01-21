@@ -31,12 +31,11 @@ cancer_project = Project(
 cancer_project.ingredients.change_datatype(
     columns = 'target',
     datatype = 'boolean')
-print(cancer_project)
 # Fills missing data with appropriate default values based on column datatype.
 # cancer_project.ingredients.smart_fill()
 # Iterates through every recipe and exports plots, explainers, and other
 # metrics from each recipe.
-# cancer_project.apply()
+cancer_project.apply()
 # Outputs information about the best recipe to the terminal.
 #cancer_project.critic.print_best()
 # Saves ingredients file with predictions or predicted probabilities added

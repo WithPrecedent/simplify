@@ -50,7 +50,7 @@ class Painter(SimpleDirector):
         return max_display
 
     def _draft_options(self) -> None:
-        self._options = SimpleCatalog(options = {
+        self._options = Repository(options = {
             'calibration': Option(
                 name = 'calibration',
                 module = 'skplt.metrics',

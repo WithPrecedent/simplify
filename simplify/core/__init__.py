@@ -10,10 +10,26 @@ import numpy as np
 import pandas as pd
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+from simplify.core.book import Book
+from simplify.core.editors import Author
+from simplify.core.editors import Publisher
 from simplify.core.idea import create_idea
 from simplify.core.ingredients import create_ingredients
 from simplify.core.inventory import create_inventory
-from simplify.core.workers import create_workers
+from simplify.core.project import Project
+from simplify.core.project import Worker
+from simplify.core.scholar import Scholar
+
+__all__ = [
+    'Book',
+    'Author',
+    'Publisher',
+    'Scholar',
+    'create_idea',
+    'create_ingredients',
+    'create_inventory',
+    'Project',
+    'Worker']
 
 
 def startup(
@@ -25,9 +41,18 @@ def startup(
             pd.Series,
             np.ndarray,
             str,
-            List[Union[pd.DataFrame, pd.Series, np.ndarray, str]],
+            List[Union[
+                'Ingredient',
+                pd.DataFrame,
+                pd.Series,
+                np.ndarray,
+                str]],
             Dict[str, Union[
-                'Ingredient', pd.DataFrame, pd.Series, np.ndarray, str]]],
+                'Ingredient',
+                pd.DataFrame,
+                pd.Series,
+                np.ndarray,
+                str]]],
         project: 'Project') -> None:
     """Creates and/or conforms Idea, Inventory, and Ingredients instances.
 
@@ -69,7 +94,4 @@ def startup(
         ingredients = ingredients,
         inventory = inventory)
     ingredients.project = project
-    workers = create_workers(
-        workers = workers,
-        project = project)
-    return idea, inventory, ingredients, workers
+    return idea, inventory, ingredients

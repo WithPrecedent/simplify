@@ -14,7 +14,7 @@ fields = [
     'data_dependent']
 Technique = namedtuple('step', fields, default = (None,) * len(fields))
 
-""" Explanation SimpleCatalog """
+""" Explanation Repository """
 
 eli5_explanation = Technique(
     name = 'eli5_explanation',
@@ -37,7 +37,7 @@ shap_tree_explanation = Technique(
     module = 'shap',
     algorithm = 'TreeExplainer')
 
-""" Prediction SimpleCatalog """
+""" Prediction Repository """
 
 prediction_gini = Technique(
     name = 'gini_predictions',
@@ -63,7 +63,7 @@ probability_shap = Technique(
     module = 'self',
     algorithm = '_get_shap_probabilities')
 
-""" Ranking SimpleCatalog """
+""" Ranking Repository """
 
 rank_gini = Technique(
     name = 'gini_importances',
@@ -82,7 +82,7 @@ rank_shap = Technique(
     module = 'self',
     algorithm = '_get_shap_importances')
 
-""" Metrics SimpleCatalog """
+""" Metrics Repository """
 
 def _get_brier_score_loss_parameters(self, parameters, recipe = None):
     if self.step in 'brier_score_loss':
@@ -246,7 +246,7 @@ metrics_zero_one = Technique(
     module = 'sklearn.metrics',
     algorithm = 'zero_one_loss')
 
-""" Report SimpleCatalog """
+""" Report Repository """
 
 report_classification = Technique(
     name = 'classification_report',

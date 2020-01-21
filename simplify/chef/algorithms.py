@@ -1,6 +1,6 @@
 """
 .. module:: chef algorithms
-:synopsis: siMpLify machine learning algorithms
+:synopsis: custom algorithms for the chef subpackage
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -13,86 +13,77 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core.book import Book
-from simplify.core.book import Algorithm
-
 
 def auto_categorize(
-        df: Optional[pd.DataFrame] = None,
+        ingredient: 'Ingredient',
         columns: Optional[Union[List[str], str]] = None,
-        threshold: int = 10) -> None:
-    """Automatically assesses each column to determine if it has less than
-    threshold unique values and is not boolean. If so, that column is
-    converted to category type.
+        threshold: Optional[int] = 10) -> 'Ingredient':
+    """Converts appropriate columns to 'categorical' type.
+
+    The function automatically assesses each column to determine if it has less
+    than 'threshold' unique values and is not boolean. If so, that column is
+    converted to 'categorical' type.
 
     Args:
-        df (DataFrame): pandas object for columns to be evaluated for
-            'categorical' type.
-        columns (list or str): column names to be checked.
-        threshold (int): number of unique values necessary to form a
-            category. If there are less unique values than the threshold,
-            the column is converted to a category type. Otherwise, it will
-            remain its current datatype.
+        ingredient ('Ingredient'): instance storing a pandas DataFrame.
+        columns (Optional[Union[List[str], str]]): column names to be checked.
+            Defaults to None. If not passed, all columns are checked.
+        threshold (Optional[int]): number of unique values under which the
+            column will be converted to 'categorical'. Defaults to 10.
 
     Raises:
-        KeyError: if a column in 'columns' is not in 'df'.
+        KeyError: if a column in 'columns' is not in 'ingredient'.
 
     """
-    for column in self._check_columns(columns):
+    if not columns:
+        columns = list(ingredient.datatypes.keys())
+    for column in columns:
         try:
-            if not column in self.booleans:
-                if df[column].nunique() < threshold:
-                    df[column] = df[column].astype('category')
-                    self.columns[column] = 'categorical'
+            if not column in ingredient.booleans:
+                if ingredient[column].nunique() < threshold:
+                    ingredient[column] = ingredient[column].astype('category')
+                    ingredient.datatypes[column] = 'categorical'
         except KeyError:
-            error = ' '.join([column, 'is not in df'])
-            raise KeyError(error)
-    return self
+            raise KeyError(' '.join([column, 'is not in ingredient']))
+    return ingredient
 
-# @make_columns_parameter
-@backup_df
-def convert_rare(self,
-        df: Optional[pd.DataFrame] = None,
+def combine_rare(
+        ingredient: 'Ingredient',
         columns: Optional[Union[List[str], str]] = None,
-        threshold: Optional[float] = 0) -> None:
-    """Converts categories rarely appearing within categorical columns
-    to empty string if they appear below the passed threshold.
+        threshold: Optional[float] = 0) -> 'Ingredient':
+    """Converts rare categories to a single category.
 
     The threshold is defined as the percentage of total rows.
 
     Args:
-        df (DataFrame): pandas object with 'categorical' columns.
-        columns (list): column names for datatypes to be checked. If it is
-            not passed, all 'categorical' columns will be checked.
-        threshold (float): indicates the percentage of values in rows
-            below which a default value is substituted.
+        ingredient ('Ingredient'): instance storing a pandas DataFrame.
+        columns (Optional[Union[List[str], str]]): column names to be checked.
+            Defaults to None. If not passed, all 'categorical'columns are
+            checked.
+        threshold (Optional[float]): indicates the percentage of values in rows
+            below which the categories are collapsed into a single category.
+            Defaults to 0, meaning no categories are eliminated.
 
     Raises:
-        KeyError: if column in 'columns' is not in 'df'.
+        KeyError: if a column in 'columns' is not in 'ingredient'.
 
     """
     if not columns:
-        columns = self.categoricals
+        columns = singredient.categoricals
     for column in columns:
         try:
-            df['value_freq'] = df[column].value_counts() / len(df[column])
-            df[column] = np.where(
-                df['value_freq'] <= threshold,
-                self.default_values['categorical'],
-                df[column])
+            counts = ingredient[column].value_counts()
+            frequencies = (counts/counts.sum() * 100).lt(1)
+            rare = frequencies[frequencies <= threshold].index
+            ingredient[column].replace(rare , 'rare', inplace = True)
         except KeyError:
-            error = column + ' is not in df'
-            raise KeyError(error)
-    if 'value_freq' in df.columns:
-        df.drop('value_freq', axis = 'columns', inplace = True)
-    return self
+            raise KeyError(' '.join([column, 'is not in ingredient']))
+    return ingredient
 
-# @make_columns_parameter
-@backup_df
-def decorrelate(self,
-        df: Optional[pd.DataFrame] = None,
+def decorrelate(
+        ingredient: 'Ingredient',
         columns: Optional[Union[List[str], str]] = None,
-        threshold: Optional[float] = 0.95) -> None:
+        threshold: Optional[float] = 0.95) -> 'Ingredient':
     """Drops all but one column from highly correlated groups of columns.
 
     The threshold is based upon the .corr() method in pandas. 'columns' can
@@ -100,30 +91,31 @@ def decorrelate(self,
     columns in the DataFrame are tested.
 
     Args:
-        df (DataFrame): pandas object to be have highly correlated features
-            removed.
-        threshold (float): the level of correlation using pandas corr method
-            above which a column is dropped. The default threshold is 0.95,
-            consistent with a common p-value threshold used in social
+        ingredient ('Ingredient'): instance storing a pandas DataFrame.
+        columns (Optional[Union[List[str], str]]): column names to be checked.
+            Defaults to None. If not passed, all columns are checked.
+        threshold (Optional[float]): the level of correlation using pandas corr
+            method above which a column is dropped. The default threshold is
+            0.95, consistent with a common p-value threshold used in social
             science research.
 
     """
+    if not columns:
+        columns = list(ingredient.datatypes.keys())
     try:
-        corr_matrix = df[columns].corr().abs()
+        corr_matrix = ingredient[columns].corr().abs()
     except TypeError:
-        corr_matrix = df.corr().abs()
+        corr_matrix = ingredient.corr().abs()
     upper = corr_matrix.where(
         np.triu(np.ones(corr_matrix.shape), k = 1).astype(np.bool))
     corrs = [col for col in upper.corrs if any(upper[col] > threshold)]
-    self.drop_columns(columns = corrs)
-    return self
+    ingredient.drop_columns(columns = corrs)
+    return ingredient
 
-# @make_columns_parameter
-@backup_df
-def drop_infrequent(self,
-        df: Optional[pd.DataFrame] = None,
+def drop_infrequently_true(
+        ingredient: 'Ingredient',
         columns: Optional[Union[List[str], str]] = None,
-        threshold: Optional[float] = 0) -> None:
+        threshold: Optional[float] = 0) -> 'Ingredient':
     """Drops boolean columns that rarely are True.
 
     This differs from the sklearn VarianceThreshold class because it is only
@@ -133,65 +125,222 @@ def drop_infrequent(self,
     not the typical variance formulas used in sklearn).
 
     Args:
-        df (DataFrame): pandas object for columns to checked for infrequent
-            boolean True values.
+        ingredient ('Ingredient'): instance storing a pandas DataFrame.
         columns (list or str): columns to check.
         threshold (float): the percentage of True values in a boolean column
             that must exist for the column to be kept.
     """
     if columns is None:
-        columns = self.booleans
+        columns = ingredient.booleans
     infrequents = []
     for column in listify(columns):
         try:
-            if df[column].mean() < threshold:
+            if ingredient[column].mean() < threshold:
                 infrequents.append(column)
         except KeyError:
-            error = ' '.join([column, 'is not in df'])
-            raise KeyError(error)
-    self.drop_columns(columns = infrequents)
-    return self
+            raise KeyError(' '.join([column, 'is not in ingredient']))
+    ingredient.drop_columns(columns = infrequents)
+    return ingredient
 
-
-# @make_columns_parameter
-@backup_df
-def smart_fill(self,
-        df: Optional[pd.DataFrame] = None,
-        columns: Optional[Union[List[str], str]] = None) -> None:
+def smart_fill(
+        ingredient: 'Ingredient',
+        columns: Optional[Union[List[str], str]] = None) -> 'Ingredient':
     """Fills na values in a DataFrame with defaults based upon the datatype
     listed in 'all_datatypes'.
 
     Args:
-        df (DataFrame): pandas object for values to be filled
+        ingredient ('Ingredient'): instance storing a pandas DataFrame.
         columns (list): list of columns to fill missing values in. If no
             columns are passed, all columns are filled.
 
     Raises:
-        KeyError: if column in 'columns' is not in 'df'.
+        KeyError: if column in 'columns' is not in 'ingredient'.
 
     """
     for column in self._check_columns(columns):
         try:
             default_value = self.all_datatypes.default_values[
                     self.columns[column]]
-            df[column].fillna(default_value, inplace = True)
+            ingredient[column].fillna(default_value, inplace = True)
         except KeyError:
-            error = column + ' is not in DataFrame'
-            raise KeyError(error)
-    return self
+            raise KeyError(' '.join([column, 'is not in ingredient']))
+    return ingredient
 
-
-def split_xy(self, label: Optional[str] = 'label') -> None:
-    """Splits df into 'x' and 'y' based upon the label ('y' column) passed.
+def split_xy(
+        ingredients: 'Ingredients',
+        label: Optional[str] = 'label') -> 'Ingredients':
+    """Splits ingredient into 'x' and 'y' based upon the label ('y' column) passed.
 
     Args:
-        df (DataFrame): initial pandas object to be split.
+        ingredient ('Ingredient'): instance storing a pandas DataFrame.
         label (str or list): name of column(s) to be stored in 'y'.'
 
     """
-    self.x = df[list(df.columns.values).remove(label)]
-    self.y = df[label],
-    self.label_datatype = self.columns[label]
-    self._crosscheck_columns()
-    self.state.change('train_test')
-    return self
+    ingredients.x = ingredient[list(ingredient.columns.values).remove(label)]
+    ingredients.y = ingredient[label],
+    ingredients.label_datatype = self.columns[label]
+    ingredients._crosscheck_columns()
+    singredients.state.change('train_test')
+    return ingredients
+
+
+# @dataclass
+# class Gaussify(TechniqueDefinition):
+#     """Transforms data columns to more gaussian distribution.
+
+#     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'
+#     based on whether the particular data column has values below zero.
+
+#     Args:
+#         step(str): name of step used.
+#         parameters(dict): dictionary of parameters to pass to selected
+#             algorithm.
+#         name(str): name of class for matching settings in the Idea instance
+#             and for labeling the columns in files exported by Critic.
+#         auto_draft(bool): whether 'finalize' method should be called when
+#             the class is instanced. This should generally be set to True.
+#     """
+
+#     step: str = 'box-cox and yeo-johnson'
+#     parameters: object = None
+#     name: str = 'gaussifier'
+
+#     def __post_init__(self) -> None:
+#         self.idea_sections = ['chef']
+#         super().__post_init__()
+#         return self
+
+#     def draft(self) -> None:
+#         self.rescaler = self.parameters['rescaler'](
+#                 copy = self.parameters['copy'])
+#         del self.parameters['rescaler']
+#         self._publish_parameters()
+#         self.positive_tool = self.workers['box_cox'](
+#                 method = 'box_cox', **self.parameters)
+#         self.negative_tool = self.workers['yeo_johnson'](
+#                 method = 'yeo_johnson', **self.parameters)
+#         return self
+
+#     def publish(self, ingredients, columns = None):
+#         if not columns:
+#             columns = ingredients.numerics
+#         for column in columns:
+#             if ingredients.x[column].min() >= 0:
+#                 ingredients.x[column] = self.positive_tool.fit_transform(
+#                         ingredients.x[column])
+#             else:
+#                 ingredients.x[column] = self.negative_tool.fit_transform(
+#                         ingredients.x[column])
+#             ingredients.x[column] = self.rescaler.fit_transform(
+#                     ingredients.x[column])
+#         return ingredients
+
+# @dataclass
+# class CompareCleaves(TechniqueDefinition):
+#     """[summary]
+
+#     Args:
+#         step (str):
+#         parameters (dict):
+#         space (dict):
+#     """
+#     step: str
+#     parameters: object
+#     space: object
+
+#     def __post_init__(self) -> None:
+#         self.idea_sections = ['chef']
+#         super().__post_init__()
+#         return self
+
+
+# @dataclass
+# class CombineCleaves(TechniqueDefinition):
+#     """[summary]
+
+#     Args:
+#         step (str):
+#         parameters (dict):
+#         space (dict):
+#     """
+#     step: str
+#     parameters: object
+#     space: object
+
+#     def __post_init__(self) -> None:
+#         super().__post_init__()
+#         return self
+
+
+
+# def make_tensorflow_model(step: 'Technique', parameters: dict) -> None:
+#     algorithm = None
+#     return algorithm
+
+
+#    def _downcast_features(self, ingredients):
+#        dataframes = ['x_train', 'x_test']
+#        number_types = ['uint', 'int', 'float']
+#        feature_bits = ['64', '32', '16']
+#        for ingredient in dataframes:
+#            for column in ingredient.columns.keys():
+#                if (column in ingredients.floats
+#                        or column in ingredients.integers):
+#                    for number_type in number_types:
+#                        for feature_bit in feature_bits:
+#                            try:
+#                                ingredient[column] = ingredient[column].astype()
+
+#
+#    def _set_feature_types(self):
+#        self.type_interface = {'boolean': tensorflow.bool,
+#                               'float': tensorflow.float16,
+#                               'integer': tensorflow.int8,
+#                               'string': object,
+#                               'categorical': CategoricalDtype,
+#                               'list': list,
+#                               'datetime': datetime64,
+#                               'timedelta': timedelta}
+
+
+#    def _tensor_flow_model(self):
+#        from keras.models import Sequential
+#        from keras.layers import Dense, Dropout, Activation, Flatten
+#        classifier = Sequential()
+#        classifier.add(Dense(units = 6, kernel_initializer = 'uniform',
+#            activation = 'relu', input_dim = 30))
+#        classifier.add(Dense(units = 6, kernel_initializer = 'uniform',
+#            activation = 'relu'))
+#        classifier.add(Dense(units = 1, kernel_initializer = 'uniform',
+#            activation = 'sigmoid'))
+#        classifier.compile(optimizer = 'adam',
+#                           loss = 'binary_crossentropy',
+#                           metrics = ['accuracy'])
+#        return classifier
+#        model = Sequential()
+#        model.add(Activation('relu'))
+#        model.add(Activation('relu'))
+#        model.add(Dropout(0.25))
+#        model.add(Flatten())
+#        for layer_size in self.parameters['dense_layer_sizes']:
+#            model.add(Dense(layer_size))
+#            model.add(Activation('relu'))
+#        model.add(Dropout(0.5))
+#        model.add(Dense(2))
+#        model.add(Activation('softmax'))
+#        model.compile(loss = 'categorical_crossentropy',
+#                      optimizer = 'adadelta',
+#                      metrics = ['accuracy'])
+#        return model
+
+
+
+# def make_torch_model(step: 'Technique', parameters: dict) -> None:
+#     algorithm = None
+#     return algorithm
+
+
+# def make_stan_model(step: 'Technique', parameters: dict) -> None:
+#     algorithm = None
+#     return algorithm
+
