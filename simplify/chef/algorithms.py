@@ -185,7 +185,7 @@ def split_xy(
 
 
 # @dataclass
-# class Gaussify(TechniqueDefinition):
+# class Gaussify(TechniqueOutline):
 #     """Transforms data columns to more gaussian distribution.
 
 #     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'
@@ -236,7 +236,7 @@ def split_xy(
 #         return ingredients
 
 # @dataclass
-# class CompareCleaves(TechniqueDefinition):
+# class CompareCleaves(TechniqueOutline):
 #     """[summary]
 
 #     Args:
@@ -255,7 +255,7 @@ def split_xy(
 
 
 # @dataclass
-# class CombineCleaves(TechniqueDefinition):
+# class CombineCleaves(TechniqueOutline):
 #     """[summary]
 
 #     Args:

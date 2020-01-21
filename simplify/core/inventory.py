@@ -19,7 +19,7 @@ import pandas as pd
 
 from simplify.core.repository import Repository
 from simplify.core.states import create_states
-from simplify.core.types import Definition
+from simplify.core.types import Outline
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
@@ -1011,7 +1011,7 @@ class Pathifier(object):
 
 
 @dataclass
-class FileFormat(Definition):
+class FileFormat(Outline):
     """File format information and instructions
 
     Args:

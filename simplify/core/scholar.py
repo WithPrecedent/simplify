@@ -37,6 +37,7 @@ class Scholar(object):
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         self.parallelizer = Parallelizer(project = self.project)
+        self.scienceizer = Scienceizer(project = self.project, scholar = self)
         return self
 
     """ Private Methods """
@@ -59,10 +60,11 @@ class Scholar(object):
 
         """
         try:
-            return getattr(book, '_'.join(
-                ['_add', technique.name, 'conditionals']))(
-                    technique = technique,
-                    data = data)
+            if technique is not None:
+                return getattr(book, '_'.join(
+                    ['_add', technique.name, 'conditionals']))(
+                        technique = technique,
+                        data = data)
         except AttributeError:
             return technique
 
@@ -81,7 +83,7 @@ class Scholar(object):
             'Technique': with any data dependent parameters added.
 
         """
-        if technique.data_dependents is not None:
+        if technique is not None and technique.data_dependents is not None:
             for key, value in technique.data_dependents.items():
                 try:
                     technique.parameters.update({key, getattr(data, value)})
@@ -100,16 +102,22 @@ class Scholar(object):
             'Technique': with 'algorithm' instanced with 'parameters'.
 
         """
-        try:
-            technique.algorithm = technique.algorithm(**technique.parameters)
-        except AttributeError:
+        if technique is not None:
             try:
-                technique.algorithm = technique.algorithm(technique.parameters)
+                technique.algorithm = technique.algorithm(
+                    **technique.parameters)
             except AttributeError:
-                technique.algorithm = technique.algorithm()
-        except TypeError:
-            technique.algorithm = technique.algorithm()
-        return self
+                try:
+                    technique.algorithm = technique.algorithm(
+                        technique.parameters)
+                except AttributeError:
+                    technique.algorithm = technique.algorithm()
+            except TypeError:
+                try:
+                    technique.algorithm = technique.algorithm()
+                except TypeError:
+                    pass
+        return technique
 
     def _iterate_chapter(self,
             book: 'Book',
@@ -128,28 +136,27 @@ class Scholar(object):
                 attribute of 'data'.
 
         """
-        for step, technique in chapter.techniques.items():
-            instance = book.techniques[step][technique]
-            instance = self._add_conditionals(
-                book = book,
-                technique = instance,
-                data = data)
-            instance = self._add_data_dependents(
-                technique = instance,
-                data = data)
-            self._add_parameters_to_algorithm(technique = instance)
-            data = self._apply_technique(
-                technique = technique,
-                data = data,
-                **kwargs)
+        for step, techniques in chapter.techniques.items():
+            for technique in listify(techniques):
+                print('test techniques', techniques)
+                print('test technique', technique)
+                instance = book.techniques[step][technique]
+                print('test', type(instance))
+                instance = self._add_conditionals(
+                    book = book,
+                    technique = instance,
+                    data = data)
+                print('test', type(instance))
+                instance = self._add_data_dependents(
+                    technique = instance,
+                    data = data)
+                instance = self._add_parameters_to_algorithm(
+                    technique = instance)
+                data = self.scienceizer.apply(
+                    technique = technique,
+                    data = data)
         setattr(chapter, data.name, data)
         return chapter
-
-    def _apply_technique(self,
-            technique: 'Technique',
-            data: Union['Book', 'Ingredients']) -> Union['Book', 'Ingredients']:
-
-        return data
 
     """ Core siMpLify Methods """
 
@@ -193,7 +200,7 @@ class Parallelizer(object):
     """Applies techniques using one or more CPU or GPU cores.
 
     Args:
-        project ('Project'): a related director class instance.
+        project ('Project'): a related 'Project' instance.
 
     """
     project: 'Project'
@@ -301,12 +308,24 @@ class Parallelizer(object):
         pool.clear()
         return ingredient
 
-    def apply(self, data: object, **kwargs) -> object:
-        """
 
-        """
-        self._add_data_dependent(data = data)
-        self._add_parameters_to_algorithm()
+@dataclass
+class Scienceizer(object):
+    """Applies techniques to data.
+
+    Args:
+        project ('Project'): a related 'Project' instance.
+        scholar ('Scholar'): a related 'Scholar' instance.
+
+    """
+    project: 'Project'
+    scholar: 'Scholar'
+
+    """ Core siMpLify Methods """
+
+    def apply(self,
+            technique: 'Technique',
+            data: Union['Ingredients', 'Book']) -> Union['Ingredients', 'Book']:
         try:
             self.algorithm.fit(
                 getattr(data, ''.join(['x_', data.state])),

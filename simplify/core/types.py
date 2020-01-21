@@ -23,7 +23,7 @@ from simplify.core.utilities import listify
 
 
 @dataclass
-class Definition(Container):
+class Outline(Container):
     """Object construction instructions used by Editor subclasses.
 
     Ideally, this class should have no additional methods beyond the lazy
@@ -89,9 +89,14 @@ class Definition(Container):
                 import_module(self.module),
                 getattr(self, component))
         except (ImportError, AttributeError):
-            return getattr(
-                import_module(self.default_module),
-                getattr(self, component))
+            try:
+                return getattr(
+                    import_module(self.default_module),
+                    getattr(self, component))
+            except (ImportError, AttributeError):
+                raise ImportError(' '.join(
+                    [component, 'is neither in', self.module, 'nor',
+                        self.default_module]))
 
 
 @dataclass

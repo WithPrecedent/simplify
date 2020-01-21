@@ -27,7 +27,7 @@ class Editor(ABC):
     """Base class for creating and applying Manuscript subclasses.
 
     Args:
-        project ('Project'): a related Project instance.
+        project ('Project'): a related 'Project' instance.
         worker ('Worker'): the Worker instance for which a subclass should edit
             or apply a Book instance.
 
@@ -275,13 +275,38 @@ class Researcher(Editor):
 
     """ Private Methods """
 
+    def _publish_outline(self,
+            step: str,
+            technique: str,
+            outline: 'TechniqueOutline') -> 'Technique':
+        """Creates Technique instance from 'TechniqueOutline'.
+
+        Args:
+            outline ('TechniqueOutline'): instructions for creating a Technique
+                instance.
+            technique ('Technique'): an instance for attributes to be added to.
+
+        Returns:
+            'Technique': instance with an algorithm and parameters added.
+
+        """
+        # Creates a Technique instance and add attributes to it.
+        technique = Technique(name = step, technique = technique)
+        if outline.module and outline.algorithm:
+            technique.algorithm = outline.load('algorithm')
+        technique.data_dependent = outline.data_dependent
+        technique.parameters = self._publish_parameters(
+            outline = outline,
+            technique = technique)
+        return technique
+
     def _publish_parameters(self,
-            outline: 'TechniqueDefinition',
+            outline: 'TechniqueOutline',
             technique: 'Technique') -> 'Technique':
         """Creates 'parameters' for a 'Technique' using 'outline'.
 
         Args:
-            outline ('TechniqueDefinition'): instructions for creating a
+            outline ('TechniqueOutline'): instructions for creating a
                 Technique instance.
             technique ('Technique'): an instance for parameters to be added to.
 
@@ -299,12 +324,12 @@ class Researcher(Editor):
         return technique
 
     def _publish_idea(self,
-            outline: 'TechniqueDefinition',
+            outline: 'TechniqueOutline',
             technique: 'Technique') -> 'Technique':
         """Acquires parameters from Idea instance, if no parameters exist.
 
         Args:
-            outline ('TechniqueDefinition'): instructions for creating a
+            outline ('TechniqueOutline'): instructions for creating a
                 Technique instance.
             technique ('Technique'): an instance for parameters to be added to.
 
@@ -325,7 +350,7 @@ class Researcher(Editor):
         return technique
 
     def _publish_selected(self,
-            outline: 'TechniqueDefinition',
+            outline: 'TechniqueOutline',
             technique: 'Technique') -> 'Technique':
         """Limits parameters to those appropriate to the 'technique'.
 
@@ -336,7 +361,7 @@ class Researcher(Editor):
         parameters are selected for the final returned parameters.
 
         Args:
-            outline ('TechniqueDefinition'): instructions for creating a
+            outline ('TechniqueOutline'): instructions for creating a
                 Technique instance.
             technique ('Technique'): an instance for parameters to be added to.
 
@@ -357,12 +382,12 @@ class Researcher(Editor):
         return technique
 
     def _publish_required(self,
-            outline: 'TechniqueDefinition',
+            outline: 'TechniqueOutline',
             technique: 'Technique') -> 'Technique':
         """Adds required parameters (mandatory additions) to 'parameters'.
 
         Args:
-            outline ('TechniqueDefinition'): instructions for creating a
+            outline ('TechniqueOutline'): instructions for creating a
                 Technique instance.
             technique ('Technique'): an instance for parameters to be added to.
 
@@ -377,12 +402,12 @@ class Researcher(Editor):
         return technique
 
     def _publish_search(self,
-            outline: 'TechniqueDefinition',
+            outline: 'TechniqueOutline',
             technique: 'Technique') -> 'Technique':
         """Separates variables with multiple options to search parameters.
 
         Args:
-            outline ('TechniqueDefinition'): instructions for creating a
+            outline ('TechniqueOutline'): instructions for creating a
                 Technique instance.
             technique ('Technique'): an instance for parameters to be added to.
 
@@ -406,7 +431,7 @@ class Researcher(Editor):
         return technique
 
     def _publish_runtime(self,
-            outline: 'TechniqueDefinition',
+            outline: 'TechniqueOutline',
             technique: 'Technique') -> 'Technique':
         """Adds parameters that are determined at runtime.
 
@@ -414,7 +439,7 @@ class Researcher(Editor):
         addition of a random seed for a consistent, replicable state.
 
         Args:
-            outline ('TechniqueDefinition'): instructions for creating a
+            outline ('TechniqueOutline'): instructions for creating a
                 Technique instance.
             technique ('Technique'): an instance for parameters to be added to.
 
@@ -452,18 +477,21 @@ class Researcher(Editor):
         if technique in ['none']:
             return None
         else:
-            # Gets appropriate TechniqueDefinition and creates an instance.
+            # Gets appropriate TechniqueOutline and creates an instance.
             outline = self.project.workers[self.worker].options[step][technique]
-            # outline = outline.load('algorithm')
-            # outline = outline(project = self)
-            # Creates a Technique instance and add attributes to it.
-            technique = Technique(name = step, technique = technique)
-            technique.algorithm = outline.load('algorithm')
-            technique.data_dependent = outline.data_dependent
-            technique.parameters = self._publish_parameters(
-                outline = outline,
-                technique = technique)
-        return technique
+            if isinstance(outline, (dict, Repository, Sequence)):
+                techniques = []
+                for key, value in outline.items():
+                    techniques.append(self._publish_outline(
+                        step = step,
+                        technique = technique,
+                        outline = value))
+                return techniques
+            else:
+                return self._publish_outline(
+                        step = step,
+                        technique = technique,
+                        outline = outline)
 
 
 @dataclass

@@ -12,11 +12,11 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.types import Definition
+from simplify.core.types import Outline
 
 
 @dataclass
-class TechniqueDefinition(Definition):
+class TechniqueOutline(Outline):
     """Contains settings for creating a Technique instance.
 
     Args:

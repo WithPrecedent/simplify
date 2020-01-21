@@ -51,6 +51,9 @@ class Repository(MutableMapping):
             self.wildcards = ['all', 'default', 'none']
         if not self.defaults:
             self.defaults = list(self.contents.keys())
+        if hasattr(self, '_create_contents'):
+            self._create_contents()
+        self.nestify()
         return self
 
     """ Required ABC Methods """
@@ -127,6 +130,15 @@ class Repository(MutableMapping):
     def __str__(self):
         return self.contents.__str__()
 
+    """ Public Methods """
+
+    def nestify(self) -> None:
+        """Converts 1 level of nested dictionaries to Repository instances."""
+        for key, value in self.contents.items():
+            if isinstance(value, dict):
+                self.contents[key] = Repository(contents = value)
+        return self
+
     """ Wildcard Properties """
 
     @property
@@ -147,7 +159,11 @@ class Repository(MutableMapping):
             List[str]: keys stored in 'defaults' of 'contents'.
 
         """
-        return subsetify(self.contents, self._default)
+        try:
+            return subsetify(self.contents, self._default)
+        except AttributeError:
+            self._default = self.all
+            return self.all
 
     @default.setter
     def default(self, keys: Union[List[str], str]) -> None:

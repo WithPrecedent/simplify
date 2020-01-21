@@ -1,8 +1,12 @@
+"""
+.. module:: wisconsin breast cancer classification
+:synopsis: example using sklearn breast cancer data
+:author: Corey Rayburn Yung
+:copyright: 2019
+:license: Apache-2.0
+"""
 
-import os
-import sys
-sys.path.insert(0, os.path.join('..', 'simplify'))
-sys.path.insert(0, os.path.join('..', '..', 'simplify'))
+from pathlib import Path
 
 import pandas as pd
 import numpy as np
@@ -12,20 +16,21 @@ from simplify import Project
 
 # Loads cancer data and converts from numpy arrays to a pandas DataFrame.
 cancer = load_breast_cancer()
-df = pd.DataFrame(np.c_[cancer['data'], cancer['target']],
-                  columns = np.append(cancer['feature_names'], ['target']))
+df = pd.DataFrame(
+    data = np.c_[cancer['data'], cancer['target']],
+    columns = np.append(cancer['feature_names'], ['target']))
 # Sets root_folder for data and results exports.
-root_folder = os.path.join('..', '..')
+# root_folder = os.path.join('..', '..')
 # Sets location of configuration settings for the project. Depending upon your
 # OS and python configuration, one of these might work better.
-idea = os.path.join(os.getcwd(), 'examples', 'cancer_settings.ini')
+idea = Path.cwd().joinpath('examples', 'cancer_settings.ini')
 #idea = os.path.join(os.getcwd(), 'cancer_settings.ini')
 
 # Creates siMpLify project, automatically configuring the process based upon
 # settings in the 'idea_file'.
 cancer_project = Project(
     idea = idea,
-    inventory = root_folder,
+    # inventory = root_folder,
     ingredients = df)
 # Converts label to boolean type to correct numpy default above.
 cancer_project.ingredients.change_datatype(
@@ -37,7 +42,7 @@ cancer_project.ingredients.change_datatype(
 # metrics from each recipe.
 cancer_project.apply()
 # Outputs information about the best recipe to the terminal.
-#cancer_project.critic.print_best()
+cancer_project.critic.print_best()
 # Saves ingredients file with predictions or predicted probabilities added
 # (based on options in idea).
 #cancer_project.ingredients.save(file_name = 'cancer_df')

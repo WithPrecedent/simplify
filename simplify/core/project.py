@@ -22,7 +22,7 @@ from simplify.core.editors import Publisher
 from simplify.core.ingredients import create_ingredients
 from simplify.core.repository import Sequence
 from simplify.core.scholar import Scholar
-from simplify.core.types import Definition
+from simplify.core.types import Outline
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
 
@@ -336,26 +336,22 @@ class Project(MutableMapping):
                 name = 'farmer',
                 module = 'simplify.farmer.farmer',
                 book = 'Almanac',
-                scholar = 'Farmer',
-                options = 'FarmerCatalog'),
+                options = 'Mungers'),
             'actuary': Worker(
                 name = 'actuary',
                 module = 'simplify.actuary.actuary',
                 book = 'Ledger',
-                scholar = 'Actuary',
-                options = 'ActuaryCatalog'),
+                options = 'Measures'),
             'critic': Worker(
                 name = 'critic',
                 module = 'simplify.critic.critic',
                 book = 'Collection',
-                scholar = 'Critic',
-                options = 'CriticCatalog'),
+                options = 'Evaluators'),
             'artist': Worker(
                 name = 'artist',
                 module = 'simplify.artist.artist',
                 book = 'Canvas',
-                scholar = 'Artist',
-                options = 'ArtistCatalog')}
+                options = 'Mediums')}
         # Creates 'Worker' instances for each selected stage.
         self.workers = self._create_workers(workers = self.workers)
         self.workers = self._create_editors(workers = self.workers)
@@ -411,7 +407,7 @@ class Project(MutableMapping):
 
 
 @dataclass
-class Worker(Definition):
+class Worker(Outline):
     """Object construction techniques used by Editor instances.
 
     Ideally, this class should have no additional methods beyond the lazy
