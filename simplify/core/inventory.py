@@ -19,7 +19,7 @@ import pandas as pd
 
 from simplify.core.repository import Repository
 from simplify.core.states import create_states
-from simplify.core.types import Outline
+from simplify.core.definitions import Outline
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify

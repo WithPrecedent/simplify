@@ -11,10 +11,10 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.typesetter import SimpleDirector
+from simplify.core.definitionsetter import SimpleDirector
 from simplify.core.chapter import Chapter
 from simplify.core.book import Book
-from simplify.core.typesetter import SimpleDirector
+from simplify.core.definitionsetter import SimpleDirector
 
 
 @dataclass

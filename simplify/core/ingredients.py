@@ -19,7 +19,7 @@ import pandas as pd
 from pandas.api.types import CategoricalDtype
 
 from simplify.core.states import SimpleState
-from simplify.core.types import SimpleType
+from simplify.core.definitions import SimpleType
 from simplify.core.utilities import listify
 
 

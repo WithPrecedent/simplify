@@ -50,7 +50,7 @@ class Editor(ABC):
         raise NotImplementedError(' '.join(
             [self.__name__, 'has no draft method. Use Author instead.']))
 
-    def publish(self, step: str) -> NotImplementedError:
+    def publish(self) -> NotImplementedError:
         """Finalizes a Book instance and its Chapters and Techniques."""
         raise NotImplementedError(' '.join(
             [self.__name__, 'has no publish method. Use Publisher instead.']))
@@ -108,7 +108,7 @@ class Author(Editor):
         else:
             try:
                 # Attempts to get 'steps' from 'idea'.
-                return listify(self.project.idea[self.worker]['_'.join(
+                return listify(self.project.settings[self.worker]['_'.join(
                     [self.worker, 'steps'])])
             except KeyError:
                 return []

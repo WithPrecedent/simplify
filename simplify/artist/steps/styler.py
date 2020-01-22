@@ -12,8 +12,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Option
+from simplify.core.definitionsetter import SimpleDirector
+from simplify.core.definitionsetter import Option
 
 
 @dataclass

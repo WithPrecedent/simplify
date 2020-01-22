@@ -9,8 +9,8 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Option
+from simplify.core.definitionsetter import SimpleDirector
+from simplify.core.definitionsetter import Option
 
 
 @dataclass

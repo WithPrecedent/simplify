@@ -13,8 +13,8 @@ from math import ceil, sqrt
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from simplify.core.typesetter import SimpleDirector
-from simplify.core.typesetter import Option
+from simplify.core.definitionsetter import SimpleDirector
+from simplify.core.definitionsetter import Option
 
 
 @dataclass

@@ -138,15 +138,11 @@ class Scholar(object):
         """
         for step, techniques in chapter.techniques.items():
             for technique in listify(techniques):
-                print('test techniques', techniques)
-                print('test technique', technique)
                 instance = book.techniques[step][technique]
-                print('test', type(instance))
                 instance = self._add_conditionals(
                     book = book,
                     technique = instance,
                     data = data)
-                print('test', type(instance))
                 instance = self._add_data_dependents(
                     technique = instance,
                     data = data)
@@ -454,4 +450,3 @@ class Scienceizer(object):
         else:
             error = ' '.join([self.worker, 'algorithm has no transform method'])
             raise AttributeError(error)
-

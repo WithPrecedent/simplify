@@ -1,6 +1,6 @@
 """
-.. module:: types
-:synopsis: siMpLify base class definitions and types
+.. module:: definitions
+:synopsis: siMpLify base class outlines and types
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
+from simplify.core.repository import Sequence
 from simplify.core.utilities import listify
 
 
@@ -97,6 +98,41 @@ class Outline(Container):
                 raise ImportError(' '.join(
                     [component, 'is neither in', self.module, 'nor',
                         self.default_module]))
+
+
+@dataclass
+class Worker(Outline):
+    """Object construction techniques used by Editor instances.
+
+    Ideally, this class should have no additional methods beyond the lazy
+    loader ('load' method) and __contains__ dunder method.
+
+    Users can use the idiom 'x in Option' to check if a particular attribute
+    exists and is not None. This means default values for optional arguments
+    should generally be set to None to allow use of that idiom.
+
+    Args:
+        name (str): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier.
+        module (str): name of module where object to incorporate is located
+            (can either be a siMpLify or non-siMpLify module).
+        book (str): name of Book object in 'module' to load. Defaults to None.
+
+    """
+    name: str
+    module: Optional[str] = 'simplify.core'
+    book: Optional['Book'] = 'Book'
+    author: Optional['Author'] = 'Author'
+    publisher: Optional['Publisher'] = 'Publisher'
+    scholar: Optional['Scholar'] = 'Scholar'
+    steps: Optional[List[str]] = field(default_factory = list)
+    options: Optional['Sequence'] = field(default_factory = Sequence)
+    techniques: Dict[str, List[str]] = field(default_factory = dict)
 
 
 @dataclass

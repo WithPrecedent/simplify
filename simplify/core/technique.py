@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.types import Outline
+from simplify.core.definitions import Outline
 
 
 @dataclass

@@ -65,7 +65,7 @@ Any new subpackages, Books, Chapters, and Repository should follow a similar tem
 
 4. Any generally usable functions or decorators should be stored in simplify.core.utilities.
 
-5. If you create a proxy for typing, please subclass the SimpleType class in simplify.core.typesetter, if possible.
+5. If you create a proxy for typing, please subclass the SimpleType class in simplify.core.definitionsetter, if possible.
 
 6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'worker' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Ingredients instance.
 

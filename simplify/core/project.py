@@ -6,6 +6,7 @@
 :license: Apache-2.0
 """
 
+from collections import ChainMap
 from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
@@ -16,13 +17,15 @@ import numpy as np
 import pandas as pd
 
 import simplify
+import simplify.core.defaults as simplify_defaults
 from simplify.core.book import Book
+from simplify.core.definitions import Worker
 from simplify.core.editors import Author
 from simplify.core.editors import Publisher
 from simplify.core.ingredients import create_ingredients
 from simplify.core.repository import Sequence
 from simplify.core.scholar import Scholar
-from simplify.core.types import Outline
+from simplify.core.definitions import Outline
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
 
@@ -248,9 +251,11 @@ class Project(MutableMapping):
         return self
 
     def __repr__(self):
+        """Returns '__str__'"""
         return self.__str__()
 
     def __str__(self):
+        """Returns keys for Worker/Book instances depending on 'stage'."""
         return ' '.join(['Project Library:', *list(self.keys())])
 
     """ Private Methods """
@@ -265,22 +270,23 @@ class Project(MutableMapping):
                 instance with Worker instances.
 
         """
-        if not workers.contents:
+        # Returns 'workers' if already in Sequence form.
+        if workers and isinstance(workers, Sequence):
+            return workers
+        # Attempts to get 'workers' from 'idea' if there are none defined.
+        elif not workers:
             try:
-                # Attempts to get 'workers' from 'idea'.
-                workers = listify(self.idea[self.name]['_'.join(
-                    [self.name, 'workers'])])
+                workers = listify(
+                    self.idea[self.name]['_'.join([self.name, 'workers'])])
+            # Uses 'default_workers' if not found in 'idea'.
             except KeyError:
-                pass
+                return Sequence(contents = self.default_workers)
+        # Converts 'workers' from list/str to 'Sequence'.
         if isinstance(workers, (list, str)) and workers:
             new_workers = {}
             for worker in listify(workers):
                 new_workers[worker] = self.default_workers[worker]
             return Sequence(contents = new_workers)
-        elif isinstance(workers, Sequence) and workers:
-            return workers
-        else:
-            return Sequence(contents = self.default_workers)
 
     def _create_editors(self, workers: 'Sequence') -> None:
         """Creates Editor instances for each Worker.
@@ -289,26 +295,36 @@ class Project(MutableMapping):
             workers ('Sequence'): stored Worker instances.
 
         """
+        # For each worker, creates an Author and Publisher instance.
         for name, worker in workers.items():
-            # For each worker, creates an Author and Publisher instance.
             author = worker.load('author')
             workers[name].author = author(project = self, worker = name)
             publisher = worker.load('publisher')
             workers[name].publisher = publisher(project = self, worker = name)
         return workers
 
+    def _create_settings(self) -> None:
+        """Creates set of mappings for siMpLify settings lookup."""
+        defaults = {}
+        for key, attribute in simplify_defaults.__dict__.items():
+            defaults[key.lower()] = attribute
+        self.settings = ChainMap(globals(), self.idea, defaults)
+        return self
+
     """ Public Methods """
 
     def add(self,
-            name: str,
+            name: Optional[str] = None,
             worker: Optional['Worker'] = None,
             **kwargs) -> None:
         """Adds subpackage to 'workers'.
 
         Args:
-            name (str): name of subpackage. This is used as both the key to the
-                created Worker in 'workers' and as the 'name' attribute in the
-                Worker.
+            name (Optional[str]): name of subpackage. This is used as both the
+                key to the created Worker in 'workers' and as the 'name'
+                attribute in the Worker. Defaults to None. If not provided, the
+                'worker' will be added to 'workers' with the key being the
+                'name' attribute of 'worker'.
             worker (Optional['Worker']): a completed instance. If not provided,
                 the method will assume all of the parameters needed to construct
                 a 'Worker' instance are in 'kwargs'.
@@ -316,7 +332,10 @@ class Project(MutableMapping):
 
         """
         if worker:
-            self.workers[name] = worker
+            if name:
+                self.workers[name] = worker
+            else:
+                self.workers[worker.name] = worker
         else:
             self.workers[name] = Worker(name = name, **kwargs)
         return self
@@ -352,6 +371,8 @@ class Project(MutableMapping):
                 module = 'simplify.artist.artist',
                 book = 'Canvas',
                 options = 'Mediums')}
+        # Creates chained mapping of setttings for lookups.
+        self._create_settings()
         # Creates 'Worker' instances for each selected stage.
         self.workers = self._create_workers(workers = self.workers)
         self.workers = self._create_editors(workers = self.workers)
@@ -405,37 +426,3 @@ class Project(MutableMapping):
                 data = self.ingredients)
         return self
 
-
-@dataclass
-class Worker(Outline):
-    """Object construction techniques used by Editor instances.
-
-    Ideally, this class should have no additional methods beyond the lazy
-    loader ('load' method) and __contains__ dunder method.
-
-    Users can use the idiom 'x in Option' to check if a particular attribute
-    exists and is not None. This means default values for optional arguments
-    should generally be set to None to allow use of that idiom.
-
-    Args:
-        name (str): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier.
-        module (str): name of module where object to incorporate is located
-            (can either be a siMpLify or non-siMpLify module).
-        book (str): name of Book object in 'module' to load. Defaults to None.
-
-    """
-    name: str
-    module: Optional[str] = 'simplify.core'
-    book: Optional['Book'] = 'Book'
-    author: Optional['Author'] = 'Author'
-    publisher: Optional['Publisher'] = 'Publisher'
-    scholar: Optional['Scholar'] = 'Scholar'
-    steps: Optional[List[str]] = field(default_factory = list)
-    options: Optional['Sequence'] = field(default_factory = Sequence)
-    techniques: Dict[str, List[str]] = field(default_factory = dict)
