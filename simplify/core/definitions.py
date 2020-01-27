@@ -26,7 +26,7 @@ from simplify.core.utilities import listify
 
 @dataclass
 class Outline(Container):
-    """Object construction instructions used by Editor subclasses.
+    """Object construction instructions used by Publisher subclasses.
 
     Ideally, this class should have no additional methods beyond the lazy
     loader ('load' method) and __contains__  dunder method.
@@ -99,33 +99,6 @@ class Outline(Container):
                 raise ImportError(' '.join(
                     [component, 'is neither in', self.module, 'nor',
                         self.default_module]))
-
-
-@dataclass
-class Task(Outline):
-    """Object construction instructions used by a Project instance.
-
-    Args:
-        name (str): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier.
-        module (str): name of module where object to incorporate is located
-            (can either be a siMpLify or non-siMpLify module).
-        book (str): name of Book object in 'module' to load. Defaults to None.
-
-    """
-    name: str
-    module: Optional[str] = 'simplify.core'
-    book: Optional['Book'] = 'Book'
-    author: Optional['Editor'] = 'Editor'
-    publisher: Optional['Publisher'] = 'Publisher'
-    worker: Optional['Worker'] = 'Worker'
-    steps: Optional[List[str]] = field(default_factory = list)
-    options: Optional['Plan'] = field(default_factory = Plan)
 
 
 @dataclass

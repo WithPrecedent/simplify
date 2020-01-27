@@ -1,12 +1,10 @@
 """
 .. module:: defaults
 :synopsis: stored default settings for siMpLify
-:editor: Corey Rayburn Yung
+:publisher: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
-
-from simplify.core.definitions import Task
 
 
 GENERAL: {
@@ -17,33 +15,7 @@ GENERAL: {
     'gpu': False}
 
 PROJECT = {
-    'project_tasks': ['analyst', 'actuary', 'critic', 'artist'],
-    'default_tasks': {
-        'analyst': Task(
-            name = 'analyst',
-            module = 'simplify.analyst.analyst',
-            book = 'Cookbook',
-            options = 'Tools'),
-        'wrangler': Task(
-            name = 'wrangler',
-            module = 'simplify.wrangler.wrangler',
-            book = 'Manual',
-            options = 'Mungers'),
-        'actuary': Task(
-            name = 'actuary',
-            module = 'simplify.actuary.actuary',
-            book = 'Ledger',
-            options = 'Measures'),
-        'critic': Task(
-            name = 'critic',
-            module = 'simplify.critic.critic',
-            book = 'Collection',
-            options = 'Evaluators'),
-        'artist': Task(
-            name = 'artist',
-            module = 'simplify.artist.artist',
-            book = 'Canvas',
-            options = 'Mediums')}}
+    'project_tasks': ['analyze', 'criticize']}
 
 FILES = {
     'source_format': 'csv',

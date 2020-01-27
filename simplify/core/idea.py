@@ -504,7 +504,7 @@ class Idea(MutableMapping):
         return instance
 
 
-""" Creation Function """
+""" Creation Functions """
 
 def create_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
     """Creates an Idea instance from passed argument.

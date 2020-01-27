@@ -1,7 +1,7 @@
 """
 .. module:: siMpLify project
 :synopsis: controller class for siMpLify projects
-:editor: Corey Rayburn Yung
+:publisher: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
 """
@@ -17,12 +17,12 @@ import pandas as pd
 
 import simplify
 from simplify.core.definitions import Outline
-from simplify.core.definitions import Task
 from simplify.core.ingredients import create_ingredients
 from simplify.core.repository import Plan
-from simplify.core.worker import Worker
+from simplify.core.repository import Repository
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
+from simplify.core.worker import Worker
 
 
 @dataclass
@@ -50,10 +50,11 @@ class Project(Iterable):
             ndarray. If a DataFrame, Ingredient instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
             in a new Ingredients instance as a DataFrame. Default is None.
-        tasks (Optional[Union['Plan', Dict[str, 'Task']]]): MutableMapping
-            with keys as strings and values of 'Task' instances. Defaults to
-            en empty Plan. If none are provided, Project attempts to construct
-            tasks from 'idea' and 'default_tasks'.
+        tasks (Optional[Union['Plan', Dict[str, 'Task']], List[str]]]): 
+            MutableMapping with keys as strings and values of 'Task' instances,
+            or a list of tasks corresponding to keys in 'DefaultTasks' to use.
+            Defaults to an empty Plan. If nothing is provided, Project attempts 
+            to construct tasks from 'idea' and 'DefaultTasks'.
         library (Optional[Union['Plan', Dict[str, 'Task']]]):  MutableMapping
             with keys as strings and values of 'Book' instances. Defaults to
             en empty Plan. If not provided (the normal case), 'library' will
@@ -91,7 +92,7 @@ class Project(Iterable):
             pd.DataFrame,
             np.ndarray,
             str]]]] = None
-    tasks: Optional[Union['Plan', Dict[str, 'Task']]] = field(
+    tasks: Optional[Union['Plan', Dict[str, 'Task'], List[str]]] = field(
         default_factory = Plan)
     library: Optional[Union['Plan', Dict[str, 'Book']]] = field(
         default_factory = Plan)
@@ -134,8 +135,11 @@ class Project(Iterable):
         """
         if self.state in ['draft', 'publish']:
             return iter(self.tasks)
-        else:
+        elif self.state in ['apply']:
             return iter(self.library)
+        else:
+            raise ValueError(
+                'to iterate, state must be "draft", "publish", or "apply"')
 
     """ Other Dunder Methods """
 
@@ -176,36 +180,32 @@ class Project(Iterable):
 
         """
         if isinstance(tasks, Plan):
+            tasks.project = self
             return tasks
-        elif isinstance(tasks, list):
-            new_tasks = {}
-            for task in tasks:
-                new_tasks[task] = self.default_tasks[task]
-            return Plan(steps = tasks, contents = new_tasks)
         elif isinstance(tasks, dict):
-            return Plan(contents = tasks)
+            return Plan(contents = tasks, project = self)
+        elif isinstance(tasks, list):
+            return DefaultTasks(steps = tasks, project = self)
         else:
-            return Plan(contents = self.default_tasks)
+            return DefaultTasks(project = self)
 
     def _draft_editors(self, tasks: 'Plan') -> 'Plan':
-        """Creates Editor instances for each Task.
+        """Creates Publisher and Worker instances for each Task.
 
         Args:
             tasks ('Plan'): stored Task instances.
 
         Returns:
-            'Plan': instance with Editor and Publisher instances added to
+            'Plan': instance with Publisher and Worker instances added to
                 each stored 'Task' instance.
 
         """
-        # For each task, creates an Editor and Publisher instance.
+        # For each task, creates an Publisher and Worker instance.
         for task in tasks.keys():
-            author = tasks[task].load('author')
-            tasks[task].author = author(project = self, task = task)
             publisher = tasks[task].load('publisher')
-            tasks[task].publisher = publisher(
-                project = self,
-                task = task)
+            tasks[task].publisher = publisher(project = self, task = task)
+            worker = tasks[task].load('worker')
+            tasks[task].worker = worker(project = self, task = task)
         return tasks
 
     """ Public Methods """
@@ -243,42 +243,15 @@ class Project(Iterable):
 
     def draft(self) -> None:
         """Sets initial attributes."""
-        # Sets default package options available to Project.
-        self.default_tasks = {
-            'organize': Task(
-                name = 'wrangler',
-                module = 'simplify.wrangler.wrangler',
-                book = 'Manual',
-                options = 'Mungers'),
-            'analyze': Task(
-                name = 'analyst',
-                module = 'simplify.analyst.analyst',
-                book = 'Cookbook',
-                options = 'Tools'),
-            'summarize': Task(
-                name = 'actuary',
-                module = 'simplify.actuary.actuary',
-                book = 'Ledger',
-                options = 'Measures'),
-            'criticize': Task(
-                name = 'critic',
-                module = 'simplify.critic.critic',
-                book = 'Anthology',
-                options = 'Evaluators'),
-            'visualize': Task(
-                name = 'artist',
-                module = 'simplify.artist.artist',
-                book = 'Canvas',
-                options = 'Mediums')}
         # Injects attributes from 'idea'.
         self = self.idea.apply(instance = self)
         # Creates 'Task' instances for each selected stage.
         self.tasks = self._draft_tasks(tasks = self.tasks)
-        self.tasks = self._draft_editors(tasks = self.tasks)
+        self.tasks = self._draft_publishers(tasks = self.tasks)
         # Iterates through 'tasks' and creates Book instances in 'tasks'.
         for task in self.tasks.keys():
             # Drafts a Book instance for 'task'.
-            self.tasks[task].author.draft()
+            self.tasks[task].publisher.draft()
         return self
 
     def publish(self,
@@ -289,7 +262,8 @@ class Project(Iterable):
         Args:
             tasks (Optional[Union['Plan', Dict[str, 'Task'], List[str]]]):
                 alternative tasks to use. If not passed, the existing
-                'tasks' attribute will be used.
+                'tasks' attribute will be used. If passed, these will replace
+                the local 'tasks' attribute. Defaults to None.
 
         """
         # Changes state.
@@ -313,16 +287,118 @@ class Project(Iterable):
         """
         # Changes state.
         self.state = 'apply'
-        # Creates a Worker instance to apply Book instances to 'data'.
-        worker = Worker(project = self)
+        # Deletes 'tasks' to save memory, if option is selected.
+        # if self.conserve_memory:
+        #     del self.tasks
         # Assigns 'data' to 'ingredients' attribute and validates it.
         if data:
             self.ingredients = create_ingredients(ingredients = data)
         # Iterates through each task, creating and applying needed Books,
         # Chapters, and Techniques for each task in the Project.
         for key, book in self.library.items():
-            self.library[key] = worker.apply(
+            self.library[key] = self.tasks[key].worker.apply(
                 book = book,
                 data = self.ingredients,
                 **kwargs)
+        return self
+    
+
+@dataclass
+class Task(Outline):
+    """Object construction instructions used by a Project instance.
+
+    Args:
+        name (str): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier.
+        module (Optional[str]): name of module where object to use is located
+            (can either be a siMpLify or non-siMpLify module). Defaults to
+            'simplify.core'.
+        book (Optional[str]): name of Book object in 'module' to load. Defaults to 'Book'.
+        publisher (Optional[str]): name of Publisher class in 'module' to load. Defaults to
+            'Publisher'.
+        worker (Optional[str]): name of Worker class in 'module' to load. 
+            Defaults to 'Worker'.
+        steps: (Optional[List[str]]): list of steps to execute. Defaults to an
+            empty list.
+        options (Optional[Union['Repository', str]]): a 'Repositor'y containing
+            options for the Task instance to utilize or a string corresponding
+            to a 'Repository' subclass in 'module' to load. Defaults to an
+            empty 'Repository' instance.
+        
+    """
+    name: str
+    module: Optional[str] = field(default_factory = lambda: 'simplify.core')
+    book: Optional[str] = field(default_factory = lambda: 'Book')
+    publisher: Optional[str] = field(default_factory = lambda: 'Publisher')
+    worker: Optional[str] = field(default_factory = lambda: 'Worker')
+    steps: Optional[List[str]] = field(default_factory = list)
+    options: Optional[Union['Repository', str]] = field(
+        default_factory = Repository)
+
+
+@dataclass
+class DefaultTasks(Plan):
+    """Default tasks for a Project.
+
+    To limit the options selected, pass a list of selected tasks to 'steps'.
+
+    Args:
+        steps (Optional[List[str]]): an ordred set of steps. Defaults to an
+            empty list. All items in 'steps' should correspond to keys in
+            'contents' before iterating.
+        contents (Optional[Union['Repository', Dict[str, Any]]]): a 'Repository'
+            instance or a dictionary that can be used to create one. Defaults to
+            an empty Repository.
+        defaults (Optional[List[str]]): a list of keys in 'contents' which
+            will be used to return items when 'default' is sought. If not
+            passed, 'default' will be set to all keys.
+        iterable (Optional[str]): the name of the attribute that should be
+            iterated when a class instance is iterated. Defaults to 'contents'.
+        project ('Project'): a related 'Project' instance.
+        
+    """
+    steps: Optional[List[str]] = field(default_factory = list)
+    contents: Optional[Union['Repository', Dict[str, Any]]] = field(
+        default_factory = Repository)
+    defaults: Optional[List[str]] = field(default_factory = list)
+    iterable: Optional[str] = field(default_factory = lambda: 'steps')
+    project: 'Project' = None
+    
+    def _create_contents(self) -> None:
+        self.contents = {
+            'organize': Task(
+                name = 'wrangler',
+                module = 'simplify.wrangler.wrangler',
+                book = 'Manual',
+                worker = 'Wrangler',
+                options = 'Mungers'),
+            'analyze': Task(
+                name = 'analyst',
+                module = 'simplify.analyst.analyst',
+                book = 'Cookbook',
+                worker = 'Analyst',
+                options = 'Tools'),
+            'summarize': Task(
+                name = 'actuary',
+                module = 'simplify.actuary.actuary',
+                book = 'Ledger',
+                worker = 'Actuary',
+                options = 'Measures'),
+            'criticize': Task(
+                name = 'critic',
+                module = 'simplify.critic.critic',
+                book = 'Anthology',
+                worker = 'Critic',
+                options = 'Evaluators'),
+            'visualize': Task(
+                name = 'artist',
+                module = 'simplify.artist.artist',
+                book = 'Canvas',
+                worker = 'Artist',
+                options = 'Mediums')}
         return self

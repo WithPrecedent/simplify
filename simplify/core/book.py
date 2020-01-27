@@ -44,9 +44,9 @@ class Book(Repository):
 
     """
     name: Optional[str] = None
-    iterable: Optional[str] = 'chapters'
-    steps: Optional[List[str]] = field(default_factory = list)
-    techniques: Optional['Repository'] = field(default_factory = Repository)
+    iterable: Optional[str] = field(default_factory = lambda: 'chapters')
+    # steps: Optional[List[str]] = field(default_factory = list)
+    # techniques: Optional['Repository'] = field(default_factory = Repository)
     chapters: Optional[Union[List[str], str]] = field(default_factory = list)
     alters_data: Optional[bool] = True
 
@@ -58,29 +58,29 @@ class Book(Repository):
 
     """ Private Methods """
 
-    def _add_technique(self,
-            step: str,
-            technique: Union['Technique', 'Repository', str]) -> None:
-        """Adds a single 'technique' to 'techniques'.
+    # def _add_technique(self,
+    #         step: str,
+    #         technique: Union['Technique', 'Repository', str]) -> None:
+    #     """Adds a single 'technique' to 'techniques'.
 
-        Args:
-            step (str): name of step to which 'technique' belongs.
-            technique (Union['Technique', 'Repository', str]): a single
-                Technique instance, a key/value pair of 'Repository' instance,
-                or a string corresponding to a technique in the 'options' of
-                'task' in 'project'.
+    #     Args:
+    #         step (str): name of step to which 'technique' belongs.
+    #         technique (Union['Technique', 'Repository', str]): a single
+    #             Technique instance, a key/value pair of 'Repository' instance,
+    #             or a string corresponding to a technique in the 'options' of
+    #             'task' in 'project'.
 
-        """
-        if isinstance(technique, Technique):
-            self.techniques[step][technique.name] = technique
-        elif isinstance(technique, str):
-            self.techniques[step][technique] = (
-                self.project[self.task].options[technique])
-        elif isinstance(technique, (dict, Repository)):
-            self.techniques.update(technique)
-        else:
-            raise TypeError('technique must be Technique, Repository, or str')
-        return self
+    #     """
+    #     if isinstance(technique, Technique):
+    #         self.techniques[step][technique.name] = technique
+    #     elif isinstance(technique, str):
+    #         self.techniques[step][technique] = (
+    #             self.project[self.task].options[technique])
+    #     elif isinstance(technique, (dict, Repository)):
+    #         self.techniques.update(technique)
+    #     else:
+    #         raise TypeError('technique must be Technique, Repository, or str')
+    #     return self
 
     """ Public Methods """
 
@@ -190,9 +190,9 @@ class Chapter(Iterable):
 
     """
     name: Optional[str] = None
-    iterable: Optional[str] = 'techniques'
-    book: Optional['Book'] = None
-    number: Optional[int] = 0
+    iterable: Optional[str] = field(default_factory = lambda: 'techniques')
+    # book: Optional['Book'] = None
+    # number: Optional[int] = 0
     techniques: Optional['Plan'] = field(default_factory = Plan)
     alters_data: Optional[bool] = True
 

@@ -5,6 +5,10 @@
 :copyright: 2019
 :license: Apache-2.0
 """
+import os
+import sys
+sys.path.insert(0, os.path.join('..', 'simplify'))
+sys.path.insert(0, os.path.join('..', '..', 'simplify'))
 
 from pathlib import Path
 
