@@ -11,25 +11,25 @@ import pandas as pd
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.book import Book
-from simplify.core.editors import Author
-from simplify.core.editors import Publisher
+from simplify.core.editor import Editor
+from simplify.core.editor import Publisher
 from simplify.core.idea import create_idea
 from simplify.core.ingredients import create_ingredients
 from simplify.core.inventory import create_inventory
 from simplify.core.project import Project
-from simplify.core.project import Worker
-from simplify.core.scholar import Scholar
+from simplify.core.project import Task
+from simplify.core.worker import Worker
 
 __all__ = [
     'Book',
-    'Author',
+    'Editor',
     'Publisher',
-    'Scholar',
+    'Worker',
     'create_idea',
     'create_ingredients',
     'create_inventory',
     'Project',
-    'Worker']
+    'Task']
 
 
 def startup(

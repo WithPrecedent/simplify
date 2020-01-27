@@ -1,5 +1,5 @@
 """
-.. module:: farmer steps
+.. module:: wrangler steps
 :synopsis: data processing workflow
 :author: Corey Rayburn Yung
 :copyright: 2019

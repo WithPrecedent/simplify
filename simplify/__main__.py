@@ -36,7 +36,7 @@ def _args_to_dict() -> Dict[str, str]:
             arguments[key] = value
     return arguments
 
-if __name__ == '__main__':
+if __class__.__name__ == '__main__':
     # Gets command line arguments and converts them to dict.
     arguments = _args_to_dict()
     # Calls Project with passed command-line arguments.

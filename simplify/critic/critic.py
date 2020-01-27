@@ -15,12 +15,12 @@ import pandas as pd
 from simplify.core.book import Book
 from simplify.core.book import Chapter
 from simplify.core.repository import Repository
-from simplify.core.repository import Sequence
+from simplify.core.repository import Plan
 from simplify.core.technique import TechniqueOutline
 
 
 @dataclass
-class Collection(Book):
+class Anthology(Book):
     """Applies techniques to 'Cookbook' instances to assess performance.
 
     Args:
@@ -31,30 +31,31 @@ class Collection(Book):
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
-            'collection'.
+            'critic'.
         iterable(Optional[str]): name of attribute for storing the main class
             instance iterable (called by __iter___). Defaults to 'reviews'.
         techiques (Optional['Repository']): a dictionary of options with
             'Technique' instances stored by step. Defaults to an empty
             'Repository' instance.
-        chapters (Optional['Sequence']): iterable collection of steps and
-            techniques to apply at each step. Defaults to an empty 'Sequence'
+        chapters (Optional['Plan']): iterable collection of steps and
+            techniques to apply at each step. Defaults to an empty 'Plan'
             instance.
-        returns_data (Optional[bool]): whether the Scholar instance's 'apply'
+        alters_data (Optional[bool]): whether the Worker instance's 'apply'
             expects data when the Book instance is iterated. If False, nothing
             is returned. If true, 'data' is returned. Defaults to True.
 
     """
-    name: Optional[str] = 'collection'
+    name: Optional[str] = 'critic'
     iterable: Optional[str] = 'reviews'
+    steps: Optional[List[str]] = field(default_factory = list)
     techniques: Optional['Repository'] = field(default_factory = Repository)
-    chapters: Optional['Sequence'] = field(default_factory = Sequence)
-    returns_data: Optional[bool] = True
+    chapters: Optional[Union[List[str], str]] = field(default_factory = list)
+    alters_data: Optional[bool] = True
 
 
 @dataclass
 class Evaluators(Repository):
-    """A dictonary of TechniqueOutline options for the Chef subpackage.
+    """A dictonary of TechniqueOutline options for the Analyst subpackage.
 
     Args:
         contents (Optional[str, Any]): default stored dictionary. Defaults to
@@ -65,15 +66,12 @@ class Evaluators(Repository):
         defaults (Optional[List[str]]): a list of keys in 'contents' which
             will be used to return items when 'default' is sought. If not
             passed, 'default' will be set to all keys.
-        null_value (Optional[Any]): value to return when 'none' is accessed or
-            an item isn't found in 'contents'. Defaults to None.
         project ('Project'): a related 'Project' instance.
 
     """
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)
     wildcards: Optional[List[str]] = field(default_factory = list)
     defaults: Optional[List[str]] = field(default_factory = list)
-    null_value: Optional[Any] = None
     project: 'Project' = None
 
     """ Private Methods """
@@ -102,7 +100,7 @@ class Evaluators(Repository):
                     name = 'shap_predict',
                     module = 'shap',
                     algorithm = '')},
-            'probability': {
+            'estimate': {
                 'gini': TechniqueOutline(
                     name = 'gini_probabilities',
                     module = None,
@@ -115,7 +113,7 @@ class Evaluators(Repository):
                     name = 'shap_probabilities',
                     module = 'shap',
                     algorithm = '')},
-            'ranking': {
+            'rank': {
                 'permutation': TechniqueOutline(
                     name = 'permutation_importances',
                     module = None,

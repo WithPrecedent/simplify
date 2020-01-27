@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.definitionsetter import FarmerTechnique
+from simplify.core.definitionsetter import WranglerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
@@ -20,8 +20,8 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'merge': ['simplify.farmer.steps.merge', 'Merge'],
-    'supplement': ['simplify.farmer.steps.supplement', 'Supplement']}
+    'merge': ['simplify.wrangler.steps.merge', 'Merge'],
+    'supplement': ['simplify.wrangler.steps.supplement', 'Supplement']}
 
 
 @dataclass
@@ -40,7 +40,7 @@ class Bale(SimpleIterable):
         return self
 
     def publish(self):
-        self.algorithm = self.workers[self.step](**self.parameters)
+        self.algorithm = self.tasks[self.step](**self.parameters)
         return self
 
     def publish(self, ingredients):

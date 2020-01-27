@@ -1,5 +1,5 @@
 """
-.. module:: almanac
+.. module:: manual
 :synopsis: munges and cleans pandas DataFrames using vectorized methods
 :author: Corey Rayburn Yung
 :copyright: 2019
@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.definitionsetter import FarmerTechnique
+from simplify.core.definitionsetter import WranglerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
@@ -21,7 +21,7 @@ to use another set of 'options' for a subclass, they just need to pass
 """
 DEFAULT_OPTIONS = {
     'keyword': ['simplify.core.retool', 'ReTool'],
-    'combine': ['simplify.farmer.steps.combine', 'Combine']}
+    'combine': ['simplify.wrangler.steps.combine', 'Combine']}
 
 
 @dataclass
@@ -29,8 +29,8 @@ class Clean(SimpleIterable):
     """Cleans, munges, and parsers data using fast, vectorized methods.
 
     Args:
-        steps(dict): dictionary containing keys of FarmerTechnique names (strings)
-            and values of FarmerTechnique class instances.
+        steps(dict): dictionary containing keys of WranglerTechnique names (strings)
+            and values of WranglerTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
         auto_draft(bool): whether 'publish' method should be called when

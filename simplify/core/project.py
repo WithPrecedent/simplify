@@ -6,8 +6,7 @@
 :license: Apache-2.0
 """
 
-from collections import ChainMap
-from collections.abc import MutableMapping
+from collections.abc import Iterable
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
@@ -17,29 +16,24 @@ import numpy as np
 import pandas as pd
 
 import simplify
-import simplify.core.defaults as simplify_defaults
-from simplify.core.book import Book
-from simplify.core.definitions import Worker
-from simplify.core.editors import Author
-from simplify.core.editors import Publisher
-from simplify.core.ingredients import create_ingredients
-from simplify.core.repository import Sequence
-from simplify.core.scholar import Scholar
 from simplify.core.definitions import Outline
+from simplify.core.definitions import Task
+from simplify.core.ingredients import create_ingredients
+from simplify.core.repository import Plan
+from simplify.core.worker import Worker
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Project(MutableMapping):
+class Project(Iterable):
     """Controller class for siMpLify projects.
 
     Args:
-        idea (Union[Idea, str]): an instance of Idea or a string containing the
-            file path or file name (in the current working directory) where a
-            file of a supported file type with settings for an Idea instance is
-            located. Even though a default value is provided (None) to lessen
-            subclass MRO problems, 'idea' is required for a Project to work.
+        idea (Optional[Union[Idea, str]]): an instance of Idea or a string
+            containing the file path or file name (in the current working
+            directory) where a file of a supported file type with settings for
+            an Idea instance is located. Defaults to None.
         inventory (Optional[Union['Inventory', str]]): an instance of Inventory
             or a string containing the full path of where the root folder should
             be located for file output. A inventory instance contains all file
@@ -56,15 +50,14 @@ class Project(MutableMapping):
             ndarray. If a DataFrame, Ingredient instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
             in a new Ingredients instance as a DataFrame. Default is None.
-        workers (Optional[List[str], str]): ordered list of workers to call.
-            Each worker should match a key in 'workers'. Defaults to an empty
-            list. If no 'workers' are provided, a Project instance attempts to
-            find them in 'idea'.
-        library (Optional[Dict[str, Union['Worker', 'Book']]]): attribute
-            which stores the siMpLify objects which are iterated by Project. If
-            not passed or later populated, the internally stored
-            'default_workers' is used when 'publish' is called. Defaults to an
-            empty dictionary.
+        tasks (Optional[Union['Plan', Dict[str, 'Task']]]): MutableMapping
+            with keys as strings and values of 'Task' instances. Defaults to
+            en empty Plan. If none are provided, Project attempts to construct
+            tasks from 'idea' and 'default_tasks'.
+        library (Optional[Union['Plan', Dict[str, 'Task']]]):  MutableMapping
+            with keys as strings and values of 'Book' instances. Defaults to
+            en empty Plan. If not provided (the normal case), 'library' will
+            be constructed from 'tasks'.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             instanced. Defaults to True.
         auto_apply (Optional[bool]): whether to call the 'apply' method when
@@ -80,7 +73,7 @@ class Project(MutableMapping):
             'project'.
 
     """
-    idea: Union['Idea', str] = None
+    idea: Optional[Union['Idea', str]] = None
     inventory: Optional[Union['Inventory', str]] = None
     ingredients: Optional[Union[
         'Ingredients',
@@ -98,26 +91,19 @@ class Project(MutableMapping):
             pd.DataFrame,
             np.ndarray,
             str]]]] = None
-    workers: Optional[Union['Sequence', List[str], str]] = field(
-        default_factory = Sequence)
-    library: Optional['Sequence'] = field(default_factory = Sequence)
+    tasks: Optional[Union['Plan', Dict[str, 'Task']]] = field(
+        default_factory = Plan)
+    library: Optional[Union['Plan', Dict[str, 'Book']]] = field(
+        default_factory = Plan)
     auto_publish: Optional[bool] = True
     auto_apply: Optional[bool] = False
-    name: Optional[str] = 'project'
+    name: Optional[str] = field(default_factory = lambda: 'project')
     identification: Optional[str] = field(default_factory = datetime_string)
 
     def __post_init__(self) -> None:
-        """Initializes class attributes and calls appropriate methods.
-
-        Raises:
-            ValueError: if 'idea' is None.
-
-        """
+        """Initializes class attributes and calls selected methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Checks 'idea' to make sure it was passed.
-        if self.idea is None:
-            raise ValueError('Project requires an idea argument')
         # Validates 'idea', 'inventory', and 'ingredients'.
         self.idea, self.inventory, self.ingredients = (
             simplify.startup(
@@ -125,7 +111,7 @@ class Project(MutableMapping):
                 inventory = self.inventory,
                 ingredients = self.ingredients,
                 project = self))
-        # Initializes 'state' for use by lookup methods.
+        # Initializes 'state' for use by the '__iter__' method.
         self.state = 'draft'
         # Automatically calls 'draft' method.
         self.draft()
@@ -139,99 +125,24 @@ class Project(MutableMapping):
 
     """ Required ABC Methods """
 
-    def __getitem__(self, key: str) -> 'Worker':
-        """Returns item in 'workers' or 'library', depending upon 'state'.
-
-        Args:
-            key (str): name of key in 'workers' or 'library', depending upon
-                'state'.
-
-        Returns:
-            'Worker': item stored in 'workers' or 'library', depending upon
-                'state'.
-
-        Raises:
-            KeyError: if 'key' is not found in 'workers' or 'library', depending
-                upon 'state'.
-
-        """
-        if self.state in ['draft']:
-            contents = self.workers
-        else:
-            contents = self.library
-        try:
-            return contents[key]
-        except KeyError:
-            raise KeyError(' '.join([key, 'is not in', self.name]))
-
-    def __setitem__(self, key: str, value: 'Worker') -> None:
-        """Sets 'key' to 'value' in 'workers' or 'library'.
-
-        Args:
-            key (str): name of key in 'workers' or 'library', depending upon
-                'state'.
-            value ('Worker'): value to be paired with 'key' in 'workers' or
-                'library', depending upon 'state'.
-
-        """
-        if self.state in ['draft']:
-            contents = self.workers
-        else:
-            contents = self.library
-        contents[key] = value
-        return self
-
-    def __delitem__(self, key: str) -> None:
-        """Deletes item in 'workers' or 'library', depending upon 'state'.
-
-        Args:
-            key (str): name of key in 'workers' or 'library', depending upon
-                'state'.
-
-        """
-        if self.state in ['draft']:
-            contents = self.workers
-        else:
-            contents = self.library
-        try:
-            del contents[key]
-        except KeyError:
-            pass
-        return self
-
     def __iter__(self) -> Iterable:
-        """Returns iterable of 'workers'.
+        """Returns iterable of 'tasks' or 'library' depending upon 'state'.
 
         Returns:
-            Iterable stored in 'workers'.
+            Iterable: 'tasks' or 'library' depending upon 'state'.
 
         """
-        if self.state in ['draft']:
-            contents = self.workers
+        if self.state in ['draft', 'publish']:
+            return iter(self.tasks)
         else:
-            contents = self.library
-        return iter(contents)
-
-    def __len__(self) -> int:
-        """Returns length of 'workers'.
-
-        Returns:
-            Integer of length of 'workers'.
-
-        """
-        if self.state in ['draft']:
-            contents = self.workers
-        else:
-            contents = self.library
-        return len(contents)
+            return iter(self.library)
 
     """ Other Dunder Methods """
 
     def __call__(self) -> Callable:
         """Drafts, publishes, and applies Project.
 
-        This requires idea and ingredients arguments to be passed to work
-        properly.
+        This requires an ingredients argument to be passed to work properly.
 
         Calling Project as a function is compatible with and used by the
         command line interface.
@@ -250,94 +161,82 @@ class Project(MutableMapping):
             self.__post__init()
         return self
 
-    def __repr__(self):
-        """Returns '__str__'"""
-        return self.__str__()
-
-    def __str__(self):
-        """Returns keys for Worker/Book instances depending on 'stage'."""
-        return ' '.join(['Project Library:', *list(self.keys())])
-
     """ Private Methods """
 
-    def _create_workers(self,
-            workers: Union['Sequence', List[str], str]) -> None:
-        """Creates or validates 'workers'.
+    def _draft_tasks(self,
+            tasks: Union['Plan', Dict[str, 'Task'], List[str]]) -> 'Plan':
+        """Creates or validates 'tasks'.
 
         Args:
-            workers (Union['Sequence', List[str], str]): key(s) for Worker
-                instances in 'default_workers' or a completed Sequence
-                instance with Worker instances.
+            tasks (tasks: Union['Plan', Dict[str, 'Task'], List[str]]):
+                Plan instance or information for making one.
+
+        Returns:
+            'Plan': instance with iterable Task instances.
 
         """
-        # Returns 'workers' if already in Sequence form.
-        if workers and isinstance(workers, Sequence):
-            return workers
-        # Attempts to get 'workers' from 'idea' if there are none defined.
-        elif not workers:
-            try:
-                workers = listify(
-                    self.idea[self.name]['_'.join([self.name, 'workers'])])
-            # Uses 'default_workers' if not found in 'idea'.
-            except KeyError:
-                return Sequence(contents = self.default_workers)
-        # Converts 'workers' from list/str to 'Sequence'.
-        if isinstance(workers, (list, str)) and workers:
-            new_workers = {}
-            for worker in listify(workers):
-                new_workers[worker] = self.default_workers[worker]
-            return Sequence(contents = new_workers)
+        if isinstance(tasks, Plan):
+            return tasks
+        elif isinstance(tasks, list):
+            new_tasks = {}
+            for task in tasks:
+                new_tasks[task] = self.default_tasks[task]
+            return Plan(steps = tasks, contents = new_tasks)
+        elif isinstance(tasks, dict):
+            return Plan(contents = tasks)
+        else:
+            return Plan(contents = self.default_tasks)
 
-    def _create_editors(self, workers: 'Sequence') -> None:
-        """Creates Editor instances for each Worker.
+    def _draft_editors(self, tasks: 'Plan') -> 'Plan':
+        """Creates Editor instances for each Task.
 
         Args:
-            workers ('Sequence'): stored Worker instances.
+            tasks ('Plan'): stored Task instances.
+
+        Returns:
+            'Plan': instance with Editor and Publisher instances added to
+                each stored 'Task' instance.
 
         """
-        # For each worker, creates an Author and Publisher instance.
-        for name, worker in workers.items():
-            author = worker.load('author')
-            workers[name].author = author(project = self, worker = name)
-            publisher = worker.load('publisher')
-            workers[name].publisher = publisher(project = self, worker = name)
-        return workers
-
-    def _create_settings(self) -> None:
-        """Creates set of mappings for siMpLify settings lookup."""
-        defaults = {}
-        for key, attribute in simplify_defaults.__dict__.items():
-            defaults[key.lower()] = attribute
-        self.settings = ChainMap(globals(), self.idea, defaults)
-        return self
+        # For each task, creates an Editor and Publisher instance.
+        for task in tasks.keys():
+            author = tasks[task].load('author')
+            tasks[task].author = author(project = self, task = task)
+            publisher = tasks[task].load('publisher')
+            tasks[task].publisher = publisher(
+                project = self,
+                task = task)
+        return tasks
 
     """ Public Methods """
 
     def add(self,
             name: Optional[str] = None,
-            worker: Optional['Worker'] = None,
+            task: Optional['Task'] = None,
             **kwargs) -> None:
-        """Adds subpackage to 'workers'.
+        """Adds subpackage to 'tasks'.
 
         Args:
             name (Optional[str]): name of subpackage. This is used as both the
-                key to the created Worker in 'workers' and as the 'name'
-                attribute in the Worker. Defaults to None. If not provided, the
-                'worker' will be added to 'workers' with the key being the
-                'name' attribute of 'worker'.
-            worker (Optional['Worker']): a completed instance. If not provided,
+                key to the created Task in 'tasks' and as the 'name'
+                attribute in the Task. Defaults to None. If not provided, the
+                'task' will be added to 'tasks' with the key being the
+                'name' attribute of 'task'.
+            task (Optional['Task']): a completed instance. If not provided,
                 the method will assume all of the parameters needed to construct
-                a 'Worker' instance are in 'kwargs'.
-            **kwargs: other attributes of a 'Worker' instance to pass.
+                a 'Task' instance are in 'kwargs'.
+            **kwargs: other attributes of a 'Task' instance to pass.
 
         """
-        if worker:
-            if name:
-                self.workers[name] = worker
+        if task is not None:
+            if name is not None:
+                self.tasks[name] = task
             else:
-                self.workers[worker.name] = worker
+                self.tasks[task.name] = task
+        elif name in self.default_tasks:
+            self.tasks[name] = self.default_tasks[name]
         else:
-            self.workers[name] = Worker(name = name, **kwargs)
+            self.tasks[name] = Task(name = name, **kwargs)
         return self
 
     """ Core siMpLify Methods """
@@ -345,61 +244,62 @@ class Project(MutableMapping):
     def draft(self) -> None:
         """Sets initial attributes."""
         # Sets default package options available to Project.
-        self.default_workers = {
-            'chef': Worker(
-                name = 'chef',
-                module = 'simplify.chef.chef',
-                book = 'Cookbook',
-                options = 'Cookware'),
-            'farmer': Worker(
-                name = 'farmer',
-                module = 'simplify.farmer.farmer',
-                book = 'Almanac',
+        self.default_tasks = {
+            'organize': Task(
+                name = 'wrangler',
+                module = 'simplify.wrangler.wrangler',
+                book = 'Manual',
                 options = 'Mungers'),
-            'actuary': Worker(
+            'analyze': Task(
+                name = 'analyst',
+                module = 'simplify.analyst.analyst',
+                book = 'Cookbook',
+                options = 'Tools'),
+            'summarize': Task(
                 name = 'actuary',
                 module = 'simplify.actuary.actuary',
                 book = 'Ledger',
                 options = 'Measures'),
-            'critic': Worker(
+            'criticize': Task(
                 name = 'critic',
                 module = 'simplify.critic.critic',
-                book = 'Collection',
+                book = 'Anthology',
                 options = 'Evaluators'),
-            'artist': Worker(
+            'visualize': Task(
                 name = 'artist',
                 module = 'simplify.artist.artist',
                 book = 'Canvas',
                 options = 'Mediums')}
-        # Creates chained mapping of setttings for lookups.
-        self._create_settings()
-        # Creates 'Worker' instances for each selected stage.
-        self.workers = self._create_workers(workers = self.workers)
-        self.workers = self._create_editors(workers = self.workers)
-        # Iterates through 'workers' and creates a skeleton of each Book.
-        for name, worker in self.workers.items():
-            # Drafts a Book instance for 'worker' and places it in 'library'.
-            worker.author.draft()
+        # Injects attributes from 'idea'.
+        self = self.idea.apply(instance = self)
+        # Creates 'Task' instances for each selected stage.
+        self.tasks = self._draft_tasks(tasks = self.tasks)
+        self.tasks = self._draft_editors(tasks = self.tasks)
+        # Iterates through 'tasks' and creates Book instances in 'tasks'.
+        for task in self.tasks.keys():
+            # Drafts a Book instance for 'task'.
+            self.tasks[task].author.draft()
         return self
 
-    def publish(self, workers: Optional[Union[List[str], str]] = None) -> None:
+    def publish(self,
+            tasks: Optional[Union[
+                'Plan', Dict[str, 'Task'], List[str]]] = None) -> None:
         """Finalizes iterable by creating Book instances.
 
         Args:
-            workers (Optional[Union[List[str], str]]): option(s) to publish. If
-                not passed, the existing 'workers' attribute will be used.
+            tasks (Optional[Union['Plan', Dict[str, 'Task'], List[str]]]):
+                alternative tasks to use. If not passed, the existing
+                'tasks' attribute will be used.
 
         """
         # Changes state.
         self.state = 'publish'
-        # Assigns 'workers' argument to 'workers' attribute, if passed.
-        if workers is not None:
-            self.workers = self._create_workers(workers = workers)
-        # Injects attributes from 'idea'.
-        self = self.idea.apply(instance = self)
-        # Iterates through 'workers' and finalizes each Book instance.
-        for name, worker in self.workers.items():
-            worker.publisher.publish()
+        # Assigns 'tasks' argument to 'tasks' attribute, if passed.
+        if tasks is not None:
+            self.tasks = self._draft_tasks(tasks = tasks)
+        # Iterates through 'tasks' and finalizes each Book instance.
+        for task in self.tasks.keys():
+            self.tasks[task].publisher.publish()
         return self
 
     def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
@@ -413,16 +313,16 @@ class Project(MutableMapping):
         """
         # Changes state.
         self.state = 'apply'
-        # Creates a Scholar instance to apply Book instances to 'data'.
-        scholar = Scholar(project = self)
+        # Creates a Worker instance to apply Book instances to 'data'.
+        worker = Worker(project = self)
         # Assigns 'data' to 'ingredients' attribute and validates it.
         if data:
             self.ingredients = create_ingredients(ingredients = data)
-        # Iterates through each worker, creating and applying needed Books,
-        # Chapters, and Techniques for each worker in the Project.
-        for name, book in self.library.items():
-            self.library[name] = scholar.apply(
+        # Iterates through each task, creating and applying needed Books,
+        # Chapters, and Techniques for each task in the Project.
+        for key, book in self.library.items():
+            self.library[key] = worker.apply(
                 book = book,
-                data = self.ingredients)
+                data = self.ingredients,
+                **kwargs)
         return self
-

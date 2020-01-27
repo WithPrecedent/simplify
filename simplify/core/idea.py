@@ -6,6 +6,7 @@
 :license: Apache-2.0
 """
 
+from collections import ChainMap
 from collections.abc import MutableMapping
 from configparser import ConfigParser
 from dataclasses import dataclass
@@ -17,6 +18,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
+import simplify.core.defaults as simplify_defaults
+from simplify.core.repository import Repository
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 from simplify.core.utilities import typify
@@ -69,8 +72,8 @@ class Idea(MutableMapping):
         test_chunk = 500
         random_test_chunk = True
 
-        [chef]
-        chef_steps = split, reduce, model
+        [analyst]
+        analyst_steps = split, reduce, model
 
     'verbose' and 'file_type' will automatically be added to every siMpLify
     class because they are located in the 'general' section. If a subclass
@@ -79,9 +82,9 @@ class Idea(MutableMapping):
 
         self.idea_sections = ['files']
 
-    If the subclass wants the 'chef' settings as well, then the code should be:
+    If the subclass wants the 'analyst' settings as well, then the code should be:
 
-        self.idea_sections = ['files', 'chef']
+        self.idea_sections = ['files', 'analyst']
 
     If that latter code is included, an equivalent to this class will be
     created:
@@ -95,15 +98,15 @@ class Idea(MutableMapping):
                 self.test_data = True
                 self.test_chunk = 500
                 self.random_test_chunk = True
-                self.chef_steps = ['split', 'reduce', 'model']
+                self.analyst_steps = ['split', 'reduce', 'model']
                 return self
 
     Regardless of the idea_sections added, all Idea settings can be similarly
     accessed using dict keys or local attributes. For example:
 
-        self.workers.idea['general']['seed'] # typical dict access step
+        self.tasks.idea['general']['seed'] # typical dict access step
 
-        self.workers.idea['seed'] # if no section or other key is named 'seed'
+        self.tasks.idea['seed'] # if no section or other key is named 'seed'
 
         self.seed # works because 'seed' is in the 'general' section
 
@@ -122,8 +125,6 @@ class Idea(MutableMapping):
     desire for accessibility and simplicity dictated this limitation.
 
     Args:
-        project (Optional['Project']): related Project or subclass instance.
-            Defaults to None.
         configuration (Dict[str, Dict[str, Any]]): a two-level nested
             dictionary storing settings. Defaults to an empty dictionary.
         infer_types (Optional[bool]): whether values in 'configuration' are
@@ -132,7 +133,6 @@ class Idea(MutableMapping):
             strings. Defaults to True.
 
     """
-    project: 'Project' = None
     configuration: Dict[str, Dict[str, Any]] = field(default_factory = dict)
     infer_types: Optional[bool] = True
 
@@ -145,6 +145,8 @@ class Idea(MutableMapping):
         # Infers types for values in 'configuration', if option selected.
         if self.infer_types:
             self._infer_types()
+        # Adds 'simplify_defaults' as backup settings to 'configuration'.
+        self._create_backup()
         return self
 
     """ Required ABC Methods """
@@ -214,7 +216,7 @@ class Idea(MutableMapping):
             Iterable stored in 'configuration'.
 
         """
-        return iter(self.configuration.items())
+        return iter(self.configuration)
 
     def __len__(self) -> int:
         """Returns length of 'configuration'.
@@ -227,46 +229,76 @@ class Idea(MutableMapping):
 
     """ Private Methods """
 
-    def _add_special(self, instance: object, attribute: str) -> object:
-        """Injects 'workers' into 'instance'.
+    def _create_backup(self) -> None:
+        """Creates set of mappings for siMpLify settings lookup."""
+        defaults = {}
+        for key, attribute in simplify_defaults.__dict__.items():
+            defaults[key.lower()] = attribute
+        self.configuration = ChainMap(self.configuration, defaults)
+        return self
+
+    def _get_parameters(self, instance: object) -> Dict[str, Any]:
+        """Returns 'parameters' dictionary appropriate to 'instance'.
 
         Args:
-            instance (object): siMpLify class instance to be modified.
-            attribute (str): the name of attribute to check or add to 'instance'
-                which also match the suffix in 'configuration'.
+            instance (object): siMpLify class with 'name' attribute to find
+                matching items in 'configuration'.
 
         Returns:
-            instance (object): siMpLify class instance with modifications made.
+            Dict[str, Any]: parameters dictionary stored in 'configuration'.
 
         """
-        if not hasattr(instance, attribute) or not getattr(instance, attribute):
-            name = instance.name
-            setattr(instance, attribute, listify(
-                self.configuration[name]['_'.join([name, attribute])],
-                default_empty = True))
-        return instance
-
-    def _add_parameters(self, instance: object) -> object:
-        """Injects 'parameters' into 'instance'.
-
-        Args:
-            instance (object): siMpLify class instance to be modified.
-
-        Returns:
-            instance (object): siMpLify class instance with modifications made.
-
-        """
-
         try:
-            instance.parameters == self.configuration['_'.join(
-                [instance.name, 'parameters'])]
+            return self.configuration['_'.join([instance.name, 'parameters'])]
         except (AttributeError, KeyError):
             try:
-                instance.parameters == self.configuration['_'.join(
+                return self.configuration['_'.join(
                     [instance.technique, 'parameters'])]
             except (AttributeError, KeyError):
-                pass
-        return instance
+                return {}
+
+    def _get_special(self, instance: object, suffix: str) -> List[str]:
+        """Returns list of strings from appropriate item in 'configuration'.
+
+        Args:
+            instance (object): siMpLify class with 'name' attribute to find
+                matching item in 'configuration'.
+            suffix (str): suffix of item in 'configuration'.
+
+        Returns:
+            List[str]: item from 'configuration.
+
+        """
+        try:
+            return listify(self.configuration[instance.name]['_'.join(
+                [instance.name, suffix])])
+        except (KeyError, AttributeError):
+            return None
+
+    def _get_techniques(self, instance: object) -> Dict[str, Dict[str, None]]:
+        """Returns nested dictionary of techniques.
+
+        Args:
+            instance (object): siMpLify class with 'name' attribute to find
+                matching items in 'configuration'.
+
+        Returns:
+            Dict[str, Dict[str, None]]: techniques dictionary prepared to be
+                loaded into a 'Repository' instance.
+
+        """
+        contents = {}
+        try:
+            for key, value in self.configuration[instance.name].items():
+                if (key.endswith('_techniques')
+                        and not value in [None, 'none', 'None']):
+                    step = key.replace('_techniques', '')
+                    contents[step] = {}
+                    for technique in listify(value):
+                        contents[step][technique] = None
+            return Repository(contents = contents)
+        except (KeyError, AttributeError):
+            return None
 
     def _infer_types(self):
         """Converts stored values to appropriate datatypes.
@@ -287,13 +319,42 @@ class Idea(MutableMapping):
         self.configuration = new_bundle
         return self
 
-    """ Core siMpLify Methods """
-
-    def apply(self, instance: object) -> object:
-        """Injects appropriate attributes into 'instance'.
+    def _inject(self,
+            instance: object,
+            attribute: str,
+            value: Any,
+            overwrite: bool) -> object:
+        """Adds attribute to 'instance' based on conditions.
 
         Args:
             instance (object): siMpLify class instance to be modified.
+            attribute (str): name of attribute to inject.
+            value (Any): value to assign to attribute.
+            overwrite (Optional[bool]): whether to overwrite a local attribute
+                in 'instance' if there are values stored in that attribute.
+                Defaults to False.
+
+        Returns:
+            object: with attribute possibly injected.
+
+        """
+        if (not hasattr(instance, attribute)
+                or not getattr(instance, attribute)
+                or overwrite):
+            setattr(instance, attribute, value)
+        return instance
+
+    """ Public Methods """
+
+    def inject_attributes(self, instance: object,
+            overwrite: Optional[bool] = False) -> object:
+        """Injects appropriate items into 'instance' from 'configuration'.
+
+        Args:
+            instance (object): siMpLify class instance to be modified.
+            overwrite (Optional[bool]): whether to overwrite a local attribute
+                in 'instance' if there are values stored in that attribute.
+                Defaults to False.
 
         Returns:
             instance (object): siMpLify class instance with modifications made.
@@ -308,28 +369,142 @@ class Idea(MutableMapping):
             sections.extend(listify(instance.idea_sections))
         except AttributeError:
             pass
-        if hasattr(instance, 'parameters') and not instance.parameters:
-            instance = self._add_parameters(instance = instance)
         for section in sections:
             try:
                 for key, value in self.configuration[section].items():
-                    if key.endswith('workers'):
-                        instance = self._add_special(
-                            instance = instance,
-                            attribute = 'workers')
-                    elif key.endswith('steps'):
-                        instance = self._add_special(
-                            instance = instance,
-                            attribute = 'steps')
-                    elif (not hasattr(instance, key)
-                            or not getattr(instance, key)):
-                        setattr(instance, key, value)
+                    self._inject(
+                        instance = instance,
+                        attribute = key,
+                        value = value,
+                        overwrite = overwrite)
             except KeyError:
                 pass
         return instance
 
+    def inject_parameters(self,
+            instance: object,
+            overwrite: Optional[bool] = False) -> object:
+        """Injects 'parameters' into 'instance'.
 
-""" Validator Function """
+        Args:
+            instance (object): siMpLify class instance to be modified.
+            overwrite (Optional[bool]): whether to overwrite a local attribute
+                in 'instance' if there are values stored in that attribute.
+                Defaults to False.
+
+        Returns:
+            instance (object): siMpLify class instance with modifications made.
+
+        """
+        self._inject(
+            instance = instance,
+            attribute = 'parameters',
+            value = self._get_parameters(instance = instance),
+            overwrite = overwrite)
+        return instance
+
+    def inject_steps(self, instance: object,
+            overwrite: Optional[bool] = False) -> object:
+        """Injects 'steps' into 'instance'.
+
+        Args:
+            instance (object): siMpLify class instance to be modified.
+            overwrite (Optional[bool]): whether to overwrite a local attribute
+                in 'instance' if there are values stored in that attribute.
+                Defaults to False.
+
+        Returns:
+            instance (object): siMpLify class instance with modifications made.
+
+        """
+        self._inject(
+            instance = instance,
+            attribute = 'steps',
+            value = self._get_special(instance = instance, suffix = 'steps'),
+            overwrite = overwrite)
+        return instance
+
+    def inject_techniques(self,
+            instance: object,
+            overwrite: Optional[bool] = False) -> object:
+        """Injects 'techniques' into 'instance'.
+
+        Args:
+            instance (object): siMpLify class instance to be modified.
+            overwrite (Optional[bool]): whether to overwrite a local attribute
+                in 'instance' if there are values stored in that attribute.
+                Defaults to False.
+
+        Returns:
+            instance (object): siMpLify class instance with modifications made.
+
+        """
+        self._inject(
+            instance = instance,
+            attribute = 'techniques',
+            value = self._get_techniques(instance = instance),
+            overwrite = overwrite)
+        return instance
+
+    def inject_tasks(self,
+            instance: object,
+            overwrite: Optional[bool] = False) -> object:
+        """Injects 'techniques' into 'instance'.
+
+        Args:
+            instance (object): siMpLify class instance to be modified.
+            overwrite (Optional[bool]): whether to overwrite a local attribute
+                in 'instance' if there are values stored in that attribute.
+                Defaults to False.
+
+        Returns:
+            instance (object): siMpLify class instance with modifications made.
+
+        """
+        self._inject(
+            instance = instance,
+            attribute = 'tasks',
+            value = self._get_special(instance = instance, suffix = 'tasks'),
+            overwrite = overwrite)
+        return instance
+
+    """ Core siMpLify Methods """
+
+    def apply(self,
+            instance: object,
+            inject_specials: Optional[bool] = True,
+            overwrite: Optional[bool] = False) -> object:
+        """Injects appropriate attributes into 'instance'.
+
+        Args:
+            instance (object): siMpLify class instance to be modified.
+            inject_specials (Optional[bool]): whether to add 'parameters',
+                'steps', 'techniques', or 'tasks' to 'instance'. Defaults to
+                True.
+            overwrite (Optional[bool]): whether to overwrite a local attribute
+                in 'instance' if there are values stored in that attribute.
+                Defaults to False.
+
+        Returns:
+            instance (object): siMpLify class instance with modifications made.
+
+        """
+        # Adds special attributes appropraite to instance.
+        if inject_specials:
+            for special in ['parameters', 'steps', 'techniques', 'tasks']:
+                if hasattr(instance, special):
+                    getattr(self, '_'.join(['inject', special]))(
+                        instance = instance,
+                        overwrite = overwrite)
+        # Adds 'general' and other appropriate items to 'instance' as attributes
+        # from 'configuration.
+        instance = self.inject_attributes(
+            instance = instance,
+            overwrite = overwrite)
+        return instance
+
+
+""" Creation Function """
 
 def create_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
     """Creates an Idea instance from passed argument.
@@ -352,6 +527,8 @@ def create_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
         return Idea(configuration = idea)
     elif isinstance(idea, (str, Path)):
         return Idea(configuration = load_configuration(file_path = idea))
+    elif idea is None:
+        return Idea()
     else:
         raise TypeError('idea must be Idea, str, or nested dict type')
 

@@ -22,5 +22,5 @@ def test_project():
     print('test', project.library)
     return
 
-if __name__ == '__main__':
+if __class__.__name__ == '__main__':
     test_project()

@@ -1,6 +1,6 @@
 """
-.. module:: chef algorithms
-:synopsis: custom algorithms for the chef subpackage
+.. module:: analyst algorithms
+:synopsis: custom algorithms for the analyst subpackage
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -206,7 +206,7 @@ def split_xy(
 #     name: str = 'gaussifier'
 
 #     def __post_init__(self) -> None:
-#         self.idea_sections = ['chef']
+#         self.idea_sections = ['analyst']
 #         super().__post_init__()
 #         return self
 
@@ -215,9 +215,9 @@ def split_xy(
 #                 copy = self.parameters['copy'])
 #         del self.parameters['rescaler']
 #         self._publish_parameters()
-#         self.positive_tool = self.workers['box_cox'](
+#         self.positive_tool = self.tasks['box_cox'](
 #                 method = 'box_cox', **self.parameters)
-#         self.negative_tool = self.workers['yeo_johnson'](
+#         self.negative_tool = self.tasks['yeo_johnson'](
 #                 method = 'yeo_johnson', **self.parameters)
 #         return self
 
@@ -249,7 +249,7 @@ def split_xy(
 #     space: object
 
 #     def __post_init__(self) -> None:
-#         self.idea_sections = ['chef']
+#         self.idea_sections = ['analyst']
 #         super().__post_init__()
 #         return self
 

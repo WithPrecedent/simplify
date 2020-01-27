@@ -1,6 +1,6 @@
 """
 .. module:: critic steps
-:synopsis: default steps for chef subpackage
+:synopsis: default steps for analyst subpackage
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0
@@ -442,9 +442,9 @@ class ShapExplain(object):
 
     def _set_method(self, recipe):
         if self.step in self.models:
-            self.method = self.workers[self.models[self.step]]
+            self.method = self.tasks[self.models[self.step]]
         else:
-            self.method = self.workers['kernel']
+            self.method = self.tasks['kernel']
         self.evaluator = self.method(
             model = recipe.model.algorithm,
             data = getattr(recipe.ingredients, 'x_' + self.data_to_review))
@@ -604,7 +604,7 @@ class SkaterExplain(object):
 #     # def edit(self, name, metric, special_type = None,
 #     #          special_parameters = None, negative_metric = False):
 #     #     """Allows user to manually add a metric to report."""
-#     #     self.workers.update({name: metric})
+#     #     self.tasks.update({name: metric})
 #     #     if special_type in ['probability']:
 #     #         self.prob_options.update({name: metric})
 #     #     elif special_type in ['scorer']:
@@ -664,7 +664,7 @@ class SkaterExplain(object):
 
     # def _get_permutation_importances(self, recipe):
     #     scorer = listify(self.metrics_steps)[0]
-    #     base_score, score_decreases = self.workers[self.step](
+    #     base_score, score_decreases = self.tasks[self.step](
     #             score_func = scorer,
     #             x = getattr(recipe.ingredients, 'x_' + self.data_to_review),
     #             y = getattr(recipe.ingredients, 'y_' + self.data_to_review))

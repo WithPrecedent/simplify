@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from simplify.core.definitions import Worker
+from simplify.core.definitions import Task
 
 
 GENERAL: {
@@ -17,29 +17,29 @@ GENERAL: {
     'gpu': False}
 
 PROJECT = {
-    'project_workers': ['chef', 'actuary', 'critic', 'artist'],
-    'default_workers': {
-        'chef': Worker(
-            name = 'chef',
-            module = 'simplify.chef.chef',
+    'project_tasks': ['analyst', 'actuary', 'critic', 'artist'],
+    'default_tasks': {
+        'analyst': Task(
+            name = 'analyst',
+            module = 'simplify.analyst.analyst',
             book = 'Cookbook',
-            options = 'Cookware'),
-        'farmer': Worker(
-            name = 'farmer',
-            module = 'simplify.farmer.farmer',
-            book = 'Almanac',
+            options = 'Tools'),
+        'wrangler': Task(
+            name = 'wrangler',
+            module = 'simplify.wrangler.wrangler',
+            book = 'Manual',
             options = 'Mungers'),
-        'actuary': Worker(
+        'actuary': Task(
             name = 'actuary',
             module = 'simplify.actuary.actuary',
             book = 'Ledger',
             options = 'Measures'),
-        'critic': Worker(
+        'critic': Task(
             name = 'critic',
             module = 'simplify.critic.critic',
             book = 'Collection',
             options = 'Evaluators'),
-        'artist': Worker(
+        'artist': Task(
             name = 'artist',
             module = 'simplify.artist.artist',
             book = 'Canvas',
@@ -60,10 +60,10 @@ FILES = {
     'export_results': True}
 
 FARMER = {
-    'farmer_steps': None}
+    'wrangler_steps': None}
 
 CHEF = {
-    'chef_steps': ['scale', 'split', 'encode', 'sample', 'reduce', 'model'],
+    'analyst_steps': ['scale', 'split', 'encode', 'sample', 'reduce', 'model'],
     'data_to_use': 'train_test',
     'model_type': 'classify',
     'label': 'target',

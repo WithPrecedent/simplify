@@ -70,7 +70,7 @@ class Ledger(Book):
             if df[column].dtype == bool:
                 df[column] = df[column].astype(int)
             if df[column].dtype.kind in 'bifcu':
-                for key, value in self.workers.items():
+                for key, value in self.tasks.items():
                     if isinstance(value, str):
                         row[key] = getattr(df[column], value)()
                     elif isinstance(value, list):
@@ -86,7 +86,7 @@ class Ledger(Book):
         return self
 
     def _start_report(self):
-        self.columns = ['variable'] + (list(self.workers.keys()))
+        self.columns = ['variable'] + (list(self.tasks.keys()))
         self.report = pd.DataFrame(columns = self.columns)
         return self
 

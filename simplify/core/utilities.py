@@ -288,7 +288,7 @@ def timer(process: Optional[str] = None) -> Callable:
     """
     if not process:
         if isinstance(process, FunctionType):
-            process = process.__name__
+            process = process.__class__.__name__
         else:
             process = process.__class__.__name__
     def shell_timer(_function):

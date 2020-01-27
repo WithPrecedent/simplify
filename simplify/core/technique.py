@@ -70,7 +70,7 @@ class Technique(Container):
         technique (Optional[str]): name of particular technique to be used. It
             should correspond to a key in the related 'book' instance. Defaults
             to None.
-        returns_data (Optional[bool]): whether the Book instance's 'apply'
+        alters_data (Optional[bool]): whether the Book instance's 'apply'
             method returns data when iterated. If False, nothing is returned.
             If true, 'data' is returned. Defaults to True.
 
@@ -82,7 +82,7 @@ class Technique(Container):
     parameter_space: Optional[Dict[str, List[Union[int, float]]]] = field(
         default_factory = dict)
     data_dependents: Optional[Dict[str, str]] = field(default_factory = dict)
-    returns_data: Optional[bool] = True
+    alters_data: Optional[bool] = True
 
     """ Dunder Methods """
 

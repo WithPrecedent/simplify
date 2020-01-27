@@ -19,7 +19,8 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
-from simplify.core.repository import Sequence
+from simplify.core.repository import Repository
+from simplify.core.repository import Plan
 from simplify.core.utilities import listify
 
 
@@ -101,15 +102,8 @@ class Outline(Container):
 
 
 @dataclass
-class Worker(Outline):
-    """Object construction techniques used by Editor instances.
-
-    Ideally, this class should have no additional methods beyond the lazy
-    loader ('load' method) and __contains__ dunder method.
-
-    Users can use the idiom 'x in Option' to check if a particular attribute
-    exists and is not None. This means default values for optional arguments
-    should generally be set to None to allow use of that idiom.
+class Task(Outline):
+    """Object construction instructions used by a Project instance.
 
     Args:
         name (str): designates the name of the class used for internal
@@ -127,12 +121,11 @@ class Worker(Outline):
     name: str
     module: Optional[str] = 'simplify.core'
     book: Optional['Book'] = 'Book'
-    author: Optional['Author'] = 'Author'
+    author: Optional['Editor'] = 'Editor'
     publisher: Optional['Publisher'] = 'Publisher'
-    scholar: Optional['Scholar'] = 'Scholar'
+    worker: Optional['Worker'] = 'Worker'
     steps: Optional[List[str]] = field(default_factory = list)
-    options: Optional['Sequence'] = field(default_factory = Sequence)
-    techniques: Dict[str, List[str]] = field(default_factory = dict)
+    options: Optional['Plan'] = field(default_factory = Plan)
 
 
 @dataclass

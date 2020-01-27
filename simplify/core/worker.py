@@ -1,5 +1,5 @@
 """
-.. module:: scholar
+.. module:: worker
 :synopsis: applies collections of techniques to data
 :author: Corey Rayburn Yung
 :copyright: 2019
@@ -14,18 +14,18 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 try:
-    from pathos.multiprocessing import SequenceingPool as Pool
+    from pathos.multiprocessing import PlaningPool as Pool
 except ImportError:
     from multiprocessing import Pool
 
 from simplify.core.repository import Repository
-from simplify.core.repository import Sequence
+from simplify.core.repository import Plan
 from simplify.core.utilities import listify
 from simplify.core.validators import DataValidator
 
 
 @dataclass
-class Scholar(object):
+class Worker(object):
     """Base class for applying Book instances to data.
 
     Args:
@@ -37,7 +37,7 @@ class Scholar(object):
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         self.parallelizer = Parallelizer(project = self.project)
-        self.scienceizer = Scienceizer(project = self.project, scholar = self)
+        self.scienceizer = Scienceizer(project = self.project, worker = self)
         return self
 
     """ Private Methods """
@@ -311,11 +311,11 @@ class Scienceizer(object):
 
     Args:
         project ('Project'): a related 'Project' instance.
-        scholar ('Scholar'): a related 'Scholar' instance.
+        worker ('Worker'): a related 'Worker' instance.
 
     """
     project: 'Project'
-    scholar: 'Scholar'
+    worker: 'Worker'
 
     """ Core siMpLify Methods """
 
@@ -373,7 +373,7 @@ class Scienceizer(object):
                 getattr(data, ''.join(['x_', data.state])),
                 getattr(data, ''.join(['y_', data.state])))
         else:
-            error = ' '.join([self.worker, 'algorithm has no fit method'])
+            error = ' '.join([self.task, 'algorithm has no fit method'])
             raise AttributeError(error)
         return self
 
@@ -408,7 +408,7 @@ class Scienceizer(object):
         elif data is not None:
             return self.algorithm.process.transform(data = ingredients)
         else:
-            error = ' '.join([self.worker,
+            error = ' '.join([self.task,
                               'algorithm has no fit_transform method'])
             raise TypeError(error)
 
@@ -448,5 +448,5 @@ class Scienceizer(object):
                     X = getattr(data, 'x_' + data.state),
                     Y = getattr(data, 'y_' + data.state))
         else:
-            error = ' '.join([self.worker, 'algorithm has no transform method'])
+            error = ' '.join([self.task, 'algorithm has no transform method'])
             raise AttributeError(error)

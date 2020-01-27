@@ -42,7 +42,7 @@ cancer_project.ingredients.change_datatype(
 # metrics from each recipe.
 cancer_project.apply()
 # Outputs information about the best recipe to the terminal.
-cancer_project.critic.print_best()
+# cancer_project['critic'].print_best()
 # Saves ingredients file with predictions or predicted probabilities added
 # (based on options in idea).
 #cancer_project.ingredients.save(file_name = 'cancer_df')

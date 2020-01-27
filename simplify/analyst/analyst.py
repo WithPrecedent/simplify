@@ -1,5 +1,5 @@
 """
-.. module:: chef
+.. module:: analyst
 :synopsis: machine learning made simple
 :author: Corey Rayburn Yung
 :copyright: 2019
@@ -16,13 +16,13 @@ from scipy.stats import randint, uniform
 
 from simplify.core.book import Book
 from simplify.core.repository import Repository
-from simplify.core.repository import Sequence
+from simplify.core.repository import Plan
 from simplify.core.technique import TechniqueOutline
 
 
 @dataclass
 class Cookbook(Book):
-    """Standard class for iterable storage in the Chef subpackage.
+    """Standard class for iterable storage in the Analyst subpackage.
 
     Args:
         name (Optional[str]): designates the name of the class used for internal
@@ -38,19 +38,20 @@ class Cookbook(Book):
         techiques (Optional['Repository']): a dictionary of options with
             'Technique' instances stored by step. Defaults to an empty
             'Repository' instance.
-        chapters (Optional['Sequence']): iterable collection of steps and
-            techniques to apply at each step. Defaults to an empty 'Sequence'
+        chapters (Optional['Plan']): iterable collection of steps and
+            techniques to apply at each step. Defaults to an empty 'Plan'
             instance.
-        returns_data (Optional[bool]): whether the Scholar instance's 'apply'
+        alters_data (Optional[bool]): whether the Worker instance's 'apply'
             expects data when the Book instance is iterated. If False, nothing
             is returned. If true, 'data' is returned. Defaults to True.
 
     """
-    name: Optional[str] = 'cookbook'
+    name: Optional[str] = 'analyst'
     iterable: Optional[str] = 'recipes'
+    steps: Optional[List[str]] = field(default_factory = list)
     techniques: Optional['Repository'] = field(default_factory = Repository)
-    chapters: Optional['Sequence'] = field(default_factory = Sequence)
-    returns_data: Optional[bool] = True
+    chapters: Optional['Plan'] = field(default_factory = list)
+    alters_data: Optional[bool] = True
 
     """ Private Methods """
 
@@ -126,7 +127,7 @@ class Cookbook(Book):
         # columns = self.ingredients.make_column_list(
         #     prefixes = prefixes,
         #     columns = columns)
-        # self.workers['cleaver'].add_techniques(
+        # self.tasks['cleaver'].add_techniques(
         #     cleave_group = cleave_group,
         #     columns = columns)
         # self.cleaves.append(cleave_group)
@@ -135,7 +136,7 @@ class Cookbook(Book):
 
     # def _cleave(self, ingredients):
     #     if self.step != 'all':
-    #         cleave = self.workers[self.step]
+    #         cleave = self.tasks[self.step]
     #         drop_list = [i for i in self.test_columns if i not in cleave]
     #         for col in drop_list:
     #             if col in ingredients.x_train.columns:
@@ -146,17 +147,17 @@ class Cookbook(Book):
     #     return ingredients
 
     # def _publish_cleaves(self):
-    #     for group, columns in self.workers.items():
+    #     for group, columns in self.tasks.items():
     #         self.test_columns.extend(columns)
     #     if self.parameters['include_all']:
-    #         self.workers.update({'all': self.test_columns})
+    #         self.tasks.update({'all': self.test_columns})
     #     return self
 
     # def add(self, cleave_group, columns):
     #     """For the cleavers in siMpLify, this step alows users to manually
     #     add a new cleave group to the cleaver dictionary.
     #     """
-    #     self.workers.update({cleave_group: columns})
+    #     self.tasks.update({cleave_group: columns})
     #     return self
 
 
@@ -170,7 +171,7 @@ class Cookbook(Book):
     #     if not estimator:
     #         estimator = plan.model.algorithm
     #     self._set_parameters(estimator)
-    #     self.algorithm = self.workers[self.step](**self.parameters)
+    #     self.algorithm = self.tasks[self.step](**self.parameters)
     #     if len(ingredients.x_train.columns) > self.num_features:
     #         self.algorithm.fit(ingredients.x_train, ingredients.y_train)
     #         mask = ~self.algorithm.get_support()
@@ -243,7 +244,7 @@ class Cookbook(Book):
 
 
 # @dataclass
-# class SearchComposer(ChefComposer):
+# class SearchComposer(AnalystComposer):
 #     """Searches for optimal model hyperparameters using specified step.
 
 #     Args:
@@ -256,13 +257,13 @@ class Cookbook(Book):
 #     step_class: object = SearchTechnique
 
 #     def __post_init__(self) -> None:
-#         self.idea_sections = ['chef']
+#         self.idea_sections = ['analyst']
 #         super().__post_init__()
 #         return self
 
 #     """ Private Methods """
 
-#     def _build_conditional(self, step: ChefTechnique, parameters: dict):
+#     def _build_conditional(self, step: AnalystTechnique, parameters: dict):
 #         """[summary]
 
 #         Args:
@@ -361,8 +362,8 @@ class Cookbook(Book):
 
 
 @dataclass
-class Cookware(Repository):
-    """A dictonary of TechniqueOutline options for the Chef subpackage.
+class Tools(Repository):
+    """A dictonary of TechniqueOutline options for the Analyst subpackage.
 
     Args:
         contents (Optional[str, Any]): default stored dictionary. Defaults to
@@ -373,15 +374,12 @@ class Cookware(Repository):
         defaults (Optional[List[str]]): a list of keys in 'contents' which
             will be used to return items when 'default' is sought. If not
             passed, 'default' will be set to all keys.
-        null_value (Optional[Any]): value to return when 'none' is accessed or
-            an item isn't found in 'contents'. Defaults to None.
         project ('Project'): a related 'Project' instance.
 
     """
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)
     wildcards: Optional[List[str]] = field(default_factory = list)
     defaults: Optional[List[str]] = field(default_factory = list)
-    null_value: Optional[Any] = None
     project: 'Project' = None
 
     """ Private Methods """
@@ -391,7 +389,7 @@ class Cookware(Repository):
             'fill': {
                 'defaults': TechniqueOutline(
                     name = 'defaults',
-                    module = 'simplify.chef.algorithms',
+                    module = 'simplify.analyst.algorithms',
                     algorithm = 'smart_fill',
                     default = {'defaults': {
                         'boolean': False,
@@ -415,7 +413,7 @@ class Cookware(Repository):
             'categorize': {
                 'automatic': TechniqueOutline(
                     name = 'automatic',
-                    module = 'simplify.chef.algorithms',
+                    module = 'simplify.analyst.algorithms',
                     algorithm = 'auto_categorize',
                     default = {'threshold': 10}),
                 'binary': TechniqueOutline(
@@ -908,8 +906,8 @@ class Cookware(Repository):
                     module = 'cuml',
                     algorithm = 'RidgeRegression')}}
         self.contents['model'] = model_options[
-            self.project.idea['chef']['model_type']]
+            self.project.idea['analyst']['model_type']]
         if self.project.idea['general']['gpu']:
             self.contents['model'].update(
-                gpu_options[idea['chef']['model_type']])
+                gpu_options[idea['analyst']['model_type']])
         return self

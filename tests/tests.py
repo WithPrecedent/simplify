@@ -15,7 +15,7 @@ import simplify.content as content
 
 algorithm, parameters = content.create(
     configuration = {'general': {'gpu': True, 'seed': 4}},
-    package = 'chef',
+    package = 'analyst',
     step = 'scale',
     step = 'normalize',
     parameters = {'copy': False})

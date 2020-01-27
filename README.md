@@ -18,9 +18,9 @@ programming, as the basis for its overall structure: food preparation. Words
 like 'recipe' and 'cookbook' appear with regularity in discussing computer code.
 siMpLify extends this metaphor a bit further in the creation of its four core
 packages:
-    1) Farmer: harvests data from a variety of sources, cleans it, and prepares
+    1) Wrangler: harvests data from a variety of sources, cleans it, and prepares
         it for consumption.
-    2) Chef: using a cookbook of recipes derived from user selections, the Chef
+    2) Analyst: using a cookbook of recipes derived from user selections, the Analyst
         applies machine learning and preprocessing methods to data.
     3) Critic: evaluates the results of recipes, offering appropriately-matched       comparisons, summaries, and metrics.
     4) Artist: aiding the Critic, the Artist creates visualizations of the data,
@@ -55,15 +55,15 @@ siMpLify provides a cleaner, universal set of tools to access the many useful me
 * [eli5](https://github.com/TeamHG-Memex/eli5)
 * [scikitplot](https://github.com/reiinakano/scikit-plot)
 
-## The siMpLify Sequence
+## The siMpLify Plan
 
-To understand a typical use-case for siMplify, let's examine a project that omits the Farmer stage and proceeds directly to preprocessing and modeling. At the end of this discussion of the general process, an example using the Wisconsin breast cancer data is included.
+To understand a typical use-case for siMplify, let's examine a project that omits the Wrangler stage and proceeds directly to preprocessing and modeling. At the end of this discussion of the general process, an example using the Wisconsin breast cancer data is included.
 
-### siMpLify Chef
+### siMpLify Analyst
 
-As an example of siMpLify's functionality, let's review the Chef subpackage. It allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling ingredients based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
+As an example of siMpLify's functionality, let's review the Analyst subpackage. It allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling ingredients based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
 
-By default, the Chef divides the feature engineering and modeling process into eight major steps that can be sequenced in different stepss (or supplemented with
+By default, the Analyst divides the feature engineering and modeling process into eight major steps that can be sequenced in different stepss (or supplemented with
 custom steps and steps):
 
 * Scale: converts numerical features into a common scale, using scikit-learn methods.
@@ -141,7 +141,7 @@ The examples folder, from which the above settings are taken, currently shows ho
     from sklearn.datasets import load_breast_cancer
 
     from simplify import Idea, inventory, Ingredients
-    from simplify.chef import Cookbook
+    from simplify.analyst import Cookbook
 
     # Loads cancer data and converts from numpy arrays to pandas dataframe.
     cancer = load_breast_cancer()
@@ -181,4 +181,4 @@ That's it. From that, all possible recipes are created. Each recipe gets its own
 ![](visuals/shap_summary.png.png?raw=true)
 ![](visuals/shap_interactions.png.png?raw=true)
 
-New examples will be added showing different models and the Farmer subpackage in the near future.
+New examples will be added showing different models and the Wrangler subpackage in the near future.

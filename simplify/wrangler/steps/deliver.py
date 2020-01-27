@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from simplify.core.definitionsetter import FarmerTechnique
+from simplify.core.definitionsetter import WranglerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
@@ -22,8 +22,8 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'reshape': ['simplify.farmer.steps.reshape', 'Reshape'],
-    'streamline': ['simplify.farmer.steps.streamline', 'Streamline']}
+    'reshape': ['simplify.wrangler.steps.reshape', 'Reshape'],
+    'streamline': ['simplify.wrangler.steps.streamline', 'Streamline']}
 
 
 @dataclass
@@ -31,8 +31,8 @@ class Deliver(SimpleIterable):
     """Makes final structural changes to data before analysis.
 
     Args:
-        steps(dict): dictionary containing keys of FarmerTechnique names (strings)
-            and values of FarmerTechnique class instances.
+        steps(dict): dictionary containing keys of WranglerTechnique names (strings)
+            and values of WranglerTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
         auto_draft(bool): whether 'publish' method should be called when
@@ -48,11 +48,11 @@ class Deliver(SimpleIterable):
         return self
 
     def _publish_shapers(self, harvest):
-        self.algorithm = self.workers[self.step](**self.parameters)
+        self.algorithm = self.tasks[self.step](**self.parameters)
         return self
 
     def _publish_streamliners(self, harvest):
-        self.algorithm = self.workers[self.step](**self.parameters)
+        self.algorithm = self.tasks[self.step](**self.parameters)
         return self
 
     def draft(self) -> None:

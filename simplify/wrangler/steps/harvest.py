@@ -9,7 +9,7 @@
 from dataclasses import dataclass
 import os
 
-from simplify.core.definitionsetter import FarmerTechnique
+from simplify.core.definitionsetter import WranglerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
@@ -30,8 +30,8 @@ class Harvest(SimpleIterable):
     """Extracts data from text or other sources.
 
     Args:
-        steps(dict): dictionary containing keys of FarmerTechnique names (strings)
-            and values of FarmerTechnique class instances.
+        steps(dict): dictionary containing keys of WranglerTechnique names (strings)
+            and values of WranglerTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
         auto_draft(bool): whether 'publish' method should be called when
@@ -51,7 +51,7 @@ class Harvest(SimpleIterable):
                                  'organizer_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}
-        algorithm = self.workers[self.step](**self.parameters)
+        algorithm = self.tasks[self.step](**self.parameters)
         self._set_columns(algorithm)
         return algorithm
 
@@ -60,7 +60,7 @@ class Harvest(SimpleIterable):
                                  'parser_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}
-        algorithm = self.workers[self.step](**self.parameters)
+        algorithm = self.tasks[self.step](**self.parameters)
         return algorithm
 
     def draft(self) -> None:

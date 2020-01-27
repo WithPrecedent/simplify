@@ -8,7 +8,7 @@
 
 from dataclasses import dataclass
 
-from simplify.core.definitionsetter import FarmerTechnique
+from simplify.core.definitionsetter import WranglerTechnique
 
 
 """DEFAULT_OPTIONS are declared at the top of a module with a SimpleDirector
@@ -20,10 +20,10 @@ to use another set of 'options' for a subclass, they just need to pass
 'options' when the class is instanced.
 """
 DEFAULT_OPTIONS = {
-    'download': ['simplify.farmer.steps.download', 'Download'],
-    'scrape': ['simplify.farmer.steps.scrape', 'Scrape'],
-    'convert': ['simplify.farmer.steps.convert', 'Convert'],
-    'divide': ['simplify.farmer.steps.divide', 'Divide']}
+    'download': ['simplify.wrangler.steps.download', 'Download'],
+    'scrape': ['simplify.wrangler.steps.scrape', 'Scrape'],
+    'convert': ['simplify.wrangler.steps.convert', 'Convert'],
+    'divide': ['simplify.wrangler.steps.divide', 'Divide']}
 
 
 @dataclass
@@ -31,8 +31,8 @@ class Sow(SimpleIterable):
     """Acquires and performs basic preparation of data sources.
 
     Args:
-        steps(dict): dictionary containing keys of FarmerTechnique names (strings)
-            and values of FarmerTechnique class instances.
+        steps(dict): dictionary containing keys of WranglerTechnique names (strings)
+            and values of WranglerTechnique class instances.
         name(str): name of class for matching settings in the Idea instance
             and elsewhere in the siMpLify package.
         auto_draft(bool): whether 'publish' method should be called when

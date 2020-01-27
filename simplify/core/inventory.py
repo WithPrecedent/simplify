@@ -246,7 +246,7 @@ class Inventory(MutableMapping):
             'clean': 'interim_format',
             'bale': 'interim_format',
             'deliver': 'interim_format',
-            'chef': 'final_format',
+            'analyst': 'final_format',
             'actuary': 'final_format',
             'critic': 'final_format',
             'artist': 'final_format'}
@@ -256,7 +256,7 @@ class Inventory(MutableMapping):
             'clean': 'interim_format',
             'bale': 'interim_format',
             'deliver': 'final_format',
-            'chef': 'final_format',
+            'analyst': 'final_format',
             'actuary': 'final_format',
             'critic': 'final_format',
             'artist': 'final_format'}
@@ -270,7 +270,7 @@ class Inventory(MutableMapping):
             'clean': 'harvested_data',
             'bale': 'cleaned_data',
             'deliver': 'baled_data',
-            'chef': 'final_data',
+            'analyst': 'final_data',
             'actuary': 'final_data',
             'critic': 'final_data',
             'artist': 'predicted_data'}
@@ -280,7 +280,7 @@ class Inventory(MutableMapping):
             'clean': 'interim_format',
             'bale': 'interim_format',
             'deliver': 'final_format',
-            'chef': 'final_format',
+            'analyst': 'final_format',
             'actuary': 'final_data',
             'critic': 'predicted_data',
             'artist': 'predicted_data'}
@@ -300,7 +300,7 @@ class Inventory(MutableMapping):
             'clean': 'interim',
             'bale': 'interim',
             'deliver': 'interim',
-            'chef': 'processed',
+            'analyst': 'processed',
             'actuary': 'processed',
             'critic': 'processed',
             'artist': 'processed'}
@@ -310,7 +310,7 @@ class Inventory(MutableMapping):
             'clean': 'interim',
             'bale': 'interim',
             'deliver': 'processed',
-            'chef': 'processed',
+            'analyst': 'processed',
             'actuary': 'processed',
             'critic': 'processed',
             'artist': 'processed'}
@@ -1052,7 +1052,7 @@ class FileFormat(Outline):
     test_size_parameter: Optional[str] = None
 
 
-""" Validator Function """
+""" Creation Function """
 
 def create_inventory(
         inventory: Union['Inventory', str],

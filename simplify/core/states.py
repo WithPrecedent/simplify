@@ -130,7 +130,7 @@ def create_states(
             'clean',
             'bale',
             'deliver',
-            'chef',
+            'analyst',
             'actuary',
             'critic',
             'artist'])

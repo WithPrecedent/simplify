@@ -1,9 +1,9 @@
 # Contribution Guidelines
 
-siMpLify uses a code structure patterned after the writing process. Each major subpackage in the siMpLify package  (Farmer, Chef, Actuary, Critic, Artist)creates a Book object which contains particular implementations (Chapters) which have one or more steps (Repository).
+siMpLify uses a code structure patterned after the writing process. Each major subpackage in the siMpLify package  (Wrangler, Analyst, Actuary, Critic, Artist)creates a Book object which contains particular implementations (Chapters) which have one or more steps (Repository).
 
-    Farmer creates an Almanac of Plans.
-    Chef creates a Cookbook of Recipes.
+    Wrangler creates an Manual of Plans.
+    Analyst creates a Cookbook of Recipes.
     Actuary creates a Ledger of Summaries.
     Critic creates a Collection of Reviews.
     Artist creates a Canvas of Illustrations.
@@ -43,7 +43,7 @@ Any new subpackages, Books, Chapters, and Repository should follow a similar tem
 
         from importlib import import_module
 
-        getattr(import_module(self.workers[key][0]), self.workers[key][1])
+        getattr(import_module(self.tasks[key][0]), self.tasks[key][1])
 
     For Technique-level classes, a special class has been created to construct needed external and internal objects. It is the Option class in the Contributor module. Follow the documentation there for creating Repository.
 
@@ -53,7 +53,7 @@ Any new subpackages, Books, Chapters, and Repository should follow a similar tem
 
 4. When composing objects through a loosely coupled hierarchy, it is important to provide connections in both directions. For example, the Chapter class has methods to 'add_technique' and 'add_book' which automatically change local attributes ('techniques' and 'book') accordingly. This is done so that any class in a composite tree can access attributes from other classes in that tree without passing numerous arguments.
 
-## siMpLify Worker
+## siMpLify Task
 
 1. All file management should be perfomed throught the shared Inventory instance.
 
@@ -61,13 +61,13 @@ Any new subpackages, Books, Chapters, and Repository should follow a similar tem
 
     self = self.idea.apply(instance = self)
 
-3. All external data should be contained in instances of Ingredients. Before beginning the processes in Chef, ideally, there should be a single, combined pandas DataFrame stored in the Ingredients instance at the 'df' attribute.
+3. All external data should be contained in instances of Ingredients. Before beginning the processes in Analyst, ideally, there should be a single, combined pandas DataFrame stored in the Ingredients instance at the 'df' attribute.
 
 4. Any generally usable functions or decorators should be stored in simplify.core.utilities.
 
 5. If you create a proxy for typing, please subclass the SimpleType class in simplify.core.definitionsetter, if possible.
 
-6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'worker' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Ingredients instance.
+6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'task' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Ingredients instance.
 
 ## General
 
