@@ -181,12 +181,13 @@ class Worker(object):
                 data = data,
                 method = self._iterate_chapter)
         else:
-            new_chapters = {}
-            for key, chapter in book.chapters.items():
-                new_chapters[key] = self._iterate_chapter(
+            new_chapters = []
+            for chapter in book.chapters:
+                new_chapters.append(self._iterate_chapter(
                     book = book,
                     chapter = chapter,
-                    data = data)
+                    data = data))
+            book.chapters = new_chapters
         return book
 
 

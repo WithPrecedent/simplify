@@ -273,7 +273,7 @@ class Project(Iterable):
             self.tasks = self._draft_tasks(tasks = tasks)
         # Iterates through 'tasks' and finalizes each Book instance.
         for key, task in self.tasks.items():
-            self.tasks[key] = task.publisher.publish(task = task)
+            self.library[key] = task.publisher.publish(task = task)
         return self
 
     def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
@@ -295,6 +295,7 @@ class Project(Iterable):
             self.ingredients = create_ingredients(ingredients = data)
         # Iterates through each task, creating and applying needed Books,
         # Chapters, and Techniques for each task in the Project.
+        print('test library', self.library)
         for key, book in self.library.items():
             self.library[key] = self.tasks[key].worker.apply(
                 book = book,
