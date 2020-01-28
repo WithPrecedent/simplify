@@ -6,7 +6,6 @@
 :license: Apache-2.0
 """
 
-from abc import ABC
 from dataclasses import dataclass
 from dataclasses import field
 from itertools import product
@@ -26,68 +25,65 @@ class Publisher(object):
 
     Args:
         idea ('Idea'): an instance with project settings.
-        task ('Task'): instance with information needed to create a Book 
+        task ('Task'): instance with information needed to create a Book
             instance.
-        
+
     """
     idea: 'Idea'
-    task: 'Task'
+    task: Optional['Task'] = None
 
     """ Private Methods """
 
-    def _draft_techniques(self) -> None:
-        """Drafts 'raw_techniques' from 'idea'."""
-        self.raw_techniques = {}
+    def _draft_steps(self, task: 'Task') -> 'Task':
+        """Drafts 'steps' from 'task' or 'idea'."""
         try:
-            for key, value in self.idea[self.task.name].items():
+            task.steps = listify(self.idea[task.name]['_'.join(
+                [task.name, 'steps'])])
+        except (KeyError, AttributeError):
+            task.steps = []
+        return task
+
+    def _draft_techniques(self, task: 'Task') -> 'Task':
+        """Drafts 'techniques' from 'idea'."""
+        task.techniques = {}
+        try:
+            for key, value in self.idea[task.name].items():
                 if key.endswith('_techniques'):
                     step = key.replace('_techniques', '')
                     if value in [None, 'none', 'None', 'NONE']:
-                        self.raw_techniques[step] = 'none'
+                        task.techniques[step] = ['none']
                     else:
-                        self.raw_techniques[step] = listify(value)
+                        task.techniques[step] = listify(value)
         except (KeyError, AttributeError):
             pass
-        return self
+        return task
 
-    def _draft_steps(self) -> None:
-        """Drafts 'steps' from 'task' or 'idea'."""
-        if self.task.steps:
-            self.steps = self.task.steps
-        else:
-            try:
-                self.steps = listify(self.idea[self.task.name]['_'.join(
-                    [self.task.name, 'steps'])])
-            except (KeyError, AttributeError):
-                self.steps = []
-        return self
-    
-    def _draft_options(self) -> None:
+    def _draft_options(self, task: 'Task') -> 'Task':
         """Creates options for creating a Book contents."""
-        if isinstance(self.task.options, Repository):
-            self.options = self.task.options
-        elif isinstance(self.task.options, str):
-            self.options = self.task.load('options')(idea = self.idea)
-        elif isinstance(self.task.options, dict):
-            self.options = Repository(
-                contents = self.task.options, 
+        if isinstance(task.options, Repository):
+            pass
+        elif isinstance(task.options, str):
+            task.options = task.load('options')(idea = self.idea)
+        elif isinstance(task.options, dict):
+            task.options = Repository(
+                contents = task.options,
                 idea = self.idea)
         else:
             raise TypeError('task.options must be Repository, dict, or str')
-        return self
-    
-    def _draft_book(self) -> None:
+        return task
+
+    def _draft_book(self, task: 'Task') -> 'Task':
         """Creates initial, empty Book instance."""
-        if isinstance(self.task.book, (str, Book)):
-            if isinstance(self.task.book, Book):
-                self.book = self.task.book
+        if isinstance(task.book, (str, Book)):
+            if isinstance(task.book, Book):
+                pass
             else:
-                self.book = self.task.load('book')(name = self.task.book)
+                task.book = task.load('book')(name = task.book)
         else:
             raise TypeError('task.book must be Book or str')
-        return self
+        return task
 
-    def _get_all_techniques(self) -> List[List[str]]:
+    def _get_all_techniques(self, task: 'Task') -> List[List[str]]:
         """Converts 'techniques' values to a list of lists.
 
         Return:
@@ -95,62 +91,66 @@ class Publisher(object):
 
         """
         possible_techniques = []
-        for step, techniques in self.raw_techniques.items():
+        for step, techniques in task.techniques.items():
             possible_techniques.append(listify(techniques))
         return possible_techniques
 
-    def _publish_chapters(self) -> None:
+    def _publish_chapters(self, task: 'Task') -> 'Task':
         """Publishes instanced 'chapters' for a Book instance."""
         # Creates 'possible' list of lists of 'techniques'.
-        possible = self._get_all_techniques()
+        possible = self._get_all_techniques(task = task)
         # Creates a list of lists of the Cartesian product of 'possible'.
         chapters = list(map(list, product(*possible)))
         # Creates Chapter instance for every combination of techniques.
         for techniques in chapters:
             contents = self.author.publish(
-                techniques = dict(zip(self.steps, techniques)))
-            techniques = Plan(idea = self.idea,contents = contents)
-            self.book.chapters.append(Chapter(techniques = techniques))
-        return self
+                techniques = dict(zip(task.steps, techniques)))
+            techniques = Plan(idea = self.idea, contents = contents)
+            task.book.chapters.append(Chapter(techniques = techniques))
+        return task
 
-    def _publish_techniques(self) -> None:
+    def _publish_techniques(self, task: 'Task') -> 'Task':
         """Publishes instanced 'techniques' for each 'Chapter' instance."""
         new_techniques = {}
-        for chapter in self.book:
+        for chapter in task.book:
             for step, technique in chapter.techniques.items():
                 new_techniques[step] = self.expert.publish(
                     step = step,
                     technique = technique)
-        self.book.chapters.techniques = new_techniques
-        return self
+        task.book.chapters.techniques = new_techniques
+        return task
 
     """ Core siMpLify Methods """
 
-    def draft(self) -> 'Task':
+    def draft(self, task: Optional['Task'] = None) -> 'Task':
         """Drafts initial attributes and settings of a Book instance. """
+        if task is None:
+            task = self.task
         # Creates 'raw_techniques', 'steps', 'options, and 'book'.
-        self._draft_steps()
-        self._draft_raw_techniques()
-        self._draft_options()
-        self._draft_book()
-        return self
+        task = self._draft_steps(task = task)
+        task = self._draft_techniques(task = task)
+        task = self._draft_options(task = task)
+        task = self._draft_book(task = task)
+        return task
 
-    def publish(self) -> 'Book':
+    def publish(self, task: Optional['Task'] = None) -> 'Book':
         """Finalizes Book instance, making all changes before application."""
+        if task is None:
+            task = self.task
         # Creates 'author' which is used to create 'Chapter' instances.
         self.author = Author(
-            idea = self.idea, 
-            task = self.task)
+            idea = self.idea,
+            task = task)
         # Creates 'expert' which is used to create 'Technique' instances.
         self.expert = Expert(
-            idea = self.idea, 
-            task = self.task, 
+            idea = self.idea,
+            task = task,
             options = self.options)
         # Finalizes 'chapters' attribute for 'book'.
-        self._publish_chapters()
+        task = self._publish_chapters(task = task)
         # Finalizes 'techniques' attribute for each Chapter instance in 'book'.
-        self._publish_techniques()
-        return self.book
+        task = self._publish_techniques(task = task)
+        return task.book
 
 
 @dataclass
@@ -159,11 +159,11 @@ class Expert(object):
 
     Args:
         idea ('Idea'): an instance with project settings.
-        task ('Task'): instance with information needed to create a Book 
+        task ('Task'): instance with information needed to create a Book
             instance.
         options ('Repository'): available options with stored 'Technique'
             instances as values.
-        
+
     """
     idea: 'Idea'
     task: 'Task'
@@ -321,15 +321,15 @@ class Expert(object):
             'Technique': instance with parameters added.
 
         """
-        technique.space = {}
+        technique.parameter_space = {}
         new_parameters = {}
         for parameter, values in technique.parameters.items():
             if isinstance(values, list):
                 if any(isinstance(i, float) for i in values):
-                    technique.space.update(
+                    technique.parameter_space.update(
                         {parameter: uniform(values[0], values[1])})
                 elif any(isinstance(i, int) for i in values):
-                    technique.space.update(
+                    technique.parameter_space.update(
                         {parameter: randint(values[0], values[1])})
             else:
                 new_parameters.update({parameter: values})
@@ -384,7 +384,7 @@ class Expert(object):
             return None
         else:
             # Gets appropriate TechniqueOutline and creates an instance.
-            outline = self.project.tasks[self.task].options[step][technique]
+            outline = self.task.options[step][technique]
             if isinstance(outline, (dict, Repository, Plan)):
                 techniques = []
                 for key, value in outline.items():

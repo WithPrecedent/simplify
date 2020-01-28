@@ -50,10 +50,10 @@ class Project(Iterable):
             ndarray. If a DataFrame, Ingredient instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
             in a new Ingredients instance as a DataFrame. Default is None.
-        tasks (Optional[Union['Plan', Dict[str, 'Task']], List[str]]]): 
+        tasks (Optional[Union['Plan', Dict[str, 'Task']], List[str]]]):
             MutableMapping with keys as strings and values of 'Task' instances,
             or a list of tasks corresponding to keys in 'DefaultTasks' to use.
-            Defaults to an empty Plan. If nothing is provided, Project attempts 
+            Defaults to an empty Plan. If nothing is provided, Project attempts
             to construct tasks from 'idea' and 'DefaultTasks'.
         library (Optional[Union['Plan', Dict[str, 'Task']]]):  MutableMapping
             with keys as strings and values of 'Book' instances. Defaults to
@@ -301,7 +301,7 @@ class Project(Iterable):
                 data = self.ingredients,
                 **kwargs)
         return self
-    
+
 
 @dataclass
 class Task(Outline):
@@ -318,10 +318,12 @@ class Task(Outline):
         module (Optional[str]): name of module where object to use is located
             (can either be a siMpLify or non-siMpLify module). Defaults to
             'simplify.core'.
-        book (Optional[str]): name of Book object in 'module' to load. Defaults to 'Book'.
-        publisher (Optional[str]): name of Publisher class in 'module' to load. Defaults to
+        book (Optional[str]): name of Book object in 'module' to load. Defaults
+            to 'Book'.
+        publisher (Optional[str]): name of Publisher class in 'module' to load.
+            Defaults to
             'Publisher'.
-        worker (Optional[str]): name of Worker class in 'module' to load. 
+        worker (Optional[str]): name of Worker class in 'module' to load.
             Defaults to 'Worker'.
         steps: (Optional[List[str]]): list of steps to execute. Defaults to an
             empty list.
@@ -329,7 +331,7 @@ class Task(Outline):
             options for the Task instance to utilize or a string corresponding
             to a 'Repository' subclass in 'module' to load. Defaults to an
             empty 'Repository' instance.
-        
+
     """
     name: str
     module: Optional[str] = field(default_factory = lambda: 'simplify.core')
@@ -337,6 +339,7 @@ class Task(Outline):
     publisher: Optional[str] = field(default_factory = lambda: 'Publisher')
     worker: Optional[str] = field(default_factory = lambda: 'Worker')
     steps: Optional[List[str]] = field(default_factory = list)
+    techniques: Optional[Dict[str, List[str]]] = field(default_factory = dict)
     options: Optional[Union['Repository', str]] = field(
         default_factory = Repository)
 
@@ -360,7 +363,7 @@ class DefaultTasks(Plan):
         iterable (Optional[str]): the name of the attribute that should be
             iterated when a class instance is iterated. Defaults to 'contents'.
         project ('Project'): a related 'Project' instance.
-        
+
     """
     steps: Optional[List[str]] = field(default_factory = list)
     contents: Optional[Union['Repository', Dict[str, Any]]] = field(
@@ -368,7 +371,7 @@ class DefaultTasks(Plan):
     defaults: Optional[List[str]] = field(default_factory = list)
     iterable: Optional[str] = field(default_factory = lambda: 'steps')
     project: 'Project' = None
-    
+
     def _create_contents(self) -> None:
         self.contents = {
             'organize': Task(
