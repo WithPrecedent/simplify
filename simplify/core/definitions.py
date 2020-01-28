@@ -97,8 +97,8 @@ class Outline(Container):
                     getattr(self, component))
             except (ImportError, AttributeError):
                 raise ImportError(' '.join(
-                    [component, 'is neither in', self.module, 'nor',
-                        self.default_module]))
+                    [getattr(self, component), 'is neither in', self.module, 
+                        'nor', self.default_module]))
 
 
 @dataclass

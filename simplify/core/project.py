@@ -203,9 +203,9 @@ class Project(Iterable):
         # For each task, creates an Publisher and Worker instance.
         for task in tasks.keys():
             publisher = tasks[task].load('publisher')
-            tasks[task].publisher = publisher(project = self, task = task)
+            tasks[task].publisher = publisher(idea = self.idea, task = task)
             worker = tasks[task].load('worker')
-            tasks[task].worker = worker(project = self, task = task)
+            tasks[task].worker = worker(idea = self.idea)
         return tasks
 
     """ Public Methods """
@@ -247,11 +247,11 @@ class Project(Iterable):
         self = self.idea.apply(instance = self)
         # Creates 'Task' instances for each selected stage.
         self.tasks = self._draft_tasks(tasks = self.tasks)
-        self.tasks = self._draft_publishers(tasks = self.tasks)
+        self.tasks = self._draft_editors(tasks = self.tasks)
         # Iterates through 'tasks' and creates Book instances in 'tasks'.
-        for task in self.tasks.keys():
+        for key, task in self.tasks.items():
             # Drafts a Book instance for 'task'.
-            self.tasks[task].publisher.draft()
+            self.tasks[key] = task.publisher.draft(task = task)
         return self
 
     def publish(self,
@@ -272,8 +272,8 @@ class Project(Iterable):
         if tasks is not None:
             self.tasks = self._draft_tasks(tasks = tasks)
         # Iterates through 'tasks' and finalizes each Book instance.
-        for task in self.tasks.keys():
-            self.tasks[task].publisher.publish()
+        for key, task in self.tasks.items():
+            self.tasks[key] = task.publisher.publish(task = task)
         return self
 
     def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
@@ -378,30 +378,30 @@ class DefaultTasks(Plan):
                 name = 'wrangler',
                 module = 'simplify.wrangler.wrangler',
                 book = 'Manual',
-                worker = 'Wrangler',
+                # worker = 'Wrangler',
                 options = 'Mungers'),
             'analyze': Task(
                 name = 'analyst',
                 module = 'simplify.analyst.analyst',
                 book = 'Cookbook',
-                worker = 'Analyst',
+                # worker = 'Analyst',
                 options = 'Tools'),
             'summarize': Task(
                 name = 'actuary',
                 module = 'simplify.actuary.actuary',
                 book = 'Ledger',
-                worker = 'Actuary',
+                # worker = 'Actuary',
                 options = 'Measures'),
             'criticize': Task(
                 name = 'critic',
                 module = 'simplify.critic.critic',
                 book = 'Anthology',
-                worker = 'Critic',
+                # worker = 'Critic',
                 options = 'Evaluators'),
             'visualize': Task(
                 name = 'artist',
                 module = 'simplify.artist.artist',
                 book = 'Canvas',
-                worker = 'Artist',
+                # worker = 'Artist',
                 options = 'Mediums')}
         return self

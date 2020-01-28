@@ -380,7 +380,7 @@ class Tools(Repository):
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)
     wildcards: Optional[List[str]] = field(default_factory = list)
     defaults: Optional[List[str]] = field(default_factory = list)
-    project: 'Project' = None
+    idea: 'Idea' = None
 
     """ Private Methods """
 
@@ -605,7 +605,11 @@ class Tools(Repository):
                     name = 'difference',
                     module = None,
                     algorithm = 'DifferenceFeatures')},
-            'cleave': {},
+            'cleave': {
+                'cleaver': TechniqueOutline(
+                    name = 'cleaver',
+                    module = 'simplify.analyst.algorithms',
+                    algorithm = 'Cleaver')},
             'sample': {
                 'adasyn': TechniqueOutline(
                     name = 'adasyn',
@@ -906,8 +910,8 @@ class Tools(Repository):
                     module = 'cuml',
                     algorithm = 'RidgeRegression')}}
         self.contents['model'] = model_options[
-            self.project.idea['analyst']['model_type']]
-        if self.project.idea['general']['gpu']:
+            self.idea['analyst']['model_type']]
+        if self.idea['general']['gpu']:
             self.contents['model'].update(
                 gpu_options[idea['analyst']['model_type']])
         return self

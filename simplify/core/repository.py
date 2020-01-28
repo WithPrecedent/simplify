@@ -40,7 +40,7 @@ class Repository(MutableMapping):
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)
     defaults: Optional[List[str]] = field(default_factory = list)
     iterable: Optional[str] = field(default_factory = lambda: 'contents')
-    project: 'Project' = None
+    idea: 'Idea' = None
 
     def __post_init__(self) -> None:
         """Initializes attributes and settings."""
@@ -269,7 +269,7 @@ class Plan(Repository):
         default_factory = Repository)
     defaults: Optional[List[str]] = field(default_factory = list)
     iterable: Optional[str] = field(default_factory = lambda: 'steps')
-    project: 'Project' = None
+    idea: 'Idea' = None
 
     def __post_init__(self) -> None:
         """Initializes attributes if not passed."""

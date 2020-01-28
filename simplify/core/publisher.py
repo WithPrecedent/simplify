@@ -32,6 +32,11 @@ class Publisher(object):
     idea: 'Idea'
     task: Optional['Task'] = None
 
+    def __post_init__(self) -> None:
+        # Creates 'author' which is used to create 'Chapter' instances.
+        self.author = Author(idea = self.idea)
+        return self
+
     """ Private Methods """
 
     def _draft_steps(self, task: 'Task') -> 'Task':
@@ -50,6 +55,7 @@ class Publisher(object):
             for key, value in self.idea[task.name].items():
                 if key.endswith('_techniques'):
                     step = key.replace('_techniques', '')
+                    # if step in task.steps:
                     if value in [None, 'none', 'None', 'NONE']:
                         task.techniques[step] = ['none']
                     else:
@@ -83,43 +89,6 @@ class Publisher(object):
             raise TypeError('task.book must be Book or str')
         return task
 
-    def _get_all_techniques(self, task: 'Task') -> List[List[str]]:
-        """Converts 'techniques' values to a list of lists.
-
-        Return:
-            List[List[str]]: all possible techniques for each step.
-
-        """
-        possible_techniques = []
-        for step, techniques in task.techniques.items():
-            possible_techniques.append(listify(techniques))
-        return possible_techniques
-
-    def _publish_chapters(self, task: 'Task') -> 'Task':
-        """Publishes instanced 'chapters' for a Book instance."""
-        # Creates 'possible' list of lists of 'techniques'.
-        possible = self._get_all_techniques(task = task)
-        # Creates a list of lists of the Cartesian product of 'possible'.
-        chapters = list(map(list, product(*possible)))
-        # Creates Chapter instance for every combination of techniques.
-        for techniques in chapters:
-            contents = self.author.publish(
-                techniques = dict(zip(task.steps, techniques)))
-            techniques = Plan(idea = self.idea, contents = contents)
-            task.book.chapters.append(Chapter(techniques = techniques))
-        return task
-
-    def _publish_techniques(self, task: 'Task') -> 'Task':
-        """Publishes instanced 'techniques' for each 'Chapter' instance."""
-        new_techniques = {}
-        for chapter in task.book:
-            for step, technique in chapter.techniques.items():
-                new_techniques[step] = self.expert.publish(
-                    step = step,
-                    technique = technique)
-        task.book.chapters.techniques = new_techniques
-        return task
-
     """ Core siMpLify Methods """
 
     def draft(self, task: Optional['Task'] = None) -> 'Task':
@@ -131,53 +100,94 @@ class Publisher(object):
         task = self._draft_techniques(task = task)
         task = self._draft_options(task = task)
         task = self._draft_book(task = task)
+        task = self.author.draft(task = task)
         return task
 
     def publish(self, task: Optional['Task'] = None) -> 'Book':
         """Finalizes Book instance, making all changes before application."""
         if task is None:
             task = self.task
-        # Creates 'author' which is used to create 'Chapter' instances.
-        self.author = Author(
-            idea = self.idea,
-            task = task)
-        # Creates 'expert' which is used to create 'Technique' instances.
-        self.expert = Expert(
-            idea = self.idea,
-            task = task,
-            options = self.options)
-        # Finalizes 'chapters' attribute for 'book'.
-        task = self._publish_chapters(task = task)
-        # Finalizes 'techniques' attribute for each Chapter instance in 'book'.
-        task = self._publish_techniques(task = task)
-        return task.book
+        return self.author.publish(task = task)
 
 
 @dataclass
-class Expert(object):
-    """Creates Technique instances for a Book instance.
+class Author(object):
+    """Creates Chapter instances for a Book instance.
 
     Args:
         idea ('Idea'): an instance with project settings.
         task ('Task'): instance with information needed to create a Book
             instance.
-        options ('Repository'): available options with stored 'Technique'
-            instances as values.
 
     """
     idea: 'Idea'
-    task: 'Task'
-    options: 'Repository'
 
     def __post_init__(self) -> None:
-        # Declares possible 'parameter_types'.
-        self.parameter_types = [
-            'idea',
-            'selected',
-            'required',
-            # 'search',
-            'runtime',]
-        return self
+        # Creates 'expert' which is used to create 'Technique' instances.
+        self.expert = Expert(idea = self.idea)
+        return self       
+        
+    """ Private Methods """
+
+    def _get_selected_techniques(self, task: 'Task') -> List[List[str]]:
+        """Converts 'techniques' values to a list of lists.
+
+        Return:
+            List[List[str]]: all possible techniques for each step.
+
+        """
+        possible_techniques = []
+        for step, techniques in task.techniques.items():
+            if step in task.steps:
+                possible_techniques.append(listify(techniques))
+        return possible_techniques
+
+    def _publish_techniques(self, techniques: Dict[str, str]) -> Dict[str, str]:
+        """Publishes instanced 'techniques' for each 'Chapter' instance."""
+        new_techniques = {}
+        for step, technique in techniques.items():
+            new_techniques[step] = self.options[step][technique]
+        return new_techniques
+    
+    """ Core siMpLify Methods """
+
+    def draft(self, task: 'Task') -> 'Task':
+        """Drafts instanced 'chapters' for a Book instance."""
+        # Creates 'possible' list of lists of 'techniques'.
+        possible = self._get_selected_techniques(task = task)
+        # Creates a list of lists of the Cartesian product of 'possible'.
+        chapters = list(map(list, product(*possible)))
+        # Creates Chapter instance for every combination of techniques.
+        for techniques in chapters:
+            contents = dict(zip(task.steps, techniques))
+            new_techniques = Plan(idea = self.idea, contents = contents)
+            task.book.chapters.append(Chapter(techniques = new_techniques))
+        return task
+
+    def publish(self, task: 'Task') -> 'Book':
+        """Finalizes all 'Chapter' instances in a 'Book' instance.
+
+        """
+        for chapter in task.book.chapters:
+            new_techniques = {}
+            for step, technique in chapter.techniques.items():
+                new_techniques[step] = self.expert.publish(
+                    task = task,
+                    step = step,
+                    technique = technique)
+            chapter.techniques = new_techniques
+        return task.book
+
+
+@dataclass
+class Expert(object):
+    """Creates Technique instances for Chapter instances.
+
+    Args:
+        idea ('Idea'): an instance with project settings.
+
+    """
+    idea: 'Idea'
 
     """ Private Methods """
 
@@ -220,8 +230,9 @@ class Expert(object):
             'Technique': instance with parameters added.
 
         """
+        parameter_types = ['idea', 'selected', 'required', 'runtime']
         # Iterates through types of 'parameter_types'.
-        for parameter_type in self.parameter_types:
+        for parameter_type in parameter_types:
             if parameter_type in outline:
                 technique = getattr(self, '_'.join(
                     ['_publish', parameter_type]))(
@@ -367,7 +378,7 @@ class Expert(object):
 
     """ Core siMpLify Methods """
 
-    def publish(self, step: str, technique: str) -> 'Technique':
+    def publish(self, task: 'Task', step: str, technique: str) -> 'Technique':
         """Creates parameters and algorithms for a 'Technique' instance.
 
         Args:
@@ -384,57 +395,8 @@ class Expert(object):
             return None
         else:
             # Gets appropriate TechniqueOutline and creates an instance.
-            outline = self.task.options[step][technique]
-            if isinstance(outline, (dict, Repository, Plan)):
-                techniques = []
-                for key, value in outline.items():
-                    techniques.append(self._publish_outline(
+
+            return self._publish_outline(
                         step = step,
                         technique = technique,
-                        outline = value))
-                return techniques
-            else:
-                return self._publish_outline(
-                        step = step,
-                        technique = technique,
-                        outline = outline)
-
-
-@dataclass
-class Author(object):
-    """Creates Chapter instances for a Book instance.
-
-    Args:
-        project ('Project'): a related Project instance.
-        task (str): name of the key to the Task and Book instances in
-            'project'.
-
-    """
-    project: 'Project'
-    task: str
-
-    """ Core siMpLify Methods """
-
-    def publish(self,
-            book: 'Book',
-            number: int,
-            techniques: Dict[str, str]) -> 'Book':
-        """Creates 'chapters' for 'book'.
-
-        Args:
-            book ('Book'): instance for chapters to be added.
-
-        Returns:
-            'Book' with chapters added.
-
-        """
-        # Creates a Chapter instance and add attributes to it.
-        chapter = Chapter(
-            name = '_'.join([*list(techniques.values())]),
-            number = number,
-            book = book,
-            techniques = techniques,
-            alters_data = book.alters_data)
-        # for step, technique in chapter.techniques.items():
-        #     chapter.techniques[step] = book.techniques[step][technique]
-        return chapter
+                        outline = task.options[step][technique])

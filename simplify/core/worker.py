@@ -32,12 +32,13 @@ class Worker(object):
         project ('Project'): a related Project instance.
 
     """
-    project: 'Project'
+    idea: 'Idea'
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
-        self.parallelizer = Parallelizer(project = self.project)
-        self.scienceizer = Scienceizer(project = self.project, worker = self)
+        self = self.idea.apply(instance = self)
+        self.parallelizer = Parallelizer(idea = self.idea)
+        self.scienceizer = Scienceizer(idea = self.idea, worker = self)
         return self
 
     """ Private Methods """
@@ -174,9 +175,7 @@ class Worker(object):
                 possibly made.
 
         """
-        if data is None:
-            data = self.project.ingredients
-        if self.project.parallelize:
+        if self.parallelize:
             self.parallelizer.apply_chapters(
                 book = book,
                 data = data,
@@ -199,7 +198,7 @@ class Parallelizer(object):
         project ('Project'): a related 'Project' instance.
 
     """
-    project: 'Project'
+    idea: 'Idea'
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -314,7 +313,7 @@ class Scienceizer(object):
         worker ('Worker'): a related 'Worker' instance.
 
     """
-    project: 'Project'
+    idea: 'Idea'
     worker: 'Worker'
 
     """ Core siMpLify Methods """
