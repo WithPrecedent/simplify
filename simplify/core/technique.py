@@ -105,6 +105,7 @@ class Technique(Container):
     """ Core siMpLify Methods """
 
     def apply(self, data: 'Dataset') -> 'Dataset':
+        print('test data apply', data)
         if self.fit_method:
             self.fit(x = data.x, y = data.y)
         if self.transform_method:
@@ -187,6 +188,7 @@ class Technique(Container):
                 'process'.
 
         """
+        print('test transform', self.technique)
         if self.transform_method:
             if y is None:
                 return getattr(self.algorithm, self.transform_method)(x)

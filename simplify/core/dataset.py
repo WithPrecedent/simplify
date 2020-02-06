@@ -190,15 +190,12 @@ class Dataset(MutableMapping):
                 attributes.
 
         """
-        print('test dataset getter', attribute)
-        print('test dataset dict', list(self.__dict__.keys()))
-        print('test dataset contents', self.__dict__['dataset'])
         if ('slices' in self.__dict__
                 and attribute.lower() in self.__dict__['slices']):
             return self.__dict__[attribute.lower()]
         else:
             try:
-                return getattr(self.__dict__['dataset']['full'], attribute)
+                return getattr(self.__dict__['full'], attribute)
             except AttributeError:
                 pass
 
@@ -216,8 +213,6 @@ class Dataset(MutableMapping):
     #             attributes.
 
     #     """
-    #     print('test dataset setter', attribute)
-    #     print('test dataset dataset', list(self.__dict__.keys()))
     #     if ('slices' in self.__dict__
     #             and attribute.lower() in self.__dict__['slices']):
     #         self.__dict__[attribute.lower()] = value
@@ -550,7 +545,7 @@ class DataSlice(MutableMapping):
         """Initializes datatypes for stored pandas data object."""
         if not self.datatypes:
             self.infer_datatypes()
-            print('test datatypes', self.datatypes)
+
         else:
             self._crosscheck_columns()
         self._start_columns = list(self.data.columns.values)
@@ -600,10 +595,10 @@ class DataSlice(MutableMapping):
 
         """
         for name in listify(columns):
-            self.data[name] = self.types.convert(
+            self.data[name] = self.dataset.types.convert(
                 proxy_type = datatype,
-                column = self.data[column])
-            self.datatypes[column] = datatype
+                column = self.data[name])
+            self.datatypes[name] = datatype
         return self
 
     def downcast(self, columns: Optional[Union[List[str], str]] = None) -> None:
@@ -695,7 +690,6 @@ class DataSlice(MutableMapping):
 
         """
         for name in self._check_columns(columns):
-            print('test inferring type for', name)
             self.datatypes[name] = self.dataset.types.infer(
                 column = self.data[name])
         return self
@@ -788,7 +782,6 @@ class PandasTypes(Container):
             return column
 
     def infer(self, column: pd.Series) -> str:
-        print('test infer column', column)
         try:
             return self.inferables[column.dtype]
         except KeyError:
