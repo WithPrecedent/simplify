@@ -14,7 +14,8 @@ from dataclasses import field
 from importlib import import_module
 from pathlib import Path
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 import pandas as pd
 
@@ -82,7 +83,8 @@ class Idea(MutableMapping):
 
         self.idea_sections = ['files']
 
-    If the subclass wants the 'analyst' settings as well, then the code should be:
+    If the subclass wants the 'analyst' settings as well, then the code should
+    be:
 
         self.idea_sections = ['files', 'analyst']
 
@@ -148,6 +150,103 @@ class Idea(MutableMapping):
         # Adds 'simplify_defaults' as backup settings to 'configuration'.
         self._create_backup()
         return self
+
+    """ Factory Method """
+
+    @classmethod
+    def create(cls, idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
+        """Creates an Idea instance from passed argument.
+
+        Args:
+            idea (Union[Dict[str, Dict[str, Any]], 'Idea']): a dict, a str file
+                path to an ini, csv, or py file with settings, or an Idea
+                instance with a 'configuration' attribute.
+
+        Returns:
+            Idea instance, properly configured.
+
+        Raises:
+            TypeError: if 'idea' is neither a dict, str, nor Idea instance.
+
+        """
+
+        def _load_from_csv(file_path: str) -> Dict[str, Any]:
+            """Creates a configuration dictionary from a .csv file.
+
+            Args:
+                file_path (str): path to siMpLify-compatible .csv file.
+
+            Returns:
+                Dict[str, Any] of settings.
+
+            Raises:
+                FileNotFoundError: if the file_path does not correspond to a
+                    file.
+
+            """
+            try:
+                configuration = pd.read_csv(file_path, dtype = 'str')
+                return configuration.to_dict(orient = 'list')
+            except FileNotFoundError:
+                raise FileNotFoundError(' '.join(['configuration file',
+                    file_path, 'not found']))
+
+        def _load_from_ini(file_path: str) -> Dict[str, Any]:
+            """Creates a configuration dictionary from an .ini file.
+
+            Args:
+                file_path (str): path to configparser-compatible .ini file.
+
+            Returns:
+                Dict[str, Any] of configuration.
+
+            Raises:
+                FileNotFoundError: if the file_path does not correspond to a
+                    file.
+
+            """
+            try:
+                configuration = ConfigParser(dict_type = dict)
+                configuration.optionxform = lambda option: option
+                configuration.read(str(file_path))
+                return dict(configuration._sections)
+            except FileNotFoundError:
+                raise FileNotFoundError(' '.join(['configuration file',
+                    file_path, 'not found']))
+
+        def _load_from_py(file_path: str) -> Dict[str, Any]:
+            """Creates a configuration dictionary from a .py file.
+
+            Args:
+                file_path (str): path to python module with '__dict__' dict
+                    defined.
+
+            Returns:
+                Dict[str, Any] of configuration.
+
+            Raises:
+                FileNotFoundError: if the file_path does not correspond to a
+                    file.
+
+            """
+            try:
+                return getattr(import_module(file_path), '__dict__')
+            except FileNotFoundError:
+                raise FileNotFoundError(' '.join(['configuration file',
+                    file_path, 'not found']))
+
+        if isinstance(idea, Idea):
+            return idea
+        elif isinstance(idea, (dict, MutableMapping)):
+            return cls(configuration = idea)
+        elif isinstance(idea, (str, Path)):
+            extension = str(Path(idea).suffix)[1:]
+            load_method = locals()['_'.join(['_load_from', extension])]
+            return cls(configuration = load_method(file_path = idea))
+        elif idea is None:
+            return cls()
+        else:
+            raise TypeError('idea must be Idea, str, or nested dict type')
 
     """ Required ABC Methods """
 
@@ -504,104 +603,3 @@ class Idea(MutableMapping):
         return instance
 
 
-""" Creation Functions """
-
-def create_idea(idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
-    """Creates an Idea instance from passed argument.
-
-    Args:
-        idea (Union[Dict[str, Dict[str, Any]], 'Idea']): a dict, a str file path
-            to an ini, csv, or py file with settings, or an Idea instance with a
-            'configuration' attribute.
-
-    Returns:
-        Idea instance, properly configured.
-
-    Raises:
-        TypeError: if 'idea' is neither a dict, str, nor Idea instance.
-
-    """
-    if isinstance(idea, Idea):
-        return idea
-    elif isinstance(idea, (dict, MutableMapping)):
-        return Idea(configuration = idea)
-    elif isinstance(idea, (str, Path)):
-        return Idea(configuration = load_configuration(file_path = idea))
-    elif idea is None:
-        return Idea()
-    else:
-        raise TypeError('idea must be Idea, str, or nested dict type')
-
-def load_configuration(file_path: str) -> Dict[str, Any]:
-    """Creates a configuration dictionary from a supported file type.
-
-    Args:
-        file_path (str): path to siMpLify-compatible file.
-
-    Returns:
-        Dict[str, Any]: of settings.
-
-    """
-    extension = str(Path(file_path).suffix)[1:]
-    return globals()['_'.join(['_load_from', extension])](file_path = file_path)
-
-def _load_from_csv(file_path: str) -> Dict[str, Any]:
-    """Creates a configuration dictionary from a .csv file.
-
-    Args:
-        file_path (str): path to siMpLify-compatible .csv file.
-
-    Returns:
-        Dict[str, Any] of settings.
-
-    Raises:
-        FileNotFoundError: if the file_path does not correspond to a file.
-
-    """
-    try:
-        configuration = pd.read_csv(file_path, dtype = 'str')
-        return configuration.to_dict(orient = 'list')
-    except FileNotFoundError:
-        raise FileNotFoundError(' '.join(['configuration file',
-            file_path, 'not found']))
-
-def _load_from_ini(file_path: str) -> Dict[str, Any]:
-    """Creates a configuration dictionary from an .ini file.
-
-    Args:
-        file_path (str): path to configparser-compatible .ini file.
-
-    Returns:
-        Dict[str, Any] of configuration.
-
-    Raises:
-        FileNotFoundError: if the file_path does not correspond to a file.
-
-    """
-    try:
-        configuration = ConfigParser(dict_type = dict)
-        configuration.optionxform = lambda option: option
-        configuration.read(str(file_path))
-        return dict(configuration._sections)
-    except FileNotFoundError:
-        raise FileNotFoundError(' '.join(['configuration file',
-            file_path, 'not found']))
-
-def _load_from_py(file_path: str) -> Dict[str, Any]:
-    """Creates a configuration dictionary from a .py file.
-
-    Args:
-        file_path (str): path to python module with '__dict__' dict defined.
-
-    Returns:
-        Dict[str, Any] of configuration.
-
-    Raises:
-        FileNotFoundError: if the file_path does not correspond to a file.
-
-    """
-    try:
-        return getattr(import_module(file_path), '__dict__')
-    except FileNotFoundError:
-        raise FileNotFoundError(' '.join(['configuration file',
-            file_path, 'not found']))

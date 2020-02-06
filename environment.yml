@@ -20,6 +20,7 @@ dependencies:
 - pip
 - pip: 
   - tensorflow==2.0.0-rc0
+- psutil
 - pyqt
 - pystan
 - python-docx

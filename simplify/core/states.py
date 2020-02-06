@@ -17,7 +17,8 @@ from importlib import import_module
 from inspect import signature
 from multiprocessing import Pool
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
@@ -131,7 +132,7 @@ def create_states(
             'bale',
             'deliver',
             'analyst',
-            'actuary',
+            'explorer',
             'critic',
             'artist'])
     elif isinstance(states, list):

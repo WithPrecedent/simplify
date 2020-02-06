@@ -44,7 +44,7 @@ class Convert(WranglerTechnique):
         self.file_path_out = self.make_path(self.file_out)
         return self
 
-    def publish(self, ingredients):
+    def publish(self, dataset):
         converted = self.method(file_path = self.file_path_in)
         self.inventory.save_df(converted, file_path = self.file_path_out)
         return self

@@ -11,14 +11,15 @@ from functools import wraps
 from importlib import import_module
 from inspect import signature
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, Tuple
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 import numpy as np
 import pandas as pd
 
 from simplify.core.idea import Idea
-from simplify.core.ingredients import Ingredient
-from simplify.core.ingredients import Ingredients
+from simplify.core.dataset import Dataset
+from simplify.core.dataset import DataSlice
 from simplify.core.inventory import Inventory
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
@@ -92,8 +93,8 @@ def SimplifyValidator(SimpleValidator):
 
     By default, this decorator checks the following parameters:
         idea
-        ingredient
-        ingredients
+        data
+        dataset
         inventory
 
     """
@@ -107,8 +108,8 @@ def SimplifyValidator(SimpleValidator):
         """
         self.validators = {
             'idea': create_idea,
-            'ingredient': create_ingredient,
-            'ingredients': create_ingredients,
+            'data': create_data,
+            'dataset': create_dataset,
             'inventory': create_inventory}
         super().__init__()
         return self

@@ -74,17 +74,17 @@ class ReTool(SimpleDirector):
                     self.flags |= flag
         return self
 
-    def _check_ingredients(self, ingredients, df, source):
+    def _check_dataset(self, dataset, df, source):
         if not (isinstance(df, pd.DataFrame) or isinstance(df, pd.Series)):
-            if ingredients is None:
-                error = 'ReTool requires either df or ingredients'
+            if dataset is None:
+                error = 'ReTool requires either df or dataset'
                 raise AttributeError(error)
             else:
-                df = ingredients['default_df']
+                df = dataset['default_df']
                 if isinstance(source, str):
-                    source = getattr(ingredients, source)
+                    source = getattr(dataset, source)
                 else:
-                    source = ingredients.source
+                    source = dataset.source
         else:
             if source is None:
                 error = 'If df passed, ReTool also requires source.'
@@ -168,14 +168,14 @@ class ReTool(SimpleDirector):
 
     def publish(self, data = None, df = None, source = None,
               remove_from_source = True):
-        df, source = self._check_ingredients(data = ingredients,
+        df, source = self._check_dataset(data = dataset,
                                              df = df,
                                              source = source)
         if remove_from_source:
             df, source = self.matcher.implement(df = df, source = source)
         else:
             df = self.matcher.implement(df = df, source = source)
-        return ingredients
+        return dataset
 
     def update(self, key, value):
         self.expressions.update({key: value})

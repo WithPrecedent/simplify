@@ -7,7 +7,8 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 from simplify.core.definitionsetter import SimpleDirector
 from simplify.core.definitionsetter import Option
@@ -46,7 +47,7 @@ class Test(SimpleDirector):
 
     def publish(self):
         self.runtime_parameters = {
-            'y_true': getattr(recipe.ingredients, 'y_' + self.data_to_review),
+            'y_true': getattr(recipe.dataset, 'y_' + self.data_to_review),
             'y_pred': recipe.predictions}
         super().implement()
         return self

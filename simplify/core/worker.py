@@ -6,10 +6,12 @@
 :license: Apache-2.0
 """
 
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
 import multiprocessing as mp
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 import numpy as np
 import pandas as pd
@@ -29,7 +31,7 @@ class Worker(object):
     """Base class for applying Book instances to data.
 
     Args:
-        project ('Project'): a related Project instance.
+        idea ('Idea'): the shared 'Idea' instance with project settings.
 
     """
     idea: 'Idea'
@@ -38,7 +40,6 @@ class Worker(object):
         """Initializes class instance attributes."""
         self = self.idea.apply(instance = self)
         self.parallelizer = Parallelizer(idea = self.idea)
-        self.scienceizer = Scienceizer(idea = self.idea, worker = self)
         return self
 
     """ Private Methods """
@@ -46,14 +47,14 @@ class Worker(object):
     def _add_conditionals(self,
             book: 'Book',
             technique: 'Technique',
-            data: Union['Ingredients', 'Book']) -> 'Technique':
+            data: Union['Dataset', 'Book']) -> 'Technique':
         """Adds any conditional parameters to a 'Technique' instance.
 
         Args:
             book ('Book'): Book instance with algorithms to apply to 'data'.
             technique ('Technique'): instance with parameters which can take
                 new conditional parameters.
-            data (Union['Ingredients', 'Book']): a data source which might
+            data (Union['Dataset', 'Book']): a data source which might
                 contain information for condtional parameters.
 
         Returns:
@@ -71,13 +72,13 @@ class Worker(object):
 
     def _add_data_dependents(self,
             technique: 'Technique',
-            data: Union['Ingredients', 'Book']) -> 'Technique':
+            data: Union['Dataset', 'Book']) -> 'Technique':
         """Completes parameter dictionary by adding data dependent parameters.
 
         Args:
             technique ('Technique'): instance with information about data
                 dependent parameters to add.
-            data (Union['Ingredients', 'Book']): a data source which contains
+            data (Union['Dataset', 'Book']): a data source which contains
                 'data_dependent' variables.
 
         Returns:
@@ -123,12 +124,12 @@ class Worker(object):
     def _iterate_chapter(self,
             book: 'Book',
             chapter: 'Chapter',
-            data: Union['Ingredients', 'Book']) -> 'Chapter':
+            data: Union['Dataset', 'Book']) -> 'Chapter':
         """Iterates a single chapter and applies 'techniques' to 'data'.
 
         Args:
             chapter ('Chapter'): instance with 'techniques' to apply to 'data'.
-            data (Union['Ingredients', 'Book']): object for 'chapter'
+            data (Union['Dataset', 'Book']): object for 'chapter'
                 'techniques' to be applied.
 
         Return:
@@ -138,40 +139,39 @@ class Worker(object):
 
         """
         for step, techniques in chapter.techniques.items():
-            for technique in listify(techniques):
-                instance = book.techniques[step][technique]
-                instance = self._add_conditionals(
-                    book = book,
-                    technique = instance,
-                    data = data)
-                instance = self._add_data_dependents(
-                    technique = instance,
-                    data = data)
-                instance = self._add_parameters_to_algorithm(
-                    technique = instance)
-                data = self.scienceizer.apply(
-                    technique = technique,
-                    data = data)
-        setattr(chapter, data.name, data)
+            if techniques is not None:
+                for technique in listify(techniques, default_empty = True):
+                    technique = self._add_conditionals(
+                        book = book,
+                        technique = technique,
+                        data = data)
+                    technique = self._add_data_dependents(
+                        technique = technique,
+                        data = data)
+                    technique = self._add_parameters_to_algorithm(
+                        technique = technique)
+                    data = technique.apply(data = data)
+        if book.alters_data:
+            setattr(chapter, data.name, data)
         return chapter
 
     """ Core siMpLify Methods """
 
     def apply(self,
             book: 'Book',
-            data: Optional[Union['Ingredients', 'Book']] = None,
-            **kwargs) -> Union['Ingredients', 'Book']:
+            data: Optional[Union['Dataset', 'Book']] = None,
+            **kwargs) -> Union['Dataset', 'Book']:
         """Applies objects in 'book' to 'data'.
 
         Args:
             book ('Book'): Book instance with algorithms to apply to 'data'.
-            data (Optional[Union['Ingredients', 'Book']]): a data source for
+            data (Optional[Union['Dataset', 'Book']]): a data source for
                 the 'book' methods to be applied.
             kwargs: any additional parameters to pass to a related
                 Book's options' 'apply' method.
 
         Returns:
-            Union['Ingredients', 'Book']: data object with modifications
+            Union['Dataset', 'Book']: data object with modifications
                 possibly made.
 
         """
@@ -189,6 +189,103 @@ class Worker(object):
                     data = data))
             book.chapters = new_chapters
         return book
+
+
+
+# @dataclass
+# class DataProxies(MutableMapping):
+
+#     dataset: 'Dataset'
+#     test_suffixes: Dict[str, str] = field(default_factory = dict)
+#     train_suffixes: Dict[str, str] = field(default_factory = dict)
+
+#     def __post_init__(self) -> None:
+#         if not self.test_suffixes:
+#             self.test_suffixes = {
+#                 'unsplit': None,
+#                 'xy': '',
+#                 'train_test': '_test',
+#                 'train_val': '_test',
+#                 'full': '_train'}
+#         if not self.train_suffixes:
+#             self.train_suffixes = {
+#                 'unsplit': None,
+#                 'xy': '',
+#                 'train_test': '_train',
+#                 'train_val': '_train',
+#                 'full': '_train'}
+#         return self
+
+#     """ Required ABC Methods """
+
+#     def __getitem__(self, key: str) -> 'Data':
+#         """Returns 'Data' based upon current 'state'.
+
+#         Args:
+#             key (str): name of key in 'dataset'.
+
+#         Returns:
+#             'Data': an 'Data' instance stored in 'dataset'
+#                 based on 'state' in 'dataset'
+
+#         Raises:
+#             ValueError: if access to train or test data is sought before data
+#                 has been split.
+
+#         """
+#         try:
+#             contents = '_'.join([key.rsplit('_', 1), 'suffixes'])
+#             if getattr(self, dictionary)[self.dataset.state] is None:
+#                 raise ValueError(''.join(['Train and test data cannot be',
+#                     'accessed until data is split']))
+#             else:
+#                 new_key = ''.join(
+#                     [key[0], getattr(self, dictionary)[self.dataset.state]])
+#                 return self.dataset.dataset[new_key]
+#         except TypeError:
+#             return self.dataset.dataset[key]
+
+#     def __setitem__(self, key: str, value: 'Data') -> None:
+#         """Sets 'key' to 'Data' based upon current 'state'.
+
+#         Args:
+#             key (str): name of key to set in 'dataset'.
+#             value ('Data'): 'Data' instance to be added to
+#                 'dataset'.
+
+#         """
+#         try:
+#             contents = '_'.join([key.rsplit('_', 1), 'suffixes'])
+#             new_key = ''.join(
+#                 [key[0], getattr(self, dictionary)[self.dataset.state]])
+#             self.dataset.dataset[new_key] = value
+#         except ValueError:
+#             self.dataset.dataset[key] = value
+
+#     def __delitem__(self, key: str) -> None:
+#         """Deletes 'key' in the 'dataset' dictionary.
+
+#         Args:
+#             key (str): name of key in the 'dataset' dictionary.
+
+#         """
+#         try:
+#             contents = '_'.join([key.rsplit('_', 1), 'suffixes'])
+#             new_key = ''.join(
+#                 [key[0], getattr(self, dictionary)[self.dataset.state]])
+#             self.dataset.dataset[new_key] = value
+#         except ValueError:
+#             try:
+#                 del self.dataset.dataset[key]
+#             except KeyError:
+#                 pass
+
+#     def __iter__(self) -> NotImplementedError:
+#         raise NotImplementedError('DataProxies does not implement an iterable')
+
+#     def __len__(self) -> int:
+#         raise NotImplementedError('DataProxies does not implement length')
+
 
 
 @dataclass
@@ -209,15 +306,15 @@ class Parallelizer(object):
 
     def _apply_gpu(self,
             book: 'Book',
-            data: Union['Ingredients', 'Book'],
+            data: Union['Dataset', 'Book'],
             method: Callable) -> 'Book':
         """Applies objects in 'book' to 'data'
 
         Args:
             book ('Book'): siMpLify class instance to be
                 modified.
-            data (Optional[Union['Ingredients', 'Book']]): an
-                Ingredients instance containing external data or a published
+            data (Optional[Union['Dataset', 'Book']]): an
+                Dataset instance containing external data or a published
                 Book. Defaults to None.
             kwargs: any additional parameters to pass to a related
                 Book's 'apply' method.
@@ -231,14 +328,14 @@ class Parallelizer(object):
 
     def _apply_multi_core(self,
             book: 'Book',
-            data: Union['Ingredients', 'Book'],
+            data: Union['Dataset', 'Book'],
             method: Callable) -> 'Book':
         """Applies 'method' to 'data' using multiple CPU cores.
 
         Args:
             book ('Book'): siMpLify class instance with Chapter instances to
                 parallelize.
-            data (Union['Ingredients', 'Book']): an instance containing data to
+            data (Union['Dataset', 'Book']): an instance containing data to
                 be modified.
             method (Callable): method to parallelize.
 
@@ -255,14 +352,14 @@ class Parallelizer(object):
 
     def apply_chapters(self,
             book: 'Book',
-            data: Union['Ingredients', 'Book'],
+            data: Union['Dataset', 'Book'],
             method: Callable) -> 'Book':
         """Applies 'method' to 'data'.
 
         Args:
             book ('Book'): siMpLify class instance with Chapter instances to
                 parallelize.
-            data (Union['Ingredients', 'Book']): an instance containing data to
+            data (Union['Dataset', 'Book']): an instance containing data to
                 be modified.
             method (Callable): method to parallelize.
 
@@ -283,170 +380,23 @@ class Parallelizer(object):
         book.chapters = dict(zip(chapters_keys, results))
         return book
 
-    def apply_ingredient(self,
-            data: 'Ingredient',
-            method: Callable) -> 'Ingredient':
+    def apply_data(self,
+            data: 'Data',
+            method: Callable) -> 'Data':
         """Applies 'method' to 'data' across several cores.
 
         Args:
-            data ('Ingredient'): instance with a stored pandas DataFrame.
+            data ('Data'): instance with a stored pandas DataFrame.
             method (Callable): callable method or function to apply to 'data'.
 
         Returns:
-            'Ingredient': with 'method' applied.
+            'Data': with 'method' applied.
 
         """
-        dfs = np.array_split(ingredient.data, mp.cpu_count(), axis = 0)
+        dfs = np.array_split(data.data, mp.cpu_count(), axis = 0)
         pool = Pool()
-        ingredient.data = np.vstack(pool.map(method, dfs))
+        data.data = np.vstack(pool.map(method, dfs))
         pool.close()
         pool.join()
         pool.clear()
-        return ingredient
-
-
-@dataclass
-class Scienceizer(object):
-    """Applies techniques to data.
-
-    Args:
-        project ('Project'): a related 'Project' instance.
-        worker ('Worker'): a related 'Worker' instance.
-
-    """
-    idea: 'Idea'
-    worker: 'Worker'
-
-    """ Core siMpLify Methods """
-
-    def apply(self,
-            technique: 'Technique',
-            data: Union['Ingredients', 'Book']) -> Union['Ingredients', 'Book']:
-        try:
-            self.algorithm.fit(
-                getattr(data, ''.join(['x_', data.state])),
-                getattr(data, ''.join(['y_', data.state])))
-            setattr(
-                data, ''.join(['x_', data.state]),
-                self.algorithm.transform(getattr(
-                    data, ''.join(['x_', data.state]))))
-        except AttributeError:
-            try:
-                data = self.algorithm.apply(data = data)
-            except AttributeError:
-                pass
         return data
-
-    """ Scikit-Learn Compatibility Methods """
-
-    @DataValidator
-    def fit(self,
-            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
-            y: Optional[Union[pd.Series, np.ndarray]] = None,
-            data: Optional[object] = None) -> None:
-        """Generic fit method for partial compatibility to sklearn.
-
-        Args:
-            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
-                variables/features.
-            y (Optional[Union[pd.Series, np.ndarray]]): dependent
-                variable/label.
-            data (Optional[Ingredients]): instance of Ingredients containing
-                pandas data objects as attributes.
-
-        Raises:
-            AttributeError if no 'fit' method exists for local 'algorithm'.
-
-        """
-        if x is not None:
-            try:
-                if y is None:
-                    self.algorithm.process.fit(x)
-                else:
-                    self.algorithm.process.fit(x, y)
-            except AttributeError:
-                error = ' '.join([self.design.name,
-                                  'algorithm has no fit method'])
-                raise AttributeError(error)
-        elif data is not None:
-            self.algorithm.process.fit(
-                getattr(data, ''.join(['x_', data.state])),
-                getattr(data, ''.join(['y_', data.state])))
-        else:
-            error = ' '.join([self.task, 'algorithm has no fit method'])
-            raise AttributeError(error)
-        return self
-
-    @DataValidator
-    def fit_transform(self,
-            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
-            y: Optional[Union[pd.Series, np.ndarray]] = None,
-            data: Optional[object] = None) -> (
-                Union[pd.DataFrame, 'Ingredients']):
-        """Generic fit_transform method for partial compatibility to sklearn
-
-        Args:
-            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
-                variables/features.
-            y (Optional[Union[pd.Series, np.ndarray]]): dependent
-                variable/label.
-            data (Optional[Ingredients]): instance of Ingredients containing
-                pandas data objects as attributes.
-
-        Returns:
-            transformed x or data, depending upon what is passed to the
-                method.
-
-        Raises:
-            TypeError if DataFrame, ndarray, or ingredients is not passed to
-                the method.
-
-        """
-        self.algorithm.process.fit(x = x, y = y, data = ingredients)
-        if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
-            return self.algorithm.process.transform(x = x, y = y)
-        elif data is not None:
-            return self.algorithm.process.transform(data = ingredients)
-        else:
-            error = ' '.join([self.task,
-                              'algorithm has no fit_transform method'])
-            raise TypeError(error)
-
-    @DataValidator
-    def transform(self,
-            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
-            y: Optional[Union[pd.Series, np.ndarray]] = None,
-            data: Optional[object] = None) -> (
-                Union[pd.DataFrame, 'Ingredients']):
-        """Generic transform method for partial compatibility to sklearn.
-
-        Args:
-            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
-                variables/features.
-            y (Optional[Union[pd.Series, np.ndarray]]): dependent
-                variable/label.
-            data (Optional[Ingredients]): instance of Ingredients containing
-                pandas data objects as attributes.
-
-        Returns:
-            transformed x or data, depending upon what is passed to the
-                method.
-
-        Raises:
-            AttributeError if no 'transform' method exists for local
-                'process'.
-
-        """
-        if hasattr(self.algorithm.process, 'transform'):
-            if isinstance(x, pd.DataFrame) or isinstance(x, np.ndarray):
-                if y is None:
-                    return self.algorithm.process.transform(x)
-                else:
-                    return self.algorithm.process.transform(x, y)
-            elif data is not None:
-                return self.algorithm.process.transform(
-                    X = getattr(data, 'x_' + data.state),
-                    Y = getattr(data, 'y_' + data.state))
-        else:
-            error = ' '.join([self.task, 'algorithm has no transform method'])
-            raise AttributeError(error)

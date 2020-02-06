@@ -39,7 +39,7 @@ class Manual(SimpleBook):
             path or file name (in the current working directory) where a
             supoorted settings file for an Idea instance is located.
         inventory(inventory): an instance of inventory.
-        ingredients(Ingredients or str): an instance of Ingredients or a string
+        dataset(Dataset or str): an instance of Dataset or a string
             with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced.
         steps(dict(str: WranglerTechnique)): steps to be completed in steps. This
@@ -65,7 +65,7 @@ class Manual(SimpleBook):
     """
     idea: object = None
     inventory: object = None
-    ingredients: object = None
+    dataset: object = None
     steps: object = None
     plans: object = None
     name: str = 'analyst'
@@ -115,33 +115,33 @@ class Manual(SimpleBook):
             self.drafts.append(step_instance)
         return self
 
-    def _implement_file(self, ingredients):
+    def _implement_file(self, dataset):
         with open(
                 self.inventory.path_in, mode = 'r', errors = 'ignore',
                 encoding = self.tasks.idea['files']['file_encoding']) as a_file:
-            ingredients.source = a_file.implement()
+            dataset.source = a_file.implement()
             for step in self.steps:
-                data = step.implement(data = ingredients)
-            self.inventory.save(variable = ingredients.df)
-        return ingredients
+                data = step.implement(data = dataset)
+            self.inventory.save(variable = dataset.df)
+        return dataset
 
-    def _implement_glob(self, ingredients):
+    def _implement_glob(self, dataset):
         self.inventory.initialize_writer(
                 file_path = self.inventory.path_out)
-        ingredients.make_series()
+        dataset.make_series()
         for file_num, a_path in enumerate(self.inventory.path_in):
             if (file_num + 1) % 100 == 0 and self.verbose:
                 print(file_num + 1, 'files parsed')
             with open(
                     a_path, mode = 'r', errors = 'ignore',
                     encoding = self.tasks.idea['files']['file_encoding']) as a_file:
-                ingredients.source = a_file.implement()
-                print(ingredients.df)
-                ingredients.df[self.index_column] = file_num + 1
+                dataset.source = a_file.implement()
+                print(dataset.df)
+                dataset.df[self.index_column] = file_num + 1
                 for step in self.steps:
-                    data = step.implement(data = ingredients)
-                self.inventory.save(variable = ingredients.df)
-        return ingredients
+                    data = step.implement(data = dataset)
+                self.inventory.save(variable = dataset.df)
+        return dataset
 
     def _set_columns(self, organizer):
         if not hasattr(self, 'columns'):
@@ -173,17 +173,17 @@ class Manual(SimpleBook):
 
     def publish(self, data = None):
         """Completes an iteration of an Harvest."""
-        if not ingredients:
-            data = self.ingredients
+        if not dataset:
+            data = self.dataset
         for draft in self.drafts:
             self.step = draft.name
-            # Adds initial columns dictionary to ingredients instance.
+            # Adds initial columns dictionary to dataset instance.
             if (self.step in ['reap']
                     and 'organize' in self.reap_steps):
                 self._set_columns(organizer = draft)
-                ingredients.columns = self.columns
+                dataset.columns = self.columns
             self.conform(step = self.step)
-            self.data = draft.implement(data = self.ingredients)
-            self.inventory.save(variable = self.ingredients,
-                                file_name = self.step + '_ingredients')
+            self.data = draft.implement(data = self.dataset)
+            self.inventory.save(variable = self.dataset,
+                                file_name = self.step + '_dataset')
         return self

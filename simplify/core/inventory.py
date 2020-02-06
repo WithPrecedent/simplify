@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from dataclasses import field
 import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 import pandas as pd
 
@@ -54,21 +55,23 @@ class Inventory(MutableMapping):
             states or a 'SimpleState' instance. Defaults to None.
 
     """
-    idea: 'Idea'
-    root_folder: Optional[Union[str, List[str]]] = None
-    data_folder: Optional[str] = 'data'
-    data_subfolders: Optional[List[str]] = None
-    results_folder: Optional[str] = 'results'
+    idea: ClassVar['Idea'] = None
+    root_folder: Optional[Union[str, List[str]]] = field(
+        default_factory = ['..', '..'])
+    data_folder: Optional[str] = field(default_factory = lambda: 'data')
+    data_subfolders: Optional[List[str]] = field(default_factory = list)
+    results_folder: Optional[str] = field(default_factory = lambda: 'results')
     states: Optional[Union[List[str], 'SimpleState']] = None
 
     def __post_init__(self) -> None:
         """Creates initial attributes."""
         # Uses defaults for 'data_subfolders, if not passed.
-        self.data_subfolders = self.data_subfolders or [
-            'raw',
-            'interim',
-            'processed',
-            'external']
+        if not self.data_subfolders:
+            self.data_subfolders = [
+                'raw',
+                'interim',
+                'processed',
+                'external']
         # Injects attributes from 'idea'.
         self.idea_sections = ['files']
         self = self.idea.apply(instance = self)
@@ -78,6 +81,39 @@ class Inventory(MutableMapping):
         # Automatically calls 'draft' method to complete initialization.
         self.draft()
         return self
+
+    """ Factory Method """
+
+    @classmethod
+    def create(cls,
+            inventory: Optional[Union[str, Path, List[str]]] = None,
+            idea: Optional['Idea'] = None,
+            **kwargs) -> 'Inventory':
+        """Creates an Inventory instance from passed arguments.
+
+        Args:
+            inventory (Optional[Union[str, Path, List[str]]]): Inventory
+                instance or root folder for one.
+            idea (Optional['Idea']): an Idea instance.
+
+        Returns:
+            Inventory: instance, properly configured.
+
+        Raises:
+            TypeError if inventory is neither an Inventory instance, string
+                folder path, nor list to create a folder path.
+
+        """
+        if idea is not None:
+            cls.idea = idea
+        if isinstance(inventory, Inventory):
+            return inventory
+        elif isinstance(inventory, (str, Path, List)):
+            return cls(root_folder = inventory, **kwargs)
+        elif inventory is None:
+            return cls(**kwargs)
+        else:
+            raise TypeError('inventory must be Inventory type or folder path')
 
     """ Required ABC Methods """
 
@@ -241,49 +277,49 @@ class Inventory(MutableMapping):
                 import_method = '_pickle_object',
                 export_method = '_unpickle_object')})
         self.import_format_states = {
-            'sow': 'source_format',
-            'harvest': 'source_format',
+            'acquire': 'source_format',
+            'parse': 'source_format',
             'clean': 'interim_format',
-            'bale': 'interim_format',
+            'merge': 'interim_format',
             'deliver': 'interim_format',
-            'analyst': 'final_format',
-            'actuary': 'final_format',
-            'critic': 'final_format',
-            'artist': 'final_format'}
+            'analyze': 'final_format',
+            'summarize': 'final_format',
+            'criticize': 'final_format',
+            'visualize': 'final_format'}
         self.export_format_states = {
-            'sow': 'source_format',
-            'harvest': 'interim_format',
+            'acquire': 'source_format',
+            'parse': 'interim_format',
             'clean': 'interim_format',
-            'bale': 'interim_format',
+            'merge': 'interim_format',
             'deliver': 'final_format',
-            'analyst': 'final_format',
-            'actuary': 'final_format',
-            'critic': 'final_format',
-            'artist': 'final_format'}
+            'analyze': 'final_format',
+            'summarize': 'final_format',
+            'criticize': 'final_format',
+            'visualize': 'final_format'}
         return self
 
     def _draft_file_names(self) -> None:
         """Drafts default import and export file names for data."""
         self.import_file_names = {
-            'sow': None,
-            'harvest': None,
+            'acquire': None,
+            'parse': None,
             'clean': 'harvested_data',
-            'bale': 'cleaned_data',
+            'merge': 'cleaned_data',
             'deliver': 'baled_data',
-            'analyst': 'final_data',
-            'actuary': 'final_data',
-            'critic': 'final_data',
-            'artist': 'predicted_data'}
+            'analyze': 'final_data',
+            'summarize': 'final_data',
+            'criticize': 'final_data',
+            'visualize': 'predicted_data'}
         self.export_file_names = {
-            'sow': 'source_format',
-            'harvest': 'interim_format',
+            'acquire': 'source_format',
+            'parse': 'interim_format',
             'clean': 'interim_format',
-            'bale': 'interim_format',
+            'merge': 'interim_format',
             'deliver': 'final_format',
-            'analyst': 'final_format',
-            'actuary': 'final_data',
-            'critic': 'predicted_data',
-            'artist': 'predicted_data'}
+            'analyze': 'final_format',
+            'summarize': 'final_data',
+            'criticize': 'predicted_data',
+            'visualize': 'predicted_data'}
         return self
 
     def _draft_folders(self) -> None:
@@ -295,25 +331,25 @@ class Inventory(MutableMapping):
 
         """
         self.import_folders = {
-            'sow': 'raw',
+            'acquire': 'raw',
             'reap': 'raw',
             'clean': 'interim',
-            'bale': 'interim',
+            'merge': 'interim',
             'deliver': 'interim',
-            'analyst': 'processed',
-            'actuary': 'processed',
-            'critic': 'processed',
-            'artist': 'processed'}
+            'analyze': 'processed',
+            'summarize': 'processed',
+            'criticize': 'processed',
+            'visualize': 'processed'}
         self.export_folders = {
-            'sow': 'raw',
+            'acquire': 'raw',
             'reap': 'interim',
             'clean': 'interim',
-            'bale': 'interim',
+            'merge': 'interim',
             'deliver': 'processed',
-            'analyst': 'processed',
-            'actuary': 'processed',
-            'critic': 'processed',
-            'artist': 'processed'}
+            'analyze': 'processed',
+            'summarize': 'processed',
+            'criticize': 'processed',
+            'visualize': 'processed'}
         return self
 
     def _make_unique_path(self, folder: Path, name: str) -> Path:
@@ -698,26 +734,26 @@ class Importer(SimpleDistributor):
 
     # def iterate_batch(self,
     #         chapters: List[str],
-    #         ingredients: 'Ingredients' = None,
-    #         return_ingredients: Optional[bool] = True):
+    #         dataset: 'Dataset' = None,
+    #         return_dataset: Optional[bool] = True):
     #     """Iterates through a list of files contained in self.batch and
     #     applies the chapters created by a book method (or subclass).
     #     Args:
     #         chapters(list): list of chapter types (Recipe, Harvest, etc.)
-    #         ingredients(Ingredients): an instance of Ingredients or subclass.
-    #         return_ingredients(bool): whether ingredients should be returned by
+    #         dataset(Dataset): an instance of Dataset or subclass.
+    #         return_dataset(bool): whether dataset should be returned by
     #         this method.
     #     Returns:
-    #         If 'return_ingredients' is True: an in instance of Ingredients.
-    #         If 'return_ingredients' is False, no value is returned.
+    #         If 'return_dataset' is True: an in instance of Dataset.
+    #         If 'return_dataset' is False, no value is returned.
     #     """
-    #     if ingredients:
+    #     if dataset:
     #         for file_path in self.batch:
-    #             ingredients.source = self.load(file_path = file_path)
+    #             dataset.source = self.load(file_path = file_path)
     #             for chapter in chapters:
-    #                 data = chapter.produce(data = ingredients)
-    #         if return_ingredients:
-    #             return ingredients
+    #                 data = chapter.produce(data = dataset)
+    #         if return_dataset:
+    #             return dataset
     #         else:
     #             return self
     #     else:
@@ -1051,32 +1087,3 @@ class FileFormat(Outline):
     required: Optional[Dict[str, Any]] = None
     test_size_parameter: Optional[str] = None
 
-
-""" Creation Function """
-
-def create_inventory(
-        inventory: Union['Inventory', str],
-        idea: 'Idea') -> 'Inventory':
-    """Creates an Inventory instance from passed arguments.
-
-    Args:
-        inventory: Union['Inventory', str]: Inventory instance or root folder
-            for one.
-        idea ('Idea'): an Idea instance.
-
-    Returns:
-        Inventory: instance, properly configured.
-
-    Raises:
-        TypeError if inventory is neither an Inventory instance nor string
-            folder path.
-
-    """
-    if isinstance(inventory, Inventory):
-        return inventory
-    elif isinstance(inventory, (str, Path)):
-        return Inventory(idea = idea, root_folder = inventory)
-    elif inventory is None:
-        return Inventory(idea = idea)
-    else:
-        raise TypeError('inventory must be Inventory type or folder path')

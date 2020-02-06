@@ -12,7 +12,8 @@ from inspect import signature
 from pathlib import Path
 import time
 from types import FunctionType
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 from more_itertools import unique_everseen
 import numpy as np

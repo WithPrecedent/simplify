@@ -10,7 +10,8 @@ from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
 from importlib import import_module
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
@@ -21,31 +22,28 @@ from simplify.core.utilities import subsetify
 class Repository(MutableMapping):
     """A flexible dictionary that includes wildcard keys.
 
-    The base class includes 'default', 'all', and 'none' wilcard properties
-    which can be accessed through dict methods by those names. Users can also
-    set the 'default' and 'none' properties to change what is returned when the
-    corresponding keys are sought.
+    The base class includes 'default', 'all', and 'none' wilcard properties.
 
     Args:
         contents (Optional[str, Any]): stored dictionary. Defaults to an empty
             dictionary.
-        defaults (Optional[List[str]]): a list of keys in 'contents' which
+        default (Optional[List[str]]): a list of keys in 'contents' which
             will be used to return items when 'default' is sought. If not
             passed, 'default' will be set to all keys.
         iterable (Optional[str]): the name of the attribute that should be
             iterated when a class instance is iterated. Defaults to 'contents'.
-        project ('Project'): a related 'Project' instance.
+        idea ('Idea'): the shared 'Idea' instance with project settings.
 
     """
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)
-    defaults: Optional[List[str]] = field(default_factory = list)
+    default: Optional[List[str]] = field(default_factory = list)
     iterable: Optional[str] = field(default_factory = lambda: 'contents')
     idea: 'Idea' = None
 
     def __post_init__(self) -> None:
         """Initializes attributes and settings."""
-        # Sets 'defaults' to all keys of 'contents', if not passed.
-        self.defaults = self.defaults or list(self.contents.keys())
+        # Sets 'default' to all keys of 'contents', if not passed.
+        self.default = self.default or list(self.contents.keys())
         # Allows subclasses to customize 'contents' with '_create_contents'.
         self._create_contents()
         # Converts 'contents' to a 'Repository' instance.
@@ -75,7 +73,7 @@ class Repository(MutableMapping):
             if key in ['all']:
                 return list(self.contents.values())
             elif key in ['default', 'defaults']:
-                return list(subsetify(self.contents, self.defaults).values())
+                return list(subsetify(self.contents, self.default).values())
             elif key in ['none', 'None', 'NONE']:
                 return []
             else:
@@ -90,7 +88,10 @@ class Repository(MutableMapping):
             value (Any): value to be paired with 'key' in 'contents'.
 
         """
-        self.contents[key] = value
+        if key in ['default', 'defaults']:
+            self.default = value
+        else:
+            self.contents[key] = value
         return self
 
     def __delitem__(self, key: str) -> None:
@@ -256,18 +257,18 @@ class Plan(Repository):
         contents (Optional[Union['Repository', Dict[str, Any]]]): a 'Repository'
             instance or a dictionary that can be used to create one. Defaults to
             an empty Repository.
-        defaults (Optional[List[str]]): a list of keys in 'contents' which
+        default (Optional[List[str]]): a list of keys in 'contents' which
             will be used to return items when 'default' is sought. If not
             passed, 'default' will be set to all keys.
         iterable (Optional[str]): the name of the attribute that should be
             iterated when a class instance is iterated. Defaults to 'contents'.
-        project ('Project'): a related 'Project' instance.
-        
+        idea ('Idea'): the shared 'Idea' instance with project settings.
+
     """
     steps: Optional[List[str]] = field(default_factory = list)
     contents: Optional[Union['Repository', Dict[str, Any]]] = field(
         default_factory = Repository)
-    defaults: Optional[List[str]] = field(default_factory = list)
+    default: Optional[List[str]] = field(default_factory = list)
     iterable: Optional[str] = field(default_factory = lambda: 'steps')
     idea: 'Idea' = None
 
@@ -277,8 +278,8 @@ class Plan(Repository):
         self._create_contents()
         # Sets 'steps' to all keys in 'contents' if not passed.
         self.steps = self.steps or list(self.contents.keys())
-        # Sets 'defaults' to 'steps' if not passed.
-        self.defaults = self.defaults or self.steps
+        # Sets 'default' to 'steps' if not passed.
+        self.default = self.default or self.steps
         # Converts 'contents' to a 'Repository' instance.
         self._nestify()
         return self
@@ -302,7 +303,7 @@ class Plan(Repository):
         if key in ['all']:
             return list(subsetify(self.repository, self.steps).values())
         elif key in ['default', 'defaults']:
-            temp = subsetify(self.contents, self.defaults)
+            temp = subsetify(self.contents, self.default)
             return list(subsetify(temp, self.steps).values())
         elif key in ['none', 'None', 'NONE']:
             return []
@@ -319,7 +320,7 @@ class Plan(Repository):
 
         """
         if key in ['default', 'defaults']:
-            self.defaults = value
+            self.default = value
         elif not key in self.contents:
             self.steps.append(key)
             self.contents[key] = value

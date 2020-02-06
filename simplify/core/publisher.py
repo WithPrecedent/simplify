@@ -9,7 +9,8 @@
 from dataclasses import dataclass
 from dataclasses import field
 from itertools import product
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 from simplify.core.book import Book
 from simplify.core.book import Chapter
@@ -51,17 +52,12 @@ class Publisher(object):
     def _draft_techniques(self, task: 'Task') -> 'Task':
         """Drafts 'techniques' from 'idea'."""
         task.techniques = {}
-        try:
-            for key, value in self.idea[task.name].items():
-                if key.endswith('_techniques'):
-                    step = key.replace('_techniques', '')
-                    # if step in task.steps:
-                    if value in [None, 'none', 'None', 'NONE']:
-                        task.techniques[step] = ['none']
-                    else:
-                        task.techniques[step] = listify(value)
-        except (KeyError, AttributeError):
-            pass
+        for step in task.steps:
+            key = '_'.join([step, 'techniques'])
+            try:
+                task.techniques[step] = listify(self.idea[task.name][key])
+            except KeyError:
+                task.techniques[step] = ['none']
         return task
 
     def _draft_options(self, task: 'Task') -> 'Task':
@@ -125,8 +121,8 @@ class Author(object):
     def __post_init__(self) -> None:
         # Creates 'expert' which is used to create 'Technique' instances.
         self.expert = Expert(idea = self.idea)
-        return self       
-        
+        return self
+
     """ Private Methods """
 
     def _get_selected_techniques(self, task: 'Task') -> List[List[str]]:
@@ -148,7 +144,7 @@ class Author(object):
         for step, technique in techniques.items():
             new_techniques[step] = self.options[step][technique]
         return new_techniques
-    
+
     """ Core siMpLify Methods """
 
     def draft(self, task: 'Task') -> 'Task':
@@ -214,6 +210,8 @@ class Expert(object):
         technique.parameters = self._publish_parameters(
             outline = outline,
             technique = technique)
+        technique.fit_method = outline.fit_method
+        technique.transform_method = outline.transform_method
         return technique
 
     def _publish_parameters(self,
@@ -395,7 +393,6 @@ class Expert(object):
             return None
         else:
             # Gets appropriate TechniqueOutline and creates an instance.
-
             return self._publish_outline(
                         step = step,
                         technique = technique,

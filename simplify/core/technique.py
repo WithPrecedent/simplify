@@ -10,9 +10,15 @@
 from collections.abc import Container
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
+
+import numpy as np
+import pandas as pd
+from sklearn.utils.validation import check_X_y
 
 from simplify.core.definitions import Outline
+from simplify.core.validators import DataValidator
 
 
 @dataclass
@@ -47,8 +53,9 @@ class TechniqueOutline(Outline):
     runtime: Optional[Dict[str, str]] = field(default_factory = dict)
     selected: Optional[Union[bool, List[str]]] = False
     data_dependent: Optional[Dict[str, str]] = field(default_factory = dict)
-    fit_method: Optional[str] = None
-    train_method: Optional[str] = None
+    fit_method: Optional[str] = field(default_factory = lambda: 'fit')
+    transform_method: Optional[str] = field(
+        default_factory = lambda: 'transform')
 
 
 @dataclass
@@ -56,8 +63,6 @@ class Technique(Container):
     """Core iterable for sequences of methods to apply to passed data.
 
     Args:
-        book (Optional['Book']): related Book or subclass instance. Defaults to
-            None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared Idea instance, 'name' should match the appropriate
@@ -70,9 +75,6 @@ class Technique(Container):
         technique (Optional[str]): name of particular technique to be used. It
             should correspond to a key in the related 'book' instance. Defaults
             to None.
-        alters_data (Optional[bool]): whether the Book instance's 'apply'
-            method returns data when iterated. If False, nothing is returned.
-            If true, 'data' is returned. Defaults to True.
 
     """
     name: Optional[str] = None
@@ -82,9 +84,11 @@ class Technique(Container):
     parameter_space: Optional[Dict[str, List[Union[int, float]]]] = field(
         default_factory = dict)
     data_dependents: Optional[Dict[str, str]] = field(default_factory = dict)
-    alters_data: Optional[bool] = True
+    fit_method: Optional[str] = field(default_factory = lambda: 'fit')
+    transform_method: Optional[str] = field(
+        default_factory = lambda: 'transform')
 
-    """ Dunder Methods """
+    """ Required ABC Methods """
 
     def __contains__(self, key: str) -> bool:
         """Returns whether 'attribute' is the 'technique'.
@@ -97,3 +101,97 @@ class Technique(Container):
 
         """
         return item == self.technique
+
+    """ Core siMpLify Methods """
+
+    def apply(self, data: 'Dataset') -> 'Dataset':
+        if self.fit_method:
+            self.fit(x = data.x, y = data.y)
+        if self.transform_method:
+            data.x = self.transform(x = data.x, y = data.y)
+        if not self.fit_method and not self.transform_method:
+            data = self.algorithm.apply(data = data)
+        return data
+
+    """ Scikit-Learn Compatibility Methods """
+
+    @DataValidator
+    def fit(self,
+            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+            y: Optional[Union[pd.Series, np.ndarray]] = None) -> None:
+        """Generic fit method for partial compatibility to sklearn.
+
+        Args:
+            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
+                variables/features.
+            y (Optional[Union[pd.Series, np.ndarray]]): dependent
+                variable/label.
+
+        Raises:
+            AttributeError if no 'fit' method exists for 'technique'.
+
+        """
+        x, y = check_X_y(X = x, y = y, accept_sparse = True)
+        try:
+            if y is None:
+                getattr(self.algorithm, self.fit_method)(x)
+            else:
+                getattr(self.algorithm, self.fit_method)(x, y)
+        except AttributeError:
+            raise AttributeError(' '.join(
+                [self.technique, 'has no fit method']))
+        return self
+
+    @DataValidator
+    def fit_transform(self,
+            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+            y: Optional[Union[pd.Series, np.ndarray]] = None) -> pd.DataFrame:
+        """Generic fit_transform method for partial compatibility to sklearn
+
+        Args:
+            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
+                variables/features.
+            y (Optional[Union[pd.Series, np.ndarray]]): dependent
+                variable/label.
+
+        Returns:
+            transformed x or data, depending upon what is passed to the
+                method.
+
+        Raises:
+            TypeError if DataFrame, ndarray, or dataset is not passed to
+                the method.
+
+        """
+        self.fit(x = x, y = y, data = dataset)
+        return self.transform(x = x, y = y)
+
+    @DataValidator
+    def transform(self,
+            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+            y: Optional[Union[pd.Series, np.ndarray]] = None) -> pd.DataFrame:
+        """Generic transform method for partial compatibility to sklearn.
+
+        Args:
+            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
+                variables/features.
+            y (Optional[Union[pd.Series, np.ndarray]]): dependent
+                variable/label.
+
+        Returns:
+            transformed x or data, depending upon what is passed to the
+                method.
+
+        Raises:
+            AttributeError if no 'transform' method exists for local
+                'process'.
+
+        """
+        if self.transform_method:
+            if y is None:
+                return getattr(self.algorithm, self.transform_method)(x)
+            else:
+                return getattr(self.algorithm, self.transform_method)(x, y)
+        else:
+            raise AttributeError(' '.join(
+                [self.technique, 'has no transform method']))

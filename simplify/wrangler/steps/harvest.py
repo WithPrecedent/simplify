@@ -75,15 +75,15 @@ class Harvest(SimpleIterable):
         self.columns.extend(new_columns)
         return self
 
-    def _implement_organize(self, ingredients, algorithm):
-        ingredients.df, ingredients.source = algorithm.implement(
-                df = ingredients.df, source = ingredients.source)
-        return ingredients
+    def _implement_organize(self, dataset, algorithm):
+        dataset.df, dataset.source = algorithm.implement(
+                df = dataset.df, source = dataset.source)
+        return dataset
 
-    def _implement_parse(self, ingredients, algorithm):
-        ingredients.df = algorithm.implement(df = ingredients.df,
-                                         source = ingredients.source)
-        return ingredients
+    def _implement_parse(self, dataset, algorithm):
+        dataset.df = algorithm.implement(df = dataset.df,
+                                         source = dataset.source)
+        return dataset
 
     def publish(self):
         for key in self.parameters:

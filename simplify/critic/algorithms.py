@@ -8,16 +8,17 @@
 
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 
-def compute_metrics(data: 'Ingredients') -> 'Ingredients':
+def compute_metrics(data: 'Dataset') -> 'Dataset':
     return data
 
-def pandas_describe(data: 'Ingredients') -> 'Ingredients':
+def pandas_describe(data: 'Dataset') -> 'Dataset':
     return data
 
-def simplify_report(data: 'Ingredients') -> 'Ingredients':
+def simplify_report(data: 'Dataset') -> 'Dataset':
     return data
 
 # eli5_explanation = Technique(
@@ -91,12 +92,12 @@ def simplify_report(data: 'Ingredients') -> 'Ingredients':
 # def _get_brier_score_loss_parameters(self, parameters, recipe = None):
 #     if self.step in 'brier_score_loss':
 #         parameters = {
-#             'y_true': getattr(recipe.ingredients,
+#             'y_true': getattr(recipe.dataset,
 #                                 'y_' + self.data_to_review),
 #             'y_prob': recipe.probabilities[:, 1]}
 #     elif self.step in ['roc_auc']:
 #             parameters = {
-#                 'y_true': getattr(recipe.ingredients,
+#                 'y_true': getattr(recipe.dataset,
 #                                 'y_' + self.data_to_review),
 #                 'y_score': recipe.probabilities[:, 1]}
 #     return parameters
@@ -414,7 +415,7 @@ class Eli5Explain(object):
         from eli5 import show_weights
         self.permutation_weights = show_weights(
                 self.permutation_importances,
-                feature_names = recipe.ingredients.columns.keys())
+                feature_names = recipe.dataset.columns.keys())
         return self
 
 
@@ -447,7 +448,7 @@ class ShapExplain(object):
             self.method = self.tasks['kernel']
         self.evaluator = self.method(
             model = recipe.model.algorithm,
-            data = getattr(recipe.ingredients, 'x_' + self.data_to_review))
+            data = getattr(recipe.dataset, 'x_' + self.data_to_review))
         return self
 
     """ Core siMpLify Methods """
@@ -475,14 +476,14 @@ class ShapExplain(object):
         if self.step != 'none':
             self._set_method()
             setattr(recipe, self.name + '_values', self.evaluator.shap_values(
-                    getattr(recipe.ingredients, 'x_' + self.data_to_review)))
+                    getattr(recipe.dataset, 'x_' + self.data_to_review)))
             if not hasattr(recipe, self.name):
                 setattr(recipe, self.name, [])
             getattr(recipe, self.name).append(self.name)
             if self.method == 'tree':
                 setattr(recipe, self.name + '_interactions',
                         self.evaluator.shap_interaction_values(
-                                getattr(recipe.ingredients,
+                                getattr(recipe.dataset,
                                         'x_' + self.data_to_review)))
             getattr(recipe, self.name).append(
                     getattr(self, self.name + '_interactions'))
@@ -578,12 +579,12 @@ class SkaterExplain(object):
 #     def _build_conditional_parameters(self, parameters, recipe = None):
 #         if self.step in 'brier_score_loss':
 #             parameters = {
-#                 'y_true': getattr(recipe.ingredients,
+#                 'y_true': getattr(recipe.dataset,
 #                                   'y_' + self.data_to_review),
 #                 'y_prob': recipe.probabilities[:, 1]}
 #         elif self.step in ['roc_auc']:
 #              parameters = {
-#                  'y_true': getattr(recipe.ingredients,
+#                  'y_true': getattr(recipe.dataset,
 #                                    'y_' + self.data_to_review),
 #                  'y_score': recipe.probabilities[:, 1]}
 #         return parameters
@@ -617,7 +618,7 @@ class SkaterExplain(object):
 
 #     def publish(self, recipe):
 #         self.runtime_parameters = {
-#             'y_true': getattr(recipe.ingredients, 'y_' + self.data_to_review),
+#             'y_true': getattr(recipe.dataset, 'y_' + self.data_to_review),
 #             'y_pred': recipe.predictions}
 #         super().implement()
 #         return self
@@ -636,7 +637,7 @@ class SkaterExplain(object):
     #     """
     #     if hasattr(recipe.model.algorithm, 'predict_proba'):
     #         return recipe.model.algorithm.predict_proba(
-    #             getattr(recipe.ingredients, 'x_' + self.data_to_review))[1]
+    #             getattr(recipe.dataset, 'x_' + self.data_to_review))[1]
     #     else:
     #         if self.verbose:
     #             print('predict_proba method does not exist for',
@@ -655,7 +656,7 @@ class SkaterExplain(object):
     #     """
     #     if hasattr(recipe.model.algorithm, 'predict_log_proba'):
     #         return recipe.model.algorithm.predict_log_proba(
-    #             getattr(recipe.ingredients, 'x_' + self.data_to_review))[1]
+    #             getattr(recipe.dataset, 'x_' + self.data_to_review))[1]
     #     else:
     #         if self.verbose:
     #             print('predict_log_proba method does not exist for',
@@ -666,13 +667,13 @@ class SkaterExplain(object):
     #     scorer = listify(self.metrics_steps)[0]
     #     base_score, score_decreases = self.tasks[self.step](
     #             score_func = scorer,
-    #             x = getattr(recipe.ingredients, 'x_' + self.data_to_review),
-    #             y = getattr(recipe.ingredients, 'y_' + self.data_to_review))
+    #             x = getattr(recipe.dataset, 'x_' + self.data_to_review),
+    #             y = getattr(recipe.dataset, 'y_' + self.data_to_review))
     #     return np.mean(score_decreases, axis = 'columns')
 
     # def _get_gini_importances(self, recipe):
     #     features = list(getattr(
-    #             recipe.ingredients, 'x_' + self.data_to_review).columns)
+    #             recipe.dataset, 'x_' + self.data_to_review).columns)
     #     if hasattr(recipe.model.algorithm, 'feature_importances_'):
     #         importances = pd.Series(
     #             data = recipe.model.algorithm.feature_importances_,
@@ -693,7 +694,7 @@ class SkaterExplain(object):
     #     from eli5 import show_weights
     #     self.permutation_weights = show_weights(
     #             self.permutation_importances,
-    #             feature_names = recipe.ingredients.columns.keys())
+    #             feature_names = recipe.dataset.columns.keys())
     #     return self
 
     #     def draft(self) -> None:
@@ -705,7 +706,7 @@ class SkaterExplain(object):
 
     # def publish(self, recipe):
     #     self.runtime_parameters = {
-    #         'y_true': getattr(recipe.ingredients, 'y_' + self.data_to_review),
+    #         'y_true': getattr(recipe.dataset, 'y_' + self.data_to_review),
     #         'y_pred': recipe.predictions}
     #     super().implement()
     #     return self

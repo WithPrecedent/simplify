@@ -1,5 +1,5 @@
 """
-.. module:: siMpLify actuary steps
+.. module:: siMpLify explorer steps
 :synopsis: data exploration workflow
 :author: Corey Rayburn Yung
 :copyright: 2019

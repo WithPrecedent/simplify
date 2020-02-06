@@ -62,6 +62,6 @@ class Deliver(SimpleIterable):
                                   'streamliners': ['method']}
         return self
 
-    def publish(self, ingredients):
-        data = self.algorithm.implement(ingredients)
-        return ingredients
+    def publish(self, dataset):
+        data = self.algorithm.implement(dataset)
+        return dataset

@@ -57,6 +57,6 @@ class Reshape(WranglerTechnique):
         return df
 
 
-    def publish(self, ingredients):
-        ingredients.df = getattr(self, '_' + self.shape_type)(ingredients.df)
-        return ingredients
+    def publish(self, dataset):
+        dataset.df = getattr(self, '_' + self.shape_type)(dataset.df)
+        return dataset

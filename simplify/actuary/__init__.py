@@ -1,5 +1,5 @@
 """
-.. module:: siMpLify actuary
+.. module:: siMpLify explorer
 :synopsis: data exploration made simple
 :author: Corey Rayburn Yung
 :copyright: 2019

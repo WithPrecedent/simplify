@@ -32,5 +32,5 @@ def test_repository():
     return
 
 
-if __class__.__name__ == '__main__':
+if __name__ == '__main__':
     test_repository()

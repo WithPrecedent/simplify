@@ -8,16 +8,17 @@
 
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 import numpy as np
 import pandas as pd
 
 
 def auto_categorize(
-        ingredient: 'Ingredient',
+        data: 'Data',
         columns: Optional[Union[List[str], str]] = None,
-        threshold: Optional[int] = 10) -> 'Ingredient':
+        threshold: Optional[int] = 10) -> 'Data':
     """Converts appropriate columns to 'categorical' type.
 
     The function automatically assesses each column to determine if it has less
@@ -25,38 +26,38 @@ def auto_categorize(
     converted to 'categorical' type.
 
     Args:
-        ingredient ('Ingredient'): instance storing a pandas DataFrame.
+        data ('Data'): instance storing a pandas DataFrame.
         columns (Optional[Union[List[str], str]]): column names to be checked.
             Defaults to None. If not passed, all columns are checked.
         threshold (Optional[int]): number of unique values under which the
             column will be converted to 'categorical'. Defaults to 10.
 
     Raises:
-        KeyError: if a column in 'columns' is not in 'ingredient'.
+        KeyError: if a column in 'columns' is not in 'data'.
 
     """
     if not columns:
-        columns = list(ingredient.datatypes.keys())
+        columns = list(data.datatypes.keys())
     for column in columns:
         try:
-            if not column in ingredient.booleans:
-                if ingredient[column].nunique() < threshold:
-                    ingredient[column] = ingredient[column].astype('category')
-                    ingredient.datatypes[column] = 'categorical'
+            if not column in data.booleans:
+                if data[column].nunique() < threshold:
+                    data[column] = data[column].astype('category')
+                    data.datatypes[column] = 'categorical'
         except KeyError:
-            raise KeyError(' '.join([column, 'is not in ingredient']))
-    return ingredient
+            raise KeyError(' '.join([column, 'is not in data']))
+    return data
 
 def combine_rare(
-        ingredient: 'Ingredient',
+        data: 'Data',
         columns: Optional[Union[List[str], str]] = None,
-        threshold: Optional[float] = 0) -> 'Ingredient':
+        threshold: Optional[float] = 0) -> 'Data':
     """Converts rare categories to a single category.
 
     The threshold is defined as the percentage of total rows.
 
     Args:
-        ingredient ('Ingredient'): instance storing a pandas DataFrame.
+        data ('Data'): instance storing a pandas DataFrame.
         columns (Optional[Union[List[str], str]]): column names to be checked.
             Defaults to None. If not passed, all 'categorical'columns are
             checked.
@@ -65,25 +66,25 @@ def combine_rare(
             Defaults to 0, meaning no categories are eliminated.
 
     Raises:
-        KeyError: if a column in 'columns' is not in 'ingredient'.
+        KeyError: if a column in 'columns' is not in 'data'.
 
     """
     if not columns:
-        columns = singredient.categoricals
+        columns = sdata.categoricals
     for column in columns:
         try:
-            counts = ingredient[column].value_counts()
+            counts = data[column].value_counts()
             frequencies = (counts/counts.sum() * 100).lt(1)
             rare = frequencies[frequencies <= threshold].index
-            ingredient[column].replace(rare , 'rare', inplace = True)
+            data[column].replace(rare , 'rare', inplace = True)
         except KeyError:
-            raise KeyError(' '.join([column, 'is not in ingredient']))
-    return ingredient
+            raise KeyError(' '.join([column, 'is not in data']))
+    return data
 
 def decorrelate(
-        ingredient: 'Ingredient',
+        data: 'Data',
         columns: Optional[Union[List[str], str]] = None,
-        threshold: Optional[float] = 0.95) -> 'Ingredient':
+        threshold: Optional[float] = 0.95) -> 'Data':
     """Drops all but one column from highly correlated groups of columns.
 
     The threshold is based upon the .corr() method in pandas. 'columns' can
@@ -91,7 +92,7 @@ def decorrelate(
     columns in the DataFrame are tested.
 
     Args:
-        ingredient ('Ingredient'): instance storing a pandas DataFrame.
+        data ('Data'): instance storing a pandas DataFrame.
         columns (Optional[Union[List[str], str]]): column names to be checked.
             Defaults to None. If not passed, all columns are checked.
         threshold (Optional[float]): the level of correlation using pandas corr
@@ -101,21 +102,21 @@ def decorrelate(
 
     """
     if not columns:
-        columns = list(ingredient.datatypes.keys())
+        columns = list(data.datatypes.keys())
     try:
-        corr_matrix = ingredient[columns].corr().abs()
+        corr_matrix = data[columns].corr().abs()
     except TypeError:
-        corr_matrix = ingredient.corr().abs()
+        corr_matrix = data.corr().abs()
     upper = corr_matrix.where(
         np.triu(np.ones(corr_matrix.shape), k = 1).astype(np.bool))
     corrs = [col for col in upper.corrs if any(upper[col] > threshold)]
-    ingredient.drop_columns(columns = corrs)
-    return ingredient
+    data.drop_columns(columns = corrs)
+    return data
 
 def drop_infrequently_true(
-        ingredient: 'Ingredient',
+        data: 'Data',
         columns: Optional[Union[List[str], str]] = None,
-        threshold: Optional[float] = 0) -> 'Ingredient':
+        threshold: Optional[float] = 0) -> 'Data':
     """Drops boolean columns that rarely are True.
 
     This differs from the sklearn VarianceThreshold class because it is only
@@ -125,63 +126,63 @@ def drop_infrequently_true(
     not the typical variance formulas used in sklearn).
 
     Args:
-        ingredient ('Ingredient'): instance storing a pandas DataFrame.
+        data ('Data'): instance storing a pandas DataFrame.
         columns (list or str): columns to check.
         threshold (float): the percentage of True values in a boolean column
             that must exist for the column to be kept.
     """
     if columns is None:
-        columns = ingredient.booleans
+        columns = data.booleans
     infrequents = []
     for column in listify(columns):
         try:
-            if ingredient[column].mean() < threshold:
+            if data[column].mean() < threshold:
                 infrequents.append(column)
         except KeyError:
-            raise KeyError(' '.join([column, 'is not in ingredient']))
-    ingredient.drop_columns(columns = infrequents)
-    return ingredient
+            raise KeyError(' '.join([column, 'is not in data']))
+    data.drop_columns(columns = infrequents)
+    return data
 
 def smart_fill(
-        ingredient: 'Ingredient',
-        columns: Optional[Union[List[str], str]] = None) -> 'Ingredient':
+        data: 'Data',
+        columns: Optional[Union[List[str], str]] = None) -> 'Data':
     """Fills na values in a DataFrame with defaults based upon the datatype
     listed in 'all_datatypes'.
 
     Args:
-        ingredient ('Ingredient'): instance storing a pandas DataFrame.
+        data ('Data'): instance storing a pandas DataFrame.
         columns (list): list of columns to fill missing values in. If no
             columns are passed, all columns are filled.
 
     Raises:
-        KeyError: if column in 'columns' is not in 'ingredient'.
+        KeyError: if column in 'columns' is not in 'data'.
 
     """
     for column in self._check_columns(columns):
         try:
             default_value = self.all_datatypes.default_values[
                     self.columns[column]]
-            ingredient[column].fillna(default_value, inplace = True)
+            data[column].fillna(default_value, inplace = True)
         except KeyError:
-            raise KeyError(' '.join([column, 'is not in ingredient']))
-    return ingredient
+            raise KeyError(' '.join([column, 'is not in data']))
+    return data
 
 def split_xy(
-        ingredients: 'Ingredients',
-        label: Optional[str] = 'label') -> 'Ingredients':
-    """Splits ingredient into 'x' and 'y' based upon the label ('y' column) passed.
+        dataset: 'Dataset',
+        label: Optional[str] = 'label') -> 'Dataset':
+    """Splits data into 'x' and 'y' based upon the label ('y' column) passed.
 
     Args:
-        ingredient ('Ingredient'): instance storing a pandas DataFrame.
+        data ('Data'): instance storing a pandas DataFrame.
         label (str or list): name of column(s) to be stored in 'y'.'
 
     """
-    ingredients.x = ingredient[list(ingredient.columns.values).remove(label)]
-    ingredients.y = ingredient[label],
-    ingredients.label_datatype = self.columns[label]
-    ingredients._crosscheck_columns()
-    singredients.state.change('train_test')
-    return ingredients
+    dataset.x = data[list(data.columns.values).remove(label)]
+    dataset.y = data[label],
+    dataset.label_datatype = self.columns[label]
+    dataset._crosscheck_columns()
+    sdataset.state.change('train_test')
+    return dataset
 
 
 # @dataclass
@@ -221,19 +222,19 @@ def split_xy(
 #                 method = 'yeo_johnson', **self.parameters)
 #         return self
 
-#     def publish(self, ingredients, columns = None):
+#     def publish(self, dataset, columns = None):
 #         if not columns:
-#             columns = ingredients.numerics
+#             columns = dataset.numerics
 #         for column in columns:
-#             if ingredients.x[column].min() >= 0:
-#                 ingredients.x[column] = self.positive_tool.fit_transform(
-#                         ingredients.x[column])
+#             if dataset.x[column].min() >= 0:
+#                 dataset.x[column] = self.positive_tool.fit_transform(
+#                         dataset.x[column])
 #             else:
-#                 ingredients.x[column] = self.negative_tool.fit_transform(
-#                         ingredients.x[column])
-#             ingredients.x[column] = self.rescaler.fit_transform(
-#                     ingredients.x[column])
-#         return ingredients
+#                 dataset.x[column] = self.negative_tool.fit_transform(
+#                         dataset.x[column])
+#             dataset.x[column] = self.rescaler.fit_transform(
+#                     dataset.x[column])
+#         return dataset
 
 # @dataclass
 # class CompareCleaves(TechniqueOutline):
@@ -278,18 +279,18 @@ def split_xy(
 #     return algorithm
 
 
-#    def _downcast_features(self, ingredients):
+#    def _downcast_features(self, dataset):
 #        dataframes = ['x_train', 'x_test']
 #        number_types = ['uint', 'int', 'float']
 #        feature_bits = ['64', '32', '16']
-#        for ingredient in dataframes:
-#            for column in ingredient.columns.keys():
-#                if (column in ingredients.floats
-#                        or column in ingredients.integers):
+#        for data in dataframes:
+#            for column in data.columns.keys():
+#                if (column in dataset.floats
+#                        or column in dataset.integers):
 #                    for number_type in number_types:
 #                        for feature_bit in feature_bits:
 #                            try:
-#                                ingredient[column] = ingredient[column].astype()
+#                                data[column] = data[column].astype()
 
 #
 #    def _set_feature_types(self):

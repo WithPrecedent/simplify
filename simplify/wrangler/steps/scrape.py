@@ -36,6 +36,6 @@ class Scrape(WranglerTechnique):
         return self
 
 
-    def publish(self, ingredients):
+    def publish(self, dataset):
         file_path = os.path.join(self.inventory.external, self.file_name)
         return self

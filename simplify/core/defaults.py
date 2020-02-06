@@ -54,7 +54,7 @@ CHEF = {
     'search_step': 'random'}
 
 ACTUARY = {
-    'actuary_steps': 'summary',
+    'explorer_steps': 'summary',
     'summary_techniques': ['default'],
     'test_techniques': None}
 

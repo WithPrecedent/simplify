@@ -8,16 +8,19 @@
 
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
 
 from simplify.core.book import Book
+from simplify.core.publisher import Publisher
 from simplify.core.repository import Repository
 from simplify.core.repository import Plan
 from simplify.core.technique import TechniqueOutline
+from simplify.core.worker import Worker
 
 
 @dataclass
@@ -46,18 +49,65 @@ class Cookbook(Book):
             is returned. If true, 'data' is returned. Defaults to True.
 
     """
-    name: Optional[str] = 'analyst'
-    iterable: Optional[str] = 'recipes'
-    steps: Optional[List[str]] = field(default_factory = list)
-    techniques: Optional['Repository'] = field(default_factory = Repository)
-    chapters: Optional['Plan'] = field(default_factory = list)
+    name: Optional[str] = 'cookbook'
+    iterable: Optional[str] = field(default_factory = lambda: 'recipes')
+    chapters: Optional[Union[List[str], str]] = field(default_factory = list)
     alters_data: Optional[bool] = True
+
+
+@dataclass
+class AnalystPublisher(Publisher):
+    """Creates 'Cookbook'
+
+    Args:
+        idea ('Idea'): an 'Idea' instance with project settings.
+
+    """
+    idea: 'Idea'
+
+    """ Public Methods """
+
+    def add_cleaves(self,
+            cleave_group: str,
+            prefixes: Union[List[str], str] = None,
+            columns: Union[List[str], str] = None) -> None:
+        """Adds cleaves to the list of cleaves.
+
+        Args:
+            cleave_group (str): names the set of features in the group.
+            prefixes (Union[List[str], str]): name(s) of prefixes to columns to
+                be included within the cleave.
+            columns (Union[List[str], str]): name(s) of columns to be included
+                within the cleave.
+
+        """
+        # if not self._exists('cleaves'):
+        #     self.cleaves = []
+        # columns = self.dataset.make_column_list(
+        #     prefixes = prefixes,
+        #     columns = columns)
+        # self.tasks['cleaver'].add_techniques(
+        #     cleave_group = cleave_group,
+        #     columns = columns)
+        # self.cleaves.append(cleave_group)
+        return self
+
+
+@dataclass
+class Analyst(Worker):
+    """Applies a 'Cookbook' instance to data.
+
+    Args:
+        idea ('Idea'): an 'Idea' instance with project settings.
+
+    """
+    idea: 'Idea'
 
     """ Private Methods """
 
     def _add_model_conditionals(self,
             technique: 'Technique',
-            data: 'Ingredients') -> 'Technique':
+            data: 'Dataset') -> 'Technique':
         """Adds any conditional parameters to 'technique'
 
         Args:
@@ -81,7 +131,7 @@ class Cookbook(Book):
 
     def _model_calculate_hyperparameters(self,
             technique: 'Technique',
-            data: 'Ingredients') -> 'Technique':
+            data: 'Dataset') -> 'Technique':
         """Computes hyperparameters from data.
 
         This method will include any heuristics or methods for creating smart
@@ -108,43 +158,62 @@ class Cookbook(Book):
 
     """ Public Methods """
 
-    def add_cleaves(self,
-            cleave_group: str,
-            prefixes: Union[List[str], str] = None,
-            columns: Union[List[str], str] = None) -> None:
-        """Adds cleaves to the list of cleaves.
+    def split_xy(self,
+            data: 'Dataset',
+            label: Optional[str] = None) -> 'Dataset':
+        """Splits data into 'x' and 'y' based upon the label ('y' column) passed.
 
         Args:
-            cleave_group (str): names the set of features in the group.
-            prefixes (Union[List[str], str]): name(s) of prefixes to columns to
-                be included within the cleave.
-            columns (Union[List[str], str]): name(s) of columns to be included
-                within the cleave.
+            data ('Data'): instance storing a pandas DataFrame.
+            label (str or list): name of column(s) to be stored in 'y'.'
 
         """
-        # if not self._exists('cleaves'):
-        #     self.cleaves = []
-        # columns = self.ingredients.make_column_list(
-        #     prefixes = prefixes,
-        #     columns = columns)
-        # self.tasks['cleaver'].add_techniques(
-        #     cleave_group = cleave_group,
-        #     columns = columns)
-        # self.cleaves.append(cleave_group)
-        return self
+        if label is None:
+            try:
+                label = self.idea['analyst']['label']
+            except KeyError:
+                label = 'label'
+        print('test label', label)
+        data['x'] = data[list(data['full'].columns.values).remove(label)]
+        data['y'] = data['full'][label],
+        data.label_datatype = data['full'].datatypes[label]
+        return data
 
+    """ Core siMpLify Methods """
 
-    # def _cleave(self, ingredients):
+    def apply(self,
+            book: 'Book',
+            data: Optional[Union['Dataset', 'Book']] = None,
+            **kwargs) -> Union['Dataset', 'Book']:
+        """Applies objects in 'book' to 'data'.
+
+        Args:
+            book ('Book'): Book instance with algorithms to apply to 'data'.
+            data (Optional[Union['Dataset', 'Book']]): a data source for
+                the 'book' methods to be applied.
+            kwargs: any additional parameters to pass to a related
+                Book's options' 'apply' method.
+
+        Returns:
+            Union['Dataset', 'Book']: data object with modifications
+                possibly made.
+
+        """
+        data = self.split_xy(data = data)
+        super().apply(book = book, data = data, **kwargs)
+        return book
+
+    # def _cleave(self, dataset):
     #     if self.step != 'all':
     #         cleave = self.tasks[self.step]
     #         drop_list = [i for i in self.test_columns if i not in cleave]
     #         for col in drop_list:
-    #             if col in ingredients.x_train.columns:
-    #                 ingredients.x_train.drop(col, axis = 'columns',
+    #             if col in dataset.x_train.columns:
+    #                 dataset.x_train.drop(col, axis = 'columns',
     #                                          inplace = True)
-    #                 ingredients.x_test.drop(col, axis = 'columns',
+    #                 dataset.x_test.drop(col, axis = 'columns',
     #                                         inplace = True)
-    #     return ingredients
+    #     return dataset
 
     # def _publish_cleaves(self):
     #     for group, columns in self.tasks.items():
@@ -167,53 +236,53 @@ class Cookbook(Book):
 #                        'mutual_regress': mutual_info_regression}
 
     # # @numpy_shield
-    # def publish(self, ingredients, plan = None, estimator = None):
+    # def publish(self, dataset, plan = None, estimator = None):
     #     if not estimator:
     #         estimator = plan.model.algorithm
     #     self._set_parameters(estimator)
     #     self.algorithm = self.tasks[self.step](**self.parameters)
-    #     if len(ingredients.x_train.columns) > self.num_features:
-    #         self.algorithm.fit(ingredients.x_train, ingredients.y_train)
+    #     if len(dataset.x_train.columns) > self.num_features:
+    #         self.algorithm.fit(dataset.x_train, dataset.y_train)
     #         mask = ~self.algorithm.get_support()
-    #         ingredients.drop_columns(df = ingredients.x_train, mask = mask)
-    #         ingredients.drop_columns(df = ingredients.x_test, mask = mask)
-    #     return ingredients
+    #         dataset.drop_columns(df = dataset.x_train, mask = mask)
+    #         dataset.drop_columns(df = dataset.x_test, mask = mask)
+    #     return dataset
 
     # # @numpy_shield
     # def publish(self,
-    #         ingredients: 'Ingredients',
+    #         dataset: 'Dataset',
     #         data_to_use: str,
     #         columns: list = None,
-    #         **kwargs) -> 'Ingredients':
+    #         **kwargs) -> 'Dataset':
     #     """[summary]
 
     #     Args:
-    #         ingredients (Ingredients): [description]
+    #         dataset (Dataset): [description]
     #         data_to_use (str): [description]
     #         columns (list, optional): [description]. Defaults to None.
     #     """
     #     if self.step != 'none':
     #         if self.data_dependents:
-    #             self._add_data_dependents(data = ingredients)
+    #             self._add_data_dependents(data = dataset)
     #         if self.hyperparameter_search:
     #             self.algorithm = self._search_hyperparameters(
-    #                 data = ingredients,
+    #                 data = dataset,
     #                 data_to_use = data_to_use)
     #         try:
     #             self.algorithm.fit(
-    #                 X = getattr(ingredients, ''.join(['x_', data_to_use])),
-    #                 Y = getattr(ingredients, ''.join(['y_', data_to_use])),
+    #                 X = getattr(dataset, ''.join(['x_', data_to_use])),
+    #                 Y = getattr(dataset, ''.join(['y_', data_to_use])),
     #                 **kwargs)
-    #             setattr(ingredients, ''.join(['x_', data_to_use]),
+    #             setattr(dataset, ''.join(['x_', data_to_use]),
     #                     self.algorithm.transform(X = getattr(
-    #                         ingredients, ''.join(['x_', data_to_use]))))
+    #                         dataset, ''.join(['x_', data_to_use]))))
     #         except AttributeError:
     #             data = self.algorithm.publish(
-    #                 data = ingredients,
+    #                 data = dataset,
     #                 data_to_use = data_to_use,
     #                 columns = columns,
     #                 **kwargs)
-    #     return ingredients
+    #     return dataset
 
     # def _set_parameters(self, estimator):
 #        if self.step in ['rfe', 'rfecv']:
@@ -289,12 +358,12 @@ class Cookbook(Book):
 #             parameters = new_parameters
 #         return parameters
 
-#     def _search_hyperparameter(self, ingredients: Ingredients,
+#     def _search_hyperparameter(self, dataset: Dataset,
 #                                data_to_use: str):
 #         search = SearchComposer()
 #         search.space = self.space
 #         search.estimator = self.algorithm
-#         return search.publish(data = ingredients)
+#         return search.publish(data = dataset)
 
 #     """ Core siMpLify Methods """
 
@@ -347,17 +416,17 @@ class Cookbook(Book):
 #         return self
 
 #     @numpy_shield
-#     def publish(self, ingredients: Ingredients, data_to_use: str):
+#     def publish(self, dataset: Dataset, data_to_use: str):
 #         """[summary]
 
 #         Args:
-#             ingredients ([type]): [description]
+#             dataset ([type]): [description]
 #             data_to_use ([type]): [description]
 #         """
 #         if self.step in ['random', 'grid']:
 #             return self.algorithm.fit(
-#                 X = getattr(ingredients, ''.join(['x_', data_to_use])),
-#                 Y = getattr(ingredients, ''.join(['y_', data_to_use])),
+#                 X = getattr(dataset, ''.join(['x_', data_to_use])),
+#                 Y = getattr(dataset, ''.join(['y_', data_to_use])),
 #                 **kwargs)
 
 
@@ -616,43 +685,57 @@ class Tools(Repository):
                     module = 'imblearn.over_sampling',
                     algorithm = 'ADASYN',
                     default = {'sampling_strategy': 'auto'},
-                    runtime = {'random_state': 'seed'}),
+                    runtime = {'random_state': 'seed'},
+                    fit_method = None,
+                    transform_method = 'fit_resample'),
                 'cluster': TechniqueOutline(
                     name = 'cluster',
                     module = 'imblearn.under_sampling',
                     algorithm = 'ClusterCentroids',
                     default = {'sampling_strategy': 'auto'},
-                    runtime = {'random_state': 'seed'}),
+                    runtime = {'random_state': 'seed'},
+                    fit_method = None,
+                    transform_method = 'fit_resample'),
                 'knn': TechniqueOutline(
                     name = 'knn',
                     module = 'imblearn.under_sampling',
                     algorithm = 'AllKNN',
                     default = {'sampling_strategy': 'auto'},
-                    runtime = {'random_state': 'seed'}),
+                    runtime = {'random_state': 'seed'},
+                    fit_method = None,
+                    transform_method = 'fit_resample'),
                 'near_miss': TechniqueOutline(
                     name = 'near_miss',
                     module = 'imblearn.under_sampling',
                     algorithm = 'NearMiss',
                     default = {'sampling_strategy': 'auto'},
-                    runtime = {'random_state': 'seed'}),
+                    runtime = {'random_state': 'seed'},
+                    fit_method = None,
+                    transform_method = 'fit_resample'),
                 'random_over': TechniqueOutline(
                     name = 'random_over',
                     module = 'imblearn.over_sampling',
                     algorithm = 'RandomOverSampler',
                     default = {'sampling_strategy': 'auto'},
-                    runtime = {'random_state': 'seed'}),
+                    runtime = {'random_state': 'seed'},
+                    fit_method = None,
+                    transform_method = 'fit_resample'),
                 'random_under': TechniqueOutline(
                     name = 'random_under',
                     module = 'imblearn.under_sampling',
                     algorithm = 'RandomUnderSampler',
                     default = {'sampling_strategy': 'auto'},
-                    runtime = {'random_state': 'seed'}),
+                    runtime = {'random_state': 'seed'},
+                    fit_method = None,
+                    transform_method = 'fit_resample'),
                 'smote': TechniqueOutline(
                     name = 'smote',
                     module = 'imblearn.over_sampling',
                     algorithm = 'SMOTE',
                     default = {'sampling_strategy': 'auto'},
-                    runtime = {'random_state': 'seed'}),
+                    runtime = {'random_state': 'seed'},
+                    fit_method = None,
+                    transform_method = 'fit_resample'),
                 'smotenc': TechniqueOutline(
                     name = 'smotenc',
                     module = 'imblearn.over_sampling',
@@ -660,19 +743,25 @@ class Tools(Repository):
                     default = {'sampling_strategy': 'auto'},
                     runtime = {'random_state': 'seed'},
                     data_dependent = {
-                        'categorical_features': 'categoricals_indices'}),
+                        'categorical_features': 'categoricals_indices'},
+                    fit_method = None,
+                    transform_method = 'fit_resample'),
                 'smoteenn': TechniqueOutline(
                     name = 'smoteenn',
                     module = 'imblearn.combine',
                     algorithm = 'SMOTEENN',
                     default = {'sampling_strategy': 'auto'},
-                    runtime = {'random_state': 'seed'}),
+                    runtime = {'random_state': 'seed'},
+                    fit_method = None,
+                    transform_method = 'fit_resample'),
                 'smotetomek': TechniqueOutline(
                     name = 'smotetomek',
                     module = 'imblearn.combine',
                     algorithm = 'SMOTETomek',
                     default = {'sampling_strategy': 'auto'},
-                    runtime = {'random_state': 'seed'})},
+                    runtime = {'random_state': 'seed'},
+                    fit_method = None,
+                    transform_method = 'fit_resample')},
             'reduce': {
                 'kbest': TechniqueOutline(
                     name = 'kbest',
@@ -723,192 +812,234 @@ class Tools(Repository):
                 'adaboost': TechniqueOutline(
                     name = 'adaboost',
                     module = 'sklearn.ensemble',
-                    algorithm = 'AdaBoostClassifier'),
+                    algorithm = 'AdaBoostClassifier',
+                    transform_method = None),
                 'baseline_classifier': TechniqueOutline(
                     name = 'baseline_classifier',
                     module = 'sklearn.dummy',
                     algorithm = 'DummyClassifier',
-                    required = {'strategy': 'most_frequent'}),
+                    required = {'strategy': 'most_frequent'},
+                    transform_method = None),
                 'logit': TechniqueOutline(
                     name = 'logit',
                     module = 'sklearn.linear_model',
-                    algorithm = 'LogisticRegression'),
+                    algorithm = 'LogisticRegression',
+                    transform_method = None),
                 'random_forest': TechniqueOutline(
                     name = 'random_forest',
                     module = 'sklearn.ensemble',
-                    algorithm = 'RandomForestClassifier'),
+                    algorithm = 'RandomForestClassifier',
+                    transform_method = None),
                 'svm_linear': TechniqueOutline(
                     name = 'svm_linear',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
-                    required = {'kernel': 'linear', 'probability': True}),
+                    required = {'kernel': 'linear', 'probability': True},
+                    transform_method = None),
                 'svm_poly': TechniqueOutline(
                     name = 'svm_poly',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
-                    required = {'kernel': 'poly', 'probability': True}),
+                    required = {'kernel': 'poly', 'probability': True},
+                    transform_method = None),
                 'svm_rbf': TechniqueOutline(
                     name = 'svm_rbf',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
-                    required = {'kernel': 'rbf', 'probability': True}),
+                    required = {'kernel': 'rbf', 'probability': True},
+                    transform_method = None),
                 'svm_sigmoid': TechniqueOutline(
                     name = 'svm_sigmoid ',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
-                    required = {'kernel': 'sigmoid', 'probability': True}),
+                    required = {'kernel': 'sigmoid', 'probability': True},
+                    transform_method = None),
                 'tensorflow': TechniqueOutline(
                     name = 'tensorflow',
                     module = 'tensorflow',
                     algorithm = None,
                     default = {
                         'batch_size': 10,
-                        'epochs': 2}),
+                        'epochs': 2},
+                    transform_method = None),
                 'xgboost': TechniqueOutline(
                     name = 'xgboost',
                     module = 'xgboost',
                     algorithm = 'XGBClassifier',
-                    data_dependent = 'scale_pos_weight')},
+                    data_dependent = 'scale_pos_weight',
+                    transform_method = None)},
             'cluster': {
                 'affinity': TechniqueOutline(
                     name = 'affinity',
                     module = 'sklearn.cluster',
-                    algorithm = 'AffinityPropagation'),
+                    algorithm = 'AffinityPropagation',
+                    transform_method = None),
                 'agglomerative': TechniqueOutline(
                     name = 'agglomerative',
                     module = 'sklearn.cluster',
-                    algorithm = 'AgglomerativeClustering'),
+                    algorithm = 'AgglomerativeClustering',
+                    transform_method = None),
                 'birch': TechniqueOutline(
                     name = 'birch',
                     module = 'sklearn.cluster',
-                    algorithm = 'Birch'),
+                    algorithm = 'Birch',
+                    transform_method = None),
                 'dbscan': TechniqueOutline(
                     name = 'dbscan',
                     module = 'sklearn.cluster',
-                    algorithm = 'DBSCAN'),
+                    algorithm = 'DBSCAN',
+                    transform_method = None),
                 'kmeans': TechniqueOutline(
                     name = 'kmeans',
                     module = 'sklearn.cluster',
-                    algorithm = 'KMeans'),
+                    algorithm = 'KMeans',
+                    transform_method = None),
                 'mean_shift': TechniqueOutline(
                     name = 'mean_shift',
                     module = 'sklearn.cluster',
-                    algorithm = 'MeanShift'),
+                    algorithm = 'MeanShift',
+                    transform_method = None),
                 'spectral': TechniqueOutline(
                     name = 'spectral',
                     module = 'sklearn.cluster',
-                    algorithm = 'SpectralClustering'),
+                    algorithm = 'SpectralClustering',
+                    transform_method = None),
                 'svm_linear': TechniqueOutline(
                     name = 'svm_linear',
                     module = 'sklearn.cluster',
-                    algorithm = 'OneClassSVM'),
+                    algorithm = 'OneClassSVM',
+                    transform_method = None),
                 'svm_poly': TechniqueOutline(
                     name = 'svm_poly',
                     module = 'sklearn.cluster',
-                    algorithm = 'OneClassSVM'),
+                    algorithm = 'OneClassSVM',
+                    transform_method = None),
                 'svm_rbf': TechniqueOutline(
                     name = 'svm_rbf',
                     module = 'sklearn.cluster',
-                    algorithm = 'OneClassSVM,'),
+                    algorithm = 'OneClassSVM,',
+                    transform_method = None),
                 'svm_sigmoid': TechniqueOutline(
                     name = 'svm_sigmoid',
                     module = 'sklearn.cluster',
-                    algorithm = 'OneClassSVM')},
+                    algorithm = 'OneClassSVM',
+                    transform_method = None)},
             'regress': {
                 'adaboost': TechniqueOutline(
                     name = 'adaboost',
                     module = 'sklearn.ensemble',
-                    algorithm = 'AdaBoostRegressor'),
+                    algorithm = 'AdaBoostRegressor',
+                    transform_method = None),
                 'baseline_regressor': TechniqueOutline(
                     name = 'baseline_regressor',
                     module = 'sklearn.dummy',
                     algorithm = 'DummyRegressor',
-                    required = {'strategy': 'mean'}),
+                    required = {'strategy': 'mean'},
+                    transform_method = None),
                 'bayes_ridge': TechniqueOutline(
                     name = 'bayes_ridge',
                     module = 'sklearn.linear_model',
-                    algorithm = 'BayesianRidge'),
+                    algorithm = 'BayesianRidge',
+                    transform_method = None),
                 'lasso': TechniqueOutline(
                     name = 'lasso',
                     module = 'sklearn.linear_model',
-                    algorithm = 'Lasso'),
+                    algorithm = 'Lasso',
+                    transform_method = None),
                 'lasso_lars': TechniqueOutline(
                     name = 'lasso_lars',
                     module = 'sklearn.linear_model',
-                    algorithm = 'LassoLars'),
+                    algorithm = 'LassoLars',
+                    transform_method = None),
                 'ols': TechniqueOutline(
                     name = 'ols',
                     module = 'sklearn.linear_model',
-                    algorithm = 'LinearRegression'),
+                    algorithm = 'LinearRegression',
+                    transform_method = None),
                 'random_forest': TechniqueOutline(
                     name = 'random_forest',
                     module = 'sklearn.ensemble',
-                    algorithm = 'RandomForestRegressor'),
+                    algorithm = 'RandomForestRegressor',
+                    transform_method = None),
                 'ridge': TechniqueOutline(
                     name = 'ridge',
                     module = 'sklearn.linear_model',
-                    algorithm = 'Ridge'),
+                    algorithm = 'Ridge',
+                    transform_method = None),
                 'svm_linear': TechniqueOutline(
                     name = 'svm_linear',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
-                    required = {'kernel': 'linear', 'probability': True}),
+                    required = {'kernel': 'linear', 'probability': True},
+                    transform_method = None),
                 'svm_poly': TechniqueOutline(
                     name = 'svm_poly',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
-                    required = {'kernel': 'poly', 'probability': True}),
+                    required = {'kernel': 'poly', 'probability': True},
+                    transform_method = None),
                 'svm_rbf': TechniqueOutline(
                     name = 'svm_rbf',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
-                    required = {'kernel': 'rbf', 'probability': True}),
+                    required = {'kernel': 'rbf', 'probability': True},
+                    transform_method = None),
                 'svm_sigmoid': TechniqueOutline(
                     name = 'svm_sigmoid ',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
-                    required = {'kernel': 'sigmoid', 'probability': True}),
+                    required = {'kernel': 'sigmoid', 'probability': True},
+                    transform_method = None),
                 'xgboost': TechniqueOutline(
                     name = 'xgboost',
                     module = 'xgboost',
                     algorithm = 'XGBRegressor',
-                    data_dependent = 'scale_pos_weight')}}
+                    data_dependent = 'scale_pos_weight',
+                    transform_method = None)}}
         gpu_options = {
             'classify': {
                 'forest_inference': TechniqueOutline(
                     name = 'forest_inference',
                     module = 'cuml',
-                    algorithm = 'ForestInference'),
+                    algorithm = 'ForestInference',
+                    transform_method = None),
                 'random_forest': TechniqueOutline(
                     name = 'random_forest',
                     module = 'cuml',
-                    algorithm = 'RandomForestClassifier'),
+                    algorithm = 'RandomForestClassifier',
+                    transform_method = None),
                 'logit': TechniqueOutline(
                     name = 'logit',
                     module = 'cuml',
-                    algorithm = 'LogisticRegression')},
+                    algorithm = 'LogisticRegression',
+                    transform_method = None)},
             'cluster': {
                 'dbscan': TechniqueOutline(
                     name = 'dbscan',
                     module = 'cuml',
-                    algorithm = 'DBScan'),
+                    algorithm = 'DBScan',
+                    transform_method = None),
                 'kmeans': TechniqueOutline(
                     name = 'kmeans',
                     module = 'cuml',
-                    algorithm = 'KMeans')},
+                    algorithm = 'KMeans',
+                    transform_method = None)},
             'regressor': {
                 'lasso': TechniqueOutline(
                     name = 'lasso',
                     module = 'cuml',
-                    algorithm = 'Lasso'),
+                    algorithm = 'Lasso',
+                    transform_method = None),
                 'ols': TechniqueOutline(
                     name = 'ols',
                     module = 'cuml',
-                    algorithm = 'LinearRegression'),
+                    algorithm = 'LinearRegression',
+                    transform_method = None),
                 'ridge': TechniqueOutline(
                     name = 'ridge',
                     module = 'cuml',
-                    algorithm = 'RidgeRegression')}}
+                    algorithm = 'RidgeRegression',
+                    transform_method = None)}}
         self.contents['model'] = model_options[
             self.idea['analyst']['model_type']]
         if self.idea['general']['gpu']:

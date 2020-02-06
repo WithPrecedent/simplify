@@ -9,7 +9,8 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 from simplify.core.repository import Repository
 from simplify.core.repository import Plan

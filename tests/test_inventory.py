@@ -20,5 +20,5 @@ def test_inventory():
     return
 
 
-if __class__.__name__ == '__main__':
+if __name__ == '__main__':
     test_inventory()

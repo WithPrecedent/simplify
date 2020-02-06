@@ -7,7 +7,8 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 import pandas as pd
 
@@ -25,7 +26,7 @@ class Ledger(Book):
 
 
     """
-    name: Optional[str] = 'actuary'
+    name: Optional[str] = 'explorer'
     steps: Optional[Dict[str, 'SimpleDirector']] = None
 
     def __post_init__(self) -> None:
@@ -45,7 +46,7 @@ class Ledger(Book):
             file_name(str): name of file to be exported (without extension).
             file_format(str): exported file format.
         """
-        self._implement_report(df = recipe.ingredients.df)
+        self._implement_report(df = recipe.dataset.df)
         self._implement_export_parameters(file_name = file_name,
                                           file_format = file_format,
                                           transpose = transpose)
@@ -93,18 +94,18 @@ class Ledger(Book):
     """ Core siMpLify methods """
 
     def draft(self) -> None:
-        """Sets default options for the Actuary's analysis."""
+        """Sets default options for the Explorer's analysis."""
         self._options = Repository(options = {
-            'summary': ('simplify.actuary.steps.summarize', 'Summarize'),
-            'test': ('simplify.actuary.steps.test', 'Test')}
+            'summary': ('simplify.explorer.steps.summarize', 'Summarize'),
+            'test': ('simplify.explorer.steps.test', 'Test')}
         # Sets plan container
         self.chapter_type = Chapter
         return self
 
-    def publish(self, ingredients: ['Ingredients']) -> None:
+    def publish(self, dataset: ['Dataset']) -> None:
         """
         """
-        super().publish(data = ingredients)
+        super().publish(data = dataset)
         return self
 
 

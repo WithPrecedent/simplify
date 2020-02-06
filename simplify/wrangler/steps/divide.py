@@ -35,5 +35,5 @@ class Divide(WranglerTechnique):
         super().__post_init__()
         return self
 
-    def publish(self, ingredients):
+    def publish(self, dataset):
         return self

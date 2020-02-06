@@ -7,7 +7,8 @@
 """
 
 import sys
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 from simplify.core.project import Project
 
@@ -36,11 +37,11 @@ def _args_to_dict() -> Dict[str, str]:
             arguments[key] = value
     return arguments
 
-if __class__.__name__ == '__main__':
+if __name__ == '__main__':
     # Gets command line arguments and converts them to dict.
     arguments = _args_to_dict()
     # Calls Project with passed command-line arguments.
     Project(
         idea = arguments.get('-idea'),
         inventory = arguments.get('-inventory', None),
-        ingredients = arguments.get('-ingredients', None))
+        dataset = arguments.get('-dataset', None))

@@ -35,6 +35,6 @@ class Streamline(WranglerTechnique):
     def __post_init__(self) -> None:
         return self
 
-    def publish(self, ingredients):
-        data = self.method(ingredients)
-        return ingredients
+    def publish(self, dataset):
+        data = self.method(dataset)
+        return dataset

@@ -1,10 +1,10 @@
 # Contribution Guidelines
 
-siMpLify uses a code structure patterned after the writing process. Each major subpackage in the siMpLify package  (Wrangler, Analyst, Actuary, Critic, Artist)creates a Book object which contains particular implementations (Chapters) which have one or more steps (Repository).
+siMpLify uses a code structure patterned after the writing process. Each major subpackage in the siMpLify package  (Wrangler, Analyst, Explorer, Critic, Artist)creates a Book object which contains particular implementations (Chapters) which have one or more steps (Repository).
 
     Wrangler creates an Manual of Plans.
     Analyst creates a Cookbook of Recipes.
-    Actuary creates a Ledger of Summaries.
+    Explorer creates a Ledger of Summaries.
     Critic creates a Collection of Reviews.
     Artist creates a Canvas of Illustrations.
 
@@ -61,13 +61,13 @@ Any new subpackages, Books, Chapters, and Repository should follow a similar tem
 
     self = self.idea.apply(instance = self)
 
-3. All external data should be contained in instances of Ingredients. Before beginning the processes in Analyst, ideally, there should be a single, combined pandas DataFrame stored in the Ingredients instance at the 'df' attribute.
+3. All external data should be contained in instances of Dataset. Before beginning the processes in Analyst, ideally, there should be a single, combined pandas DataFrame stored in the Dataset instance at the 'df' attribute.
 
 4. Any generally usable functions or decorators should be stored in simplify.core.utilities.
 
 5. If you create a proxy for typing, please subclass the SimpleType class in simplify.core.definitionsetter, if possible.
 
-6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'task' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Ingredients instance.
+6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'task' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Dataset instance.
 
 ## General
 

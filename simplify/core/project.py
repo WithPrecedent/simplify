@@ -9,15 +9,16 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 import warnings
 
 import numpy as np
 import pandas as pd
 
 import simplify
+from simplify.core.dataset import Dataset
 from simplify.core.definitions import Outline
-from simplify.core.ingredients import create_ingredients
 from simplify.core.repository import Plan
 from simplify.core.repository import Repository
 from simplify.core.utilities import datetime_string
@@ -39,17 +40,17 @@ class Project(Iterable):
             be located for file output. A inventory instance contains all file
             path and import/export methods for use throughout the siMpLify
             package. Default is None.
-        ingredients (Optional[Union['Ingredients', 'Ingredient', pd.DataFrame,
-            np.ndarray, str]]): an instance of Ingredients, an instance of
-            Ingredient, a string containing the full file path where a data file
+        dataset (Optional[Union['Dataset', 'Data', pd.DataFrame,
+            np.ndarray, str]]): an instance of Dataset, an instance of
+            Data, a string containing the full file path where a data file
             for a pandas DataFrame is located, a string containing a file name
             in the default data folder (as defined in the shared Inventory
             instance), a full folder path where raw files for data to be
             extracted from, a string containing a folder name which is an
             attribute in the shared Inventory instance, a DataFrame, or numpy
-            ndarray. If a DataFrame, Ingredient instance, ndarray, or string is
+            ndarray. If a DataFrame, Data instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
-            in a new Ingredients instance as a DataFrame. Default is None.
+            in a new Dataset instance as a DataFrame. Default is None.
         tasks (Optional[Union['Plan', Dict[str, 'Task']], List[str]]]):
             MutableMapping with keys as strings and values of 'Task' instances,
             or a list of tasks corresponding to keys in 'DefaultTasks' to use.
@@ -62,7 +63,7 @@ class Project(Iterable):
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             instanced. Defaults to True.
         auto_apply (Optional[bool]): whether to call the 'apply' method when
-            instanced. For auto_apply to have an effect, 'ingredients' must also
+            instanced. For auto_apply to have an effect, 'dataset' must also
             be passed. Defaults to False.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
@@ -76,19 +77,14 @@ class Project(Iterable):
     """
     idea: Optional[Union['Idea', str]] = None
     inventory: Optional[Union['Inventory', str]] = None
-    ingredients: Optional[Union[
-        'Ingredients',
-        'Ingredient',
+    dataset: Optional[Union[
+        'Dataset',
+        'DataSlice',
         pd.DataFrame,
         np.ndarray,
         str,
         Dict[str, Union[
-            'Ingredient',
-            pd.DataFrame,
-            np.ndarray,
-            str]],
-        List[Union[
-            'Ingredient',
+            'DataSlice',
             pd.DataFrame,
             np.ndarray,
             str]]]] = None
@@ -105,12 +101,12 @@ class Project(Iterable):
         """Initializes class attributes and calls selected methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Validates 'idea', 'inventory', and 'ingredients'.
-        self.idea, self.inventory, self.ingredients = (
+        # Validates 'idea', 'inventory', and 'dataset'.
+        self.idea, self.inventory, self.dataset = (
             simplify.startup(
                 idea = self.idea,
                 inventory = self.inventory,
-                ingredients = self.ingredients,
+                dataset = self.dataset,
                 project = self))
         # Initializes 'state' for use by the '__iter__' method.
         self.state = 'draft'
@@ -146,20 +142,20 @@ class Project(Iterable):
     def __call__(self) -> Callable:
         """Drafts, publishes, and applies Project.
 
-        This requires an ingredients argument to be passed to work properly.
+        This requires an dataset argument to be passed to work properly.
 
         Calling Project as a function is compatible with and used by the
         command line interface.
 
         Raises:
-            ValueError: if 'ingredients' is not passed when Project is called as
+            ValueError: if 'dataset' is not passed when Project is called as
                 a function.
 
         """
-        # Validates 'ingredients'.
-        if self.ingredients is None:
+        # Validates 'dataset'.
+        if self.dataset is None:
             raise ValueError(
-                'Calling Project as a function requires ingredients')
+                'Calling Project as a function requires dataset')
         else:
             self.auto_apply = True
             self.__post__init()
@@ -167,7 +163,7 @@ class Project(Iterable):
 
     """ Private Methods """
 
-    def _draft_tasks(self,
+    def _create_tasks(self,
             tasks: Union['Plan', Dict[str, 'Task'], List[str]]) -> 'Plan':
         """Creates or validates 'tasks'.
 
@@ -180,33 +176,47 @@ class Project(Iterable):
 
         """
         if isinstance(tasks, Plan):
-            tasks.project = self
+            tasks.idea = self.idea
             return tasks
         elif isinstance(tasks, dict):
-            return Plan(contents = tasks, project = self)
+            return Plan(contents = tasks, idea = self.idea)
         elif isinstance(tasks, list):
-            return DefaultTasks(steps = tasks, project = self)
+            return DefaultTasks(steps = tasks, idea = self.idea)
         else:
-            return DefaultTasks(project = self)
+            return DefaultTasks(idea = self.idea)
 
-    def _draft_editors(self, tasks: 'Plan') -> 'Plan':
-        """Creates Publisher and Worker instances for each Task.
+    def _create_publishers(self, tasks: 'Plan') -> 'Plan':
+        """Creates Publisher instances for each Task.
 
         Args:
             tasks ('Plan'): stored Task instances.
 
         Returns:
-            'Plan': instance with Publisher and Worker instances added to
-                each stored 'Task' instance.
+            'Plan': instance with Publisher instances added.
 
         """
-        # For each task, creates an Publisher and Worker instance.
-        for task in tasks.keys():
-            publisher = tasks[task].load('publisher')
-            tasks[task].publisher = publisher(idea = self.idea, task = task)
-            worker = tasks[task].load('worker')
-            tasks[task].worker = worker(idea = self.idea)
+        # For each task, creates a Publisher instance.
+        for key, task in tasks.items():
+            publisher = task.load('publisher')
+            tasks[key].publisher = publisher(idea = self.idea, task = task)
         return tasks
+
+    def _create_workers(self, tasks: 'Plan') -> 'Plan':
+        """Creates Publisher instances for each Task.
+
+        Args:
+            tasks ('Plan'): stored Task instances.
+
+        Returns:
+            'Plan': instance with Publisher instances added.
+
+        """
+        # For each task, creates a Worker instance.
+        workers = {}
+        for key, task in tasks.items():
+            worker = task.load('worker')
+            workers[key] = worker(idea = self.idea)
+        return Plan(contents = workers)
 
     """ Public Methods """
 
@@ -246,8 +256,8 @@ class Project(Iterable):
         # Injects attributes from 'idea'.
         self = self.idea.apply(instance = self)
         # Creates 'Task' instances for each selected stage.
-        self.tasks = self._draft_tasks(tasks = self.tasks)
-        self.tasks = self._draft_editors(tasks = self.tasks)
+        self.tasks = self._create_tasks(tasks = self.tasks)
+        self.tasks = self._create_publishers(tasks = self.tasks)
         # Iterates through 'tasks' and creates Book instances in 'tasks'.
         for key, task in self.tasks.items():
             # Drafts a Book instance for 'task'.
@@ -276,30 +286,31 @@ class Project(Iterable):
             self.library[key] = task.publisher.publish(task = task)
         return self
 
-    def apply(self, data: Optional['Ingredients'] = None, **kwargs) -> None:
+    def apply(self, data: Optional['Dataset'] = None, **kwargs) -> None:
         """Applies created objects to passed 'data'.
 
         Args:
-            data (Optional['Ingredients']): data object for methods to be
-                applied. If not passed, data stored in the 'ingredients' is
+            data (Optional['Dataset']): data object for methods to be
+                applied. If not passed, data stored in the 'dataset' is
                 used.
 
         """
         # Changes state.
         self.state = 'apply'
+        # Creates an iterable of 'workers' to apply Book instances to 'data'.
+        self.workers = self._create_workers(tasks = self.tasks)
         # Deletes 'tasks' to save memory, if option is selected.
-        # if self.conserve_memory:
-        #     del self.tasks
-        # Assigns 'data' to 'ingredients' attribute and validates it.
+        if self.conserve_memory:
+            del self.tasks
+        # Assigns 'data' to 'dataset' attribute and validates it.
         if data:
-            self.ingredients = create_ingredients(ingredients = data)
+            self.dataset = create_dataset(dataset = data)
         # Iterates through each task, creating and applying needed Books,
         # Chapters, and Techniques for each task in the Project.
-        print('test library', self.library)
         for key, book in self.library.items():
-            self.library[key] = self.tasks[key].worker.apply(
+            self.library[key] = self.workers[key].apply(
                 book = book,
-                data = self.ingredients,
+                data = self.dataset,
                 **kwargs)
         return self
 
@@ -371,7 +382,7 @@ class DefaultTasks(Plan):
         default_factory = Repository)
     defaults: Optional[List[str]] = field(default_factory = list)
     iterable: Optional[str] = field(default_factory = lambda: 'steps')
-    project: 'Project' = None
+    idea: 'Idea' = None
 
     def _create_contents(self) -> None:
         self.contents = {
@@ -381,18 +392,18 @@ class DefaultTasks(Plan):
                 book = 'Manual',
                 # worker = 'Wrangler',
                 options = 'Mungers'),
+            'summarize': Task(
+                name = 'explorer',
+                module = 'simplify.explorer.explorer',
+                book = 'Ledger',
+                # worker = 'Explorer',
+                options = 'Measures'),
             'analyze': Task(
                 name = 'analyst',
                 module = 'simplify.analyst.analyst',
                 book = 'Cookbook',
-                # worker = 'Analyst',
+                worker = 'Analyst',
                 options = 'Tools'),
-            'summarize': Task(
-                name = 'actuary',
-                module = 'simplify.actuary.actuary',
-                book = 'Ledger',
-                # worker = 'Actuary',
-                options = 'Measures'),
             'criticize': Task(
                 name = 'critic',
                 module = 'simplify.critic.critic',

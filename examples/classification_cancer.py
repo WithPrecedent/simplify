@@ -35,18 +35,18 @@ idea = Path.cwd().joinpath('examples', 'cancer_settings.ini')
 cancer_project = Project(
     idea = idea,
     # inventory = root_folder,
-    ingredients = df)
+    dataset = df)
 # Converts label to boolean type to correct numpy default above.
-cancer_project.ingredients.change_datatype(
+cancer_project.dataset.change_datatype(
     columns = 'target',
     datatype = 'boolean')
 # Fills missing data with appropriate default values based on column datatype.
-# cancer_project.ingredients.smart_fill()
+# cancer_project.dataset.smart_fill()
 # Iterates through every recipe and exports plots, explainers, and other
 # metrics from each recipe.
 cancer_project.apply()
 # Outputs information about the best recipe to the terminal.
 # cancer_project['critic'].print_best()
-# Saves ingredients file with predictions or predicted probabilities added
+# Saves dataset file with predictions or predicted probabilities added
 # (based on options in idea).
-#cancer_project.ingredients.save(file_name = 'cancer_df')
+#cancer_project.dataset.save(file_name = 'cancer_df')

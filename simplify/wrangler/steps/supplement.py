@@ -37,5 +37,5 @@ class Supplement(WranglerTechnique):
         self._options = Repository(options = {}
         return self
 
-    def publish(self, ingredients, sources):
-        return ingredients
+    def publish(self, dataset, sources):
+        return dataset

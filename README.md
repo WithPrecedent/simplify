@@ -61,7 +61,7 @@ To understand a typical use-case for siMplify, let's examine a project that omit
 
 ### siMpLify Analyst
 
-As an example of siMpLify's functionality, let's review the Analyst subpackage. It allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling ingredients based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
+As an example of siMpLify's functionality, let's review the Analyst subpackage. It allows users to create a cookbook of dynamic recipes that mix-and-match feature engineering and modeling dataset based upon a common, simple interface. It then analyzes the results using selected, appropriate metrics and exports tables, charts, and graphs compatible with the models and data types.
 
 By default, the Analyst divides the feature engineering and modeling process into eight major steps that can be sequenced in different stepss (or supplemented with
 custom steps and steps):
@@ -140,7 +140,7 @@ The examples folder, from which the above settings are taken, currently shows ho
     import numpy as np
     from sklearn.datasets import load_breast_cancer
 
-    from simplify import Idea, inventory, Ingredients
+    from simplify import Idea, inventory, Dataset
     from simplify.analyst import Cookbook
 
     # Loads cancer data and converts from numpy arrays to pandas dataframe.
@@ -151,16 +151,16 @@ The examples folder, from which the above settings are taken, currently shows ho
     idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
                                             'cancer_settings.ini'))
     inventory = inventory(root_folder = os.path.join('..', '..'))
-    ingredients = Ingredients(df = df)
+    dataset = Dataset(df = df)
     # Converts label to boolean type - conversion from numpy arrays leaves all
     # columns as float type.
-    ingredients.change_datatype(columns = 'target', datatype = 'boolean')
-    # Fills missing ingredients with appropriate default values based on column
+    dataset.change_datatype(columns = 'target', datatype = 'boolean')
+    # Fills missing dataset with appropriate default values based on column
     # datatype.
-    ingredients.smart_fill()
+    dataset.smart_fill()
     # Creates instance of Cookbook which, by default, will automatically create
     # all recipes from the settings file.
-    cookbook = Cookbook(ingredients = ingredients)
+    cookbook = Cookbook(dataset = dataset)
     # Iterates through every recipe and exports plots, explainers, and other
     # metrics from each recipe.
     cookbook.implement()
@@ -168,9 +168,9 @@ The examples folder, from which the above settings are taken, currently shows ho
     cookbook.save_everything()
     # Outputs information about the best recipe to the terminal.
     cookbook.print_best()
-    # Saves ingredients file with predictions or predicted probabilities added
+    # Saves dataset file with predictions or predicted probabilities added
     # (based on options from the settings file).
-    cookbook.ingredients.save(file_name = 'cancer_df')
+    cookbook.dataset.save(file_name = 'cancer_df')
 
 That's it. From that, all possible recipes are created. Each recipe gets its own folder within the results folder with relevant plots, a confusion matrix, and a classification report. A complete results file (review.csv) and summary statistics from the data (data_summary.csv) are stored in the results folder. Pickled cookbooks and recipes are also included if the user selects that option. In the above example, these are some of the plots automatically created for one of the recipes:
 

@@ -36,23 +36,23 @@ class Combine(WranglerTechnique):
         super().__post_init()
         return self
 
-    def _combine_all(self, ingredients):
-        ingredients.df[self.parameters['out_column']] = np.where(
-                np.all(ingredients.df[self.parameters['in_columns']]),
+    def _combine_all(self, dataset):
+        dataset.df[self.parameters['out_column']] = np.where(
+                np.all(dataset.df[self.parameters['in_columns']]),
                 True, False)
-        return ingredients
+        return dataset
 
-    def _combine_any(self, ingredients):
-        ingredients.df[self.parameters['out_column']] = np.where(
-                np.any(ingredients.df[self.parameters['in_columns']]),
+    def _combine_any(self, dataset):
+        dataset.df[self.parameters['out_column']] = np.where(
+                np.any(dataset.df[self.parameters['in_columns']]),
                 True, False)
-        return ingredients
+        return dataset
 
-    def _dict(self, ingredients):
-        ingredients.df[self.parameters['out_column']] = (
-                ingredients.df[self.parameters['in_columns']].map(
+    def _dict(self, dataset):
+        dataset.df[self.parameters['out_column']] = (
+                dataset.df[self.parameters['in_columns']].map(
                         self.method))
-        return ingredients
+        return dataset
 
     def draft(self) -> None:
         self._options = Repository(options = {'all': self._combine_all,
@@ -64,6 +64,6 @@ class Combine(WranglerTechnique):
             self.algorithm = self._dict
         return self
 
-    def publish(self, ingredients):
-        self.data = self.algorithm(ingredients)
-        return ingredients
+    def publish(self, dataset):
+        self.data = self.algorithm(dataset)
+        return dataset

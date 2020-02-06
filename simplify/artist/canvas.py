@@ -7,7 +7,8 @@
 """
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 from simplify.core.chapter import Chapter
 from simplify.core.book import Book
@@ -27,14 +28,14 @@ class Canvas(Book):
             folder should be located for file output. A inventory instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Default is None.
-        ingredients (Optional[Union['Ingredients', pd.DataFrame, pd.Series,
-            np.ndarray, str]]): an instance of Ingredients, a string containing
+        dataset (Optional[Union['Dataset', pd.DataFrame, pd.Series,
+            np.ndarray, str]]): an instance of Dataset, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
             data folder, as defined in the shared Inventory instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
-            attribute in a new Ingredients instance. Default is None.
+            attribute in a new Dataset instance. Default is None.
         steps (Optional[Union[List[str], str]]): ordered names of Book
             subclasses to include. These names should match keys in the
             'options' attribute. If using the Idea instance settings, this
@@ -49,13 +50,13 @@ class Canvas(Book):
             provided, __class__.__name__.lower() is used instead.
         auto_publish (Optional[bool]): whether to call the 'publish' method when
             a subclass is instanced. For auto_publish to have an effect,
-            'ingredients' must also be passed. Defaults to True.
+            'dataset' must also be passed. Defaults to True.
 
     """
     idea: Union['Idea', str]
     inventory: Optional[Union['Inventory', str]] = None
-    ingredients: Optional[Union[
-        'Ingredients',
+    dataset: Optional[Union[
+        'Dataset',
         pd.DataFrame,
         pd.Series,
         np.ndarray,

@@ -48,14 +48,14 @@ class Clean(SimpleIterable):
     def draft(self) -> None:
         return self
 
-    def _implement_combiner(self, ingredients):
-        data = self.algorithm.implement(ingredients)
-        return ingredients
+    def _implement_combiner(self, dataset):
+        data = self.algorithm.implement(dataset)
+        return dataset
 
-    def _implement_keyword(self, ingredients):
-        ingredients.df = self.algorithm.implement(ingredients.df)
-        return ingredients
+    def _implement_keyword(self, dataset):
+        dataset.df = self.algorithm.implement(dataset.df)
+        return dataset
 
-    def publish(self, ingredients):
-        data = getattr(self, '_implement_' + self.step)(ingredients)
-        return ingredients
+    def publish(self, dataset):
+        data = getattr(self, '_implement_' + self.step)(dataset)
+        return dataset

@@ -7,20 +7,17 @@
 """
 
 from collections.abc import Container
-from collections.abc import Iterable
 from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
-import datetime
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
+    Tuple, Union)
 
 import numpy as np
 import pandas as pd
 
-from simplify.core.repository import Repository
-from simplify.core.repository import Plan
 from simplify.core.utilities import listify
 
 
@@ -97,7 +94,7 @@ class Outline(Container):
                     getattr(self, component))
             except (ImportError, AttributeError):
                 raise ImportError(' '.join(
-                    [getattr(self, component), 'is neither in', self.module, 
+                    [getattr(self, component), 'is neither in', self.module,
                         'nor', self.default_module]))
 
 
@@ -192,20 +189,4 @@ class SimpleType(MutableMapping):
     def _create_reversed(self) -> None:
         """Creates 'reversed_types'."""
         self.reversed_types = {value: key for key, value in self.types.items()}
-        return self
-
-
-@dataclass
-class SimpleDatatypes(SimpleType):
-
-    def __post_init__(self) -> None:
-        self.datatypes = {
-            'boolean': bool,
-            'float': float,
-            'integer': int,
-            'string': object,
-            'categorical': pd.CategoricalDtype,
-            'list': list,
-            'datetime': np.datetime64,
-            'timedelta': datetime.timedelta}
         return self

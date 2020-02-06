@@ -62,6 +62,6 @@ class Sow(SimpleIterable):
             self.export_folder = 'external'
         return self
 
-    def publish(self, ingredients):
-        self.algorithm.implement(ingredients)
-        return ingredients
+    def publish(self, dataset):
+        self.algorithm.implement(dataset)
+        return dataset
