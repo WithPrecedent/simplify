@@ -89,5 +89,5 @@ def startup(
     inventory = Inventory.create(root_folder = inventory)
     Dataset.idea = idea
     Dataset.inventory = inventory
-    dataset = Dataset.create(dataset = dataset)
+    dataset = Dataset.create(data = dataset)
     return idea, inventory, dataset

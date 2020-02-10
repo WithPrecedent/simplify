@@ -95,7 +95,7 @@ class Ledger(Book):
 
     def draft(self) -> None:
         """Sets default options for the Explorer's analysis."""
-        self._options = Repository(options = {
+        self._options = Repository(contents = {
             'summary': ('simplify.explorer.steps.summarize', 'Summarize'),
             'test': ('simplify.explorer.steps.test', 'Test')}
         # Sets plan container

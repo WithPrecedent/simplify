@@ -31,10 +31,13 @@ class Worker(object):
     """Base class for applying Book instances to data.
 
     Args:
-        idea ('Idea'): the shared 'Idea' instance with project settings.
+        idea ('Idea'): an instance with project settings.
+        task ('Task'): instance with information needed to create a Book
+            instance.
 
     """
     idea: 'Idea'
+    task: Optional['Task'] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -293,7 +296,7 @@ class Parallelizer(object):
     """Applies techniques using one or more CPU or GPU cores.
 
     Args:
-        project ('Project'): a related 'Project' instance.
+        idea ('Idea'): shared 'Idea' instance with project settings.
 
     """
     idea: 'Idea'

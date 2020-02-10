@@ -55,7 +55,7 @@ class Combine(WranglerTechnique):
         return dataset
 
     def draft(self) -> None:
-        self._options = Repository(options = {'all': self._combine_all,
+        self._options = Repository(contents = {'all': self._combine_all,
                         'any': self._combine_any,
                         'dict': self._dict}
         if isinstance(self.method, str):

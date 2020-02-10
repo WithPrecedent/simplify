@@ -8,6 +8,7 @@
 
 from ast import literal_eval
 from collections.abc import Container
+from collections.abc import Mapping
 from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
@@ -27,23 +28,17 @@ class Dataset(MutableMapping):
     """Contains a collection of data objects (DataSlice instances).
 
     Args:
-        contents (Optional[Dict[str, 'DataSlice']]): keys are names of the data
-            objects (e.g. 'x', 'y_train', etc.) and values are DataSlice
-            instances storing pandas data objects. Defaults to an empty
-            dictionary.
-        default (Optional[str]): name of data object in 'contents' to apply
-            methods to by default, if a particular data is not accessed.
-            Defaults to 'data'.
-        name (Optional[str]): this should be used to distinguish multiple sets
-            of unrelated data. Ordinarily, it is not needed. Defaults to
-            'contents'.
-        idea ('Idea'): the shared 'Idea' instance with project settings.
-        inventory ('Inventory):
+        dataset (Optional[Union['Dataset', 'DataSlice', pd.DataFrame,
+            np.ndarray, str, Dict[str, Union['DataSlice', pd.DataFrame,
+            np.ndarray, str]]]]): keys are names of the data objects (e.g. 'x',
+            'y_train', etc.) and values are DataSlice instances storing pandas
+            data objects. Defaults to an empty dictionary.
+        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
+        inventory (ClassVar['Inventory']): shared 'Inventory' instance with
+            project file management settings.
 
     """
-    idea: ClassVar['Idea'] = None
-    inventory: ClassVar['Inventory'] = None
-    dataset: Optional[Union[
+    data: Optional[Union[
         'Dataset',
         'DataSlice',
         pd.DataFrame,
@@ -54,19 +49,22 @@ class Dataset(MutableMapping):
             pd.DataFrame,
             np.ndarray,
             str]]]] = None
+    idea: ClassVar['Idea'] = None
+    inventory: ClassVar['Inventory'] = None
 
     def __post_init__(self) -> None:
         """Sets default attributes."""
-        self.active = 'full'
+        self.stages = DataStages(parent = self)
         self.types = PandasTypes()
         self._create_dataslices()
+        self._set_defaults()
         return self
 
     """ Factory Method """
 
     @classmethod
     def create(cls,
-            dataset: Union[
+            data: Union[
                 'Dataset',
                 pd.DataFrame,
                 pd.Series,
@@ -79,7 +77,7 @@ class Dataset(MutableMapping):
         """Creates an Dataset instance.
 
         Args:
-            dataset (Union['Dataset', pd.DataFrame, pd.Series, np.ndarray, str,
+            data (Union['Dataset', pd.DataFrame, pd.Series, np.ndarray, str,
                 Dict[str, Union[pd.DataFrame, pd.Series, np.ndarray, str]]]):
                 Dataset instance or information needed to create one.
             inventory ('Inventory'): a Inventory instance.
@@ -88,7 +86,7 @@ class Dataset(MutableMapping):
             Dataset instance, properly configured.
 
         Raises:
-            TypeError: if 'dataset' is neither a file path, file folder,
+            TypeError: if 'data' is neither a file path, file folder,
                 None, DataFrame, Series, numpy array, or Dataset instance.
 
         """
@@ -96,131 +94,141 @@ class Dataset(MutableMapping):
             cls.idea = idea
         if inventory is not None:
             cls.inventory = inventory
-        if isinstance(dataset, Dataset):
-            return dataset
-        elif isinstance(dataset,
+        if isinstance(data, Dataset):
+            return data
+        elif data is None:
+            return cls()
+        elif isinstance(data,
                 (list, dict, pd.Series, pd.DataFrame, np.ndarray, str)):
-            new_dataset = cls()
-            if dataset is None:
-                pass
-            elif isinstance(dataset, dict):
-                for name, data in dataset.items():
-                    new_dataset.add(name = name, data = data)
-            elif isinstance(dataset,
+            new_data = cls()
+            if isinstance(data, dict):
+                for name, data in data.items():
+                    new_data.add(name = name, data = data)
+            elif isinstance(data,
                     (pd.Series, pd.DataFrame, np.ndarray, str)):
-                new_dataset.add(name = 'full', data = dataset)
-            return new_dataset
+                new_data.add(name = 'full', data = data)
+            return new_data
         else:
             raise TypeError(' '.join(
-                ['dataset must be a file path, file folder, DataFrame, Series',
+                ['data must be a file path, file folder, DataFrame, Series',
                 'None, Dataset, dict, or numpy array']))
 
     """ Required ABC Methods """
 
     def __getitem__(self, key: str) -> Any:
-        """Returns value for 'key' in 'contents'.
+        """Returns value for 'key' in '__dict__'.
 
         If there are no matches, the method searches for a matching wildcard
-        option.
+        option ('all', 'train', 'test', 'val', or 'xy').
 
         Args:
-            key (str): name of key in 'contents'.
+            key (str): name of key in '__dict__'.
 
         Returns:
-            Any: item stored in 'contents' or a wildcard value.
+            Any: item stored in '__dict__' or a wildcard value.
 
         """
         try:
             return self.__dict__[key]
         except KeyError:
             try:
-                return self.__dict__[self.active][key]
+                return self.full[key]
             except (TypeError, KeyError):
-                if key in ['all']:
-                    return list(subsetify(self.__dict__, self._slices).values())
-                elif key in ['train']:
-                    keys = list(self.__dict__.keys())
-                    training = [x for x in keys if x.endswith('train')]
-                    return list(subsetify(self.__dict__, training).values())
-                elif key in ['test']:
-                    keys = list(self.__dict__.keys())
-                    testing = [x for x in keys if x.endswith('test')]
-                    return list(subsetify(self.__dict__, testing).values())
-                elif key in ['val']:
-                    keys = list(self.__dict__.keys())
-                    validation = [x for x in keys if x.endswith('val')]
-                    return list(subsetify(self.__dict__, validation).values())
-                elif key in ['xy']:
-                    return [self.__dict__['x'], self.__dict__['y']]
+                if key in ['train', 'train_set', 'training']:
+                    return (self.__dict__[self.train_set[0]],
+                        self.__dict__[self.train_set[1]])
+                elif key in ['test', 'test_set', 'testing']:
+                    return (self.__dict__[self.test_set[0]],
+                        self.__dict__[self.test_set[1]])
                 else:
                     raise KeyError(' '.join(
                         [key, 'is not in', self.__class__.__name__]))
 
     def __setitem__(self, key: str, value = 'DataSlice') -> None:
-        """
+        """Sets 'key' to 'value'.
+
+        Args:
+            key (str): key for 'DataSlice' instance to be stored.
+            value ('DataSlice'): instance to be stored.
+
         """
         self.__dict__[key] = value
 
-
     def __delitem__(self, key: str) -> Any:
-        """
+        """Deletes stored 'DataSlice' instance at 'key'.
+
+        Args:
+            key (str): key to 'DataSlice' to delete.
 
         """
         del self.__dict__[key]
 
     def __len__(self) -> int:
-        return len(getattr(self, self.active))
+        """Returns length of 'full' 'DataSlice' instance.
+
+        Returns:
+            int: length of 'full' 'DataSlice'.
+
+        """
+        return len(self.full)
 
     def __iter__(self) -> Iterable:
-        return len(getattr(self, self.active))
+        """Returns iterable of 'full' 'DataSlice'.
+
+        Returns:
+            Iterable: of 'DataSlice' object currently set to 'full'.
+
+        """
+        return iter(self.full)
 
     """ Other Dunder Methods """
 
     def __getattr__(self, attribute: str) -> Any:
-        """Tries to find attribute inside other attributes.
+        """Tries to find 'attribute' in 'full' 'DataSlice' instance.
 
         Args:
-            attribute (str): attribute to look for in other attributes.
+            attribute (str): attribute to look for in 'full' 'DataSlice'
+                instance.
 
         Returns:
-            Any: attribute inside specific attributes.
+            Any: attribute in 'full' 'DataSlice' instance.
 
         Raises:
-            AttributeError: if 'attribute' is not found in any of the searched
-                attributes.
+            AttributeError: if 'attribute' is not found in 'full' 'DataSlice'
+                instance.
 
         """
-        if ('slices' in self.__dict__
-                and attribute.lower() in self.__dict__['slices']):
-            return self.__dict__[attribute.lower()]
-        else:
-            try:
-                return getattr(self.__dict__['full'], attribute)
-            except AttributeError:
-                pass
+        try:
+            if attribute in ['train', 'train_set', 'training']:
+                return (self.__dict__[self.__dict__['train_set'][0]],
+                    self.__dict__[self.__dict__['train_set'][1]])
+            elif attribute in ['test', 'test_set', 'testing']:
+                return (self.__dict__[self.__dict__['test_set'][0]],
+                    self.__dict__[self.__dict__['test_set'][0]])
+        except (AttributeError, KeyError):
+            return getattr(self.__dict__['full'], attribute)
 
-    # def __setattr__(self, attribute: str, value: 'DataSlice') -> None:
-    #     """Tries to find attribute inside other attributes.
+    def __setattr__(self, attribute: str, value: Any) -> None:
+        """Sets attribute in DataSet instance or in 'full' 'DataSlice'.
 
-    #     Args:
-    #         attribute (str): attribute to look for in other attributes.
+        If 'attribute' is listed in '_slices', it will be added to the 'Dataset'
+        instance. If not, it will be added to the 'full' 'DataSlice'.
 
-    #     Returns:
-    #         Any: attribute inside specific attributes.
+        Args:
+            attribute (str): name of attribute to be set.
+            value (Any): value of attribute to be set.
 
-    #     Raises:
-    #         AttributeError: if 'attribute' is not found in any of the searched
-    #             attributes.
-
-    #     """
-    #     if ('slices' in self.__dict__
-    #             and attribute.lower() in self.__dict__['slices']):
-    #         self.__dict__[attribute.lower()] = value
-    #     else:
-    #         setattr(self.__dict__['dataset']['full'], attribute, value)
+        """
+        try:
+            if attribute in self._slices:
+                self.__dict__[attribute] = value
+            else:
+                setattr(self.__dict__['full'], attribute, value)
+        except (KeyError, AttributeError, TypeError):
+            self.__dict__[attribute] = value
 
     def __add__(self, other: 'DataSlice') -> None:
-        """Adds 'other' to 'dataset'.
+        """Adds 'other' to stored data.
 
         Args:
             other ('DataSlice'): an 'DataSlice' instance.
@@ -230,7 +238,7 @@ class Dataset(MutableMapping):
         return self
 
     def __iadd__(self, other: 'DataSlice') -> None:
-        """Adds 'other' to 'dataset'.
+        """Adds 'other' to stored data.
 
         Args:
             other ('DataSlice'): an 'DataSlice' instance.
@@ -238,6 +246,12 @@ class Dataset(MutableMapping):
         """
         self.add(name = other.name, data = other)
         return self
+
+    def __repr__(self) -> str:
+        return self.__dict__.__repr__()
+
+    def __str__(self) -> str:
+        return self.__dict__.__str__()
 
     """ Private Methods """
 
@@ -250,15 +264,22 @@ class Dataset(MutableMapping):
             'x_val', 'y_val']
         for slice in self._slices:
             self.__dict__[slice] = DataSlice(dataset = self)
-        if isinstance(self.dataset, pd.DataFrame):
-            self.full = DataSlice(data = self.dataset, dataset = self)
-            del self.dataset
+        if isinstance(self.data, pd.DataFrame):
+            self.full = DataSlice(data = self.data, dataset = self)
+        del self.data
+        return self
+
+    def _set_defaults(self) -> None:
+        self.train_set = ('x_train', 'y_train')
+        self.test_set = ('x_test', 'y_test')
+        self.import_folder = 'processed'
+        self.export_folder = 'processed'
         return self
 
     """ Public Methods """
 
     def add(self, name: str, data: 'DataSlice') -> None:
-        """Adds 'data' to 'dataset'.
+        """Adds 'data' to stored data.
 
         Args:
             data ('DataSlice'): an 'DataSlice' instance.
@@ -270,7 +291,7 @@ class Dataset(MutableMapping):
             dataset = self)
         return self
 
-    def split_xy(self,
+    def divide_xy(self,
             data: Optional['DataSlice'] = None,
             label: Optional[str] = None) -> None:
         """Splits data into 'x' and 'y' based upon the label passed.
@@ -280,8 +301,8 @@ class Dataset(MutableMapping):
             label (Optional[str]): name of column to be stored in 'y'.
 
         """
-        if data is None:
-            data = self.full
+        if data is not None:
+            self.full = data
         if label is None:
             try:
                 label = self.idea['analyst']['label']
@@ -293,7 +314,7 @@ class Dataset(MutableMapping):
         self.y = self.full[label]
         self.label_datatype = self.full.datatypes[label]
         del self.full.datatypes[label]
-        self.active = 'x'
+        self.stages.change('divided')
         return self
 
 
@@ -323,6 +344,7 @@ class DataSlice(MutableMapping):
     name: Optional[str] = None
 
     def __post_init__(self) -> None:
+        """Initializes instance attributes."""
         if self.data is not None:
             self._initialize_datatypes()
         return self
@@ -382,6 +404,15 @@ class DataSlice(MutableMapping):
     """ Required ABC Methods """
 
     def __getitem__(self, key: str) -> Any:
+        """Returns 'key' from 'data' attribute.
+
+        Args:
+            key (str): name of column in 'data' to return.
+
+        Returns:
+            pd.Series: column from 'data'.
+
+        """
         return self.data[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
@@ -432,7 +463,7 @@ class DataSlice(MutableMapping):
         elif attribute in ['dropped_columns']:
             return self._start_columns - list(self.datatypes.keys())
         else:
-            # Tries to apply method to pandas object itself.
+            # Tries to return attribute from 'data' object itself.
             try:
                 return getattr(self.data, attribute)
             except:
@@ -518,34 +549,10 @@ class DataSlice(MutableMapping):
         return [
             self.data.columns.get_loc(column) for column in listify(columns)]
 
-    # def _infer_type(self, column: pd.Series) -> str:
-    #     """Infers column datatype of a single column.
-
-    #     This method is an alternative to default pandas methods which can use
-    #     complex datatypes (e.g., int8, int16, int32, int64, etc.) instead of
-    #     simple types.
-
-    #     Non-standard python datatypes cannot be inferred.
-
-    #     Args:
-    #         column (pd.Series): column for which datatype is sought.
-
-    #     Returns:
-    #         str: name of siMpLify proxy datatype name.
-
-    #     """
-    #     try:
-    #         self.datatypes[column] = self.data.select_dtypes(
-    #                 include = [datatype]).columns.to_list()[0]
-    #     except AttributeError:
-    #         pass
-    #     return self
-
     def _initialize_datatypes(self) -> None:
         """Initializes datatypes for stored pandas data object."""
         if not self.datatypes:
             self.infer_datatypes()
-
         else:
             self._crosscheck_columns()
         self._start_columns = list(self.data.columns.values)
@@ -565,17 +572,6 @@ class DataSlice(MutableMapping):
             Add functionality for all cases.
 
         """
-        return self
-
-    def apply(self, callable: Callable, **kwargs) -> None:
-        """Applies 'callable' to 'data' atttribute with **kwargs).
-
-        Args:
-            callable (Callable): to be applied to 'data'.
-            kwargs: any arguments to be passed to 'callable'.
-
-        """
-        self.data = callable(self.data, **kwargs)
         return self
 
     def change_datatype(self,
@@ -652,7 +648,23 @@ class DataSlice(MutableMapping):
             row[column] = self.dataset.default_values[datatype]
         return row
 
-    def indexify(self,
+    def infer_datatypes(self,
+            columns: Optional[Union[List[str], str]] = None) -> None:
+        """Infers proxy datatypes for 'columns'.
+
+        If 'columns' is not passed, all columns are checked.
+
+        Args:
+            columns (Optional[Union[List[str], str]]): columns to infer the
+                datatype for.
+
+        """
+        for name in self._check_columns(columns):
+            self.datatypes[name] = self.dataset.types.infer(
+                column = self.data[name])
+        return self
+
+    def uniquify(self,
             name: Optional[str] = 'index_universal',
             assign_index: Optional[bool] = False) -> None:
         """Creates a unique integer index for each row.
@@ -678,21 +690,6 @@ class DataSlice(MutableMapping):
             raise TypeError('To add an index, data must be a pandas DataFrame')
         return self
 
-    def infer_datatypes(self,
-            columns: Optional[Union[List[str], str]] = None) -> None:
-        """Infers proxy datatypes for 'columns'.
-
-        If 'columns' is not passed, all columns are checked.
-
-        Args:
-            columns (Optional[Union[List[str], str]]): columns to infer the
-                datatype for.
-
-        """
-        for name in self._check_columns(columns):
-            self.datatypes[name] = self.dataset.types.infer(
-                column = self.data[name])
-        return self
 
 @dataclass
 class PandasTypes(Container):
@@ -792,3 +789,146 @@ class PandasTypes(Container):
         return (
             proxy_type,
             self.downcast(proxy_type = proxy_type, column = column))
+
+
+@dataclass
+class DataStages(object):
+    """Base class for data state management."""
+
+    parent: object
+    stages: Optional[Union[List[str], Dict[str, 'SimpleStage']]] = field(
+        default_factory = dict)
+    initial: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        self._create_stages()
+        self._set_current()
+        return self
+
+    """ Factory Method """
+
+    @classmethod
+    def create(cls,
+            stages: Optional[Union[
+                'SimpleStages',
+                List[str],
+                Dict[str, 'SimpleStage']]] = None) -> 'SimpleStages':
+        """
+
+        """
+        if isinstance(stages, SimpleStages):
+            return stages
+        elif isinstance(stages, (list, dict)):
+            return cls(stages = stages)
+        elif stages is None:
+            return cls()
+        else:
+            raise TypeError('stages must be a SimpleStages, dict, or list')
+
+    """ Dunder Methods """
+
+    def __repr__(self) -> str:
+        """Returns string name of 'current'."""
+        return self.current
+
+    def __str__(self) -> str:
+        """Returns string name of 'current'."""
+        return self.current
+
+    """ Private Methods """
+
+    def _create_stages(self) -> None:
+        self.stages = {
+            'raw': DataStage(
+                import_folder = 'raw',
+                export_folder = 'raw'),
+            'interim': DataStage(
+                import_folder = 'raw',
+                export_folder = 'interim'),
+            'processed': DataStage(
+                import_folder = 'interim'),
+            'divided': DataStage(
+                train_set = ('x', 'y'),
+                test_set = ('x', 'y')),
+            'testing': DataStage(
+                train_set = ('x_train', 'y_train'),
+                test_set = ('x_test', 'y_test')),
+            'validating': DataStage(
+                train_set = ('x_train', 'y_train'),
+                test_set = ('x_val', 'y_val'))}
+        return self
+
+    def _set_current(self) -> None:
+        """Sets current 'stage' upon initialization."""
+        if self.initial and self.initial in self.stages:
+            self.current = self.initial
+        elif self.stages:
+            self.current = list(self.stages.keys())[0]
+        else:
+            self.current = None
+        self.previous = self.current
+        return self
+
+    """ Public Methods """
+
+    def change(self, new_stage: str) -> None:
+        """Changes 'stage' to 'new_stage'.
+
+        Args:
+            new_stage(str): name of new stage matching a string in 'stages'.
+
+        Raises:
+            TypeError: if new_stage is not in 'stages'.
+
+        """
+        if new_stage in self.stages:
+            self.previous = self.current
+            self.current = new_stage
+            self.stages[self.current].apply(instance = self.parent)
+        else:
+            raise ValueError(' '.join([new_stage, 'is not a recognized stage']))
+
+    """ Core siMpLify Methods """
+
+    def apply(self) -> None:
+        """Injects attributes into 'parent' based upon 'current'."""
+        self.stages[self.current].apply(instance = self.parent)
+        return self
+
+
+@dataclass
+class DataStage(object):
+    """A single stage in data processing for a siMpLify project.
+
+    Args:
+        train_set (Optional[Tuple[str, str]]): names of attributes in a
+            'Dataset' instance to return when 'train' is accessed. Defaults to
+            None.
+        test_set (Optional[Tuple[str, str]]): names of attributes in a
+            'Dataset' instance to return when 'test' is accessed. Defaults to
+            None.
+        import_folder (Optional[str]): name of an attribute in an 'Inventory'
+            instance corresponding to a path where data should be imported
+            from. Defaults to 'processed'.
+        export_folder (Optional[str]): name of an attribute in an 'Inventory'
+            instance corresponding to a path where data should be exported
+            from. Defaults to 'processed'.
+
+    """
+    train_set: Optional[Tuple[str, str]] = None
+    test_set: Optional[Tuple[str, str]] = None
+    import_folder: Optional[str] = field(default_factory = lambda: 'processed')
+    export_folder: Optional[str] = field(default_factory = lambda: 'processed')
+
+    """ Core SiMpLify Methods """
+
+    def apply(self, instance: object) -> object:
+
+        for attribute in [
+                'train_set',
+                'test_set',
+                'import_folder',
+                'export_folder']:
+            setattr(instance, attribute, getattr(self, attribute))
+        return instance

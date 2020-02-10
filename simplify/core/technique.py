@@ -102,21 +102,28 @@ class Technique(Container):
         """
         return item == self.technique
 
+    """ Private Methods """
+
+    def _apply_once(self, x: 'DataSlice', y: 'DataSlice') -> 'DataSlice':
+        if self.fit_method:
+            self.fit(x = x, y = y)
+        if self.transform_method:
+            x = self.transform(x = x, y = y)
+        return x
+
     """ Core siMpLify Methods """
 
     def apply(self, data: 'Dataset') -> 'Dataset':
-        print('test data apply', data)
-        if self.fit_method:
-            self.fit(x = data.x, y = data.y)
-        if self.transform_method:
-            data.x = self.transform(x = data.x, y = data.y)
-        if not self.fit_method and not self.transform_method:
-            data = self.algorithm.apply(data = data)
+        if data['train'] is None:
+            data.x = self._apply_once(x = data.x, y = data.y)
+        else:
+            data.x_train = self._apply_once(x = data.x_train, y = data.y_train)
+            data.x_test = self._apply_once(x = data.x_test, y = data.y_test)
         return data
 
     """ Scikit-Learn Compatibility Methods """
 
-    @DataValidator
+    # @DataValidator
     def fit(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None) -> None:
@@ -132,6 +139,7 @@ class Technique(Container):
             AttributeError if no 'fit' method exists for 'technique'.
 
         """
+        print('test shapes', x.data.shape, y.data.shape)
         x, y = check_X_y(X = x, y = y, accept_sparse = True)
         try:
             if y is None:
@@ -143,7 +151,7 @@ class Technique(Container):
                 [self.technique, 'has no fit method']))
         return self
 
-    @DataValidator
+    # @DataValidator
     def fit_transform(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None) -> pd.DataFrame:
@@ -167,7 +175,7 @@ class Technique(Container):
         self.fit(x = x, y = y, data = dataset)
         return self.transform(x = x, y = y)
 
-    @DataValidator
+    # @DataValidator
     def transform(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None) -> pd.DataFrame:
@@ -188,12 +196,8 @@ class Technique(Container):
                 'process'.
 
         """
-        print('test transform', self.technique)
         if self.transform_method:
-            if y is None:
-                return getattr(self.algorithm, self.transform_method)(x)
-            else:
-                return getattr(self.algorithm, self.transform_method)(x, y)
+            return getattr(self.algorithm, self.transform_method)(x)
         else:
             raise AttributeError(' '.join(
                 [self.technique, 'has no transform method']))

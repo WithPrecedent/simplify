@@ -17,8 +17,10 @@ import numpy as np
 import pandas as pd
 
 import simplify
+from simplify.core.book import Book
 from simplify.core.dataset import Dataset
 from simplify.core.definitions import Outline
+from simplify.core.publisher import Publisher
 from simplify.core.repository import Plan
 from simplify.core.repository import Repository
 from simplify.core.utilities import datetime_string
@@ -92,6 +94,8 @@ class Project(Iterable):
         default_factory = Plan)
     library: Optional[Union['Plan', Dict[str, 'Book']]] = field(
         default_factory = Plan)
+    # workers: Optional[Union['Plan', Dict[str, 'Worker'], List[str]]] = field(
+    #     default_factory = Plan)
     auto_publish: Optional[bool] = True
     auto_apply: Optional[bool] = False
     name: Optional[str] = field(default_factory = lambda: 'project')
@@ -108,6 +112,9 @@ class Project(Iterable):
                 inventory = self.inventory,
                 dataset = self.dataset,
                 project = self))
+        # Injects 'idea' and 'inventory' into appropriate base classes.
+        self._spread_idea()
+        self._spread_inventory()
         # Initializes 'state' for use by the '__iter__' method.
         self.state = 'draft'
         # Automatically calls 'draft' method.
@@ -154,14 +161,29 @@ class Project(Iterable):
         """
         # Validates 'dataset'.
         if self.dataset is None:
-            raise ValueError(
-                'Calling Project as a function requires dataset')
+            raise ValueError('Calling Project as a function requires a dataset')
         else:
             self.auto_apply = True
             self.__post__init()
         return self
 
     """ Private Methods """
+
+    def _spread_idea(self) -> None:
+        """Injects 'idea' into select base classes."""
+        for simplify_class in [
+                DefaultTasks,
+                Dataset,
+                Repository,
+                Plan]:
+            setattr(simplify_class, 'idea', self.idea)
+        return self
+
+    def _spread_inventory(self) -> None:
+        """Injects 'inventory' into select base classes."""
+        for simplify_class in [Dataset, Book]:
+            setattr(simplify_class, 'inventory', self.inventory)
+        return self
 
     def _create_tasks(self,
             tasks: Union['Plan', Dict[str, 'Task'], List[str]]) -> 'Plan':
@@ -176,47 +198,33 @@ class Project(Iterable):
 
         """
         if isinstance(tasks, Plan):
-            tasks.idea = self.idea
             return tasks
         elif isinstance(tasks, dict):
-            return Plan(contents = tasks, idea = self.idea)
+            return Plan(contents = tasks)
         elif isinstance(tasks, list):
-            return DefaultTasks(steps = tasks, idea = self.idea)
+            return DefaultTasks(steps = tasks)
         else:
-            return DefaultTasks(idea = self.idea)
+            return DefaultTasks()
 
-    def _create_publishers(self, tasks: 'Plan') -> 'Plan':
-        """Creates Publisher instances for each Task.
+    def _create_task_attribute(self, tasks: 'Plan', attribute: str) -> 'Plan':
+        """Creates instances for 'attribute' for each Task in 'tasks'.
 
         Args:
             tasks ('Plan'): stored Task instances.
+            attribute (str): name of attribute to load and instance.
 
         Returns:
-            'Plan': instance with Publisher instances added.
+            'Plan': instance with instances added.
 
         """
-        # For each task, creates a Publisher instance.
-        for key, task in tasks.items():
-            publisher = task.load('publisher')
-            tasks[key].publisher = publisher(idea = self.idea, task = task)
+        # For each task, creates an instance at 'attribute'.
+        for name, task in tasks.items():
+            loaded = task.load(attribute)
+            setattr(
+                tasks[name],
+                attribute,
+                loaded(task = task, idea = self.idea))
         return tasks
-
-    def _create_workers(self, tasks: 'Plan') -> 'Plan':
-        """Creates Publisher instances for each Task.
-
-        Args:
-            tasks ('Plan'): stored Task instances.
-
-        Returns:
-            'Plan': instance with Publisher instances added.
-
-        """
-        # For each task, creates a Worker instance.
-        workers = {}
-        for key, task in tasks.items():
-            worker = task.load('worker')
-            workers[key] = worker(idea = self.idea)
-        return Plan(contents = workers)
 
     """ Public Methods """
 
@@ -257,11 +265,13 @@ class Project(Iterable):
         self = self.idea.apply(instance = self)
         # Creates 'Task' instances for each selected stage.
         self.tasks = self._create_tasks(tasks = self.tasks)
-        self.tasks = self._create_publishers(tasks = self.tasks)
+        self.tasks = self._create_task_attribute(
+            tasks = self.tasks,
+            attribute = 'publisher')
         # Iterates through 'tasks' and creates Book instances in 'tasks'.
-        for key, task in self.tasks.items():
+        for name, task in self.tasks.items():
             # Drafts a Book instance for 'task'.
-            self.tasks[key] = task.publisher.draft(task = task)
+            self.tasks[name] = task.publisher.draft(task = task)
         return self
 
     def publish(self,
@@ -282,8 +292,8 @@ class Project(Iterable):
         if tasks is not None:
             self.tasks = self._draft_tasks(tasks = tasks)
         # Iterates through 'tasks' and finalizes each Book instance.
-        for key, task in self.tasks.items():
-            self.library[key] = task.publisher.publish(task = task)
+        for name, task in self.tasks.items():
+            self.library[name] = task.publisher.publish(task = task)
         return self
 
     def apply(self, data: Optional['Dataset'] = None, **kwargs) -> None:
@@ -297,18 +307,17 @@ class Project(Iterable):
         """
         # Changes state.
         self.state = 'apply'
-        # Creates an iterable of 'workers' to apply Book instances to 'data'.
-        self.workers = self._create_workers(tasks = self.tasks)
-        # Deletes 'tasks' to save memory, if option is selected.
-        if self.conserve_memory:
-            del self.tasks
         # Assigns 'data' to 'dataset' attribute and validates it.
         if data:
             self.dataset = create_dataset(dataset = data)
+        # Creates an iterable of 'workers' to apply Book instances to 'data'.
+        self.tasks = self._create_task_attribute(
+            tasks = self.tasks,
+            attribute = 'worker')
         # Iterates through each task, creating and applying needed Books,
         # Chapters, and Techniques for each task in the Project.
-        for key, book in self.library.items():
-            self.library[key] = self.workers[key].apply(
+        for name, book in self.library.items():
+            self.library[name] = self.tasks[name].worker.apply(
                 book = book,
                 data = self.dataset,
                 **kwargs)
@@ -333,16 +342,21 @@ class Task(Outline):
         book (Optional[str]): name of Book object in 'module' to load. Defaults
             to 'Book'.
         publisher (Optional[str]): name of Publisher class in 'module' to load.
-            Defaults to
-            'Publisher'.
+            Defaults to 'Publisher'.
         worker (Optional[str]): name of Worker class in 'module' to load.
             Defaults to 'Worker'.
         steps: (Optional[List[str]]): list of steps to execute. Defaults to an
             empty list.
-        options (Optional[Union['Repository', str]]): a 'Repositor'y containing
-            options for the Task instance to utilize or a string corresponding
+        options (Optional[Union['Repository', str]]): a 'Repository' containing
+            options for the 'Task' instance to utilize or a string corresponding
             to a 'Repository' subclass in 'module' to load. Defaults to an
             empty 'Repository' instance.
+        import_folder (Optional[str]): name of attribute in 'inventory' which
+            contains the path to the default folder for importing data objects.
+            Defaults to 'processed'.
+        export_folder (Optional[str]): name of attribute in 'inventory' which
+            contains the path to the default folder for exporting data objects.
+            Defaults to 'processed'.
 
     """
     name: str
@@ -354,6 +368,8 @@ class Task(Outline):
     techniques: Optional[Dict[str, List[str]]] = field(default_factory = dict)
     options: Optional[Union['Repository', str]] = field(
         default_factory = Repository)
+    import_folder: Optional[str] = field(default_factory = lambda: 'processed')
+    export_folder: Optional[str] = field(default_factory = lambda: 'processed')
 
 
 @dataclass
@@ -375,6 +391,7 @@ class DefaultTasks(Plan):
         iterable (Optional[str]): the name of the attribute that should be
             iterated when a class instance is iterated. Defaults to 'contents'.
         project ('Project'): a related 'Project' instance.
+        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
 
     """
     steps: Optional[List[str]] = field(default_factory = list)
@@ -382,17 +399,19 @@ class DefaultTasks(Plan):
         default_factory = Repository)
     defaults: Optional[List[str]] = field(default_factory = list)
     iterable: Optional[str] = field(default_factory = lambda: 'steps')
-    idea: 'Idea' = None
+    idea: ClassVar['Idea'] = None
 
     def _create_contents(self) -> None:
         self.contents = {
-            'organize': Task(
+            'wrangle': Task(
                 name = 'wrangler',
                 module = 'simplify.wrangler.wrangler',
                 book = 'Manual',
                 # worker = 'Wrangler',
-                options = 'Mungers'),
-            'summarize': Task(
+                options = 'Mungers',
+                import_folder = 'raw',
+                export_folder = 'raw'),
+            'explore': Task(
                 name = 'explorer',
                 module = 'simplify.explorer.explorer',
                 book = 'Ledger',
@@ -404,7 +423,7 @@ class DefaultTasks(Plan):
                 book = 'Cookbook',
                 worker = 'Analyst',
                 options = 'Tools'),
-            'criticize': Task(
+            'evaluate': Task(
                 name = 'critic',
                 module = 'simplify.critic.critic',
                 book = 'Anthology',

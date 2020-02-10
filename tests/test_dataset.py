@@ -20,9 +20,10 @@ def test_dataset():
         columns = ['name', 'age'],
         index = None))
     data = Dataset.create(dataset = df)
+    data.downcast()
     assert data['name'].tolist() == ['allison', 'brian', 'corey']
     assert len(data) == 3
-    data.split_xy(label = 'age')
+    data.divide_xy(label = 'age')
     assert data.x['name'].tolist() == ['allison', 'brian', 'corey']
     return
 

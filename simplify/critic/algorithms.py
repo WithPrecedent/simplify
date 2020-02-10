@@ -699,7 +699,7 @@ class SkaterExplain(object):
 
     #     def draft(self) -> None:
     #     super().publish()
-    #     self._options = Repository(options = {
+    #     self._options = Repository(contents = {
     #         'classification': ('sklearn.metrics', 'classification_report'),
     #         'confusion': ('sklearn.metrics', 'confusion_matrix')}
     #     return self

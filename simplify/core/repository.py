@@ -32,24 +32,24 @@ class Repository(MutableMapping):
             passed, 'default' will be set to all keys.
         iterable (Optional[str]): the name of the attribute that should be
             iterated when a class instance is iterated. Defaults to 'contents'.
-        idea ('Idea'): the shared 'Idea' instance with project settings.
+        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
 
     """
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)
     default: Optional[List[str]] = field(default_factory = list)
     iterable: Optional[str] = field(default_factory = lambda: 'contents')
-    idea: 'Idea' = None
+    idea: ClassVar['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes attributes and settings."""
-        # Sets 'default' to all keys of 'contents', if not passed.
-        self.default = self.default or list(self.contents.keys())
         # Allows subclasses to customize 'contents' with '_create_contents'.
         self._create_contents()
+        # Sets 'default' to all keys of 'contents', if not passed.
+        self.default = self.default or list(self.contents.keys())
+        # # Creates a proxy property to refer to 'contents'.
+        # self._create_proxy_property()
         # Converts 'contents' to a 'Repository' instance.
         self._nestify()
-        # # Creates a pr
-        # self._create_proxy_property()
         return self
 
     """ Required ABC Methods """
@@ -169,40 +169,40 @@ class Repository(MutableMapping):
 
     """ Proxy Property Methods """
 
-    # def _create_proxy_property(self) -> None:
-    #     """Creates property named by value of 'iterable' attribute."""
-    #     if self.iterable != 'contents':
-    #         setattr(self, self.iterable, property(
-    #             fget = self._proxy_getter,
-    #             fset = self._proxy_setter,
-    #             fdel = self._proxy_deleter))
-    #     return self
+    def _create_proxy_property(self) -> None:
+        """Creates property named by value of 'iterable' attribute."""
+        if self.iterable != 'contents':
+            setattr(self, self.iterable, property(
+                fget = self._proxy_getter,
+                fset = self._proxy_setter,
+                fdel = self._proxy_deleter))
+        return self
 
-    # def _proxy_getter(self) -> 'Repository':
-    #     """Proxy getter for 'contents' using an alias in 'iterable'.
+    def _proxy_getter(self) -> 'Repository':
+        """Proxy getter for 'contents' using an alias in 'iterable'.
 
-    #     Returns:
-    #         'Repository': 'contents' Repository instance.
+        Returns:
+            'Repository': 'contents' Repository instance.
 
-    #     """
-    #     return self.contents
+        """
+        return self.contents
 
-    # def _proxy_setter(self, value: Union['Repository', Dict[str, Any]]) -> None:
-    #     """Proxy setter for 'contents' using an alias in 'iterable'.
+    def _proxy_setter(self, value: Union['Repository', Dict[str, Any]]) -> None:
+        """Proxy setter for 'contents' using an alias in 'iterable'.
 
-    #     Args:
-    #         value (Union['Repository', Dict[str, Any]]): new mutable mapping
-    #             to replace 'contents'.
+        Args:
+            value (Union['Repository', Dict[str, Any]]): new mutable mapping
+                to replace 'contents'.
 
-    #     """
-    #     self.contents = value
-    #     self._nestify()
-    #     return self
+        """
+        self.contents = value
+        self._nestify()
+        return self
 
-    # def _proxy_deleter(self) -> None:
-    #     """Proxy deleter using an alias name stored in 'iterable'."""
-    #     self.contents = {}
-    #     return self
+    def _proxy_deleter(self) -> None:
+        """Proxy deleter using an alias name stored in 'iterable'."""
+        self.contents = {}
+        return self
 
     """ Private Methods """
 
@@ -262,26 +262,29 @@ class Plan(Repository):
             passed, 'default' will be set to all keys.
         iterable (Optional[str]): the name of the attribute that should be
             iterated when a class instance is iterated. Defaults to 'contents'.
-        idea ('Idea'): the shared 'Idea' instance with project settings.
+        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
 
     """
+
     steps: Optional[List[str]] = field(default_factory = list)
     contents: Optional[Union['Repository', Dict[str, Any]]] = field(
         default_factory = Repository)
     default: Optional[List[str]] = field(default_factory = list)
     iterable: Optional[str] = field(default_factory = lambda: 'steps')
-    idea: 'Idea' = None
+    idea: ClassVar['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes attributes if not passed."""
         # Allows subclasses to customize 'contents' with '_create_contents'.
         self._create_contents()
-        # Sets 'steps' to all keys in 'contents' if not passed.
+        # # Creates a proxy property to refer to 'contents'.
+        # self._create_proxy_property()
+        # Converts 'contents' to a 'Repository' instance.
+        self._nestify()
+        # Allows subclasses to customize 'contents' with '_create_contents'.
         self.steps = self.steps or list(self.contents.keys())
         # Sets 'default' to 'steps' if not passed.
         self.default = self.default or self.steps
-        # Converts 'contents' to a 'Repository' instance.
-        self._nestify()
         return self
 
     """ Required ABC Methods """
@@ -408,30 +411,3 @@ class Plan(Repository):
         if value is not None:
             self.contents[step] = value
         return self
-
-
-""" Creation Functions """
-
-# def create_plan(
-#         plan: Union['Plan', List[str], str],
-#         repository: 'Repository',
-#         **kwargs) -> 'Plan':
-#     if isinstance(plan, Plan):
-#         return plan
-#     elif isinstance(plan, (list, str)):
-#         return Plan(
-#             steps = listify(plan, default_empty = True),
-#             contents = repository,
-#             **kwargs)
-#     else:
-#         raise TypeError('plan must be Plan, list, or str type')
-
-# def create_repository(
-#         repository: Union['Repository', Dict[str, Any]],
-#         **kwargs) -> 'Repository':
-#     if isinstance(repository, Repository):
-#         return repository
-#     elif isinstance(repository, dict):
-#         return Repository(contents = repository, **kwargs)
-#     else:
-#         raise TypeError('repository must be Repository or dict type')

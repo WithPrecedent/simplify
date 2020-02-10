@@ -41,7 +41,15 @@ class Publisher(object):
     """ Private Methods """
 
     def _draft_steps(self, task: 'Task') -> 'Task':
-        """Drafts 'steps' from 'task' or 'idea'."""
+        """Drafts 'steps' from 'task' or 'idea'.
+
+        Args:
+            task ('Task'): instance with attribute to be modified.
+
+        Returns:
+            'Task': with modifications made.
+
+        """
         try:
             task.steps = listify(self.idea[task.name]['_'.join(
                 [task.name, 'steps'])])
@@ -50,7 +58,15 @@ class Publisher(object):
         return task
 
     def _draft_techniques(self, task: 'Task') -> 'Task':
-        """Drafts 'techniques' from 'idea'."""
+        """Drafts 'techniques' from 'idea'.
+
+        Args:
+            task ('Task'): instance with attribute to be modified.
+
+        Returns:
+            'Task': with modifications made.
+
+        """
         task.techniques = {}
         for step in task.steps:
             key = '_'.join([step, 'techniques'])
@@ -61,7 +77,15 @@ class Publisher(object):
         return task
 
     def _draft_options(self, task: 'Task') -> 'Task':
-        """Creates options for creating a Book contents."""
+        """Creates options for creating a Book contents.
+
+        Args:
+            task ('Task'): instance with attribute to be modified.
+
+        Returns:
+            'Task': with modifications made.
+
+        """
         if isinstance(task.options, Repository):
             pass
         elif isinstance(task.options, str):
@@ -75,7 +99,15 @@ class Publisher(object):
         return task
 
     def _draft_book(self, task: 'Task') -> 'Task':
-        """Creates initial, empty Book instance."""
+        """Creates initial, empty Book instance.
+
+        Args:
+            task ('Task'): instance with attribute to be modified.
+
+        Returns:
+            'Task': with modifications made.
+
+        """
         if isinstance(task.book, (str, Book)):
             if isinstance(task.book, Book):
                 pass
@@ -88,7 +120,17 @@ class Publisher(object):
     """ Core siMpLify Methods """
 
     def draft(self, task: Optional['Task'] = None) -> 'Task':
-        """Drafts initial attributes and settings of a Book instance. """
+        """Drafts initial attributes and settings of a Book instance.
+
+        Args:
+            task (Optional['Task']): instance with attribute to be modified.
+                Defaults to None. If not provided, the existing 'task' attribute
+                will be used.
+
+        Returns:
+            'Task': with modifications made.
+
+        """
         if task is None:
             task = self.task
         # Creates 'raw_techniques', 'steps', 'options, and 'book'.
@@ -156,7 +198,7 @@ class Author(object):
         # Creates Chapter instance for every combination of techniques.
         for techniques in chapters:
             contents = dict(zip(task.steps, techniques))
-            new_techniques = Plan(idea = self.idea, contents = contents)
+            new_techniques = Plan(contents = contents)
             task.book.chapters.append(Chapter(techniques = new_techniques))
         return task
 

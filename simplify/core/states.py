@@ -5,7 +5,8 @@
 :copyright: 2019
 :license: Apache-2.0
 """
-
+from abc import ABC
+from abc import abstractmethod
 from collections.abc import Container
 from collections.abc import Iterable
 from collections.abc import MutableMapping
@@ -142,3 +143,125 @@ def create_states(
     else:
         raise TypeError('states must be list, None, or SimpleState type.')
 
+
+# @dataclass
+# class SimpleStates(object):
+#     """Base finite state machine for siMpLify."""
+
+#     states: Optional[List[str]] = None
+#     initial: Optional[str] = None
+
+#     def _post_init__(self) -> None:
+#         """Initializes class instance attributes."""
+#         self._set_states()
+#         self.order = list(self.states.keys())
+#         return self
+
+#     """ Factory Method """
+
+#     @classmethod
+#     def create(cls,
+#             states: Optional[Union[
+#                 List[str], 'DataStates']] = None) -> 'DataStates':
+#         """
+
+#         """
+#         if isinstance(states, DataStates):
+#             return states
+#         elif isinstance(states, (list, dict)):
+#             return cls(states = states)
+#         elif states is None:
+#             return cls()
+#         else:
+#             raise TypeError('states must be a DataStates, dict, or list')
+
+#     """ Dunder Methods """
+
+#     def __repr__(self) -> str:
+#         """Returns string name of 'current'."""
+#         return self.current
+
+#     def __str__(self) -> str:
+#         """Returns string name of 'current'."""
+#         return self.current
+
+#     """ Private Methods """
+
+#     def _set_states(self) -> None:
+#         self.defaults = {
+#             'raw': DataState(
+#                 default: 'full',
+#                 import_folder: 'raw',
+#                 export_folder: 'raw'),
+#             'interim': DataState(
+#                 default: 'full',
+#                 import_folder: 'raw',
+#                 export_folder: 'interim'),
+#             'processed': DataState(
+#                 default: 'full',
+#                 import_folder: 'interim'),
+#             'staging': DataState(
+#                 default: 'x',
+#                 training: ('x', 'y'),
+#                 testing: ('x', 'y')),
+#             'testing': DataState(
+#                 training: ('x_train', 'y_train'),
+#                 testing: ('x_test', 'y_test')),
+#             'validating': DataState(
+#                 training: ('x_train', 'y_train'),
+#                 testing: ('x_val', 'y_val')))}
+#         if self.states is None:
+#             self.states = self.defaults
+#         elif isinstance(self.states, list):
+#             new_states = {}
+#             for state in self.states:
+#                 new_states[state] = self.defaults[state]
+#             self.states = new_states
+#         elif isinstance(self.states, DataStates):
+#             self.states = self.states.states
+#         if self.initial:
+#             self.current = self.initial
+#         else:
+#             self.current = self.states[0]
+#         self.previous = self.state
+#         return self
+
+#     """ State Management Methods """
+
+#     def add(self, name: str, state: 'SimpleState') -> None:
+
+#         return self
+
+#     def advance(self, instance: Optional[object] = None) -> object:
+#         self.previous = self.current
+#         current_index = self.order.index(self.current)
+#         self.current = self.order[self.current_index + 1]
+#         if instance is None:
+#             return self
+#         else:
+#             return self.current.apply(instance = instance)
+
+
+# @dataclass
+# class SimpleState(ABC):
+#     """
+
+#     """
+#     __slots__ = []
+
+#     """ Core siMpLify Methods """
+
+#     @abstractmethod
+#     def apply(self, instance: object) -> object:
+#         return instance
+
+# @dataclass
+# class DataState(object):
+#     """
+
+#     """
+#     __slots__ = ['train_set', 'test_set', 'import_folder', 'export_folder']
+#     train_set: str
+#     test_set: str
+#     import_folder: str
+#     export_folder: str

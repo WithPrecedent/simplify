@@ -156,28 +156,6 @@ class Analyst(Worker):
                     ((self.data['y'] == 1).sum())) - 1
         return self
 
-    """ Public Methods """
-
-    # def split_xy(self,
-    #         data: 'Dataset',
-    #         label: Optional[str] = None) -> 'Dataset':
-    #     """Splits data into 'x' and 'y' based upon the label ('y' column) passed.
-
-    #     Args:
-    #         data ('Data'): instance storing a pandas DataFrame.
-    #         label (str or list): name of column(s) to be stored in 'y'.'
-
-    #     """
-    #     if label is None:
-    #         try:
-    #             label = self.idea['analyst']['label']
-    #         except KeyError:
-    #             label = 'label'
-    #     data['x'] = data[list(data['full'].columns.values).remove(label)]
-    #     data['y'] = data['full'][label],
-    #     data.label_datatype = data['full'].datatypes[label]
-    #     return data
-
     """ Core siMpLify Methods """
 
     def apply(self,
@@ -198,7 +176,7 @@ class Analyst(Worker):
                 possibly made.
 
         """
-        data = data.split_xy()
+        data = data.divide_xy()
         super().apply(book = book, data = data, **kwargs)
         return book
 

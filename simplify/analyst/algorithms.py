@@ -167,7 +167,7 @@ def smart_fill(
             raise KeyError(' '.join([column, 'is not in data']))
     return data
 
-def split_xy(
+def divide_xy(
         dataset: 'Dataset',
         label: Optional[str] = 'label') -> 'Dataset':
     """Splits data into 'x' and 'y' based upon the label ('y' column) passed.
