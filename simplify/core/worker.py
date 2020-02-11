@@ -141,6 +141,7 @@ class Worker(object):
                 attribute of 'data'.
 
         """
+        data.create_xy()
         for step, techniques in chapter.techniques.items():
             if techniques is not None:
                 for technique in listify(techniques, default_empty = True):

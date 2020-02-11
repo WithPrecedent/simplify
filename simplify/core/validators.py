@@ -19,7 +19,6 @@ import pandas as pd
 
 from simplify.core.idea import Idea
 from simplify.core.dataset import Dataset
-from simplify.core.dataset import DataSlice
 from simplify.core.inventory import Inventory
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
@@ -113,6 +112,7 @@ def SimplifyValidator(SimpleValidator):
             'inventory': create_inventory}
         super().__init__()
         return self
+
 
 def DataValidator(SimpleValidator):
     """Decorator for converting data objects to proper types.

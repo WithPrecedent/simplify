@@ -10,6 +10,8 @@
 from collections.abc import Container
 from dataclasses import dataclass
 from dataclasses import field
+from functools import wraps
+from inspect import signature
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
@@ -18,7 +20,6 @@ import pandas as pd
 from sklearn.utils.validation import check_X_y
 
 from simplify.core.definitions import Outline
-from simplify.core.validators import DataValidator
 
 
 @dataclass
@@ -56,6 +57,24 @@ class TechniqueOutline(Outline):
     fit_method: Optional[str] = field(default_factory = lambda: 'fit')
     transform_method: Optional[str] = field(
         default_factory = lambda: 'transform')
+
+
+def numpy_shield(callable: Callable) -> Callable:
+    """
+    """
+    @wraps(callable)
+    def wrapper(*args, **kwargs):
+        call_signature = signature(callable)
+        arguments = dict(call_signature.bind(*args, **kwargs).arguments)
+        try:
+            x_columns = list(arguments['x'].columns.values)
+            result = callable(*args, **kwargs)
+            if isinstance(result, np.ndarray):
+                result = pd.DataFrame(result, columns = x_columns)
+        except KeyError:
+            result = callable(*args, **kwargs)
+        return result
+    return wrapper
 
 
 @dataclass
@@ -104,7 +123,8 @@ class Technique(Container):
 
     """ Private Methods """
 
-    def _apply_once(self, x: 'DataSlice', y: 'DataSlice') -> 'DataSlice':
+    def _apply_once(self, x: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
+        print('test fit method', self.fit)
         if self.fit_method:
             self.fit(x = x, y = y)
         if self.transform_method:
@@ -114,7 +134,7 @@ class Technique(Container):
     """ Core siMpLify Methods """
 
     def apply(self, data: 'Dataset') -> 'Dataset':
-        if data['train'] is None:
+        if data.stages.current in ['full']:
             data.x = self._apply_once(x = data.x, y = data.y)
         else:
             data.x_train = self._apply_once(x = data.x_train, y = data.y_train)
@@ -123,7 +143,6 @@ class Technique(Container):
 
     """ Scikit-Learn Compatibility Methods """
 
-    # @DataValidator
     def fit(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None) -> None:
@@ -139,7 +158,8 @@ class Technique(Container):
             AttributeError if no 'fit' method exists for 'technique'.
 
         """
-        print('test shapes', x.data.shape, y.data.shape)
+        print('test fit data', y)
+        print('test fit technique', self.technique)
         x, y = check_X_y(X = x, y = y, accept_sparse = True)
         try:
             if y is None:
@@ -151,7 +171,7 @@ class Technique(Container):
                 [self.technique, 'has no fit method']))
         return self
 
-    # @DataValidator
+    @numpy_shield
     def fit_transform(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None) -> pd.DataFrame:
@@ -175,7 +195,7 @@ class Technique(Container):
         self.fit(x = x, y = y, data = dataset)
         return self.transform(x = x, y = y)
 
-    # @DataValidator
+    @numpy_shield
     def transform(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None) -> pd.DataFrame:

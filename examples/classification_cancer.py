@@ -37,7 +37,7 @@ cancer_project = Project(
     # inventory = root_folder,
     dataset = df)
 # Converts label to boolean type to correct numpy default above.
-cancer_project.dataset['full'].change_datatype(
+cancer_project.dataset.change_datatype(
     columns = 'target',
     datatype = 'boolean')
 # Fills missing data with appropriate default values based on column datatype.

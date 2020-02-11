@@ -81,12 +81,10 @@ class Project(Iterable):
     inventory: Optional[Union['Inventory', str]] = None
     dataset: Optional[Union[
         'Dataset',
-        'DataSlice',
         pd.DataFrame,
         np.ndarray,
         str,
         Dict[str, Union[
-            'DataSlice',
             pd.DataFrame,
             np.ndarray,
             str]]]] = None

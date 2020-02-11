@@ -176,7 +176,7 @@ class Analyst(Worker):
                 possibly made.
 
         """
-        data = data.divide_xy()
+        data = data.create_xy()
         super().apply(book = book, data = data, **kwargs)
         return book
 
