@@ -1,4 +1,3 @@
-
 """
 .. module:: technique
 :synopsis: siMpLify algorithms and parameters
@@ -158,7 +157,6 @@ class Technique(Container):
             AttributeError if no 'fit' method exists for 'technique'.
 
         """
-        print('test fit data', y)
         print('test fit technique', self.technique)
         x, y = check_X_y(X = x, y = y, accept_sparse = True)
         try:

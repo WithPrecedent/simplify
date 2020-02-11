@@ -20,6 +20,7 @@ from simplify.core.publisher import Publisher
 from simplify.core.repository import Repository
 from simplify.core.repository import Plan
 from simplify.core.technique import TechniqueOutline
+from simplify.core.utilities import listify
 from simplify.core.worker import Worker
 
 
@@ -156,6 +157,69 @@ class Analyst(Worker):
                     ((self.data['y'] == 1).sum())) - 1
         return self
 
+    def _split_loop(self,
+            data: 'DataSet',
+            chapter: 'Chapter',
+            index: int) -> 'DataSet':
+        
+        return data
+    
+    def _search_loop(self,
+            data: 'DataSet',
+            chapter: 'Chapter',
+            index: int) -> 'Chapter':
+        
+        return chapter
+
+
+    def _split_transform(self, 
+            data: 'Dataset', 
+            technique: 'Technique') -> 'Dataset':
+        if self.idea['split_parameters']['val_size'] > 0:
+            
+        data.stages.change('testing')
+        for train_index, test_index in technique.algorithm.split(data.x):
+            data.x_train, data.x_test = data.x[train_index], data.x[test_index]
+            data.y_train, data.y_test = data.y[train_index], data.y[test_index]
+        
+        return data
+    
+    def _iterate_chapter(self,
+            book: 'Book',
+            chapter: 'Chapter',
+            data: Union['Dataset', 'Book']) -> 'Chapter':
+        """Iterates a single chapter and applies 'techniques' to 'data'.
+
+        Args:
+            chapter ('Chapter'): instance with 'techniques' to apply to 'data'.
+            data (Union['Dataset', 'Book']): object for 'chapter'
+                'techniques' to be applied.
+
+        Return:
+            'Chapter': with any changes made. Modified 'data' is added to the
+                'Chapter' instance with the attribute name matching the 'name'
+                attribute of 'data'.
+
+        """
+        for step, techniques in chapter.techniques.items():
+            if techniques is not None:
+                for technique in listify(techniques, default_empty = True):
+                    technique = self._add_conditionals(
+                        book = book,
+                        technique = technique,
+                        data = data)
+                    technique = self._add_data_dependents(
+                        technique = technique,
+                        data = data)
+                    technique = self._add_parameters_to_algorithm(
+                        technique = technique)
+                    data = technique.apply(data = data)
+                    if technique.step in ['split']:
+                        
+        if book.alters_data:
+            setattr(chapter, data.name, data)
+        return chapter
+    
     """ Core siMpLify Methods """
 
     def apply(self,
@@ -176,7 +240,7 @@ class Analyst(Worker):
                 possibly made.
 
         """
-        data = data.create_xy()
+        data.create_xy()
         super().apply(book = book, data = data, **kwargs)
         return book
 
@@ -527,7 +591,9 @@ class Tools(Repository):
                     algorithm = 'GroupKFold',
                     default = {'n_splits': 5},
                     runtime = {'random_state': 'seed'},
-                    selected = True),
+                    selected = True,
+                    fit_method = None,
+                    transform_method = 'split'),
                 'kfold': TechniqueOutline(
                     name = 'kfold',
                     module = 'sklearn.model_selection',
@@ -535,7 +601,9 @@ class Tools(Repository):
                     default = {'n_splits': 5, 'shuffle': False},
                     runtime = {'random_state': 'seed'},
                     selected = True,
-                    required = {'shuffle': True}),
+                    required = {'shuffle': True},
+                    fit_method = None,
+                    transform_method = 'split'),
                 'stratified': TechniqueOutline(
                     name = 'stratified',
                     module = 'sklearn.model_selection',
@@ -543,14 +611,18 @@ class Tools(Repository):
                     default = {'n_splits': 5, 'shuffle': False},
                     runtime = {'random_state': 'seed'},
                     selected = True,
-                    required = {'shuffle': True}),
+                    required = {'shuffle': True},
+                    fit_method = None,
+                    transform_method = 'split'),
                 'time': TechniqueOutline(
                     name = 'time',
                     module = 'sklearn.model_selection',
                     algorithm = 'TimeSeriesSplit',
                     default = {'n_splits': 5},
                     runtime = {'random_state': 'seed'},
-                    selected = True),
+                    selected = True,
+                    fit_method = None,
+                    transform_method = 'split'),
                 'train_test': TechniqueOutline(
                     name = 'train_test',
                     module = 'sklearn.model_selection',
@@ -558,7 +630,9 @@ class Tools(Repository):
                     default = {'test_size': 0.33},
                     runtime = {'random_state': 'seed'},
                     required = {'n_splits': 1},
-                    selected = True)},
+                    selected = True,
+                    fit_method = None,
+                    transform_method = 'split')},
             'encode': {
                 'backward': TechniqueOutline(
                     name = 'backward',

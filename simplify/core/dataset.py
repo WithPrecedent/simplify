@@ -164,6 +164,10 @@ class Dataset(object):
             return self.__dict__[self.__dict__['train_set']]
         elif attribute in ['test', 'testing']:
             return self.__dict__[self.__dict__['test_set']]
+        elif attribute in ['x']:
+            return self.__dict__['full_bunch'].x
+        elif attribute in ['y']:
+            return self.__dict__['full_bunch'].y
         elif attribute in ['x_train']:
             return self.__dict__[self.__dict__['train_set']].x
         elif attribute in ['y_train']:
@@ -198,6 +202,10 @@ class Dataset(object):
             self.__dict__[self.__dict__['train_set']] = value
         elif attribute in ['test', 'testing']:
             self.__dict__[self.__dict__['test_set']] = value
+        elif attribute in ['x']:
+            self.__dict__['full_bunch'].x = value
+        elif attribute in ['y']:
+            self.__dict__['full_bunch'].y = value
         elif attribute in ['x_train']:
             self.__dict__[self.__dict__['train_set']].x = value
         elif attribute in ['y_train']:
