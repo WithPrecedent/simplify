@@ -117,7 +117,7 @@ def listify(
             list, None, or a list containing 'none' as its only item.
 
     """
-    if not variable:
+    if not variable or variable in ['none', ['none']]:
         if default_null:
             return None
         elif default_empty:

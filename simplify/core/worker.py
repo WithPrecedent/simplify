@@ -16,7 +16,7 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 import numpy as np
 import pandas as pd
 try:
-    from pathos.multiprocessing import PlaningPool as Pool
+    from pathos.multiprocessing import ProcessPool as Pool
 except ImportError:
     from multiprocessing import Pool
 
@@ -46,6 +46,22 @@ class Worker(object):
         return self
 
     """ Private Methods """
+
+    def _finalize_chapters(self, book: 'Book', data: 'Dataset') -> 'Book':
+        for chapter in book.chapters:
+            for step, techniques in chapter.techniques.items():
+                for technique in listify(techniques):
+                    if technique is not 'none':
+                        technique = self._add_conditionals(
+                            book = book,
+                            technique = technique,
+                            data = data)
+                        technique = self._add_data_dependents(
+                            technique = technique,
+                            data = data)
+                        technique = self._add_parameters_to_algorithm(
+                            technique = technique)
+        return book
 
     def _add_conditionals(self,
             book: 'Book',
@@ -178,6 +194,7 @@ class Worker(object):
                 possibly made.
 
         """
+        self._finalize_chapters(book = book, data = dataset)
         if self.parallelize:
             self.parallelizer.apply_chapters(
                 book = book,
@@ -185,110 +202,15 @@ class Worker(object):
                 method = self._iterate_chapter)
         else:
             new_chapters = []
-            for chapter in book.chapters:
+            for i, chapter in enumerate(book.chapters):
+                if self.verbose:
+                    print('Applying chapter', str(i + 1), 'to data')
                 new_chapters.append(self._iterate_chapter(
                     book = book,
                     chapter = chapter,
                     data = data))
             book.chapters = new_chapters
         return book
-
-
-
-# @dataclass
-# class DataProxies(MutableMapping):
-
-#     dataset: 'Dataset'
-#     test_suffixes: Dict[str, str] = field(default_factory = dict)
-#     train_suffixes: Dict[str, str] = field(default_factory = dict)
-
-#     def __post_init__(self) -> None:
-#         if not self.test_suffixes:
-#             self.test_suffixes = {
-#                 'unsplit': None,
-#                 'xy': '',
-#                 'train_test': '_test',
-#                 'train_val': '_test',
-#                 'full': '_train'}
-#         if not self.train_suffixes:
-#             self.train_suffixes = {
-#                 'unsplit': None,
-#                 'xy': '',
-#                 'train_test': '_train',
-#                 'train_val': '_train',
-#                 'full': '_train'}
-#         return self
-
-#     """ Required ABC Methods """
-
-#     def __getitem__(self, key: str) -> 'Data':
-#         """Returns 'Data' based upon current 'state'.
-
-#         Args:
-#             key (str): name of key in 'dataset'.
-
-#         Returns:
-#             'Data': an 'Data' instance stored in 'dataset'
-#                 based on 'state' in 'dataset'
-
-#         Raises:
-#             ValueError: if access to train or test data is sought before data
-#                 has been split.
-
-#         """
-#         try:
-#             contents = '_'.join([key.rsplit('_', 1), 'suffixes'])
-#             if getattr(self, dictionary)[self.dataset.state] is None:
-#                 raise ValueError(''.join(['Train and test data cannot be',
-#                     'accessed until data is split']))
-#             else:
-#                 new_key = ''.join(
-#                     [key[0], getattr(self, dictionary)[self.dataset.state]])
-#                 return self.dataset.dataset[new_key]
-#         except TypeError:
-#             return self.dataset.dataset[key]
-
-#     def __setitem__(self, key: str, value: 'Data') -> None:
-#         """Sets 'key' to 'Data' based upon current 'state'.
-
-#         Args:
-#             key (str): name of key to set in 'dataset'.
-#             value ('Data'): 'Data' instance to be added to
-#                 'dataset'.
-
-#         """
-#         try:
-#             contents = '_'.join([key.rsplit('_', 1), 'suffixes'])
-#             new_key = ''.join(
-#                 [key[0], getattr(self, dictionary)[self.dataset.state]])
-#             self.dataset.dataset[new_key] = value
-#         except ValueError:
-#             self.dataset.dataset[key] = value
-
-#     def __delitem__(self, key: str) -> None:
-#         """Deletes 'key' in the 'dataset' dictionary.
-
-#         Args:
-#             key (str): name of key in the 'dataset' dictionary.
-
-#         """
-#         try:
-#             contents = '_'.join([key.rsplit('_', 1), 'suffixes'])
-#             new_key = ''.join(
-#                 [key[0], getattr(self, dictionary)[self.dataset.state]])
-#             self.dataset.dataset[new_key] = value
-#         except ValueError:
-#             try:
-#                 del self.dataset.dataset[key]
-#             except KeyError:
-#                 pass
-
-#     def __iter__(self) -> NotImplementedError:
-#         raise NotImplementedError('DataProxies does not implement an iterable')
-
-#     def __len__(self) -> int:
-#         raise NotImplementedError('DataProxies does not implement length')
-
 
 
 @dataclass

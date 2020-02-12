@@ -43,7 +43,7 @@ class Book(Repository):
     """
     name: Optional[str] = None
     iterable: Optional[str] = field(default_factory = lambda: 'chapters')
-    chapters: Optional[Union[List[str], str]] = field(default_factory = list)
+    chapters: Optional[List['Chapter']] = field(default_factory = list)
     alters_data: Optional[bool] = True
 
     """ Dunder Methods """
@@ -63,31 +63,6 @@ class Book(Repository):
 
         """
         self.chapters.extend(listify(chapters, default_empty = True))
-        return self
-
-    def add_techniques(self,
-            step: str,
-            techniques: Union[
-                'Technique', List['Technique'], str, 'Repository']) -> None:
-        """Adds 'techniques' to 'techniques' attribute.
-
-        Args:
-            step (str): name of step to which 'techniques' belong.
-            techniques (Union['Technique', List['Technique'], str,
-                'Repository']): a 'Repository' instance or one or more
-                'Technique' instances. If one or more 'Technique' instances are
-                passed, the 'name' and 'technique' attributes are used as the
-                keys in the 'techniques' attribute.
-
-        """
-        if isinstance(techniques, (list, str, Technique)):
-            for technique in listify(techniques):
-                self._add_technique(step = step, technique = technique)
-        elif issubclass(techniques, 'Repository'):
-            self.techniques.update(techniques)
-        else:
-            raise TypeError(
-                'technique must be Technique, Repository, list, or str')
         return self
 
     """ Iterable Proxy Property """

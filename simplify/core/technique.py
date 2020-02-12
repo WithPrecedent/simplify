@@ -123,7 +123,6 @@ class Technique(Container):
     """ Private Methods """
 
     def _apply_once(self, x: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
-        print('test fit method', self.fit)
         if self.fit_method:
             self.fit(x = x, y = y)
         if self.transform_method:
@@ -157,7 +156,6 @@ class Technique(Container):
             AttributeError if no 'fit' method exists for 'technique'.
 
         """
-        print('test fit technique', self.technique)
         x, y = check_X_y(X = x, y = y, accept_sparse = True)
         try:
             if y is None:

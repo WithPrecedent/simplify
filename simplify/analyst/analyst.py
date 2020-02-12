@@ -21,6 +21,7 @@ from simplify.core.repository import Repository
 from simplify.core.repository import Plan
 from simplify.core.technique import TechniqueOutline
 from simplify.core.utilities import listify
+from simplify.core.utilities import subsetify
 from simplify.core.worker import Worker
 
 
@@ -39,21 +40,14 @@ class Cookbook(Book):
             'cookbook'
         iterable(Optional[str]): name of attribute for storing the main class
             instance iterable (called by __iter___). Defaults to 'recipes'.
-        techiques (Optional['Repository']): a dictionary of options with
-            'Technique' instances stored by step. Defaults to an empty
-            'Repository' instance.
         chapters (Optional['Plan']): iterable collection of steps and
             techniques to apply at each step. Defaults to an empty 'Plan'
             instance.
-        alters_data (Optional[bool]): whether the Worker instance's 'apply'
-            expects data when the Book instance is iterated. If False, nothing
-            is returned. If true, 'data' is returned. Defaults to True.
 
     """
     name: Optional[str] = 'cookbook'
     iterable: Optional[str] = field(default_factory = lambda: 'recipes')
-    chapters: Optional[Union[List[str], str]] = field(default_factory = list)
-    alters_data: Optional[bool] = True
+    chapters: Optional[List['Chapter']] = field(default_factory = list)
 
 
 @dataclass
@@ -68,30 +62,30 @@ class AnalystPublisher(Publisher):
 
     """ Public Methods """
 
-    def add_cleaves(self,
-            cleave_group: str,
-            prefixes: Union[List[str], str] = None,
-            columns: Union[List[str], str] = None) -> None:
-        """Adds cleaves to the list of cleaves.
+    # def add_cleaves(self,
+    #         cleave_group: str,
+    #         prefixes: Union[List[str], str] = None,
+    #         columns: Union[List[str], str] = None) -> None:
+    #     """Adds cleaves to the list of cleaves.
 
-        Args:
-            cleave_group (str): names the set of features in the group.
-            prefixes (Union[List[str], str]): name(s) of prefixes to columns to
-                be included within the cleave.
-            columns (Union[List[str], str]): name(s) of columns to be included
-                within the cleave.
+    #     Args:
+    #         cleave_group (str): names the set of features in the group.
+    #         prefixes (Union[List[str], str]): name(s) of prefixes to columns to
+    #             be included within the cleave.
+    #         columns (Union[List[str], str]): name(s) of columns to be included
+    #             within the cleave.
 
-        """
-        # if not self._exists('cleaves'):
-        #     self.cleaves = []
-        # columns = self.dataset.make_column_list(
-        #     prefixes = prefixes,
-        #     columns = columns)
-        # self.tasks['cleaver'].add_techniques(
-        #     cleave_group = cleave_group,
-        #     columns = columns)
-        # self.cleaves.append(cleave_group)
-        return self
+    #     """
+    #     # if not self._exists('cleaves'):
+    #     #     self.cleaves = []
+    #     # columns = self.dataset.make_column_list(
+    #     #     prefixes = prefixes,
+    #     #     columns = columns)
+    #     # self.tasks['cleaver'].add_techniques(
+    #     #     cleave_group = cleave_group,
+    #     #     columns = columns)
+    #     # self.cleaves.append(cleave_group)
+    #     return self
 
 
 @dataclass
@@ -157,33 +151,96 @@ class Analyst(Worker):
                     ((self.data['y'] == 1).sum())) - 1
         return self
 
-    def _split_loop(self,
-            data: 'DataSet',
-            chapter: 'Chapter',
-            index: int) -> 'DataSet':
-        
+    def _iterate_techniques(self,
+            book: 'Book',
+            techniques: 'Plan',
+            data: 'Dataset'):
+        """Applies a set of 'techniques' to 'data'.
+
+        Args:
+            book ('Book'): instance associated with 'technique'. It should
+                contain any methods needed for adding conditional parameters.
+            techniques ('Plan'): instance with separated algorithm and
+                parameters.
+            data ('DataSet'): data with all information needed to add data-
+                dependent parameters.
+
+        Returns:
+            'Technique': with combined algorithm and parameters.
+
+        """
+        for step, techniques in techniques.items():
+            for technique in listify(techniques, default_empty = True):
+                technique = self._finalize_technique(
+                    book = book,
+                    technique = technique,
+                    data = data)
+                data = technique.apply(data = data)
         return data
-    
+
+    def _split_loop(self,
+            book: 'Book',
+            data: 'Dataset',
+            chapter: 'Chapter') -> 'Dataset':
+        """Iterates 'techniques' starting with train/test split.
+
+        Args:
+            book ('Book'):
+
+        """
+        data.stages.change('testing')
+        split_algorithm = chapter.techniques['split'].algorithm
+        del chapter.techniques['split']
+        next_step = list()
+        for train_index, test_index in split_algorithm.split(data.x, data.y):
+            data.x_train = data.x.iloc[train_index]
+            data.x_test = data.x.iloc[test_index]
+            data.y_train = data.y[train_index]
+            data.y_test = data.y[test_index]
+            for step, techniques in chapter.techniques.items():
+                if techniques is not ['none']:
+                    for technique in listify(techniques, default_empty = True):
+                        technique = self._finalize_technique(
+                            book = book,
+                            technique = technique,
+                            data = data)
+                        data = technique.apply(data = data)
+        return data
+
     def _search_loop(self,
             data: 'DataSet',
             chapter: 'Chapter',
             index: int) -> 'Chapter':
-        
+
         return chapter
 
+    def _finalize_technique(self,
+            book: 'Book',
+            technique: 'Technique',
+            data: 'Dataset') -> 'Technique':
+        """Completes 'Technique' instance and combines algorithm & parameters.
 
-    def _split_transform(self, 
-            data: 'Dataset', 
-            technique: 'Technique') -> 'Dataset':
-        if self.idea['split_parameters']['val_size'] > 0:
-            
-        data.stages.change('testing')
-        for train_index, test_index in technique.algorithm.split(data.x):
-            data.x_train, data.x_test = data.x[train_index], data.x[test_index]
-            data.y_train, data.y_test = data.y[train_index], data.y[test_index]
-        
-        return data
-    
+        Args:
+            book ('Book'): instance associated with 'technique'. It should
+                contain any methods needed for adding conditional parameters.
+            technique ('Technique'): instance with separated algorithm and
+                parameters.
+            data ('DataSet'): data with all information needed to add data-
+                dependent parameters.
+
+        Returns:
+            'Technique': with combined algorithm and parameters.
+
+        """
+        technique = self._add_conditionals(
+            book = book,
+            technique = technique,
+            data = data)
+        technique = self._add_data_dependents(
+            technique = technique,
+            data = data)
+        return self._add_parameters_to_algorithm(technique = technique)
+
     def _iterate_chapter(self,
             book: 'Book',
             chapter: 'Chapter',
@@ -201,48 +258,59 @@ class Analyst(Worker):
                 attribute of 'data'.
 
         """
+        data.create_xy()
+        remaining = list(chapter.techniques.keys())
         for step, techniques in chapter.techniques.items():
-            if techniques is not None:
+            if not techniques in ['none', ['none']]:
                 for technique in listify(techniques, default_empty = True):
-                    technique = self._add_conditionals(
+                    technique = self._finalize_technique(
                         book = book,
                         technique = technique,
                         data = data)
-                    technique = self._add_data_dependents(
-                        technique = technique,
-                        data = data)
-                    technique = self._add_parameters_to_algorithm(
-                        technique = technique)
-                    data = technique.apply(data = data)
-                    if technique.step in ['split']:
-                        
-        if book.alters_data:
-            setattr(chapter, data.name, data)
+                    if step in ['split']:
+                        chapter.techniques = subsetify(
+                            chapter.techniques,
+                            remaining)
+                        data = self._split_loop(
+                            book = book,
+                            data = data,
+                            chapter = chapter)
+                    elif step in ['search']:
+                        chapter.techniques = subsetify(
+                            chapter.techniques,
+                            remaining)
+                        chapter = self._search_loop(
+                            data = data,
+                            chapter = chapter)
+                    else:
+                        data = technique.apply(data = data)
+            remaining.remove(step)
+        setattr(chapter, 'data', data)
         return chapter
-    
+
     """ Core siMpLify Methods """
 
-    def apply(self,
-            book: 'Book',
-            data: Optional[Union['Dataset', 'Book']] = None,
-            **kwargs) -> Union['Dataset', 'Book']:
-        """Applies objects in 'book' to 'data'.
+    # def apply(self,
+    #         book: 'Book',
+    #         data: Optional[Union['Dataset', 'Book']] = None,
+    #         **kwargs) -> Union['Dataset', 'Book']:
+    #     """Applies objects in 'book' to 'data'.
 
-        Args:
-            book ('Book'): Book instance with algorithms to apply to 'data'.
-            data (Optional[Union['Dataset', 'Book']]): a data source for
-                the 'book' methods to be applied.
-            kwargs: any additional parameters to pass to a related
-                Book's options' 'apply' method.
+    #     Args:
+    #         book ('Book'): Book instance with algorithms to apply to 'data'.
+    #         data (Optional[Union['Dataset', 'Book']]): a data source for
+    #             the 'book' methods to be applied.
+    #         kwargs: any additional parameters to pass to a related
+    #             Book's options' 'apply' method.
 
-        Returns:
-            Union['Dataset', 'Book']: data object with modifications
-                possibly made.
+    #     Returns:
+    #         Union['Dataset', 'Book']: data object with modifications
+    #             possibly made.
 
-        """
-        data.create_xy()
-        super().apply(book = book, data = data, **kwargs)
-        return book
+    #     """
+
+    #     super().apply(book = book, data = data, **kwargs)
+    #     return book
 
     # def _cleave(self, dataset):
     #     if self.step != 'all':
