@@ -6,6 +6,7 @@
 :license: Apache-2.0
 """
 
+from copy import deepcopy
 from dataclasses import dataclass
 from dataclasses import field
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
@@ -18,7 +19,6 @@ from scipy.stats import randint, uniform
 from simplify.core.book import Book
 from simplify.core.publisher import Publisher
 from simplify.core.repository import Repository
-from simplify.core.repository import Plan
 from simplify.core.technique import TechniqueOutline
 from simplify.core.utilities import listify
 from simplify.core.utilities import subsetify
@@ -45,7 +45,7 @@ class Cookbook(Book):
             instance.
 
     """
-    name: Optional[str] = 'cookbook'
+    name: Optional[str] = field(default_factory = lambda: 'cookbook')
     iterable: Optional[str] = field(default_factory = lambda: 'recipes')
     chapters: Optional[List['Chapter']] = field(default_factory = list)
 
@@ -100,6 +100,72 @@ class Analyst(Worker):
 
     """ Private Methods """
 
+    def _iterate_chapter(self,
+            chapter: 'Chapter',
+            data: Union['Dataset']) -> 'Chapter':
+        """Iterates a single chapter and applies 'techniques' to 'data'.
+
+        Args:
+            chapter ('Chapter'): instance with 'techniques' to apply to 'data'.
+            data (Union['Dataset', 'Book']): object for 'chapter'
+                'techniques' to be applied.
+
+        Return:
+            'Chapter': with any changes made. Modified 'data' is added to the
+                'Chapter' instance with the attribute name matching the 'name'
+                attribute of 'data'.
+
+        """
+        data.create_xy()
+        remaining = deepcopy(chapter.techniques)
+        for step, techniques in chapter.techniques.items():
+            if step in ['split']:
+                data, remaining = self._split_loop(
+                    steps = remaining, 
+                    data = data)
+                break
+            elif step in ['search']:
+                techniques = self._search_loop(
+                    techniques = techniques, 
+                    data = data)
+            else:
+                data = self._iterate_techniques(
+                    techniques = techniques, 
+                    data = data)
+            del remaining[step]
+        chapter.techniques.update(remaining)
+        setattr(chapter, 'data', data)
+        return chapter
+        
+    def _split_loop(self,
+            steps: 'Plan',
+            data: 'DataSet') -> ('Dataset', 'Plan'):
+        """Iterates 'steps' starting with train/test split.
+
+        Args:
+
+        """
+        data.stages.change('testing')
+        split_algorithm = steps['split'].algorithm
+        for train_index, test_index in split_algorithm.split(data.x, data.y):
+            data.x_train = data.x.iloc[train_index]
+            data.x_test = data.x.iloc[test_index]
+            data.y_train = data.y[train_index]
+            data.y_test = data.y[test_index]
+            for step, techniques in steps.items():
+                if not step in ['split'] and techniques:
+                    self._iterate_techniques(
+                        techniques = techniques, 
+                        data = data)
+        return data, steps
+
+    def _search_loop(self,
+            data: 'DataSet',
+            chapter: 'Chapter',
+            index: int) -> 'Chapter':
+
+        return chapter
+    
     def _add_model_conditionals(self,
             technique: 'Technique',
             data: 'Dataset') -> 'Technique':
@@ -150,143 +216,6 @@ class Analyst(Worker):
                     len(self.data['y'].index) /
                     ((self.data['y'] == 1).sum())) - 1
         return self
-
-    def _iterate_techniques(self,
-            book: 'Book',
-            techniques: 'Plan',
-            data: 'Dataset'):
-        """Applies a set of 'techniques' to 'data'.
-
-        Args:
-            book ('Book'): instance associated with 'technique'. It should
-                contain any methods needed for adding conditional parameters.
-            techniques ('Plan'): instance with separated algorithm and
-                parameters.
-            data ('DataSet'): data with all information needed to add data-
-                dependent parameters.
-
-        Returns:
-            'Technique': with combined algorithm and parameters.
-
-        """
-        for step, techniques in techniques.items():
-            for technique in listify(techniques, default_empty = True):
-                technique = self._finalize_technique(
-                    book = book,
-                    technique = technique,
-                    data = data)
-                data = technique.apply(data = data)
-        return data
-
-    def _split_loop(self,
-            book: 'Book',
-            data: 'Dataset',
-            chapter: 'Chapter') -> 'Dataset':
-        """Iterates 'techniques' starting with train/test split.
-
-        Args:
-            book ('Book'):
-
-        """
-        data.stages.change('testing')
-        split_algorithm = chapter.techniques['split'].algorithm
-        del chapter.techniques['split']
-        next_step = list()
-        for train_index, test_index in split_algorithm.split(data.x, data.y):
-            data.x_train = data.x.iloc[train_index]
-            data.x_test = data.x.iloc[test_index]
-            data.y_train = data.y[train_index]
-            data.y_test = data.y[test_index]
-            for step, techniques in chapter.techniques.items():
-                if techniques is not ['none']:
-                    for technique in listify(techniques, default_empty = True):
-                        technique = self._finalize_technique(
-                            book = book,
-                            technique = technique,
-                            data = data)
-                        data = technique.apply(data = data)
-        return data
-
-    def _search_loop(self,
-            data: 'DataSet',
-            chapter: 'Chapter',
-            index: int) -> 'Chapter':
-
-        return chapter
-
-    def _finalize_technique(self,
-            book: 'Book',
-            technique: 'Technique',
-            data: 'Dataset') -> 'Technique':
-        """Completes 'Technique' instance and combines algorithm & parameters.
-
-        Args:
-            book ('Book'): instance associated with 'technique'. It should
-                contain any methods needed for adding conditional parameters.
-            technique ('Technique'): instance with separated algorithm and
-                parameters.
-            data ('DataSet'): data with all information needed to add data-
-                dependent parameters.
-
-        Returns:
-            'Technique': with combined algorithm and parameters.
-
-        """
-        technique = self._add_conditionals(
-            book = book,
-            technique = technique,
-            data = data)
-        technique = self._add_data_dependents(
-            technique = technique,
-            data = data)
-        return self._add_parameters_to_algorithm(technique = technique)
-
-    def _iterate_chapter(self,
-            book: 'Book',
-            chapter: 'Chapter',
-            data: Union['Dataset', 'Book']) -> 'Chapter':
-        """Iterates a single chapter and applies 'techniques' to 'data'.
-
-        Args:
-            chapter ('Chapter'): instance with 'techniques' to apply to 'data'.
-            data (Union['Dataset', 'Book']): object for 'chapter'
-                'techniques' to be applied.
-
-        Return:
-            'Chapter': with any changes made. Modified 'data' is added to the
-                'Chapter' instance with the attribute name matching the 'name'
-                attribute of 'data'.
-
-        """
-        data.create_xy()
-        remaining = list(chapter.techniques.keys())
-        for step, techniques in chapter.techniques.items():
-            if not techniques in ['none', ['none']]:
-                for technique in listify(techniques, default_empty = True):
-                    technique = self._finalize_technique(
-                        book = book,
-                        technique = technique,
-                        data = data)
-                    if step in ['split']:
-                        chapter.techniques = subsetify(
-                            chapter.techniques,
-                            remaining)
-                        data = self._split_loop(
-                            book = book,
-                            data = data,
-                            chapter = chapter)
-                    elif step in ['search']:
-                        chapter.techniques = subsetify(
-                            chapter.techniques,
-                            remaining)
-                        chapter = self._search_loop(
-                            data = data,
-                            chapter = chapter)
-                    else:
-                        data = technique.apply(data = data)
-            remaining.remove(step)
-        setattr(chapter, 'data', data)
-        return chapter
 
     """ Core siMpLify Methods """
 
@@ -552,7 +481,6 @@ class Tools(Repository):
         defaults (Optional[List[str]]): a list of keys in 'contents' which
             will be used to return items when 'default' is sought. If not
             passed, 'default' will be set to all keys.
-        project ('Project'): a related 'Project' instance.
 
     """
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)

@@ -18,6 +18,7 @@ from simplify.core.book import Chapter
 from simplify.core.repository import Repository
 from simplify.core.repository import Plan
 from simplify.core.technique import TechniqueOutline
+from simplify.core.worker import Worker
 
 
 @dataclass
@@ -35,24 +36,52 @@ class Anthology(Book):
             'critic'.
         iterable(Optional[str]): name of attribute for storing the main class
             instance iterable (called by __iter___). Defaults to 'reviews'.
-        techiques (Optional['Repository']): a dictionary of options with
-            'Technique' instances stored by step. Defaults to an empty
-            'Repository' instance.
         chapters (Optional['Plan']): iterable collection of steps and
             techniques to apply at each step. Defaults to an empty 'Plan'
             instance.
-        alters_data (Optional[bool]): whether the Worker instance's 'apply'
-            expects data when the Book instance is iterated. If False, nothing
-            is returned. If true, 'data' is returned. Defaults to True.
 
     """
-    name: Optional[str] = 'critic'
-    iterable: Optional[str] = 'reviews'
-    steps: Optional[List[str]] = field(default_factory = list)
-    techniques: Optional['Repository'] = field(default_factory = Repository)
-    chapters: Optional[Union[List[str], str]] = field(default_factory = list)
-    alters_data: Optional[bool] = True
+    name: Optional[str] = field(default_factory = lambda: 'critic')
+    iterable: Optional[str] = field(default_factory = lambda: 'reviews')
+    chapters: Optional[List['Chapter']] = field(default_factory = list)
 
+
+
+@dataclass
+class Critic(Worker):
+    """Applies an 'Anthology' instance to an applied 'Cookbook'.
+
+    Args:
+        idea ('Idea'): an 'Idea' instance with project settings.
+
+    """
+    idea: 'Idea'
+
+    """ Private Methods """
+
+    def _iterate_chapter(self,
+            chapter: 'Chapter',
+            data: Union['Dataset']) -> 'Chapter':
+        """Iterates a single chapter and applies 'techniques' to 'data'.
+
+        Args:
+            chapter ('Chapter'): instance with 'techniques' to apply to 'data'.
+            data (Union['Dataset', 'Book']): object for 'chapter'
+                'techniques' to be applied.
+
+        Return:
+            'Chapter': with any changes made. Modified 'data' is added to the
+                'Chapter' instance with the attribute name matching the 'name'
+                attribute of 'data'.
+
+        """
+        for step, techniques in chapter.techniques.items():
+            data = self._iterate_techniques(
+                    techniques = techniques, 
+                    data = data)
+        setattr(chapter, 'data', data)
+        return chapter
+    
 
 @dataclass
 class Evaluators(Repository):
@@ -67,13 +96,12 @@ class Evaluators(Repository):
         defaults (Optional[List[str]]): a list of keys in 'contents' which
             will be used to return items when 'default' is sought. If not
             passed, 'default' will be set to all keys.
-        project ('Project'): a related 'Project' instance.
 
     """
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)
     wildcards: Optional[List[str]] = field(default_factory = list)
     defaults: Optional[List[str]] = field(default_factory = list)
-    project: 'Project' = None
+    idea: 'Idea' = None
 
     """ Private Methods """
 

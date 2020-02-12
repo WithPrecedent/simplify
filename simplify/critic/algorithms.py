@@ -1,6 +1,6 @@
 """
-.. module:: critic steps
-:synopsis: default steps for analyst subpackage
+.. module:: critic algorithms
+:synopsis: siMpLify algorithms for project evaluation
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0

@@ -315,9 +315,10 @@ class Project(Iterable):
         # Iterates through each task, creating and applying needed Books,
         # Chapters, and Techniques for each task in the Project.
         for name, book in self.library.items():
-            self.library[name] = self.tasks[name].worker.apply(
+            self.library[name], self.dataset = self.tasks[name].worker.apply(
                 book = book,
                 data = self.dataset,
+                library = self.library,
                 **kwargs)
         return self
 

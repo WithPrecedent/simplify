@@ -143,7 +143,7 @@ class Worker(object):
     def _iterate_chapter(self,
             book: 'Book',
             chapter: 'Chapter',
-            data: Union['Dataset', 'Book']) -> 'Chapter':
+            data: Union['Dataset']) -> 'Chapter':
         """Iterates a single chapter and applies 'techniques' to 'data'.
 
         Args:
@@ -158,28 +158,26 @@ class Worker(object):
 
         """
         for step, techniques in chapter.techniques.items():
-            if techniques is not None:
-                for technique in listify(techniques, default_empty = True):
-                    technique = self._add_conditionals(
-                        book = book,
-                        technique = technique,
-                        data = data)
-                    technique = self._add_data_dependents(
-                        technique = technique,
-                        data = data)
-                    technique = self._add_parameters_to_algorithm(
-                        technique = technique)
-                    data = technique.apply(data = data)
-        if book.alters_data:
-            setattr(chapter, data.name, data)
+            data = self._iterate_techniques(
+                techniques = techniques, 
+                data = data)
+        setattr(chapter, 'data', data)
         return chapter
 
+    def _iterate_techniques(self,
+                techniques: Union[List['Technique'], 'Technique'],
+                data: Union['Dataset', 'Book']) -> Union['Dataset', 'Book']:
+            for technique in listify(techniques):
+                data = technique.apply(data = data)
+            return data
+        
     """ Core siMpLify Methods """
 
     def apply(self,
             book: 'Book',
-            data: Optional[Union['Dataset', 'Book']] = None,
-            **kwargs) -> Union['Dataset', 'Book']:
+            data: 'Dataset',
+            library: 'Repository',
+            **kwargs) -> ('Book', 'Dataset'):
         """Applies objects in 'book' to 'data'.
 
         Args:
@@ -194,10 +192,9 @@ class Worker(object):
                 possibly made.
 
         """
-        self._finalize_chapters(book = book, data = dataset)
+        self._finalize_chapters(book = book, data = data)
         if self.parallelize:
             self.parallelizer.apply_chapters(
-                book = book,
                 data = data,
                 method = self._iterate_chapter)
         else:
@@ -206,11 +203,10 @@ class Worker(object):
                 if self.verbose:
                     print('Applying chapter', str(i + 1), 'to data')
                 new_chapters.append(self._iterate_chapter(
-                    book = book,
                     chapter = chapter,
                     data = data))
             book.chapters = new_chapters
-        return book
+        return book, data
 
 
 @dataclass
