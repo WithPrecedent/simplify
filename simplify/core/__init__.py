@@ -22,12 +22,11 @@ from simplify.core.worker import Worker
 
 __all__ = [
     'Book',
-    'Publisher',
+    'Dataset',
+    'Idea',
+    'Inventory',
     'Publisher',
     'Worker',
-    'create_idea',
-    'create_dataset',
-    'create_inventory',
     'Project',
     'Task']
 

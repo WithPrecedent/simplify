@@ -20,8 +20,3 @@ __all__ = [
     'Analyst',
     'Cookbook',
     'Tools']
-
-COMPONENTS = {
-    'worker': 'Analyst',
-    'book': 'Cookbook',
-    'catalog': 'Tools'}

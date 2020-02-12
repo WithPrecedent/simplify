@@ -207,13 +207,14 @@ class Author(object):
 
         """
         for chapter in task.book.chapters:
-            new_techniques = {}
-            for step, technique in chapter.techniques.items():
-                new_techniques[step] = self.expert.publish(
+            new_steps = {}
+            for step, techniques in chapter.techniques.items():
+                new_steps[step] = self.expert.publish(
                     task = task,
                     step = step,
-                    technique = technique)
-            chapter.techniques = new_techniques
+                    techniques = techniques)
+            print('test new steps', new_steps)
+            chapter.techniques = new_steps
         return task.book
 
 
@@ -418,12 +419,15 @@ class Expert(object):
 
     """ Core siMpLify Methods """
 
-    def publish(self, task: 'Task', step: str, technique: str) -> 'Technique':
+    def publish(self, 
+            task: 'Task', 
+            step: str, 
+            techniques: Union[List[str], str]) -> List['Technique']:
         """Creates parameters and algorithms for a 'Technique' instance.
 
         Args:
             step (str): name of step in a 'Book' instance iterable.
-            technique (str): name of the specific technique to use for a 'step'
+            techniques (str): name of the specific technique to use for a 'step'
                  in a 'Book' instance iterable.
 
         Returns:
@@ -431,11 +435,14 @@ class Expert(object):
                 'data_dependent' attributes added.
 
         """
-        if technique in ['none']:
+        if techniques in ['none', ['none']]:
             return None
         else:
             # Gets appropriate TechniqueOutline and creates an instance.
-            return self._publish_outline(
+            new_techniques = []
+            for technique in listify(task.options[step][techniques]):
+                new_techniques.append(self._publish_outline(
                         step = step,
-                        technique = technique,
-                        outline = task.options[step][technique])
+                        technique = technique.name,
+                        outline = technique))
+            return new_techniques

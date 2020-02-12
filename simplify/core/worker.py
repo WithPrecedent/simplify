@@ -168,7 +168,8 @@ class Worker(object):
                 techniques: Union[List['Technique'], 'Technique'],
                 data: Union['Dataset', 'Book']) -> Union['Dataset', 'Book']:
             for technique in listify(techniques):
-                data = technique.apply(data = data)
+                if not technique in ['none', None]:
+                    data = technique.apply(data = data)
             return data
         
     """ Core siMpLify Methods """

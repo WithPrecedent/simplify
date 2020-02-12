@@ -120,23 +120,15 @@ class Technique(Container):
         """
         return item == self.technique
 
-    """ Private Methods """
-
-    def _apply_once(self, x: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
-        if self.fit_method:
-            self.fit(x = x, y = y)
-        if self.transform_method:
-            x = self.transform(x = x, y = y)
-        return x
-
     """ Core siMpLify Methods """
 
     def apply(self, data: 'Dataset') -> 'Dataset':
         if data.stages.current in ['full']:
-            data.x = self._apply_once(x = data.x, y = data.y)
+            data.x = self.fit(x = data.x, y = data.y)
         else:
-            data.x_train = self._apply_once(x = data.x_train, y = data.y_train)
-            data.x_test = self._apply_once(x = data.x_test, y = data.y_test)
+            self.fit(x = data.x_train, y = data.y_train)
+            data.x_train = self.transform(x = data.x_train, y = data.y_train)
+            data.x_test = self.transform(x = data.x_test, y = data.y_test)
         return data
 
     """ Scikit-Learn Compatibility Methods """
@@ -213,7 +205,7 @@ class Technique(Container):
 
         """
         if self.transform_method:
-            return getattr(self.algorithm, self.transform_method)(x)
+            return getattr(self.algorithm, self.transform_method)(x, y)
         else:
             raise AttributeError(' '.join(
                 [self.technique, 'has no transform method']))

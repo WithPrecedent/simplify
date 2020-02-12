@@ -146,14 +146,15 @@ class Analyst(Worker):
 
         """
         data.stages.change('testing')
-        split_algorithm = steps['split'].algorithm
+        split_algorithm = steps['split'][0].algorithm
         for train_index, test_index in split_algorithm.split(data.x, data.y):
             data.x_train = data.x.iloc[train_index]
             data.x_test = data.x.iloc[test_index]
             data.y_train = data.y[train_index]
             data.y_test = data.y[test_index]
             for step, techniques in steps.items():
-                if not step in ['split'] and techniques:
+                print('test what are techniques', step, techniques)
+                if not step in ['split'] and not techniques in ['none', None]:
                     self._iterate_techniques(
                         techniques = techniques, 
                         data = data)
