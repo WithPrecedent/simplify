@@ -77,11 +77,11 @@ class Critic(Worker):
         """
         for step, techniques in chapter.techniques.items():
             data = self._iterate_techniques(
-                    techniques = techniques, 
+                    techniques = techniques,
                     data = data)
         setattr(chapter, 'data', data)
         return chapter
-    
+
 
 @dataclass
 class Evaluators(Repository):
@@ -105,7 +105,7 @@ class Evaluators(Repository):
 
     """ Private Methods """
 
-    def _create_contents(self) -> None:
+    def create(self) -> None:
         self.contents = {
             'explain': {
                 'eli5': TechniqueOutline(

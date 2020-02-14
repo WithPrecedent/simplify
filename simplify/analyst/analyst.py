@@ -17,13 +17,15 @@ import pandas as pd
 from scipy.stats import randint, uniform
 
 from simplify.core.book import Book
+from simplify.core.book import Chapter
+from simplify.core.book import Technique
 from simplify.core.publisher import Publisher
 from simplify.core.repository import Repository
-from simplify.core.technique import TechniqueOutline
 from simplify.core.utilities import listify
-from simplify.core.utilities import subsetify
 from simplify.core.worker import Worker
 
+
+""" Book Subclass """
 
 @dataclass
 class Cookbook(Book):
@@ -49,6 +51,179 @@ class Cookbook(Book):
     iterable: Optional[str] = field(default_factory = lambda: 'recipes')
     chapters: Optional[List['Chapter']] = field(default_factory = list)
 
+
+""" Recipe Subclass """
+
+@dataclass
+class Recipe(Chapter):
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        return self
+
+
+""" Technique Subclass and Decorator """
+
+def numpy_shield(callable: Callable) -> Callable:
+    """
+    """
+    @wraps(callable)
+    def wrapper(*args, **kwargs):
+        call_signature = signature(callable)
+        arguments = dict(call_signature.bind(*args, **kwargs).arguments)
+        try:
+            x_columns = list(arguments['x'].columns.values)
+            result = callable(*args, **kwargs)
+            if isinstance(result, np.ndarray):
+                result = pd.DataFrame(result, columns = x_columns)
+        except KeyError:
+            result = callable(*args, **kwargs)
+        return result
+    return wrapper
+
+
+@dataclass
+class AnalystTechnique(Technique):
+
+    """Core iterable for sequences of methods to apply to passed data.
+
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. Defaults to
+            None or __class__.__name__.lower() if super().__post_init__ is
+            called.
+        technique (Optional[str]): name of particular technique to be used. It
+            should correspond to a key in the related 'book' instance. Defaults
+            to None.
+
+    """
+    name: Optional[str] = None
+    technique: Optional[str] = None
+    algorithm: Optional[object] = None
+    module: Optional[str]
+    parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
+    default: Optional[Dict[str, Any]] = field(default_factory = dict)
+    required: Optional[Dict[str, Any]] = field(default_factory = dict)
+    runtime: Optional[Dict[str, str]] = field(default_factory = dict)
+    selected: Optional[Union[bool, List[str]]] = False
+    data_dependents: Optional[Dict[str, str]] = field(default_factory = dict)
+    parameter_space: Optional[Dict[str, List[Union[int, float]]]] = field(
+        default_factory = dict)
+    fit_method: Optional[str] = field(default_factory = lambda: 'fit')
+    transform_method: Optional[str] = field(
+        default_factory = lambda: 'transform')
+
+    """ Required ABC Methods """
+
+    def __contains__(self, key: str) -> bool:
+        """Returns whether 'attribute' is the 'technique'.
+
+        Args:
+            key (str): name of item to check.
+
+        Returns:
+            bool: whether the 'key' is equivalent to 'technique'.
+
+        """
+        return item == self.technique
+
+    """ Core siMpLify Methods """
+
+    def apply(self, data: 'Dataset') -> 'Dataset':
+        if data.stages.current in ['full']:
+            data.x = self.fit(x = data.x, y = data.y)
+        else:
+            self.fit(x = data.x_train, y = data.y_train)
+            data.x_train = self.transform(x = data.x_train, y = data.y_train)
+            data.x_test = self.transform(x = data.x_test, y = data.y_test)
+        return data
+
+    """ Scikit-Learn Compatibility Methods """
+
+    def fit(self,
+            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+            y: Optional[Union[pd.Series, np.ndarray]] = None) -> None:
+        """Generic fit method for partial compatibility to sklearn.
+
+        Args:
+            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
+                variables/features.
+            y (Optional[Union[pd.Series, np.ndarray]]): dependent
+                variable/label.
+
+        Raises:
+            AttributeError if no 'fit' method exists for 'technique'.
+
+        """
+        x, y = check_X_y(X = x, y = y, accept_sparse = True)
+        try:
+            if y is None:
+                getattr(self.algorithm, self.fit_method)(x)
+            else:
+                getattr(self.algorithm, self.fit_method)(x, y)
+        except AttributeError:
+            raise AttributeError(' '.join(
+                [self.technique, 'has no fit method']))
+        return self
+
+    @numpy_shield
+    def fit_transform(self,
+            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+            y: Optional[Union[pd.Series, np.ndarray]] = None) -> pd.DataFrame:
+        """Generic fit_transform method for partial compatibility to sklearn
+
+        Args:
+            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
+                variables/features.
+            y (Optional[Union[pd.Series, np.ndarray]]): dependent
+                variable/label.
+
+        Returns:
+            transformed x or data, depending upon what is passed to the
+                method.
+
+        Raises:
+            TypeError if DataFrame, ndarray, or dataset is not passed to
+                the method.
+
+        """
+        self.fit(x = x, y = y, data = dataset)
+        return self.transform(x = x, y = y)
+
+    @numpy_shield
+    def transform(self,
+            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
+            y: Optional[Union[pd.Series, np.ndarray]] = None) -> pd.DataFrame:
+        """Generic transform method for partial compatibility to sklearn.
+
+        Args:
+            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
+                variables/features.
+            y (Optional[Union[pd.Series, np.ndarray]]): dependent
+                variable/label.
+
+        Returns:
+            transformed x or data, depending upon what is passed to the
+                method.
+
+        Raises:
+            AttributeError if no 'transform' method exists for local
+                'process'.
+
+        """
+        if self.transform_method:
+            return getattr(self.algorithm, self.transform_method)(x, y)
+        else:
+            raise AttributeError(' '.join(
+                [self.technique, 'has no transform method']))
+
+
+""" Publisher Subclass """
 
 @dataclass
 class AnalystPublisher(Publisher):
@@ -88,6 +263,8 @@ class AnalystPublisher(Publisher):
     #     return self
 
 
+""" Worker Subclass """
+
 @dataclass
 class Analyst(Worker):
     """Applies a 'Cookbook' instance to data.
@@ -121,22 +298,22 @@ class Analyst(Worker):
         for step, techniques in chapter.techniques.items():
             if step in ['split']:
                 data, remaining = self._split_loop(
-                    steps = remaining, 
+                    steps = remaining,
                     data = data)
                 break
             elif step in ['search']:
                 techniques = self._search_loop(
-                    techniques = techniques, 
+                    techniques = techniques,
                     data = data)
             else:
                 data = self._iterate_techniques(
-                    techniques = techniques, 
+                    techniques = techniques,
                     data = data)
             del remaining[step]
         chapter.techniques.update(remaining)
         setattr(chapter, 'data', data)
         return chapter
-        
+
     def _split_loop(self,
             steps: 'Plan',
             data: 'DataSet') -> ('Dataset', 'Plan'):
@@ -156,7 +333,7 @@ class Analyst(Worker):
                 print('test what are techniques', step, techniques)
                 if not step in ['split'] and not techniques in ['none', None]:
                     self._iterate_techniques(
-                        techniques = techniques, 
+                        techniques = techniques,
                         data = data)
         return data, steps
 
@@ -166,7 +343,7 @@ class Analyst(Worker):
             index: int) -> 'Chapter':
 
         return chapter
-    
+
     def _add_model_conditionals(self,
             technique: 'Technique',
             data: 'Dataset') -> 'Technique':
@@ -361,7 +538,7 @@ class Analyst(Worker):
 #         [type]: [description]
 #     """
 #     name: str = 'search_composer'
-#     algorithm_class: object = SearchTechniqueOutline
+#     algorithm_class: object = SearchAnalystTechnique
 #     step_class: object = SearchTechnique
 
 #     def __post_init__(self) -> None:
@@ -436,7 +613,7 @@ class Analyst(Worker):
 
 
 # @dataclass
-# class SearchTechniqueOutline(TechniqueOutline):
+# class SearchAnalystTechnique(AnalystTechnique):
 #     """[summary]
 
 #     Args:
@@ -469,32 +646,22 @@ class Analyst(Worker):
 #                 **kwargs)
 
 
+""" Options """
+
 @dataclass
 class Tools(Repository):
-    """A dictonary of TechniqueOutline options for the Analyst subpackage.
+    """A dictonary of AnalystTechnique options for the Analyst subpackage.
 
     Args:
-        contents (Optional[str, Any]): default stored dictionary. Defaults to
-            an empty dictionary.
-        wildcards (Optional[List[str]]): a list of corresponding properties
-            which access sets of dictionary keys. If none is passed, the two
-            included properties ('default' and 'all') are used.
-        defaults (Optional[List[str]]): a list of keys in 'contents' which
-            will be used to return items when 'default' is sought. If not
-            passed, 'default' will be set to all keys.
+        idea ('Idea'): shared 'Idea' instance with project settings.
 
     """
-    contents: Optional[Dict[str, Any]] = field(default_factory = dict)
-    wildcards: Optional[List[str]] = field(default_factory = list)
-    defaults: Optional[List[str]] = field(default_factory = list)
-    idea: 'Idea' = None
+    idea: 'Idea'
 
-    """ Private Methods """
-
-    def _create_contents(self) -> None:
+    def create(self) -> None:
         self.contents = {
             'fill': {
-                'defaults': TechniqueOutline(
+                'defaults': AnalystTechnique(
                     name = 'defaults',
                     module = 'simplify.analyst.algorithms',
                     algorithm = 'smart_fill',
@@ -507,28 +674,28 @@ class Tools(Repository):
                         'list': [],
                         'datetime': 1/1/1900,
                         'timedelta': 0}}),
-                'impute': TechniqueOutline(
+                'impute': AnalystTechnique(
                     name = 'defaults',
                     module = 'sklearn.impute',
                     algorithm = 'SimpleImputer',
                     default = {'defaults': {}}),
-                'knn_impute': TechniqueOutline(
+                'knn_impute': AnalystTechnique(
                     name = 'defaults',
                     module = 'sklearn.impute',
                     algorithm = 'KNNImputer',
                     default = {'defaults': {}})},
             'categorize': {
-                'automatic': TechniqueOutline(
+                'automatic': AnalystTechnique(
                     name = 'automatic',
                     module = 'simplify.analyst.algorithms',
                     algorithm = 'auto_categorize',
                     default = {'threshold': 10}),
-                'binary': TechniqueOutline(
+                'binary': AnalystTechnique(
                     name = 'binary',
                     module = 'sklearn.preprocessing',
                     algorithm = 'Binarizer',
                     default = {'threshold': 0.5}),
-                'bins': TechniqueOutline(
+                'bins': AnalystTechnique(
                     name = 'bins',
                     module = 'sklearn.preprocessing',
                     algorithm = 'KBinsDiscretizer',
@@ -538,51 +705,51 @@ class Tools(Repository):
                     selected = True,
                     required = {'encode': 'onehot'})},
             'scale': {
-                'gauss': TechniqueOutline(
+                'gauss': AnalystTechnique(
                     name = 'gauss',
                     module = None,
                     algorithm = 'Gaussify',
                     default = {'standardize': False, 'copy': False},
                     selected = True,
                     required = {'rescaler': 'standard'}),
-                'maxabs': TechniqueOutline(
+                'maxabs': AnalystTechnique(
                     name = 'maxabs',
                     module = 'sklearn.preprocessing',
                     algorithm = 'MaxAbsScaler',
                     default = {'copy': False},
                     selected = True),
-                'minmax': TechniqueOutline(
+                'minmax': AnalystTechnique(
                     name = 'minmax',
                     module = 'sklearn.preprocessing',
                     algorithm = 'MinMaxScaler',
                     default = {'copy': False},
                     selected = True),
-                'normalize': TechniqueOutline(
+                'normalize': AnalystTechnique(
                     name = 'normalize',
                     module = 'sklearn.preprocessing',
                     algorithm = 'Normalizer',
                     default = {'copy': False},
                     selected = True),
-                'quantile': TechniqueOutline(
+                'quantile': AnalystTechnique(
                     name = 'quantile',
                     module = 'sklearn.preprocessing',
                     algorithm = 'QuantileTransformer',
                     default = {'copy': False},
                     selected = True),
-                'robust': TechniqueOutline(
+                'robust': AnalystTechnique(
                     name = 'robust',
                     module = 'sklearn.preprocessing',
                     algorithm = 'RobustScaler',
                     default = {'copy': False},
                     selected = True),
-                'standard': TechniqueOutline(
+                'standard': AnalystTechnique(
                     name = 'standard',
                     module = 'sklearn.preprocessing',
                     algorithm = 'StandardScaler',
                     default = {'copy': False},
                     selected = True)},
             'split': {
-                'group_kfold': TechniqueOutline(
+                'group_kfold': AnalystTechnique(
                     name = 'group_kfold',
                     module = 'sklearn.model_selection',
                     algorithm = 'GroupKFold',
@@ -591,7 +758,7 @@ class Tools(Repository):
                     selected = True,
                     fit_method = None,
                     transform_method = 'split'),
-                'kfold': TechniqueOutline(
+                'kfold': AnalystTechnique(
                     name = 'kfold',
                     module = 'sklearn.model_selection',
                     algorithm = 'KFold',
@@ -601,7 +768,7 @@ class Tools(Repository):
                     required = {'shuffle': True},
                     fit_method = None,
                     transform_method = 'split'),
-                'stratified': TechniqueOutline(
+                'stratified': AnalystTechnique(
                     name = 'stratified',
                     module = 'sklearn.model_selection',
                     algorithm = 'StratifiedKFold',
@@ -611,7 +778,7 @@ class Tools(Repository):
                     required = {'shuffle': True},
                     fit_method = None,
                     transform_method = 'split'),
-                'time': TechniqueOutline(
+                'time': AnalystTechnique(
                     name = 'time',
                     module = 'sklearn.model_selection',
                     algorithm = 'TimeSeriesSplit',
@@ -620,7 +787,7 @@ class Tools(Repository):
                     selected = True,
                     fit_method = None,
                     transform_method = 'split'),
-                'train_test': TechniqueOutline(
+                'train_test': AnalystTechnique(
                     name = 'train_test',
                     module = 'sklearn.model_selection',
                     algorithm = 'ShuffleSplit',
@@ -631,78 +798,78 @@ class Tools(Repository):
                     fit_method = None,
                     transform_method = 'split')},
             'encode': {
-                'backward': TechniqueOutline(
+                'backward': AnalystTechnique(
                     name = 'backward',
                     module = 'category_encoders',
                     algorithm = 'BackwardDifferenceEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'basen': TechniqueOutline(
+                'basen': AnalystTechnique(
                     name = 'basen',
                     module = 'category_encoders',
                     algorithm = 'BaseNEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'binary': TechniqueOutline(
+                'binary': AnalystTechnique(
                     name = 'binary',
                     module = 'category_encoders',
                     algorithm = 'BinaryEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'dummy': TechniqueOutline(
+                'dummy': AnalystTechnique(
                     name = 'dummy',
                     module = 'category_encoders',
                     algorithm = 'OneHotEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'hashing': TechniqueOutline(
+                'hashing': AnalystTechnique(
                     name = 'hashing',
                     module = 'category_encoders',
                     algorithm = 'HashingEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'helmert': TechniqueOutline(
+                'helmert': AnalystTechnique(
                     name = 'helmert',
                     module = 'category_encoders',
                     algorithm = 'HelmertEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'james_stein': TechniqueOutline(
+                'james_stein': AnalystTechnique(
                     name = 'james_stein',
                     module = 'category_encoders',
                     algorithm = 'JamesSteinEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'loo': TechniqueOutline(
+                'loo': AnalystTechnique(
                     name = 'loo',
                     module = 'category_encoders',
                     algorithm = 'LeaveOneOutEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'm_estimate': TechniqueOutline(
+                'm_estimate': AnalystTechnique(
                     name = 'm_estimate',
                     module = 'category_encoders',
                     algorithm = 'MEstimateEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'ordinal': TechniqueOutline(
+                'ordinal': AnalystTechnique(
                     name = 'ordinal',
                     module = 'category_encoders',
                     algorithm = 'OrdinalEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'polynomial': TechniqueOutline(
+                'polynomial': AnalystTechnique(
                     name = 'polynomial_encoder',
                     module = 'category_encoders',
                     algorithm = 'PolynomialEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'sum': TechniqueOutline(
+                'sum': AnalystTechnique(
                     name = 'sum',
                     module = 'category_encoders',
                     algorithm = 'SumEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'target': TechniqueOutline(
+                'target': AnalystTechnique(
                     name = 'target',
                     module = 'category_encoders',
                     algorithm = 'TargetEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'woe': TechniqueOutline(
+                'woe': AnalystTechnique(
                     name = 'weight_of_evidence',
                     module = 'category_encoders',
                     algorithm = 'WOEEncoder',
                     data_dependent = {'cols': 'categoricals'})},
             'mix': {
-                'polynomial': TechniqueOutline(
+                'polynomial': AnalystTechnique(
                     name = 'polynomial_mixer',
                     module = 'sklearn.preprocessing',
                     algorithm = 'PolynomialFeatures',
@@ -710,25 +877,25 @@ class Tools(Repository):
                         'degree': 2,
                         'interaction_only': True,
                         'include_bias': True}),
-                'quotient': TechniqueOutline(
+                'quotient': AnalystTechnique(
                     name = 'quotient',
                     module = None,
                     algorithm = 'QuotientFeatures'),
-                'sum': TechniqueOutline(
+                'sum': AnalystTechnique(
                     name = 'sum',
                     module = None,
                     algorithm = 'SumFeatures'),
-                'difference': TechniqueOutline(
+                'difference': AnalystTechnique(
                     name = 'difference',
                     module = None,
                     algorithm = 'DifferenceFeatures')},
             'cleave': {
-                'cleaver': TechniqueOutline(
+                'cleaver': AnalystTechnique(
                     name = 'cleaver',
                     module = 'simplify.analyst.algorithms',
                     algorithm = 'Cleaver')},
             'sample': {
-                'adasyn': TechniqueOutline(
+                'adasyn': AnalystTechnique(
                     name = 'adasyn',
                     module = 'imblearn.over_sampling',
                     algorithm = 'ADASYN',
@@ -736,7 +903,7 @@ class Tools(Repository):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'cluster': TechniqueOutline(
+                'cluster': AnalystTechnique(
                     name = 'cluster',
                     module = 'imblearn.under_sampling',
                     algorithm = 'ClusterCentroids',
@@ -744,7 +911,7 @@ class Tools(Repository):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'knn': TechniqueOutline(
+                'knn': AnalystTechnique(
                     name = 'knn',
                     module = 'imblearn.under_sampling',
                     algorithm = 'AllKNN',
@@ -752,7 +919,7 @@ class Tools(Repository):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'near_miss': TechniqueOutline(
+                'near_miss': AnalystTechnique(
                     name = 'near_miss',
                     module = 'imblearn.under_sampling',
                     algorithm = 'NearMiss',
@@ -760,7 +927,7 @@ class Tools(Repository):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'random_over': TechniqueOutline(
+                'random_over': AnalystTechnique(
                     name = 'random_over',
                     module = 'imblearn.over_sampling',
                     algorithm = 'RandomOverSampler',
@@ -768,7 +935,7 @@ class Tools(Repository):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'random_under': TechniqueOutline(
+                'random_under': AnalystTechnique(
                     name = 'random_under',
                     module = 'imblearn.under_sampling',
                     algorithm = 'RandomUnderSampler',
@@ -776,7 +943,7 @@ class Tools(Repository):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'smote': TechniqueOutline(
+                'smote': AnalystTechnique(
                     name = 'smote',
                     module = 'imblearn.over_sampling',
                     algorithm = 'SMOTE',
@@ -784,7 +951,7 @@ class Tools(Repository):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'smotenc': TechniqueOutline(
+                'smotenc': AnalystTechnique(
                     name = 'smotenc',
                     module = 'imblearn.over_sampling',
                     algorithm = 'SMOTENC',
@@ -794,7 +961,7 @@ class Tools(Repository):
                         'categorical_features': 'categoricals_indices'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'smoteenn': TechniqueOutline(
+                'smoteenn': AnalystTechnique(
                     name = 'smoteenn',
                     module = 'imblearn.combine',
                     algorithm = 'SMOTEENN',
@@ -802,7 +969,7 @@ class Tools(Repository):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'smotetomek': TechniqueOutline(
+                'smotetomek': AnalystTechnique(
                     name = 'smotetomek',
                     module = 'imblearn.combine',
                     algorithm = 'SMOTETomek',
@@ -811,44 +978,44 @@ class Tools(Repository):
                     fit_method = None,
                     transform_method = 'fit_resample')},
             'reduce': {
-                'kbest': TechniqueOutline(
+                'kbest': AnalystTechnique(
                     name = 'kbest',
                     module = 'sklearn.feature_selection',
                     algorithm = 'SelectKBest',
                     default = {'k': 10, 'score_func': 'f_classif'},
                     selected = True),
-                'fdr': TechniqueOutline(
+                'fdr': AnalystTechnique(
                     name = 'fdr',
                     module = 'sklearn.feature_selection',
                     algorithm = 'SelectFdr',
                     default = {'alpha': 0.05, 'score_func': 'f_classif'},
                     selected = True),
-                'fpr': TechniqueOutline(
+                'fpr': AnalystTechnique(
                     name = 'fpr',
                     module = 'sklearn.feature_selection',
                     algorithm = 'SelectFpr',
                     default = {'alpha': 0.05, 'score_func': 'f_classif'},
                     selected = True),
-                'custom': TechniqueOutline(
+                'custom': AnalystTechnique(
                     name = 'custom',
                     module = 'sklearn.feature_selection',
                     algorithm = 'SelectFromModel',
                     default = {'threshold': 'mean'},
                     runtime = {'estimator': 'algorithm'},
                     selected = True),
-                'rank': TechniqueOutline(
+                'rank': AnalystTechnique(
                     name = 'rank',
                     module = 'simplify.critic.rank',
                     algorithm = 'RankSelect',
                     selected = True),
-                'rfe': TechniqueOutline(
+                'rfe': AnalystTechnique(
                     name = 'rfe',
                     module = 'sklearn.feature_selection',
                     algorithm = 'RFE',
                     default = {'n_features_to_select': 10, 'step': 1},
                     runtime = {'estimator': 'algorithm'},
                     selected = True),
-                'rfecv': TechniqueOutline(
+                'rfecv': AnalystTechnique(
                     name = 'rfecv',
                     module = 'sklearn.feature_selection',
                     algorithm = 'RFECV',
@@ -857,52 +1024,52 @@ class Tools(Repository):
                     selected = True)}}
         model_options = {
             'classify': {
-                'adaboost': TechniqueOutline(
+                'adaboost': AnalystTechnique(
                     name = 'adaboost',
                     module = 'sklearn.ensemble',
                     algorithm = 'AdaBoostClassifier',
                     transform_method = None),
-                'baseline_classifier': TechniqueOutline(
+                'baseline_classifier': AnalystTechnique(
                     name = 'baseline_classifier',
                     module = 'sklearn.dummy',
                     algorithm = 'DummyClassifier',
                     required = {'strategy': 'most_frequent'},
                     transform_method = None),
-                'logit': TechniqueOutline(
+                'logit': AnalystTechnique(
                     name = 'logit',
                     module = 'sklearn.linear_model',
                     algorithm = 'LogisticRegression',
                     transform_method = None),
-                'random_forest': TechniqueOutline(
+                'random_forest': AnalystTechnique(
                     name = 'random_forest',
                     module = 'sklearn.ensemble',
                     algorithm = 'RandomForestClassifier',
                     transform_method = None),
-                'svm_linear': TechniqueOutline(
+                'svm_linear': AnalystTechnique(
                     name = 'svm_linear',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'linear', 'probability': True},
                     transform_method = None),
-                'svm_poly': TechniqueOutline(
+                'svm_poly': AnalystTechnique(
                     name = 'svm_poly',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'poly', 'probability': True},
                     transform_method = None),
-                'svm_rbf': TechniqueOutline(
+                'svm_rbf': AnalystTechnique(
                     name = 'svm_rbf',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'rbf', 'probability': True},
                     transform_method = None),
-                'svm_sigmoid': TechniqueOutline(
+                'svm_sigmoid': AnalystTechnique(
                     name = 'svm_sigmoid ',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'sigmoid', 'probability': True},
                     transform_method = None),
-                'tensorflow': TechniqueOutline(
+                'tensorflow': AnalystTechnique(
                     name = 'tensorflow',
                     module = 'tensorflow',
                     algorithm = None,
@@ -910,135 +1077,135 @@ class Tools(Repository):
                         'batch_size': 10,
                         'epochs': 2},
                     transform_method = None),
-                'xgboost': TechniqueOutline(
+                'xgboost': AnalystTechnique(
                     name = 'xgboost',
                     module = 'xgboost',
                     algorithm = 'XGBClassifier',
                     data_dependent = 'scale_pos_weight',
                     transform_method = None)},
             'cluster': {
-                'affinity': TechniqueOutline(
+                'affinity': AnalystTechnique(
                     name = 'affinity',
                     module = 'sklearn.cluster',
                     algorithm = 'AffinityPropagation',
                     transform_method = None),
-                'agglomerative': TechniqueOutline(
+                'agglomerative': AnalystTechnique(
                     name = 'agglomerative',
                     module = 'sklearn.cluster',
                     algorithm = 'AgglomerativeClustering',
                     transform_method = None),
-                'birch': TechniqueOutline(
+                'birch': AnalystTechnique(
                     name = 'birch',
                     module = 'sklearn.cluster',
                     algorithm = 'Birch',
                     transform_method = None),
-                'dbscan': TechniqueOutline(
+                'dbscan': AnalystTechnique(
                     name = 'dbscan',
                     module = 'sklearn.cluster',
                     algorithm = 'DBSCAN',
                     transform_method = None),
-                'kmeans': TechniqueOutline(
+                'kmeans': AnalystTechnique(
                     name = 'kmeans',
                     module = 'sklearn.cluster',
                     algorithm = 'KMeans',
                     transform_method = None),
-                'mean_shift': TechniqueOutline(
+                'mean_shift': AnalystTechnique(
                     name = 'mean_shift',
                     module = 'sklearn.cluster',
                     algorithm = 'MeanShift',
                     transform_method = None),
-                'spectral': TechniqueOutline(
+                'spectral': AnalystTechnique(
                     name = 'spectral',
                     module = 'sklearn.cluster',
                     algorithm = 'SpectralClustering',
                     transform_method = None),
-                'svm_linear': TechniqueOutline(
+                'svm_linear': AnalystTechnique(
                     name = 'svm_linear',
                     module = 'sklearn.cluster',
                     algorithm = 'OneClassSVM',
                     transform_method = None),
-                'svm_poly': TechniqueOutline(
+                'svm_poly': AnalystTechnique(
                     name = 'svm_poly',
                     module = 'sklearn.cluster',
                     algorithm = 'OneClassSVM',
                     transform_method = None),
-                'svm_rbf': TechniqueOutline(
+                'svm_rbf': AnalystTechnique(
                     name = 'svm_rbf',
                     module = 'sklearn.cluster',
                     algorithm = 'OneClassSVM,',
                     transform_method = None),
-                'svm_sigmoid': TechniqueOutline(
+                'svm_sigmoid': AnalystTechnique(
                     name = 'svm_sigmoid',
                     module = 'sklearn.cluster',
                     algorithm = 'OneClassSVM',
                     transform_method = None)},
             'regress': {
-                'adaboost': TechniqueOutline(
+                'adaboost': AnalystTechnique(
                     name = 'adaboost',
                     module = 'sklearn.ensemble',
                     algorithm = 'AdaBoostRegressor',
                     transform_method = None),
-                'baseline_regressor': TechniqueOutline(
+                'baseline_regressor': AnalystTechnique(
                     name = 'baseline_regressor',
                     module = 'sklearn.dummy',
                     algorithm = 'DummyRegressor',
                     required = {'strategy': 'mean'},
                     transform_method = None),
-                'bayes_ridge': TechniqueOutline(
+                'bayes_ridge': AnalystTechnique(
                     name = 'bayes_ridge',
                     module = 'sklearn.linear_model',
                     algorithm = 'BayesianRidge',
                     transform_method = None),
-                'lasso': TechniqueOutline(
+                'lasso': AnalystTechnique(
                     name = 'lasso',
                     module = 'sklearn.linear_model',
                     algorithm = 'Lasso',
                     transform_method = None),
-                'lasso_lars': TechniqueOutline(
+                'lasso_lars': AnalystTechnique(
                     name = 'lasso_lars',
                     module = 'sklearn.linear_model',
                     algorithm = 'LassoLars',
                     transform_method = None),
-                'ols': TechniqueOutline(
+                'ols': AnalystTechnique(
                     name = 'ols',
                     module = 'sklearn.linear_model',
                     algorithm = 'LinearRegression',
                     transform_method = None),
-                'random_forest': TechniqueOutline(
+                'random_forest': AnalystTechnique(
                     name = 'random_forest',
                     module = 'sklearn.ensemble',
                     algorithm = 'RandomForestRegressor',
                     transform_method = None),
-                'ridge': TechniqueOutline(
+                'ridge': AnalystTechnique(
                     name = 'ridge',
                     module = 'sklearn.linear_model',
                     algorithm = 'Ridge',
                     transform_method = None),
-                'svm_linear': TechniqueOutline(
+                'svm_linear': AnalystTechnique(
                     name = 'svm_linear',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'linear', 'probability': True},
                     transform_method = None),
-                'svm_poly': TechniqueOutline(
+                'svm_poly': AnalystTechnique(
                     name = 'svm_poly',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'poly', 'probability': True},
                     transform_method = None),
-                'svm_rbf': TechniqueOutline(
+                'svm_rbf': AnalystTechnique(
                     name = 'svm_rbf',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'rbf', 'probability': True},
                     transform_method = None),
-                'svm_sigmoid': TechniqueOutline(
+                'svm_sigmoid': AnalystTechnique(
                     name = 'svm_sigmoid ',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'sigmoid', 'probability': True},
                     transform_method = None),
-                'xgboost': TechniqueOutline(
+                'xgboost': AnalystTechnique(
                     name = 'xgboost',
                     module = 'xgboost',
                     algorithm = 'XGBRegressor',
@@ -1046,44 +1213,44 @@ class Tools(Repository):
                     transform_method = None)}}
         gpu_options = {
             'classify': {
-                'forest_inference': TechniqueOutline(
+                'forest_inference': AnalystTechnique(
                     name = 'forest_inference',
                     module = 'cuml',
                     algorithm = 'ForestInference',
                     transform_method = None),
-                'random_forest': TechniqueOutline(
+                'random_forest': AnalystTechnique(
                     name = 'random_forest',
                     module = 'cuml',
                     algorithm = 'RandomForestClassifier',
                     transform_method = None),
-                'logit': TechniqueOutline(
+                'logit': AnalystTechnique(
                     name = 'logit',
                     module = 'cuml',
                     algorithm = 'LogisticRegression',
                     transform_method = None)},
             'cluster': {
-                'dbscan': TechniqueOutline(
+                'dbscan': AnalystTechnique(
                     name = 'dbscan',
                     module = 'cuml',
                     algorithm = 'DBScan',
                     transform_method = None),
-                'kmeans': TechniqueOutline(
+                'kmeans': AnalystTechnique(
                     name = 'kmeans',
                     module = 'cuml',
                     algorithm = 'KMeans',
                     transform_method = None)},
             'regressor': {
-                'lasso': TechniqueOutline(
+                'lasso': AnalystTechnique(
                     name = 'lasso',
                     module = 'cuml',
                     algorithm = 'Lasso',
                     transform_method = None),
-                'ols': TechniqueOutline(
+                'ols': AnalystTechnique(
                     name = 'ols',
                     module = 'cuml',
                     algorithm = 'LinearRegression',
                     transform_method = None),
-                'ridge': TechniqueOutline(
+                'ridge': AnalystTechnique(
                     name = 'ridge',
                     module = 'cuml',
                     algorithm = 'RidgeRegression',
@@ -1093,4 +1260,4 @@ class Tools(Repository):
         if self.idea['general']['gpu']:
             self.contents['model'].update(
                 gpu_options[idea['analyst']['model_type']])
-        return self
+        return self.contents

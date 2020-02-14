@@ -18,9 +18,8 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 import pandas as pd
 
-from simplify.core.repository import Repository
 from simplify.core.states import create_states
-from simplify.core.definitions import Outline
+from simplify.core.repository import Outline
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
@@ -55,13 +54,13 @@ class Inventory(MutableMapping):
             states or a 'SimpleState' instance. Defaults to None.
 
     """
-    idea: ClassVar['Idea'] = None
     root_folder: Optional[Union[str, List[str]]] = field(
         default_factory = ['..', '..'])
     data_folder: Optional[str] = field(default_factory = lambda: 'data')
     data_subfolders: Optional[List[str]] = field(default_factory = list)
     results_folder: Optional[str] = field(default_factory = lambda: 'results')
     states: Optional[Union[List[str], 'SimpleState']] = None
+    idea: ClassVar['Idea'] = None
 
     def __post_init__(self) -> None:
         """Creates initial attributes."""
@@ -206,7 +205,7 @@ class Inventory(MutableMapping):
 
     def _draft_file_formats(self) -> None:
         """Drafts supported file formats and state-related mappings."""
-        self.file_formats = Repository(contents = {
+        self.file_formats = {
             'csv': FileFormat(
                 name = 'csv',
                 module = 'pandas',
@@ -275,7 +274,7 @@ class Inventory(MutableMapping):
                 module = None,
                 extension = '.pickle',
                 import_method = '_pickle_object',
-                export_method = '_unpickle_object')})
+                export_method = '_unpickle_object')}
         self.import_format_states = {
             'acquire': 'source_format',
             'parse': 'source_format',
