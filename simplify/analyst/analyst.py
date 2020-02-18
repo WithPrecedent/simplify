@@ -292,50 +292,45 @@ class Analyst(Scholar):
 
         """
         data.create_xy()
-        remaining = deepcopy(chapter.steps)
-        print('test initial remaining', remaining)
         for i, technique in enumerate(chapter.steps):
             if technique.step in ['split']:
-                remaining, data = self._split_loop(
-                    steps = remaining,
+                chapter, data = self._split_loop(
+                    chapter = chapter,
+                    index = i,
                     data = data)
-                chapter.steps = self._combine_remaining(
-                    original = chapter.steps,
-                    remaining = remaining)
                 break
             # elif technique.step in ['search']:
             #     remaining = self._search_loop(
             #         steps = remaining,
+            #         index = i,
             #         data = data)
             #     data = technique.apply(data = data)
-            #     del remaining[i]
             elif not technique.name in ['none', None]:
                 data = technique.apply(data = data)
-                del remaining[i]
-            print('test remaining', remaining[0].name, remaining[0].step)
         setattr(chapter, 'data', data)
         return chapter
 
     def _split_loop(self,
-            steps: List['Technique'],
-            data: 'DataSet') -> ('Dataset', List['Technique']):
+            chapter: 'Chapter',
+            index: int,
+            data: 'DataSet') -> ('Chapter', 'Dataset'):
         """Iterates 'steps' starting with train/test split.
 
         Args:
 
         """
         data.stages.change('testing')
-        split_algorithm = steps[0].algorithm
+        split_algorithm = chapter.steps[index].algorithm
+        print('test split data', data.x)
         for train_index, test_index in split_algorithm.split(data.x, data.y):
             data.x_train = data.x.iloc[train_index]
             data.x_test = data.x.iloc[test_index]
             data.y_train = data.y[train_index]
             data.y_test = data.y[test_index]
-            for technique in steps:
-                if not (technique.step in ['split']
-                        or technique.name in ['none', None]):
+            for technique in chapter.steps[index + 1:]:
+                if not technique.name in ['none', None]:
                     data = technique.apply(data = data)
-        return steps, data
+        return chapter, data
 
     def _search_loop(self,
             steps: List['Technique'],
