@@ -41,7 +41,7 @@ Although scikit-learn has gone a long way toward unifying interfaces with many c
 10) Many great tools for machine learning, particularly in the category of "deep
 learning" simply are not designed to be compatible with Scikit-learn.
 
-siMpLify provides a cleaner, universal set of tools to access the many useful methods from scikit-learn and other python packages. The goal is to make machine learning more accessible to a wider user base. Simplify also adds numerous unique methods and functions for common machine learning and feature engineering tasks. In addition to those custom scripts, siMpLify incorporates and provides a universal API for methods and classes from the following packages:
+siMpLify provides a cleaner, universal set of tools to access the many useful methods from scikit-learn and other python packages. The goal is to make machine learning more accessible to a wider user base. Simplify also adds numerous unique methods and functions for common machine learning and feature engineering workers. In addition to those custom scripts, siMpLify incorporates and provides a universal API for methods and classes from the following packages:
 
 * [scikit-learn](https://github.com/scikit-learn/scikit-learn)
 * [xgboost](https://github.com/dmlc/xgboost)

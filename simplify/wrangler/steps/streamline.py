@@ -1,6 +1,6 @@
 """
 .. module:: streamline
-:synopsis: last-task data processing before analysis
+:synopsis: last-worker data processing before analysis
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0

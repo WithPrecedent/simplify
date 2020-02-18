@@ -131,7 +131,7 @@ class ReTool(SimpleDirector):
                       'datatypes': self.datatypes,
                       'edit_prefixes': self.edit_prefixes,
                       'section_prefix': self.section_prefix}
-        self.matcher = self.tasks[self.step](**parameters)
+        self.matcher = self.workers[self.step](**parameters)
         self.matcher.default_values = self.default_values
         return self
 

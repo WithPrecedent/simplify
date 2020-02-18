@@ -7,7 +7,7 @@
 """
 
 from simplify.core import startup
-from simplify.core.project import Project
+from simplify.core.project import ProjectManager
 from simplify.core.utilities import timer
 
 
@@ -17,5 +17,5 @@ __author__ = 'Corey Rayburn Yung'
 
 __all__ = [
     'startup',
-    'Project',
+    'ProjectManager',
     'timer']

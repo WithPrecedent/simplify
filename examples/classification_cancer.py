@@ -16,7 +16,7 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import load_breast_cancer
 
-from simplify import Project
+from simplify import ProjectManager
 
 # Loads cancer data and converts from numpy arrays to a pandas DataFrame.
 cancer = load_breast_cancer()
@@ -32,7 +32,7 @@ idea = Path.cwd().joinpath('examples', 'cancer_settings.ini')
 
 # Creates siMpLify project, automatically configuring the process based upon
 # settings in the 'idea_file'.
-cancer_project = Project(
+cancer_project = ProjectManager(
     idea = idea,
     # inventory = root_folder,
     dataset = df)

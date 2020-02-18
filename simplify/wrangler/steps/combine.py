@@ -59,7 +59,7 @@ class Combine(WranglerTechnique):
                         'any': self._combine_any,
                         'dict': self._dict}
         if isinstance(self.method, str):
-            self.algorithm = self.tasks[self.method]
+            self.algorithm = self.workers[self.method]
         else:
             self.algorithm = self._dict
         return self

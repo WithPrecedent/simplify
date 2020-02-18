@@ -40,7 +40,7 @@ class Bale(SimpleIterable):
         return self
 
     def publish(self):
-        self.algorithm = self.tasks[self.step](**self.parameters)
+        self.algorithm = self.workers[self.step](**self.parameters)
         return self
 
     def publish(self, dataset):

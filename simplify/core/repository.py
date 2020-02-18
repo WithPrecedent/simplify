@@ -86,7 +86,9 @@ class Repository(MutableMapping):
             return []
         else:
             try:
-                return list(self.subsetify(listify(key)).values())
+                return self.contents[key]
+            # try:
+            #     return list(self.subsetify(listify(key)).values())
             except KeyError:
                 raise KeyError(' '.join([key, 'is not in', self.name]))
 
@@ -223,182 +225,183 @@ class Repository(MutableMapping):
                 self.contents[key] = Repository(contents = value)
         return self
 
-    def subsetify(self, key: Union[List[str], str]) -> 'Repository':
+    def subsetify(self, keys: Union[List[str], str]) -> 'Repository':
         """Returns a subset of a Repository
 
         Args:
-            key (Union[List[str], str]): key(s) to get key/values.
+            keys (Union[List[str], str]): key(s) to get key/values.
 
         Returns:
             'Repository': with only keys in 'key'.
 
         """
-        return Repository(contents = {i: dictionary[i] for i in self.contents})
+        return Repository(
+            contents = {i: self.contents[i] for i in listify(keys)})
 
 
-@dataclass
-class Plan(MutableSequence):
-    """
+# @dataclass
+# class Plan(MutableSequence):
+#     """
 
-    Args:
-        steps (Optional[List[str]]): an ordred set of steps. Defaults to an
-            empty list. All items in 'steps' should correspond to keys in
-            'repository' before iterating.
-        repository ('Repository'): instance with options for 'steps'.
-        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
+#     Args:
+#         steps (Optional[List[str]]): an ordred set of steps. Defaults to an
+#             empty list. All items in 'steps' should correspond to keys in
+#             'repository' before iterating.
+#         repository ('Repository'): instance with options for 'steps'.
+#         idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
 
-    """
-    steps: Union[List[str], str]
-    repository: 'Repository'
-    idea: ClassVar['Idea'] = None
+#     """
+#     steps: Union[List[str], str]
+#     repository: 'Repository'
+#     idea: ClassVar['Idea'] = None
 
-    def __post_init__(self) -> None:
-        self.create()
-        return self
+#     def __post_init__(self) -> None:
+#         self.create()
+#         return self
 
-    """ Required ABC Methods """
+#     """ Required ABC Methods """
 
-    def __getitem__(self, key: str) -> Any:
-        """Returns 'steps' or a wildcard option.
+#     def __getitem__(self, key: str) -> Any:
+#         """Returns 'steps' or a wildcard option.
 
-        Args:
-            key (str): item, wilcard, or index of steps stored in
-                'steps'.
+#         Args:
+#             key (str): item, wilcard, or index of steps stored in
+#                 'steps'.
 
-        Returns:
-            Any: a whole or part of a Repository values with key(s) matching
-                'key'.
+#         Returns:
+#             Any: a whole or part of a Repository values with key(s) matching
+#                 'key'.
 
-        """
-        return self.repository[key]
+#         """
+#         return self.repository[key]
 
-    def __setitem__(self, key: str, value: Any) -> None:
-        """Sets 'key' in 'repository' to 'value'.
+#     def __setitem__(self, key: str, value: Any) -> None:
+#         """Sets 'key' in 'repository' to 'value'.
 
-        Args:
-            key (str): name of key in 'repository'.
-            value (Any): value to be paired with 'key' in 'repository'.
+#         Args:
+#             key (str): name of key in 'repository'.
+#             value (Any): value to be paired with 'key' in 'repository'.
 
-        """
-        self.repository[key] = value
-        if not key in self.steps:
-            self.steps.append(key)
-        return self
+#         """
+#         self.repository[key] = value
+#         if not key in self.steps:
+#             self.steps.append(key)
+#         return self
 
-    def __delitem__(self, key: str) -> None:
-        """Deletes 'key' entry in 'repository'.
+#     def __delitem__(self, key: str) -> None:
+#         """Deletes 'key' entry in 'repository'.
 
-        Args:
-            key (str): name of key in 'repository'.
+#         Args:
+#             key (str): name of key in 'repository'.
 
-        """
-        try:
-            del self.repository[key]
-            self.steps.remove(key)
-        except (KeyError, ValueError):
-            pass
-        return self
+#         """
+#         try:
+#             del self.repository[key]
+#             self.steps.remove(key)
+#         except (KeyError, ValueError):
+#             pass
+#         return self
 
-    def __iter__(self) -> Iterable:
-        """Returns iterable from 'repository'.
+#     def __iter__(self) -> Iterable:
+#         """Returns iterable from 'repository'.
 
-        Returns:
-            Iterable: the portion of 'repository' with keys matching 'steps' in
-                the order of 'steps'.
+#         Returns:
+#             Iterable: the portion of 'repository' with keys matching 'steps' in
+#                 the order of 'steps'.
 
-        """
-        return iter(self.repository.subsetify(self.steps))
+#         """
+#         return iter(self.repository.subsetify(self.steps))
 
-    def __len__(self) -> int:
-        """Returns length of attribute named in 'iterable'.
+#     def __len__(self) -> int:
+#         """Returns length of attribute named in 'iterable'.
 
-        Returns:
-            Integer: length of attribute named in 'iterable'.
+#         Returns:
+#             Integer: length of attribute named in 'iterable'.
 
-        """
-        return len(self.steps)
+#         """
+#         return len(self.steps)
 
-    def insert(self,
-            index: int,
-            step: str,
-            value: Optional[Any] = None) -> None:
-        """Inserts item in 'steps' at 'index'.
+#     def insert(self,
+#             index: int,
+#             step: str,
+#             value: Optional[Any] = None) -> None:
+#         """Inserts item in 'steps' at 'index'.
 
-        Args:
-            index (int): location in 'steps' to insert 'step'.
-            step (str): step to insert at 'index' in 'steps'.
+#         Args:
+#             index (int): location in 'steps' to insert 'step'.
+#             step (str): step to insert at 'index' in 'steps'.
 
-        """
-        self.steps.insert(index, step)
-        if value is not None:
-            self.repository[step] = value
-        return self
+#         """
+#         self.steps.insert(index, step)
+#         if value is not None:
+#             self.repository[step] = value
+#         return self
 
-    """ Other Dunder Methods """
+#     """ Other Dunder Methods """
 
-    def __add__(self, other: Union['Repository', Dict[str, Any]]) -> None:
-        """Combines argument with 'repository'.
+#     def __add__(self, other: Union['Repository', Dict[str, Any]]) -> None:
+#         """Combines argument with 'repository'.
 
-        Args:
-            other (Union['Repository', Dict[str, Any]]): another
-                'Repository' instance or compatible dictionary.
+#         Args:
+#             other (Union['Repository', Dict[str, Any]]): another
+#                 'Repository' instance or compatible dictionary.
 
-        """
-        self.add(repository = other)
-        return self
+#         """
+#         self.add(repository = other)
+#         return self
 
-    def __iadd__(self, other: Union['Repository', Dict[str, Any]]) -> None:
-        """Combines argument with 'repository'.
+#     def __iadd__(self, other: Union['Repository', Dict[str, Any]]) -> None:
+#         """Combines argument with 'repository'.
 
-        Args:
-            other (Union['Repository', Dict[str, Any]]): another
-                'Repository' instance or compatible dictionary.
+#         Args:
+#             other (Union['Repository', Dict[str, Any]]): another
+#                 'Repository' instance or compatible dictionary.
 
-        """
-        self.add(repository = other)
-        return self
+#         """
+#         self.add(repository = other)
+#         return self
 
-    def __repr__(self) -> str:
-        """Returns '__str__' representation.
+#     def __repr__(self) -> str:
+#         """Returns '__str__' representation.
 
-        Returns:
-            str: default dictionary representation of 'repository'.
+#         Returns:
+#             str: default dictionary representation of 'repository'.
 
-        """
-        return self.__str__()
+#         """
+#         return self.__str__()
 
-    def __str__(self) -> str:
-        """Returns default dictionary representation of repository.
+#     def __str__(self) -> str:
+#         """Returns default dictionary representation of repository.
 
-        Returns:
-            str: default dictionary representation of 'repository'.
+#         Returns:
+#             str: default dictionary representation of 'repository'.
 
-        """
-        return self.repository.__str__()
+#         """
+#         return self.repository.__str__()
 
-    """ Public Methods """
+#     """ Public Methods """
 
-    def add(self, steps: Union[List[str], str]) -> None:
-        """Combines 'steps' with 'steps' attribute.
+#     def add(self, steps: Union[List[str], str]) -> None:
+#         """Combines 'steps' with 'steps' attribute.
 
-        Args:
-            steps (Union[List[str], str]): step(s) to add to the end of the
-                'steps' attribute.
+#         Args:
+#             steps (Union[List[str], str]): step(s) to add to the end of the
+#                 'steps' attribute.
 
-        """
-        self.steps.extend(listify(steps))
-        return self
+#         """
+#         self.steps.extend(listify(steps))
+#         return self
 
-    def create(self) -> None:
-        """Subclasses may provide their own methods to create 'steps'."""
-        self.steps = listify(self.steps, default_empty = True)
-        if not self.steps:
-            try:
-                key = self.repository.name
-                self.steps = self.idea[key]['_'.join([key, 'steps'])]
-            except (KeyError, AttributeError):
-                pass
-        return self
+#     def create(self) -> None:
+#         """Subclasses may provide their own methods to create 'steps'."""
+#         self.steps = listify(self.steps, default_empty = True)
+#         if not self.steps:
+#             try:
+#                 key = self.repository.name
+#                 self.steps = self.idea[key]['_'.join([key, 'steps'])]
+#             except (KeyError, AttributeError):
+#                 pass
+#         return self
 
 
 @dataclass

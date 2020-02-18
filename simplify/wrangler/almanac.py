@@ -118,7 +118,7 @@ class Manual(SimpleBook):
     def _implement_file(self, dataset):
         with open(
                 self.inventory.path_in, mode = 'r', errors = 'ignore',
-                encoding = self.tasks.idea['files']['file_encoding']) as a_file:
+                encoding = self.workers.idea['files']['file_encoding']) as a_file:
             dataset.source = a_file.implement()
             for step in self.steps:
                 data = step.implement(data = dataset)
@@ -134,7 +134,7 @@ class Manual(SimpleBook):
                 print(file_num + 1, 'files parsed')
             with open(
                     a_path, mode = 'r', errors = 'ignore',
-                    encoding = self.tasks.idea['files']['file_encoding']) as a_file:
+                    encoding = self.workers.idea['files']['file_encoding']) as a_file:
                 dataset.source = a_file.implement()
                 print(dataset.df)
                 dataset.df[self.index_column] = file_num + 1

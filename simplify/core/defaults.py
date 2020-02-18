@@ -15,7 +15,7 @@ GENERAL: {
     'gpu': False}
 
 PROJECT = {
-    'project_tasks': ['analyze', 'criticize']}
+    'project_workers': ['analyze', 'criticize']}
 
 FILES = {
     'source_format': 'csv',

@@ -12,13 +12,13 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
 from simplify.core.book import Book
+from simplify.core.creators import Publisher
 from simplify.core.dataset import Dataset
 from simplify.core.idea import Idea
 from simplify.core.inventory import Inventory
-from simplify.core.project import Project
-from simplify.core.project import Task
-from simplify.core.publisher import Publisher
-from simplify.core.worker import Worker
+from simplify.core.project import ProjectManager
+from simplify.core.project import Worker
+from simplify.core.scholar import Scholar
 
 __all__ = [
     'Book',
@@ -26,9 +26,9 @@ __all__ = [
     'Idea',
     'Inventory',
     'Publisher',
-    'Worker',
-    'Project',
-    'Task']
+    'Scholar',
+    'ProjectManager',
+    'Worker']
 
 
 def startup(

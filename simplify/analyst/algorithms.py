@@ -216,9 +216,9 @@ def divide_xy(
 #                 copy = self.parameters['copy'])
 #         del self.parameters['rescaler']
 #         self._publish_parameters()
-#         self.positive_tool = self.tasks['box_cox'](
+#         self.positive_tool = self.workers['box_cox'](
 #                 method = 'box_cox', **self.parameters)
-#         self.negative_tool = self.tasks['yeo_johnson'](
+#         self.negative_tool = self.workers['yeo_johnson'](
 #                 method = 'yeo_johnson', **self.parameters)
 #         return self
 

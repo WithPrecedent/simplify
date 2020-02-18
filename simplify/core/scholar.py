@@ -1,5 +1,5 @@
 """
-.. module:: worker
+.. module:: scholar
 :synopsis: applies collections of techniques to data
 :author: Corey Rayburn Yung
 :copyright: 2019
@@ -21,23 +21,22 @@ except ImportError:
     from multiprocessing import Pool
 
 from simplify.core.repository import Repository
-from simplify.core.repository import Plan
 from simplify.core.utilities import listify
 from simplify.core.validators import DataValidator
 
 
 @dataclass
-class Worker(object):
+class Scholar(object):
     """Base class for applying Book instances to data.
 
     Args:
         idea ('Idea'): an instance with project settings.
-        task ('Task'): instance with information needed to create a Book
+        worker ('Worker'): instance with information needed to create a Book
             instance.
 
     """
-    idea: 'Idea'
-    task: Optional['Task'] = None
+    worker: Optional['Worker'] = None
+    idea: ClassVar['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -49,18 +48,17 @@ class Worker(object):
 
     def _finalize_chapters(self, book: 'Book', data: 'Dataset') -> 'Book':
         for chapter in book.chapters:
-            for step, techniques in chapter.techniques.items():
-                for technique in listify(techniques):
-                    if technique is not 'none':
-                        technique = self._add_conditionals(
-                            book = book,
-                            technique = technique,
-                            data = data)
-                        technique = self._add_data_dependents(
-                            technique = technique,
-                            data = data)
-                        technique = self._add_parameters_to_algorithm(
-                            technique = technique)
+            for step in chapter.steps:
+                if step:
+                    technique = self._add_conditionals(
+                        book = book,
+                        technique = step,
+                        data = data)
+                    technique = self._add_data_dependent(
+                        technique = step,
+                        data = data)
+                    technique = self._add_parameters_to_algorithm(
+                        technique = step)
         return book
 
     def _add_conditionals(self,
@@ -89,7 +87,7 @@ class Worker(object):
         except AttributeError:
             return technique
 
-    def _add_data_dependents(self,
+    def _add_data_dependent(self,
             technique: 'Technique',
             data: Union['Dataset', 'Book']) -> 'Technique':
         """Completes parameter dictionary by adding data dependent parameters.
@@ -104,10 +102,11 @@ class Worker(object):
             'Technique': with any data dependent parameters added.
 
         """
-        if technique is not None and technique.data_dependents is not None:
-            for key, value in technique.data_dependents.items():
+        if technique is not None and technique.data_dependent is not None:
+
+            for key, value in technique.data_dependent.items():
                 try:
-                    technique.parameters.update({key, getattr(data, value)})
+                    technique.parameters.update({key: getattr(data, value)})
                 except KeyError:
                     print('no matching parameter found for', key, 'in data')
         return technique
@@ -159,7 +158,7 @@ class Worker(object):
         """
         for step, techniques in chapter.techniques.items():
             data = self._iterate_techniques(
-                techniques = techniques, 
+                techniques = techniques,
                 data = data)
         setattr(chapter, 'data', data)
         return chapter
@@ -171,7 +170,7 @@ class Worker(object):
                 if not technique in ['none', None]:
                     data = technique.apply(data = data)
             return data
-        
+
     """ Core siMpLify Methods """
 
     def apply(self,

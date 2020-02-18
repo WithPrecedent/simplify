@@ -10,16 +10,15 @@ from collections.abc import Container
 from collections.abc import MutableSequence
 from dataclasses import dataclass
 from dataclasses import field
+from importlib import import_module
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
-from simplify.core.repository import Plan
-from simplify.core.repository import Repository
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Book(Repository):
+class Book(object):
     """Standard class for top-level siMpLify package iterable storage.
 
     Args:
@@ -31,30 +30,22 @@ class Book(Repository):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
             None. If not passed, __class__.__name__.lower() is used.
-        contents (Optional[str, Any]): stored dictionary. Defaults to an empty
-            dictionary.
-        default (Optional[List[str]]): a list of keys in 'contents' which
-            will be used to return items when 'default' is sought. If not
-            passed, 'default' will be set to all keys.
-        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
         chapters (Optional[List[str]]): iterable collection of steps and
             techniques to apply at each step. Defaults to an empty 'Plan'
             instance.
 
     """
     name: Optional[str] = None
-    contents: Optional[Dict[str, Any]] = field(default_factory = dict)
-    defaults: Optional[List[str]] = field(default_factory = list)
     chapters: Optional[List['Chapter']] = field(default_factory = list)
-    idea: ClassVar['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes attributes and settings."""
         if self.name is None:
             self.name = self.__class__.__name__.lower()
-        if hasattr(self, '_iterable'):
+        try:
             self.proxify(name = self._iterable)
-        super().__post_init__()
+        except AttributeError:
+            pass
         return self
 
     """ Dunder Methods """
@@ -106,27 +97,15 @@ class Book(Repository):
     """ Public Methods """
 
     def add(self,
-            key: Optional[str] = None,
-            value: Optional[Any] = None,
-            contents: Optional[Union['Repository', Dict[str, Any]]] = None,
-            chapters: Optional[
-                Union[List['Chapter'], 'Chapter']] = None) -> None:
-        """Combines arguments with 'contents'.
+            chapters: Union[List['Chapter'], 'Chapter']) -> None:
+        """Combines 'chapters' with existing 'chapters' attribute.
 
         Args:
-            key (Optional[str]): key for 'value' to use. Defaults to None.
-            value (Optional[Any]): item to store in 'contents'. Defaults to
-                None.
-            contents (Optional[Union['Repository', Dict[str, Any]]]):
-                another 'Repository' instance/subclass or a compatible
-                dictionary. Defaults to None.
             chapters (Union['Chapter', List['Chapter']]: a 'Chapter' instance or
                 list of such instances.
 
         """
-        if chapters:
-            self.chapters.extend(listify(chapters, default_empty = True))
-        super().add(key = key, value = value, contents = contents)
+        self.chapters.extend(listify(chapters, default_empty = True))
         return self
 
     def proxify(self, name: str) -> None:
@@ -144,7 +123,7 @@ class Book(Repository):
 
 
 @dataclass
-class Chapter(Plan):
+class Chapter(object):
     """Standard class for bottom-level siMpLify package iterable storage.
 
     Args:
@@ -155,9 +134,7 @@ class Chapter(Plan):
         idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
 
     """
-    steps: Union[List[str], str]
-    repository: 'Book'
-    idea: ClassVar['Idea'] = None
+    steps: Union[List[Tuple[str, str]], List['Technique']]
 
     """ Proxy Property Methods """
 
@@ -202,7 +179,7 @@ class Chapter(Plan):
 
 
 @dataclass
-class Technique(Outline):
+class Technique(object):
     """Core iterable for sequences of methods to apply to passed data.
 
     Args:
@@ -215,16 +192,55 @@ class Technique(Outline):
             __class__.__name__ to make such subclassing easier. Defaults to
             None or __class__.__name__.lower() if super().__post_init__ is
             called.
-        technique (Optional[str]): name of particular technique to be used. It
-            should correspond to a key in the related 'book' instance. Defaults
-            to None.
+        step (Optional[str]): name of step where the class isntance is to
+            be applied. Defaults to None.
 
     """
     name: Optional[str] = None
-    technique: Optional[str] = None
+    step: Optional[str] = None
+    module: Optional[str] = None
+    default_module: Optional[str] = field(
+        default_factory = lambda: 'simplify.core')
     algorithm: Optional[object] = None
-    module: Optional[str]
     parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
+
+    """ Dunder Methods """
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def __str__(self) -> str:
+        return ' '.join(
+            ['technique', self.name,
+            'step', self.step,
+            'parameters', str(self.parameters)])
+
+    """ Public Methods """
+
+    def load(self, component: str) -> object:
+        """Returns 'component' from 'module'.
+
+        Args:
+            component (str): name of object to load from 'module'.
+
+        Returns:
+            object: from 'module'.
+
+        """
+        try:
+            return getattr(
+                import_module(self.module),
+                getattr(self, component))
+        except (ImportError, AttributeError):
+            try:
+                return getattr(
+                    import_module(self.default_module),
+                    getattr(self, component))
+            except (ImportError, AttributeError):
+                raise ImportError(' '.join(
+                    [getattr(self, component), 'is neither in', self.module,
+                        'nor', self.default_module]))
+
 
     """ Core siMpLify Methods """
 

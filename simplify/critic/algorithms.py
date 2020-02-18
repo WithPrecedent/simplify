@@ -443,9 +443,9 @@ class ShapExplain(object):
 
     def _set_method(self, recipe):
         if self.step in self.models:
-            self.method = self.tasks[self.models[self.step]]
+            self.method = self.workers[self.models[self.step]]
         else:
-            self.method = self.tasks['kernel']
+            self.method = self.workers['kernel']
         self.evaluator = self.method(
             model = recipe.model.algorithm,
             data = getattr(recipe.dataset, 'x_' + self.data_to_review))
@@ -605,7 +605,7 @@ class SkaterExplain(object):
 #     # def edit(self, name, metric, special_type = None,
 #     #          special_parameters = None, negative_metric = False):
 #     #     """Allows user to manually add a metric to report."""
-#     #     self.tasks.update({name: metric})
+#     #     self.workers.update({name: metric})
 #     #     if special_type in ['probability']:
 #     #         self.prob_options.update({name: metric})
 #     #     elif special_type in ['scorer']:
@@ -665,7 +665,7 @@ class SkaterExplain(object):
 
     # def _get_permutation_importances(self, recipe):
     #     scorer = listify(self.metrics_steps)[0]
-    #     base_score, score_decreases = self.tasks[self.step](
+    #     base_score, score_decreases = self.workers[self.step](
     #             score_func = scorer,
     #             x = getattr(recipe.dataset, 'x_' + self.data_to_review),
     #             y = getattr(recipe.dataset, 'y_' + self.data_to_review))

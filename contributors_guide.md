@@ -43,7 +43,7 @@ Any new subpackages, Books, Chapters, and Repository should follow a similar tem
 
         from importlib import import_module
 
-        getattr(import_module(self.tasks[key][0]), self.tasks[key][1])
+        getattr(import_module(self.workers[key][0]), self.workers[key][1])
 
     For Technique-level classes, a special class has been created to construct needed external and internal objects. It is the Option class in the Contributor module. Follow the documentation there for creating Repository.
 
@@ -53,7 +53,7 @@ Any new subpackages, Books, Chapters, and Repository should follow a similar tem
 
 4. When composing objects through a loosely coupled hierarchy, it is important to provide connections in both directions. For example, the Chapter class has methods to 'add_technique' and 'add_book' which automatically change local attributes ('techniques' and 'book') accordingly. This is done so that any class in a composite tree can access attributes from other classes in that tree without passing numerous arguments.
 
-## siMpLify Task
+## siMpLify Worker
 
 1. All file management should be perfomed throught the shared Inventory instance.
 
@@ -67,7 +67,7 @@ Any new subpackages, Books, Chapters, and Repository should follow a similar tem
 
 5. If you create a proxy for typing, please subclass the SimpleType class in simplify.core.definitionsetter, if possible.
 
-6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'task' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Dataset instance.
+6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'worker' attribute is an attribute to a Inventory instance and 'data_state' is an attribute to an Dataset instance.
 
 ## General
 

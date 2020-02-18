@@ -1,6 +1,6 @@
 """
 .. module:: utilities
-:synopsis: tasks made simple
+:synopsis: workers made simple
 :author: Corey Rayburn Yung
 :copyright: 2019
 :license: Apache-2.0

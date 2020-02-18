@@ -106,9 +106,9 @@ class Idea(MutableMapping):
     Regardless of the idea_sections added, all Idea settings can be similarly
     accessed using dict keys or local attributes. For example:
 
-        self.tasks.idea['general']['seed'] # typical dict access step
+        self.workers.idea['general']['seed'] # typical dict access step
 
-        self.tasks.idea['seed'] # if no section or other key is named 'seed'
+        self.workers.idea['seed'] # if no section or other key is named 'seed'
 
         self.seed # works because 'seed' is in the 'general' section
 
@@ -545,7 +545,7 @@ class Idea(MutableMapping):
             overwrite = overwrite)
         return instance
 
-    def inject_tasks(self,
+    def inject_workers(self,
             instance: object,
             overwrite: Optional[bool] = False) -> object:
         """Injects 'techniques' into 'instance'.
@@ -562,8 +562,8 @@ class Idea(MutableMapping):
         """
         self._inject(
             instance = instance,
-            attribute = 'tasks',
-            value = self._get_special(instance = instance, suffix = 'tasks'),
+            attribute = 'workers',
+            value = self._get_special(instance = instance, suffix = 'workers'),
             overwrite = overwrite)
         return instance
 
@@ -578,7 +578,7 @@ class Idea(MutableMapping):
         Args:
             instance (object): siMpLify class instance to be modified.
             inject_specials (Optional[bool]): whether to add 'parameters',
-                'steps', 'techniques', or 'tasks' to 'instance'. Defaults to
+                'steps', 'techniques', or 'workers' to 'instance'. Defaults to
                 True.
             overwrite (Optional[bool]): whether to overwrite a local attribute
                 in 'instance' if there are values stored in that attribute.
@@ -590,7 +590,7 @@ class Idea(MutableMapping):
         """
         # Adds special attributes appropraite to instance.
         if inject_specials:
-            for special in ['parameters', 'steps', 'techniques', 'tasks']:
+            for special in ['parameters', 'steps', 'techniques', 'workers']:
                 if hasattr(instance, special):
                     getattr(self, '_'.join(['inject', special]))(
                         instance = instance,

@@ -9,6 +9,8 @@
 from copy import deepcopy
 from dataclasses import dataclass
 from dataclasses import field
+from functools import wraps
+from inspect import signature
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
@@ -19,10 +21,10 @@ from scipy.stats import randint, uniform
 from simplify.core.book import Book
 from simplify.core.book import Chapter
 from simplify.core.book import Technique
-from simplify.core.publisher import Publisher
+from simplify.core.creators import Publisher
 from simplify.core.repository import Repository
 from simplify.core.utilities import listify
-from simplify.core.worker import Worker
+from simplify.core.scholar import Scholar
 
 
 """ Book Subclass """
@@ -40,27 +42,23 @@ class Cookbook(Book):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
             'cookbook'
-        iterable(Optional[str]): name of attribute for storing the main class
-            instance iterable (called by __iter___). Defaults to 'recipes'.
-        chapters (Optional['Plan']): iterable collection of steps and
-            techniques to apply at each step. Defaults to an empty 'Plan'
-            instance.
+        chapters (Optional[List['Chapter']]): iterable collection of steps and
+            techniques to apply at each step. Defaults to an empty list.
+        _iterable(Optional[str]): name of property to store alternative proxy
+            to 'chapters'.
 
     """
     name: Optional[str] = field(default_factory = lambda: 'cookbook')
-    iterable: Optional[str] = field(default_factory = lambda: 'recipes')
     chapters: Optional[List['Chapter']] = field(default_factory = list)
+    _iterable: Optional[str] = field(default_factory = lambda: 'recipes')
 
 
-""" Recipe Subclass """
+""" Chapter Subclass """
 
 @dataclass
 class Recipe(Chapter):
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        return self
-
+    steps: Union[List[Tuple[str, str]], List['Technique']]
 
 """ Technique Subclass and Decorator """
 
@@ -103,15 +101,15 @@ class AnalystTechnique(Technique):
 
     """
     name: Optional[str] = None
-    technique: Optional[str] = None
-    algorithm: Optional[object] = None
+    step: Optional[str] = None
     module: Optional[str]
+    algorithm: Optional[object] = None
     parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
     default: Optional[Dict[str, Any]] = field(default_factory = dict)
     required: Optional[Dict[str, Any]] = field(default_factory = dict)
     runtime: Optional[Dict[str, str]] = field(default_factory = dict)
     selected: Optional[Union[bool, List[str]]] = False
-    data_dependents: Optional[Dict[str, str]] = field(default_factory = dict)
+    data_dependent: Optional[Dict[str, str]] = field(default_factory = dict)
     parameter_space: Optional[Dict[str, List[Union[int, float]]]] = field(
         default_factory = dict)
     fit_method: Optional[str] = field(default_factory = lambda: 'fit')
@@ -121,16 +119,16 @@ class AnalystTechnique(Technique):
     """ Required ABC Methods """
 
     def __contains__(self, key: str) -> bool:
-        """Returns whether 'attribute' is the 'technique'.
+        """Returns whether 'attribute' is the 'name'.
 
         Args:
             key (str): name of item to check.
 
         Returns:
-            bool: whether the 'key' is equivalent to 'technique'.
+            bool: whether the 'key' is equivalent to 'name'.
 
         """
-        return item == self.technique
+        return key == self.name
 
     """ Core siMpLify Methods """
 
@@ -160,7 +158,7 @@ class AnalystTechnique(Technique):
             AttributeError if no 'fit' method exists for 'technique'.
 
         """
-        x, y = check_X_y(X = x, y = y, accept_sparse = True)
+        # x, y = check_X_y(X = x, y = y, accept_sparse = True)
         try:
             if y is None:
                 getattr(self.algorithm, self.fit_method)(x)
@@ -256,17 +254,17 @@ class AnalystPublisher(Publisher):
     #     # columns = self.dataset.make_column_list(
     #     #     prefixes = prefixes,
     #     #     columns = columns)
-    #     # self.tasks['cleaver'].add_techniques(
+    #     # self.workers['cleaver'].add_techniques(
     #     #     cleave_group = cleave_group,
     #     #     columns = columns)
     #     # self.cleaves.append(cleave_group)
     #     return self
 
 
-""" Worker Subclass """
+""" Scholar Subclass """
 
 @dataclass
-class Analyst(Worker):
+class Analyst(Scholar):
     """Applies a 'Cookbook' instance to data.
 
     Args:
@@ -294,55 +292,68 @@ class Analyst(Worker):
 
         """
         data.create_xy()
-        remaining = deepcopy(chapter.techniques)
-        for step, techniques in chapter.techniques.items():
-            if step in ['split']:
-                data, remaining = self._split_loop(
+        remaining = deepcopy(chapter.steps)
+        print('test initial remaining', remaining)
+        for i, technique in enumerate(chapter.steps):
+            if technique.step in ['split']:
+                remaining, data = self._split_loop(
                     steps = remaining,
                     data = data)
+                chapter.steps = self._combine_remaining(
+                    original = chapter.steps,
+                    remaining = remaining)
                 break
-            elif step in ['search']:
-                techniques = self._search_loop(
-                    techniques = techniques,
-                    data = data)
-            else:
-                data = self._iterate_techniques(
-                    techniques = techniques,
-                    data = data)
-            del remaining[step]
-        chapter.techniques.update(remaining)
+            # elif technique.step in ['search']:
+            #     remaining = self._search_loop(
+            #         steps = remaining,
+            #         data = data)
+            #     data = technique.apply(data = data)
+            #     del remaining[i]
+            elif not technique.name in ['none', None]:
+                data = technique.apply(data = data)
+                del remaining[i]
+            print('test remaining', remaining[0].name, remaining[0].step)
         setattr(chapter, 'data', data)
         return chapter
 
     def _split_loop(self,
-            steps: 'Plan',
-            data: 'DataSet') -> ('Dataset', 'Plan'):
+            steps: List['Technique'],
+            data: 'DataSet') -> ('Dataset', List['Technique']):
         """Iterates 'steps' starting with train/test split.
 
         Args:
 
         """
         data.stages.change('testing')
-        split_algorithm = steps['split'][0].algorithm
+        split_algorithm = steps[0].algorithm
         for train_index, test_index in split_algorithm.split(data.x, data.y):
             data.x_train = data.x.iloc[train_index]
             data.x_test = data.x.iloc[test_index]
             data.y_train = data.y[train_index]
             data.y_test = data.y[test_index]
-            for step, techniques in steps.items():
-                print('test what are techniques', step, techniques)
-                if not step in ['split'] and not techniques in ['none', None]:
-                    self._iterate_techniques(
-                        techniques = techniques,
-                        data = data)
-        return data, steps
+            for technique in steps:
+                if not (technique.step in ['split']
+                        or technique.name in ['none', None]):
+                    data = technique.apply(data = data)
+        return steps, data
 
     def _search_loop(self,
-            data: 'DataSet',
-            chapter: 'Chapter',
-            index: int) -> 'Chapter':
+            steps: List['Technique'],
+            data: 'DataSet') -> List['Technique']:
 
-        return chapter
+        return steps
+
+    def _combine_remaining(self,
+            original: List['Technique'],
+            remaining: List['Technique']) -> List['Technique']:
+        combined = []
+        for technique in original:
+            if technique.name == remaining[0].name:
+                combined.extend(remaining)
+                break
+            else:
+                combined.append(technique)
+        return combined
 
     def _add_model_conditionals(self,
             technique: 'Technique',
@@ -421,7 +432,7 @@ class Analyst(Worker):
 
     # def _cleave(self, dataset):
     #     if self.step != 'all':
-    #         cleave = self.tasks[self.step]
+    #         cleave = self.workers[self.step]
     #         drop_list = [i for i in self.test_columns if i not in cleave]
     #         for col in drop_list:
     #             if col in dataset.x_train.columns:
@@ -432,17 +443,17 @@ class Analyst(Worker):
     #     return dataset
 
     # def _publish_cleaves(self):
-    #     for group, columns in self.tasks.items():
+    #     for group, columns in self.workers.items():
     #         self.test_columns.extend(columns)
     #     if self.parameters['include_all']:
-    #         self.tasks.update({'all': self.test_columns})
+    #         self.workers.update({'all': self.test_columns})
     #     return self
 
     # def add(self, cleave_group, columns):
     #     """For the cleavers in siMpLify, this step alows users to manually
     #     add a new cleave group to the cleaver dictionary.
     #     """
-    #     self.tasks.update({cleave_group: columns})
+    #     self.workers.update({cleave_group: columns})
     #     return self
 
 
@@ -456,7 +467,7 @@ class Analyst(Worker):
     #     if not estimator:
     #         estimator = plan.model.algorithm
     #     self._set_parameters(estimator)
-    #     self.algorithm = self.tasks[self.step](**self.parameters)
+    #     self.algorithm = self.workers[self.step](**self.parameters)
     #     if len(dataset.x_train.columns) > self.num_features:
     #         self.algorithm.fit(dataset.x_train, dataset.y_train)
     #         mask = ~self.algorithm.get_support()
@@ -478,8 +489,8 @@ class Analyst(Worker):
     #         columns (list, optional): [description]. Defaults to None.
     #     """
     #     if self.step != 'none':
-    #         if self.data_dependents:
-    #             self._add_data_dependents(data = dataset)
+    #         if self.data_dependent:
+    #             self._add_data_dependent(data = dataset)
     #         if self.hyperparameter_search:
     #             self.algorithm = self._search_hyperparameters(
     #                 data = dataset,
@@ -622,7 +633,7 @@ class Analyst(Worker):
 #     step: str
 #     algorithm: object
 #     parameters: object
-#     data_dependents: object = None
+#     data_dependent: object = None
 #     hyperparameter_search: bool = False
 #     space: object = None
 #     name: str = 'search'
@@ -1081,7 +1092,7 @@ class Tools(Repository):
                     name = 'xgboost',
                     module = 'xgboost',
                     algorithm = 'XGBClassifier',
-                    data_dependent = 'scale_pos_weight',
+                    # data_dependent = 'scale_pos_weight',
                     transform_method = None)},
             'cluster': {
                 'affinity': AnalystTechnique(
@@ -1209,7 +1220,7 @@ class Tools(Repository):
                     name = 'xgboost',
                     module = 'xgboost',
                     algorithm = 'XGBRegressor',
-                    data_dependent = 'scale_pos_weight',
+                    # data_dependent = 'scale_pos_weight',
                     transform_method = None)}}
         gpu_options = {
             'classify': {

@@ -18,7 +18,7 @@ from simplify.core.book import Chapter
 from simplify.core.repository import Repository
 from simplify.core.repository import Plan
 from simplify.core.technique import TechniqueOutline
-from simplify.core.worker import Worker
+from simplify.core.scholar import Scholar
 
 
 @dataclass
@@ -48,7 +48,7 @@ class Anthology(Book):
 
 
 @dataclass
-class Critic(Worker):
+class Critic(Scholar):
     """Applies an 'Anthology' instance to an applied 'Cookbook'.
 
     Args:
