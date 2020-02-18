@@ -17,6 +17,8 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 import numpy as np
 import pandas as pd
 from scipy.stats import randint, uniform
+from sklearn.utils import check_X_y
+from sklearn.utils.validation import check_is_fitted
 
 from simplify.core.book import Book
 from simplify.core.book import Chapter
@@ -51,14 +53,6 @@ class Cookbook(Book):
     name: Optional[str] = field(default_factory = lambda: 'cookbook')
     chapters: Optional[List['Chapter']] = field(default_factory = list)
     _iterable: Optional[str] = field(default_factory = lambda: 'recipes')
-
-
-""" Chapter Subclass """
-
-@dataclass
-class Recipe(Chapter):
-
-    steps: Union[List[Tuple[str, str]], List['Technique']]
 
 """ Technique Subclass and Decorator """
 
@@ -116,25 +110,12 @@ class AnalystTechnique(Technique):
     transform_method: Optional[str] = field(
         default_factory = lambda: 'transform')
 
-    """ Required ABC Methods """
-
-    def __contains__(self, key: str) -> bool:
-        """Returns whether 'attribute' is the 'name'.
-
-        Args:
-            key (str): name of item to check.
-
-        Returns:
-            bool: whether the 'key' is equivalent to 'name'.
-
-        """
-        return key == self.name
-
     """ Core siMpLify Methods """
 
     def apply(self, data: 'Dataset') -> 'Dataset':
         if data.stages.current in ['full']:
-            data.x = self.fit(x = data.x, y = data.y)
+            self.fit(x = data.x, y = data.y)
+            data.x = self.transform(x = data.x, y = data.y)
         else:
             self.fit(x = data.x_train, y = data.y_train)
             data.x_train = self.transform(x = data.x_train, y = data.y_train)
@@ -143,6 +124,7 @@ class AnalystTechnique(Technique):
 
     """ Scikit-Learn Compatibility Methods """
 
+    @numpy_shield
     def fit(self,
             x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
             y: Optional[Union[pd.Series, np.ndarray]] = None) -> None:
@@ -158,40 +140,13 @@ class AnalystTechnique(Technique):
             AttributeError if no 'fit' method exists for 'technique'.
 
         """
-        # x, y = check_X_y(X = x, y = y, accept_sparse = True)
-        try:
+        x, y = check_X_y(X = x, y = y, accept_sparse = True)
+        if self.fit_method is not None:
             if y is None:
                 getattr(self.algorithm, self.fit_method)(x)
             else:
-                getattr(self.algorithm, self.fit_method)(x, y)
-        except AttributeError:
-            raise AttributeError(' '.join(
-                [self.technique, 'has no fit method']))
+                self.algorithm = self.algorithm.fit(x, y)
         return self
-
-    @numpy_shield
-    def fit_transform(self,
-            x: Optional[Union[pd.DataFrame, np.ndarray]] = None,
-            y: Optional[Union[pd.Series, np.ndarray]] = None) -> pd.DataFrame:
-        """Generic fit_transform method for partial compatibility to sklearn
-
-        Args:
-            x (Optional[Union[pd.DataFrame, np.ndarray]]): independent
-                variables/features.
-            y (Optional[Union[pd.Series, np.ndarray]]): dependent
-                variable/label.
-
-        Returns:
-            transformed x or data, depending upon what is passed to the
-                method.
-
-        Raises:
-            TypeError if DataFrame, ndarray, or dataset is not passed to
-                the method.
-
-        """
-        self.fit(x = x, y = y, data = dataset)
-        return self.transform(x = x, y = y)
 
     @numpy_shield
     def transform(self,
@@ -214,11 +169,13 @@ class AnalystTechnique(Technique):
                 'process'.
 
         """
-        if self.transform_method:
-            return getattr(self.algorithm, self.transform_method)(x, y)
+        if self.transform_method is not None:
+            try:
+                return getattr(self.algorithm, self.transform_method)(x)
+            except AttributeError:
+                return x
         else:
-            raise AttributeError(' '.join(
-                [self.technique, 'has no transform method']))
+            return x
 
 
 """ Publisher Subclass """
@@ -321,7 +278,6 @@ class Analyst(Scholar):
         """
         data.stages.change('testing')
         split_algorithm = chapter.steps[index].algorithm
-        print('test split data', data.x)
         for train_index, test_index in split_algorithm.split(data.x, data.y):
             data.x_train = data.x.iloc[train_index]
             data.x_test = data.x.iloc[test_index]

@@ -48,7 +48,21 @@ class Book(object):
             pass
         return self
 
-    """ Dunder Methods """
+    """ Required ABC Methods """
+
+    def __contains__(self, key: str) -> bool:
+        """Returns whether 'attribute' is the 'name'.
+
+        Args:
+            key (str): name of item to check.
+
+        Returns:
+            bool: whether the 'key' is equivalent to 'name'.
+
+        """
+        return key == self.name
+
+    """ Other Dunder Methods """
 
     def __iter__(self) -> Iterable:
         """Returns iterable of 'chapters'.
@@ -179,7 +193,7 @@ class Chapter(object):
 
 
 @dataclass
-class Technique(object):
+class Technique(Container):
     """Core iterable for sequences of methods to apply to passed data.
 
     Args:

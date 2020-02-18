@@ -220,7 +220,6 @@ class ProjectManager(object):
                 name = 'analyst',
                 module = 'simplify.analyst.analyst',
                 book = 'Cookbook',
-                chapter = 'Recipe',
                 technique = 'AnalystTechnique',
                 scholar = 'Analyst',
                 options = 'Tools',
