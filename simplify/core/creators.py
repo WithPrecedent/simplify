@@ -127,8 +127,12 @@ class Author(Creator):
         """
         new_steps = []
         for step, techniques in project.overview[self.worker.name].items():
+            # print('test step and techniques sequence', step, techniques)
+            # if techniques in [['all'], ['default']]:
+            #     techniques = self.worker.options[step][techniques]
+            #     print('test all techniques', techniques)
             for technique in techniques:
-                new_steps.append(tuple(step, technique))
+                new_steps.append((step, technique))
         chapter = self.worker.load('chapter')(steps = new_steps)
         project[self.worker.name].chapters.append(chapter)
         return project
@@ -148,7 +152,7 @@ class Author(Creator):
         if self.worker.compare_chapters:
             return self._draft_parallel(project = project)
         else:
-            return self._draft_serial(project = project)
+            return self._draft_sequence(project = project)
 
     def publish(self, project: 'Project') -> 'Project':
         """Finalizes 'Chapter' instance and deposits them in 'project'.
@@ -165,7 +169,7 @@ class Author(Creator):
             new_steps = []
             new_chapter = chapter
             for step in chapter.steps:
-                new_steps.append(self.expert.publish(step = step))
+                new_steps.extend(self.expert.publish(step = step))
             new_chapter.steps = new_steps
             new_chapters.append(new_chapter)
         project[self.worker.name].chapters = new_chapters
@@ -179,6 +183,23 @@ class Expert(Creator):
     idea: ClassVar['Idea'] = None
 
     """ Private Methods """
+
+    def _publish_technique(self,
+            technique: 'Technique',
+            step: Tuple[str, str]) -> 'Technique':
+        """Finalizes 'technique'.
+
+        Args:
+            technique ('Technique'): an instance for parameters to be added to.
+
+        Returns:
+            'Technique': instance with parameters added.
+
+        """
+        technique.step = step[0]
+        if technique.module and technique.algorithm:
+            technique.algorithm = technique.load('algorithm')
+        return self._publish_parameters(technique = technique)
 
     def _publish_parameters(self, technique: 'Technique') -> 'Technique':
         """Finalizes 'parameters' for 'technique'.
@@ -332,11 +353,19 @@ class Expert(Creator):
 
         """
         if step[1] in ['none']:
-            return self.worker.technique(name = 'none', step = step[0])
+            return [self.worker.technique(name = 'none', step = step[0])]
+        elif step[1] in ['all', 'default']:
+            final_techniques = []
+            techniques = self.worker.options[step[0]][step[1]]
+            for technique in techniques:
+                final_techniques.append(
+                    self._publish_technique(
+                        step = step,
+                        technique = technique))
+            return final_techniques
         else:
             # Gets appropriate Technique and creates an instance.
             technique = self.worker.options[step[0]][step[1]]
-            technique.step = step[0]
-            if technique.module and technique.algorithm:
-                technique.algorithm = technique.load('algorithm')
-            return self._publish_parameters(technique = technique)
+            return [self._publish_technique(
+                step = step,
+                technique = technique)]

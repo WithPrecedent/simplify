@@ -15,9 +15,8 @@ import pandas as pd
 
 from simplify.core.book import Book
 from simplify.core.book import Chapter
+from simplify.core.book import Technique
 from simplify.core.repository import Repository
-from simplify.core.repository import Plan
-from simplify.core.technique import TechniqueOutline
 from simplify.core.scholar import Scholar
 
 
@@ -33,18 +32,39 @@ class Anthology(Book):
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
-            'critic'.
-        iterable(Optional[str]): name of attribute for storing the main class
-            instance iterable (called by __iter___). Defaults to 'reviews'.
-        chapters (Optional['Plan']): iterable collection of steps and
-            techniques to apply at each step. Defaults to an empty 'Plan'
-            instance.
+            'anthology'
+        chapters (Optional[List['Chapter']]): iterable collection of steps and
+            techniques to apply at each step. Defaults to an empty list.
+        _iterable(Optional[str]): name of property to store alternative proxy
+            to 'reviews'.
 
     """
-    name: Optional[str] = field(default_factory = lambda: 'critic')
-    iterable: Optional[str] = field(default_factory = lambda: 'reviews')
+    name: Optional[str] = field(default_factory = lambda: 'anthology')
     chapters: Optional[List['Chapter']] = field(default_factory = list)
+    _iterable: Optional[str] = field(default_factory = lambda: 'reviews')
 
+
+@dataclass
+class CriticTechnique(Technique):
+    """
+
+    """
+    name: Optional[str] = None
+    step: Optional[str] = None
+    module: Optional[str]
+    algorithm: Optional[object] = None
+    parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
+    default: Optional[Dict[str, Any]] = field(default_factory = dict)
+    required: Optional[Dict[str, Any]] = field(default_factory = dict)
+    runtime: Optional[Dict[str, str]] = field(default_factory = dict)
+    selected: Optional[Union[bool, List[str]]] = False
+    data_dependent: Optional[Dict[str, str]] = field(default_factory = dict)
+
+    """ Core siMpLify Methods """
+
+    def apply(self, data: 'Cookbook') -> 'Cookbook':
+
+        return data
 
 
 @dataclass
@@ -52,22 +72,21 @@ class Critic(Scholar):
     """Applies an 'Anthology' instance to an applied 'Cookbook'.
 
     Args:
-        idea ('Idea'): an 'Idea' instance with project settings.
+        idea (ClassVar['Idea']): an 'Idea' instance with project settings.
 
     """
-    idea: 'Idea'
+    idea: ClassVar['Idea']
 
     """ Private Methods """
 
-    def _iterate_chapter(self,
+    def _apply_chapter(self,
             chapter: 'Chapter',
-            data: Union['Dataset']) -> 'Chapter':
-        """Iterates a single chapter and applies 'techniques' to 'data'.
+            data: 'Cookbook') -> 'Chapter':
+        """Iterates a single chapter and applies 'steps' to 'data'.
 
         Args:
-            chapter ('Chapter'): instance with 'techniques' to apply to 'data'.
-            data (Union['Dataset', 'Book']): object for 'chapter'
-                'techniques' to be applied.
+            chapter ('Chapter'): instance with 'steps' to apply to 'data'.
+            data ('Cookbook'): object for 'chapter' 'steps' to be applied.
 
         Return:
             'Chapter': with any changes made. Modified 'data' is added to the
@@ -75,109 +94,97 @@ class Critic(Scholar):
                 attribute of 'data'.
 
         """
-        for step, techniques in chapter.techniques.items():
-            data = self._iterate_techniques(
-                    techniques = techniques,
-                    data = data)
+        for step in chapter.steps:
+            data = step.apply(data = data)
         setattr(chapter, 'data', data)
         return chapter
 
 
 @dataclass
 class Evaluators(Repository):
-    """A dictonary of TechniqueOutline options for the Analyst subpackage.
+    """A dictonary of CriticTechnique options for the Analyst subpackage.
 
     Args:
-        contents (Optional[str, Any]): default stored dictionary. Defaults to
-            an empty dictionary.
-        wildcards (Optional[List[str]]): a list of corresponding properties
-            which access sets of dictionary keys. If none is passed, the two
-            included properties ('default' and 'all') are used.
-        defaults (Optional[List[str]]): a list of keys in 'contents' which
-            will be used to return items when 'default' is sought. If not
-            passed, 'default' will be set to all keys.
+        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
 
     """
-    contents: Optional[Dict[str, Any]] = field(default_factory = dict)
-    wildcards: Optional[List[str]] = field(default_factory = list)
-    defaults: Optional[List[str]] = field(default_factory = list)
-    idea: 'Idea' = None
+    idea: ClassVar['Idea']
 
     """ Private Methods """
 
     def create(self) -> None:
         self.contents = {
             'explain': {
-                'eli5': TechniqueOutline(
+                'eli5': CriticTechnique(
                     name = 'eli5_explain',
                     module = 'simplify.critic.algorithms',
                     algorithm = 'Eli5Explain'),
-                'shap': TechniqueOutline(
+                'shap': CriticTechnique(
                     name = 'shap_explain',
                     module = 'simplify.critic.algorithms',
                     algorithm = 'ShapExplain'),
-                'skater': TechniqueOutline(
+                'skater': CriticTechnique(
                     name = 'skater_explain',
                     module = 'skater',
                     algorithm = '')},
             'predict': {
-                'gini': TechniqueOutline(
+                'gini': CriticTechnique(
                     name = 'gini_predict',
                     module = None,
                     algorithm = 'predict'),
-                'shap': TechniqueOutline(
+                'shap': CriticTechnique(
                     name = 'shap_predict',
                     module = 'shap',
                     algorithm = '')},
             'estimate': {
-                'gini': TechniqueOutline(
+                'gini': CriticTechnique(
                     name = 'gini_probabilities',
                     module = None,
                     algorithm = 'predict_proba'),
-                'log': TechniqueOutline(
+                'log': CriticTechnique(
                     name = 'gini_probabilities',
                     module = None,
                     algorithm = 'predict_log_proba'),
-                'shap': TechniqueOutline(
+                'shap': CriticTechnique(
                     name = 'shap_probabilities',
                     module = 'shap',
                     algorithm = '')},
             'rank': {
-                'permutation': TechniqueOutline(
+                'permutation': CriticTechnique(
                     name = 'permutation_importances',
                     module = None,
                     algorithm = ''),
-                'gini': TechniqueOutline(
+                'gini': CriticTechnique(
                     name = 'gini_importances',
                     module = None,
                     algorithm = 'feature_importances_'),
-                'eli5': TechniqueOutline(
+                'eli5': CriticTechnique(
                     name = 'eli5_importances',
                     module = 'eli5',
                     algorithm = ''),
-                'shap': TechniqueOutline(
+                'shap': CriticTechnique(
                     name = 'shap_importances',
                     module = 'shap',
                     algorithm = '')},
             'measure': {
-                'simplify': TechniqueOutline(
+                'simplify': CriticTechnique(
                     name = 'simplify_metrics',
                     module = 'simplify.critic.algorithms',
                     algorithm = 'compute_metrics'),
-                'pandas': TechniqueOutline(
+                'pandas': CriticTechnique(
                     name = 'pandas_describe',
                     module = 'simplify.critic.algorithms',
                     algorithm = 'pandas_describe')},
             'report': {
-                'simplify': TechniqueOutline(
+                'simplify': CriticTechnique(
                     name = 'simplify_report',
                     module = 'simplify.critic.algorithms',
                     algorithm = 'simplify_report'),
-                'confusion': TechniqueOutline(
+                'confusion': CriticTechnique(
                     name = 'confusion_matrix',
                     module = 'sklearn.metrics',
                     algorithm = 'confusion_matrix'),
-                'classification': TechniqueOutline(
+                'classification': CriticTechnique(
                     name = 'classification_report',
                     module = 'sklearn.metrics',
                     algorithm = 'classification_report')}}

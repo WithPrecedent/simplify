@@ -139,16 +139,15 @@ class Scholar(object):
                     pass
         return technique
 
-    def _iterate_chapter(self,
-            book: 'Book',
+    def _apply_chapter(self,
             chapter: 'Chapter',
-            data: Union['Dataset']) -> 'Chapter':
+            data: Union['Dataset', 'Book']) -> 'Chapter':
         """Iterates a single chapter and applies 'techniques' to 'data'.
 
         Args:
             chapter ('Chapter'): instance with 'techniques' to apply to 'data'.
-            data (Union['Dataset', 'Book']): object for 'chapter'
-                'techniques' to be applied.
+            data (Union['Dataset', 'Book']): object for 'chapter' 'steps' to be
+                applied.
 
         Return:
             'Chapter': with any changes made. Modified 'data' is added to the
@@ -156,20 +155,10 @@ class Scholar(object):
                 attribute of 'data'.
 
         """
-        for step, techniques in chapter.techniques.items():
-            data = self._iterate_techniques(
-                techniques = techniques,
-                data = data)
+        for step in chapter.steps:
+            data = technique.apply(data = data)
         setattr(chapter, 'data', data)
         return chapter
-
-    def _iterate_techniques(self,
-                techniques: Union[List['Technique'], 'Technique'],
-                data: Union['Dataset', 'Book']) -> Union['Dataset', 'Book']:
-            for technique in listify(techniques):
-                if not technique in ['none', None]:
-                    data = technique.apply(data = data)
-            return data
 
     """ Core siMpLify Methods """
 
@@ -196,13 +185,13 @@ class Scholar(object):
         if self.parallelize:
             self.parallelizer.apply_chapters(
                 data = data,
-                method = self._iterate_chapter)
+                method = self._apply_chapter)
         else:
             new_chapters = []
             for i, chapter in enumerate(book.chapters):
                 if self.verbose:
                     print('Applying chapter', str(i + 1), 'to data')
-                new_chapters.append(self._iterate_chapter(
+                new_chapters.append(self._apply_chapter(
                     chapter = chapter,
                     data = data))
             book.chapters = new_chapters

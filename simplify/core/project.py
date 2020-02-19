@@ -55,10 +55,10 @@ class ProjectManager(object):
             ndarray. If a DataFrame, Data instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
             in a new Dataset instance as a DataFrame. Default is None.
-        workers (Optional[Union[Dict[str, 'Worker']], List[str]]]): dictionary with
-            keys as strings and values of 'Worker' instances, or a list of workers
-            corresponding to keys in 'default_workers' to use. Defaults to an
-            empty dictionary. If nothing is provided, Project attempts to
+        workers (Optional[Union[Dict[str, 'Worker']], List[str]]]): dictionary
+            with keys as strings and values of 'Worker' instances, or a list of
+            workers corresponding to keys in 'default_workers' to use. Defaults
+            to an empty dictionary. If nothing is provided, Project attempts to
             construct workers from 'idea' and 'default_workers'.
         library (Optional[Dict[str, 'Worker']):  dictionary with keys as strings
             and values of 'Book' instances. Defaults to an empty dictionary. If
@@ -178,18 +178,21 @@ class ProjectManager(object):
         return self
 
     def _check_workers(self,
-            workers: Union[Dict[str, 'Worker'], List[str]]) -> Dict[str, 'Worker']:
+            workers: Union[
+                Dict[str, 'Worker'], List[str]]) -> Dict[str, 'Worker']:
         """Creates or validates 'workers'.
 
         Args:
-            workers (Union[Dict[str, 'Worker'], List[str]]): set of 'Worker' instances
-                stored in dict or a list to create one from 'default_workers'.
+            workers (Union[Dict[str, 'Worker'], List[str]]): set of 'Worker'
+                instances stored in dict or a list to create one from
+                'default_workers'.
 
         Returns:
             Dict[str, 'Worker']: mapping with stored 'Worker' instances.
 
         """
-        # Sets 'default_workers' to use in 'workers' construction or later addition.
+        # Sets 'default_workers' to use in 'workers' construction or later
+        # addition.
         self._set_defaults()
         if isinstance(workers, list) and workers:
             new_workers = {}
@@ -317,8 +320,8 @@ class ProjectManager(object):
                 an instance attribute.
 
         Returns:
-            Dict[str, Dict[str, List[str]]]: nested dictionary of workers, steps,
-                and techniques for a siMpLify project.
+            Dict[str, Dict[str, List[str]]]: nested dictionary of workers,
+                steps, and techniques for a siMpLify project.
 
         """
         if name is not None:
@@ -419,11 +422,11 @@ class Project(MutableMapping):
             related to the 'Project'. If not provided, a string is created from
             the date and time.
         overview (Optional[Dict[str, Dict[str, List[str]]]]): nested dictionary
-            of workers, steps, and techniques for a siMpLify project. Defaults to
-            an empty dictionary. An overview is not strictly needed for object
-            serialization, but provides a good overview of the various options
-            selected in a particular 'Project'. As a result, it is used by the
-            '__repr__' and '__str__' methods.
+            of workers, steps, and techniques for a siMpLify project. Defaults
+            to an empty dictionary. An overview is not strictly needed for
+            object serialization, but provides a good overview of the various
+            options selected in a particular 'Project'. As a result, it is used
+            by the '__repr__' and '__str__' methods.
         library (Optional[Dict[str, 'Book']]): stored 'Book' instances. Defaults
             to an empty dictionary.
 
@@ -545,9 +548,9 @@ class Worker(object):
         steps (Optional[List[str]]): list of steps to execute. Defaults to an
             empty list.
         options (Optional[Union[str, Dict[str, Any]]]): a dictionary containing
-            options for the 'Worker' instance to utilize or a string corresponding
-            to a dictionary in 'module' to load. Defaults to an empty
-            dictionary.
+            options for the 'Worker' instance to utilize or a string
+            corresponding to a dictionary in 'module' to load. Defaults to an
+            empty dictionary.
         import_folder (Optional[str]): name of attribute in 'inventory' which
             contains the path to the default folder for importing data objects.
             Defaults to 'processed'.
