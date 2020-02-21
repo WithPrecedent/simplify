@@ -6,6 +6,7 @@
 :license: Apache-2.0
 """
 
+from abc import ABC
 from collections.abc import Container
 from collections.abc import MutableSequence
 from dataclasses import dataclass
@@ -18,7 +19,35 @@ from simplify.core.utilities import listify
 
 
 @dataclass
-class Book(object):
+class SimpleManuscript(ABC):
+
+    def __post_init__(self) -> None:
+        """Initializes attributes and settings."""
+        if self.name is None:
+            self.name = self.__class__.__name__.lower()
+        try:
+            self.proxify(name = self._iterable)
+        except AttributeError:
+            pass
+        return self
+
+    """ Public Methods """
+
+    def proxify(self, name: str) -> None:
+        """Adds a proxy property to refer to class iterable.
+
+        Args:
+            name (str): name of proxy property.
+
+        """
+        setattr(self, name, property(
+            fget = self._proxy_getter,
+            fset = self._proxy_setter,
+            fdel = self._proxy_deleter))
+        return self
+
+@dataclass
+class Book(SimpleManuscript):
     """Standard class for top-level siMpLify package iterable storage.
 
     Args:
@@ -37,16 +66,6 @@ class Book(object):
     """
     name: Optional[str] = None
     chapters: Optional[List['Chapter']] = field(default_factory = list)
-
-    def __post_init__(self) -> None:
-        """Initializes attributes and settings."""
-        if self.name is None:
-            self.name = self.__class__.__name__.lower()
-        try:
-            self.proxify(name = self._iterable)
-        except AttributeError:
-            pass
-        return self
 
     """ Other Dunder Methods """
 
@@ -101,80 +120,117 @@ class Book(object):
         """Combines 'chapters' with existing 'chapters' attribute.
 
         Args:
-            chapters (Union['Chapter', List['Chapter']]: a 'Chapter' instance or
-                list of such instances.
+            chapters (Union['Chapter', List['Chapter']]): a 'Chapter' instance
+                or list of such instances.
 
         """
         self.chapters.extend(listify(chapters, default_empty = True))
         return self
 
-    def proxify(self, name: str) -> None:
-        """Adds a proxy property to refer to 'chapters'.
-
-        Args:
-            name (str): name of proxy property.
-
-        """
-        setattr(self, name, property(
-            fget = self._proxy_getter,
-            fset = self._proxy_setter,
-            fdel = self._proxy_deleter))
-        return self
-
 
 @dataclass
-class Chapter(object):
+class Chapter(SimpleManuscript):
     """Standard class for bottom-level siMpLify package iterable storage.
 
     Args:
-        steps (Optional[List[str]]): an ordred set of steps. Defaults to an
-            empty list. All items in 'steps' should correspond to keys in
-            'repository' before iterating.
-        repository ('Book'): instance with options for 'steps'.
-        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared Idea instance, 'name' should match the appropriate
+            section name in Idea. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. Defaults to
+            None. If not passed, __class__.__name__.lower() is used.
+        steps (Optional[List[Tuple[str, str]]]): tuples of steps and
+            techniques.
+        techniques (Optional[List['Technique']]): 'Technique' instances to
+            apply. In an ordinary project, 'techniques' are not passed to a
+            Chapter instance, but are instead created from 'steps' when the
+            'publish' method of a 'Project' instance is called. Defaults to
+            an empty list.
 
     """
-    steps: Union[List[Tuple[str, str]], List['Technique']]
+    name: Optional[str] = None
+    steps: Optional[List[Tuple[str, str]]] = field(default_factory = list)
+    techniques: Optional[List['Technique']] = field(default_factory = list)
+
+    """ Other Dunder Methods """
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable of 'techniques' or 'steps'.
+
+        Returns:
+            Iterable: of 'techniques' or 'steps', if 'techniques' do not exist.
+
+        """
+        if self.techniques:
+            return iter(self.techniques)
+        else:
+            return iter(self.steps)
+
+    def __len__(self) -> int:
+        """Returns length of 'techniques' or 'steps'.
+
+        Returns:
+            Integer: length of 'techniques' or 'steps', if 'techniques' do not
+                exist.
+
+        """
+        if self.techniques:
+            return len(self.techniques)
+        else:
+            return len(self.steps)
 
     """ Proxy Property Methods """
 
     def _proxy_getter(self) -> List['Technique']:
-        """Proxy getter for 'steps'.
+        """Proxy getter for 'techniques'.
 
         Returns:
             List['Technique'].
 
         """
-        return self.steps
+        return self.techniques
 
     def _proxy_setter(self, value: List['Technique']) -> None:
-        """Proxy setter for 'steps'.
+        """Proxy setter for 'techniques'.
 
         Args:
             value (List['Technique']): list of 'Technique' instances to store.
 
         """
-        self.steps = value
+        self.techniques = value
         return self
 
     def _proxy_deleter(self) -> None:
-        """Proxy deleter for 'steps'."""
-        self.steps = []
+        """Proxy deleter for 'techniques'."""
+        self.techniques = []
         return self
 
     """ Public Methods """
 
-    def proxify(self, name: str) -> None:
-        """Adds a proxy property to refer to 'chapters'.
+    def add(self,
+            techniques: Union[
+                List['Technique'],
+                'Technique',
+                List[Tuple[str, str]],
+                Tuple[str, str]]) -> None:
+        """Combines 'techniques' with 'steps' or 'techniques' attribute.
+
+        If a tuple or list of tuples is passed, 'techniques' are added to the
+        'steps' attribute. Otherwise, they are added to the 'techniques'
+        attribute.
 
         Args:
-            name (str): name of proxy property.
+            chapters (Union[List['Technique'], 'Technique', List[Tuple[str,
+                str]], Tuple[str, str]]): a 'Technique' instance or tuple used
+                to create one.
 
         """
-        setattr(self, name, property(
-            fget = self._proxy_getter,
-            fset = self._proxy_setter,
-            fdel = self._proxy_deleter))
+        if isinstance(listify(techniques)[0], 'Technique'):
+            self.techniques.extend(listify(techniques))
+        else:
+            self.steps.extend(listify(techniques))
         return self
 
 

@@ -27,7 +27,7 @@ from simplify.core.validators import DataValidator
 
 @dataclass
 class Scholar(object):
-    """Base class for applying Book instances to data.
+    """Base class for applying 'Book' instances to data.
 
     Args:
         idea ('Idea'): an instance with project settings.
@@ -47,18 +47,31 @@ class Scholar(object):
     """ Private Methods """
 
     def _finalize_chapters(self, book: 'Book', data: 'Dataset') -> 'Book':
-        for chapter in book.chapters:
-            for step in chapter.steps:
-                if step:
-                    technique = self._add_conditionals(
-                        book = book,
-                        technique = step,
-                        data = data)
-                    technique = self._add_data_dependent(
-                        technique = step,
-                        data = data)
-                    technique = self._add_parameters_to_algorithm(
-                        technique = step)
+        """Subclasses may provide their own methods to finalize chapters.
+
+        Args:
+            book ('Book'): instance containing 'chapters' with 'steps'.
+            data ('Dataset): instance with potential information to use to
+                finalize 'parameters' for 'book'.
+
+        Returns:
+            'Book': with any necessary modofications made.
+
+        """
+        return book
+
+    def _finalize_techniques(self, book: 'Book', data: 'Dataset') -> 'Book':
+        """Subclasses may provide their own methods to finalize chapters.
+
+        Args:
+            book ('Book'): instance containing 'chapters' with 'steps'.
+            data ('Dataset): instance with potential information to use to
+                finalize 'parameters' for 'book'.
+
+        Returns:
+            'Book': with any necessary modofications made.
+
+        """
         return book
 
     def _add_conditionals(self,
@@ -155,7 +168,7 @@ class Scholar(object):
                 attribute of 'data'.
 
         """
-        for step in chapter.steps:
+        for technique in chapter.techniques:
             data = technique.apply(data = data)
         setattr(chapter, 'data', data)
         return chapter
@@ -163,39 +176,47 @@ class Scholar(object):
     """ Core siMpLify Methods """
 
     def apply(self,
-            book: 'Book',
+            worker: str,
+            project: 'Project',
             data: 'Dataset',
-            library: 'Repository',
-            **kwargs) -> ('Book', 'Dataset'):
-        """Applies objects in 'book' to 'data'.
+            **kwargs) -> ('Project', 'Dataset'):
+        """Applies 'Book' instance in 'project' to 'data' or other stored books.
 
         Args:
-            book ('Book'): Book instance with algorithms to apply to 'data'.
-            data (Optional[Union['Dataset', 'Book']]): a data source for
-                the 'book' methods to be applied.
-            kwargs: any additional parameters to pass to a related
-                Book's options' 'apply' method.
+            worker (str): key to 'Book' instance to apply in 'project'.
+            project ('Project): instance with stored 'Book' instances to apply
+                or to have other 'Book' instances applied to.
+            data (Optional[Union['Dataset', 'Book']]): a data source 'Book'
+                instances in 'project' to potentially be applied.
+            kwargs: any additional parameters to pass.
 
         Returns:
-            Union['Dataset', 'Book']: data object with modifications
-                possibly made.
+            Tuple('Project', 'Data'): instances with any necessary modifications
+                made.
 
         """
-        self._finalize_chapters(book = book, data = data)
+        if hasattr(project[worker], 'techniques'):
+            project[worker] = self._finalize_techniques(
+                book = project[worker],
+                data = data)
+        else:
+            project[worker] = self._finalize_chapters(
+                book = project[worker],
+                data = data)
         if self.parallelize:
             self.parallelizer.apply_chapters(
                 data = data,
                 method = self._apply_chapter)
         else:
             new_chapters = []
-            for i, chapter in enumerate(book.chapters):
+            for i, chapter in enumerate(project[worker].chapters):
                 if self.verbose:
                     print('Applying chapter', str(i + 1), 'to data')
                 new_chapters.append(self._apply_chapter(
                     chapter = chapter,
                     data = data))
-            book.chapters = new_chapters
-        return book, data
+            project[worker].chapters = new_chapters
+        return project, data
 
 
 @dataclass

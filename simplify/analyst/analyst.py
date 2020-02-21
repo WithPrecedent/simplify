@@ -221,6 +221,36 @@ class Analyst(Scholar):
 
     """ Private Methods """
 
+    def _finalize_chapters(self, book: 'Book', data: 'Dataset') -> 'Book':
+        """Finalizes 'Chapter' instances in 'Book'.
+
+        Args:
+            book ('Book'): instance containing 'chapters' with 'techniques' that
+                have 'data_dependent' and/or 'conditional' 'parameters' to
+                add.
+            data ('Dataset): instance with potential information to use to
+                finalize 'parameters' for 'book'.
+
+        Returns:
+            'Book': with any necessary modofications made.
+
+        """
+        for chapter in book.chapters:
+            new_techniques = []
+            for technique in chapter.techniques:
+                if not technique.name in ['none']:
+                    new_technique = self._add_conditionals(
+                        book = book,
+                        technique = technique,
+                        data = data)
+                    new_technique = self._add_data_dependent(
+                        technique = technique,
+                        data = data)
+                    new_techniques.append(self._add_parameters_to_algorithm(
+                        technique = technique))
+            chapter.techniques = new_techniques
+        return book
+
     def _apply_chapter(self,
             chapter: 'Chapter',
             data: Union['Dataset']) -> 'Chapter':
@@ -237,7 +267,7 @@ class Analyst(Scholar):
 
         """
         data.create_xy()
-        for i, technique in enumerate(chapter.steps):
+        for i, technique in enumerate(chapter.techniques):
             if technique.step in ['split']:
                 chapter, data = self._split_loop(
                     chapter = chapter,
@@ -273,13 +303,13 @@ class Analyst(Scholar):
 
         """
         data.stages.change('testing')
-        split_algorithm = chapter.steps[index].algorithm
+        split_algorithm = chapter.techniques[index].algorithm
         for train_index, test_index in split_algorithm.split(data.x, data.y):
             data.x_train = data.x.iloc[train_index]
             data.x_test = data.x.iloc[test_index]
             data.y_train = data.y[train_index]
             data.y_test = data.y[test_index]
-            for technique in chapter.steps[index + 1:]:
+            for technique in chapter.techniques[index + 1:]:
                 if not technique.name in ['none', None]:
                     data = technique.apply(data = data)
         return chapter, data

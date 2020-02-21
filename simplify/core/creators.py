@@ -96,10 +96,11 @@ class Author(Creator):
         """Drafts 'Book' instance with a parallel chapter structure.
 
         Args:
-            project ('Project'): an instance for a 'Book' instance to be added.
+            project ('Project'): an instance for a 'Book' instance to be
+                modified.
 
         Returns:
-            'Project': with 'Book' instance added.
+            'Project': with 'Book' instance modified.
 
         """
         # Creates list of steps from 'project'.
@@ -115,27 +116,73 @@ class Author(Creator):
             project[self.worker.name].chapters.append(chapter)
         return project
 
-    def _draft_sequence(self, project: 'Project') -> 'Project':
-        """Drafts 'Book' instance with a serial chapter structure.
+    def _draft_serial(self, project: 'Project') -> 'Project':
+        """Drafts 'Book' instance with a serial 'steps' structure.
 
         Args:
-            project ('Project'): an instance for a 'Book' instance to be added.
+            project ('Project'): an instance for a 'Book' instance to be
+                modified.
 
         Returns:
-            'Project': with 'Book' instance added.
+            'Project': with 'Book' instance modified.
 
         """
         new_steps = []
         for step, techniques in project.overview[self.worker.name].items():
-            # print('test step and techniques sequence', step, techniques)
-            # if techniques in [['all'], ['default']]:
-            #     techniques = self.worker.options[step][techniques]
-            #     print('test all techniques', techniques)
             for technique in techniques:
                 new_steps.append((step, technique))
-        chapter = self.worker.load('chapter')(steps = new_steps)
-        project[self.worker.name].chapters.append(chapter)
+        project[self.worker.name].steps.extend(new_steps)
         return project
+
+    def _publish_parallel(self, project: 'Project') -> 'Project':
+        """Finalizes 'Book' instance in 'project'.
+
+        Args:
+            project ('Project'): an instance for a 'Book' instance to be
+                modified.
+
+        Returns:
+            'Project': with 'Book' instance modified.
+
+        """
+        new_chapters = []
+        for chapter in project[self.worker.name].chapters:
+            new_chapters.append(self._publish_techniques(instance = chapter))
+        project[self.worker.name].chapters = new_chapters
+        return project
+
+    def _publish_serial(self, project: 'Project') -> 'Project':
+        """Finalizes 'Book' instance in 'project'.
+
+        Args:
+            project ('Project'): an instance for a 'Book' instance to be
+                modified.
+
+        Returns:
+            'Project': with 'Book' instance modified.
+
+        """
+        project[self.worker.name] = self._publish_techniques(
+            instance = project[self.worker.name])
+        return project
+
+    def _publish_techniques(self,
+            instance: Union['Book', 'Chapter']) -> Union['Book', 'Chapter']:
+        """Finalizes 'techniques' in 'Book' or 'Chapter' instance.
+
+        Args:
+            instance (Union['Book', 'Chapter']): an instance with 'steps' to be
+                converted to 'techniques'.
+
+        Returns:
+            Union['Book', 'Chapter']: with 'techniques' added.
+
+        """
+        techniques = []
+        for step in instance.steps:
+            techniques.extend(self.expert.publish(step = step))
+        instance.techniques = techniques
+        return instance
 
     """ Core siMpLify Methods """
 
@@ -149,31 +196,26 @@ class Author(Creator):
             'Project': with 'Book' instance added.
 
         """
-        if self.worker.compare_chapters:
-            return self._draft_parallel(project = project)
+        if hasattr(project[self.worker.name], 'steps'):
+            return self._draft_serial(project = project)
         else:
-            return self._draft_sequence(project = project)
+            return self._draft_parallel(project = project)
 
     def publish(self, project: 'Project') -> 'Project':
-        """Finalizes 'Chapter' instance and deposits them in 'project'.
+        """Finalizes 'Book' instance in 'project'.
 
         Args:
-            project ('Project'): an instance for a 'Book' instance to be added.
+            project ('Project'): an instance for a 'Book' instance to be
+                modified.
 
         Returns:
-            'Project': with 'Book' instance added.
+            'Project': with 'Book' instance modified.
 
         """
-        new_chapters = []
-        for chapter in project[self.worker.name].chapters:
-            new_steps = []
-            new_chapter = chapter
-            for step in chapter.steps:
-                new_steps.extend(self.expert.publish(step = step))
-            new_chapter.steps = new_steps
-            new_chapters.append(new_chapter)
-        project[self.worker.name].chapters = new_chapters
-        return project
+        if hasattr(project[self.worker.name], 'steps'):
+            return self._publish_serial(project = project)
+        else:
+            return self._publish_parallel(project = project)
 
 
 @dataclass

@@ -404,12 +404,12 @@ class ProjectManager(object):
         # Iterates through each worker, creating and applying needed Books,
         # Chapters, and Techniques for each worker in the Project.
         for name, book in self.project.library.items():
-            self.project[name], self.dataset = self.workers[name].scholar.apply(
-                book = book,
+            self.project, self.dataset = self.workers[name].scholar.apply(
+                worker = name,
+                project = self.project,
                 data = self.dataset,
-                library = self.project.library,
                 **kwargs)
-        return self.dataset
+        return self
 
 
 @dataclass
