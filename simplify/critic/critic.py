@@ -69,6 +69,7 @@ class Review(Chapter):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
             None. If not passed, __class__.__name__.lower() is used.
+        steps (Optional[List[str]]): 
         explanations (Dict[str, pd.DataFrame]): results from any 'Explainer'
             methods applied to the data analysis. Defaults to an empty
             dictionary.
@@ -87,11 +88,17 @@ class Review(Chapter):
 
     """
     name: Optional[str] = None
-    explanations: Dict[str, pd.DataFrame] = field(default_factory = dict)
-    predictions: Dict[str, pd.Series] = field(default_factory = dict)
-    estimations: Dict[str, pd.Series] = field(default_factory = dict)
-    importances: Dict[str, pd.DataFrame] = field(default_factory = dict)
-    reports: Dict[str, pd.DataFrame] = field(default_factory = dict)
+    steps: Optional[List[str]] = field(default_factory = list)
+    explanations: ptional[Dict[str, pd.DataFrame]] = field(
+        default_factory = dict)
+    predictions: ptional[Dict[str, pd.Series]] = field(
+        default_factory = dict)
+    estimations: ptional[Dict[str, pd.Series]] = field(
+        default_factory = dict)
+    importances: ptional[Dict[str, pd.DataFrame]] = field(
+        default_factory = dict)
+    reports: ptional[Dict[str, pd.DataFrame]] = field(
+        default_factory = dict)
 
 
 @dataclass
@@ -132,12 +139,33 @@ class CriticTechnique(Technique):
     selected: Optional[Union[bool, List[str]]] = False
     data_dependent: Optional[Dict[str, str]] = field(default_factory = dict)
 
+    """ Private Methods """
+
+    def _get_estimator(self, chapter: 'Chapter') -> 'Technique':
+        """Gets 'model' 'Technique' from a list of 'steps' in 'chapter'.
+
+        Args:
+            chapter ('Chapter'): instance with 'model' step.
+
+        Returns:
+            'Technique': with a 'step' of 'model'.
+
+        """
+        for technique in chapter.techniques:
+            if technique.step in ['model']:
+                return technique
+                break
+            else:
+                pass
+
+    def _get_algorithm(self, estimator: object) -> object:
+        algorithm = self.options[self.algorithm_types[estimator.name]]
+        return algorithm.load('algorithm')
+
     """ Core siMpLify Methods """
 
     def apply(self, data: 'Chapter') -> 'Chapter':
-        # self.load('algorithm')
-        # self.algorithm = self.algorithm()
-        return self.algorithm.apply(data = data)
+        return self.algorithm.apply(chapter = data)
 
 
 @dataclass
@@ -319,4 +347,10 @@ class Evaluators(Repository):
                     module = 'sklearn.metrics',
                     algorithm = 'classification_report',
                     storage = 'reports')}}
+        
+        self.contents['model'] = model_options[
+            self.idea['analyst']['model_type']]
+        if self.idea['general']['gpu']:
+            self.contents['model'].update(
+                gpu_options[idea['analyst']['model_type']])
         return self

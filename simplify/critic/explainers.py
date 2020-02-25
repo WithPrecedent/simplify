@@ -13,6 +13,7 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 from simplify.core.base import SimpleSettings
 from simplify.critic.critic import CriticTechnique
+from simplify.critic.critic import Review
 
 
 @dataclass
@@ -31,54 +32,131 @@ class Explainer(SimpleSettings, CriticTechnique):
         return self
 
     """ Private Methods """
+    
 
-    def _get_estimator(self, chapter: 'Chapter') -> 'Technique':
-        """Gets 'model' 'Technique' from a list of 'steps' in 'chapter'.
-
-        Args:
-            chapter ('Chapter'): instance with 'model' step.
-
-        Returns:
-            'Technique': with a 'step' of 'model'.
-
-        """
-        for technique in chapter.techniques:
-            if technique.step in ['model']:
-                return technique
-                break
-            else:
-                pass
-
-    def _get_algorithm(self, estimator: object) -> object:
-        algorithm = self.options[self.algorithm_types[estimator.name]]
-        return algorithm.load('algorithm')
 
     """ Core siMpLify Methods """
 
-    def draft(self) -> None:
-        """Subclasses can provide their own algorithms for 1-time setup."""
+    def draft(self, recipe: 'Recipe') -> None:
+        """Subclasses can provide their own algorithms for setup."""
+        self.model_type = self.idea['analyst']['model_type']
+        self.estimator = self._get_estimator(recipe = recipe)
+        self.algorithm = self._get_algorithm(estimator = self.estimator)
+        self.data_attribute = self._get_data(recipe = recipe)
         return self
-
-    def apply(self, data: 'Chapter') -> 'Chapter':
-        estimator = self._get_estimator(chapter = data)
-        algorithm = self._get_algorithm(estimator = estimator)
-        self._apply_to_chapter(
-            chapter = data,
-            estimator = estimator,
-            algorithm = algorithm)
-        return data
+    
+    def apply(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        """Completes 'review' from data in 'chapter'.
+        
+        Args:
+            recipe ('Recipe'): a completed 'Recipe' from a 'Cookbook' instance.
+            review ('Review'): an instance to complete based upon the 
+                performance of 'recipe'.
+        
+        Returns:
+            'Review': with assessment of 'recipe' performance.
+        
+        """
+        for step in review.steps:
+            try:
+                review = getattr(self, '_'.join(['_apply', step]))(
+                    recipe = recipe,
+                    review = review)
+            except AttributeError:
+                pass
+        return review
 
 
 @dataclass
-class Eli5Explain(Explainer):
-    """Base class for explaining model performance.
+class SklearnExplain(Explainer):
+    """Explains model performance with the sklearn package.
 
     Args:
         idea (ClassVar['Idea']): an instance with project settings.
 
     """
     idea: ClassVar['Idea']
+    name: Optional[str] = field(default_factory = lambda: 'sklearn')
 
+    """ Private Methods """
+    
+    def _apply_explain(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+
+        return review
+
+    def _apply_predict(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        """Makes predictions based upon sklearn package.
+        
+        Args:
+            recipe ('Recipe'): a completed 'Recipe' from a 'Cookbook' instance.
+            review ('Review'): an instance to complete based upon the 
+                performance of 'recipe'.
+        
+        Returns:
+            'Review': with assessment of 'recipe' performance.
+        
+        """
+        try:
+            review.predictions[self.name] = self.estimator.predict(
+                recipe.data.x_test)
+        except AttributeError:
+            pass
+        try:
+            review.predictions['_'.join([self.name, 'probabilities'])] = (
+                self.estimator.predict_proba(recipe.data.x_test))
+        except AttributeError:
+            pass
+        try:
+            review.predictions['_'.join([self.name, 'log_probabilities'])] = (
+                self.estimator.predict_log_proba(recipe.data.x_test))
+        except AttributeError:
+            pass        
+        return review
+        
+    def _apply_rank(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+        
+    def _apply_measure(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
+    def _apply_report(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
+    """ Core siMpLify Methods """
+
+    def draft(self) -> None:
+        return self
+    
+
+@dataclass
+class Eli5Explain(Explainer):
+    """Explains model performance with the ELI5 package.
+
+    Args:
+        idea (ClassVar['Idea']): an instance with project settings.
+
+    """
+    idea: ClassVar['Idea']
+    name: Optional[str] = field(default_factory = lambda: 'eli5')
+
+
+    """ Private Methods """
+    
+    def _apply_explain(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
+    def _apply_predict(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+        
+    def _apply_rank(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+        
+    def _apply_measure(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
+    def _apply_report(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
@@ -135,9 +213,25 @@ class ShapExplain(Explainer):
 
     """
     idea: ClassVar['Idea']
+    name: Optional[str] = field(default_factory = lambda: 'shap')
 
     """ Private Methods """
-
+    
+    def _apply_explain(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
+    def _apply_predict(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+        
+    def _apply_rank(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+        
+    def _apply_measure(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
+    def _apply_report(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
     def _set_algorithm(self, data: 'Chapter') -> object:
         try:
             algorithm = self.options[self.algorithm_types[model.name]]
@@ -220,4 +314,23 @@ class SkaterExplain(Explainer):
         idea (ClassVar['Idea']): an instance with project settings.
 
     """
+    name: Optional[str] = field(default_factory = lambda: 'skater')
     idea: ClassVar['Idea']
+    
+    
+    """ Private Methods """
+    
+    def _apply_explain(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
+    def _apply_predict(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+        
+    def _apply_rank(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+        
+    def _apply_measure(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
+    
+    def _apply_report(self, recipe: 'Recipe', review: 'Review') -> 'Review':
+        return review
