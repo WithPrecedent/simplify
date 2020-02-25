@@ -2,53 +2,43 @@
 .. module:: creators
 :synopsis: constructs books, chapters, and techniques
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
-from abc import ABC
-from abc import abstractmethod
 from dataclasses import dataclass
 from dataclasses import field
 from itertools import product
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
+from simplify.core.base import SimpleCreator
 from simplify.core.book import Book
 from simplify.core.book import Chapter
 from simplify.core.book import Technique
-from simplify.core.repository import Repository
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Creator(ABC):
+class Publisher(SimpleCreator):
 
     worker: 'Worker'
-    idea: ClassVar['Idea'] = None
-
-    """ Core siMpLify Methods """
-
-    @abstractmethod
-    def draft(self, project: 'Project') -> 'Project':
-        """Subclasses must provide their own methods."""
-        return project
-
-    @abstractmethod
-    def publish(self, project: 'Project') -> 'Project':
-        """Subclasses must provide their own methods."""
-        return project
-
-
-@dataclass
-class Publisher(Creator):
-
-    worker: 'Worker'
-    idea: ClassVar['Idea'] = None
 
     def __post_init__(self) -> None:
-        # Creates 'author' which is used to create 'Chapter' instances.
+        """Creates 'author' which is used to create 'Chapter' instances."""
         self.author = Author(worker = self.worker)
+        return self
+
+    """ Private Methods """
+
+    def _initialize_worker_attributes(self) -> None:
+        """Loads and/or instances core 'worker' attributes."""
+        # Instances selected attributes.
+        for attribute in ['book', 'options']:
+            setattr(self.worker, attribute, self.worker.load(attribute)())
+        # Loads class for selected attributes without instancing.
+        for attribute in ['chapter', 'technique']:
+            setattr(self.worker, attribute, self.worker.load(attribute))
         return self
 
     """ Core siMpLify Methods """
@@ -63,7 +53,8 @@ class Publisher(Creator):
             'Project': with 'Book' instance added.
 
         """
-        project[self.worker.name] = self.worker.load('book')()
+        self._initialize_worker_attributes()
+        project[self.worker.name] = self.worker.book
         return self.author.draft(project = project)
 
     def publish(self, project: 'Project') -> 'Project':
@@ -80,13 +71,12 @@ class Publisher(Creator):
 
 
 @dataclass
-class Author(Creator):
+class Author(SimpleCreator):
 
     worker: 'Worker'
-    idea: ClassVar['Idea'] = None
 
     def __post_init__(self) -> None:
-        # Creates 'expert' which is used to create 'Technique' instances.
+        """Creates 'expert' which is used to create 'Technique' instances."""
         self.expert = Expert(worker = self.worker)
         return self
 
@@ -111,13 +101,13 @@ class Author(Creator):
         combinations = list(map(list, product(*possible)))
         # Creates Chapter instance for every combination of techniques.
         for techniques in combinations:
-            steps = zip(steps, techniques)
-            chapter = self.worker.load('chapter')(steps = steps)
+            step_pairs = tuple(zip(steps, techniques))
+            chapter = self.worker.load('chapter')(steps = step_pairs)
             project[self.worker.name].chapters.append(chapter)
         return project
 
     def _draft_serial(self, project: 'Project') -> 'Project':
-        """Drafts 'Book' instance with a serial 'steps' structure.
+        """Drafts 'Book' instance with a serial 'techniques' structure.
 
         Args:
             project ('Project'): an instance for a 'Book' instance to be
@@ -147,7 +137,7 @@ class Author(Creator):
         """
         new_chapters = []
         for chapter in project[self.worker.name].chapters:
-            new_chapters.append(self._publish_techniques(instance = chapter))
+            new_chapters.append(self._publish_techniques(manuscript = chapter))
         project[self.worker.name].chapters = new_chapters
         return project
 
@@ -163,26 +153,26 @@ class Author(Creator):
 
         """
         project[self.worker.name] = self._publish_techniques(
-            instance = project[self.worker.name])
+            manuscript = project[self.worker.name])
         return project
 
     def _publish_techniques(self,
-            instance: Union['Book', 'Chapter']) -> Union['Book', 'Chapter']:
+            manuscript: Union['Book', 'Chapter']) -> Union['Book', 'Chapter']:
         """Finalizes 'techniques' in 'Book' or 'Chapter' instance.
 
         Args:
-            instance (Union['Book', 'Chapter']): an instance with 'steps' to be
-                converted to 'techniques'.
+            manuscript (Union['Book', 'Chapter']): an instance with 'steps' to
+                be converted to 'techniques'.
 
         Returns:
             Union['Book', 'Chapter']: with 'techniques' added.
 
         """
         techniques = []
-        for step in instance.steps:
+        for step in manuscript.steps:
             techniques.extend(self.expert.publish(step = step))
-        instance.techniques = techniques
-        return instance
+        manuscript.techniques = techniques
+        return manuscript
 
     """ Core siMpLify Methods """
 
@@ -219,10 +209,9 @@ class Author(Creator):
 
 
 @dataclass
-class Expert(Creator):
+class Expert(SimpleCreator):
 
     worker: 'Worker'
-    idea: ClassVar['Idea'] = None
 
     """ Private Methods """
 

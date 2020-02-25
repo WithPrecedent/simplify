@@ -2,7 +2,7 @@
 .. module:: validators
 :synopsis: validation and validator decoraters and methods
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -19,7 +19,7 @@ import pandas as pd
 
 from simplify.core.idea import Idea
 from simplify.core.dataset import Dataset
-from simplify.core.inventory import Inventory
+from simplify.core.filer import Filer
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
@@ -94,7 +94,7 @@ def SimplifyValidator(SimpleValidator):
         idea
         data
         dataset
-        inventory
+        filer
 
     """
 
@@ -109,7 +109,7 @@ def SimplifyValidator(SimpleValidator):
             'idea': create_idea,
             'data': create_data,
             'dataset': create_dataset,
-            'inventory': create_inventory}
+            'filer': create_filer}
         super().__init__()
         return self
 

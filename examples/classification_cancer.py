@@ -2,7 +2,7 @@
 .. module:: wisconsin breast cancer classification
 :synopsis: example using sklearn breast cancer data
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 import os
@@ -17,6 +17,7 @@ import numpy as np
 from sklearn.datasets import load_breast_cancer
 
 from simplify import ProjectManager
+
 
 # Loads cancer data and converts from numpy arrays to a pandas DataFrame.
 cancer = load_breast_cancer()
@@ -34,7 +35,7 @@ idea = Path.cwd().joinpath('examples', 'cancer_settings.ini')
 # settings in the 'idea_file'.
 cancer_project = ProjectManager(
     idea = idea,
-    # inventory = root_folder,
+    # filer = root_folder,
     dataset = df)
 # Converts label to boolean type to correct numpy default above.
 cancer_project.dataset.change_datatype(

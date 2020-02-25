@@ -2,7 +2,7 @@
 .. module:: explainers
 :synopsis: algorithms for explaining "black-box" models
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -11,11 +11,12 @@ from dataclasses import field
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
+from simplify.core.base import SimpleSettings
 from simplify.critic.critic import CriticTechnique
 
 
 @dataclass
-class Explainer(object):
+class Explainer(SimpleSettings, CriticTechnique):
     """Base class for explaining model performance.
 
     Args:
@@ -31,8 +32,7 @@ class Explainer(object):
 
     """ Private Methods """
 
-
-    def _get_model(self, chapter: 'Chapter') -> 'Technique':
+    def _get_estimator(self, chapter: 'Chapter') -> 'Technique':
         """Gets 'model' 'Technique' from a list of 'steps' in 'chapter'.
 
         Args:
@@ -42,37 +42,31 @@ class Explainer(object):
             'Technique': with a 'step' of 'model'.
 
         """
-        for step in chapter.steps:
-            if step.step in ['model']:
-                return step
+        for technique in chapter.techniques:
+            if technique.step in ['model']:
+                return technique
                 break
             else:
                 pass
-        return self
+
+    def _get_algorithm(self, estimator: object) -> object:
+        algorithm = self.options[self.algorithm_types[estimator.name]]
+        return algorithm.load('algorithm')
 
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        """Subclasses can provide their own methods for 1-time setup."""
+        """Subclasses can provide their own algorithms for 1-time setup."""
         return self
 
-    def apply(self, cookbook: 'Cookbook') -> 'Cookbook':
-        """Applies shap evaluator to data based upon type of model used.
-
-        Args:
-            cookbook ('Cookbook'): an instance that has been fitted and applied
-                to data.
-
-        Returns:
-            'Cookbook': with shap explanations added.
-
-        """
-        self._set_options()
-        new_chapters = []
-        for chapter in cookbook.chapters:
-            new_chapters.append(self._apply_chapter(chapter = chapter))
-        cookbook.chpaters = new_chapters
-        return cookbook
+    def apply(self, data: 'Chapter') -> 'Chapter':
+        estimator = self._get_estimator(chapter = data)
+        algorithm = self._get_algorithm(estimator = estimator)
+        self._apply_to_chapter(
+            chapter = data,
+            estimator = estimator,
+            algorithm = algorithm)
+        return data
 
 
 @dataclass
@@ -88,8 +82,25 @@ class Eli5Explain(Explainer):
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
-        super().draft()
-        self.models = {
+        self.options = {
+            'permutation' : CriticTechnique(
+                name = 'permutation_importance',
+                module = 'eli5.sklearn',
+                algorithm = 'PermutationImportance',
+                runtime = {'random_state': 'seed', 'estimator': 'estimator'}),
+            'kernel' : CriticTechnique(
+                name = 'shap_explanation',
+                module = 'shap',
+                algorithm = 'KernelExplainer'),
+            'linear' : CriticTechnique(
+                name = 'shap_explanation',
+                module = 'shap',
+                algorithm = 'LinearExplainer'),
+            'tree' : CriticTechnique(
+                name = 'shap_explanation',
+                module = 'shap',
+                algorithm = 'TreeExplainer')}
+        self.algorithm_types = {
             'baseline': 'none',
             'catboost': 'specific',
             'decision_tree': 'specific',
@@ -106,14 +117,13 @@ class Eli5Explain(Explainer):
             'xgboost': 'specific'}
         return self
 
-    def publish(self, recipe):
+    def apply(self, data: 'Chapter') -> 'Chapter':
         base_score, score_decreases = get_score_importances(score_func, X, y)
-        feature_importances = np.mean(score_decreases, axis=0)
-        from eli5 import show_weights
+        feature_importances = np.mean(score_decreases, axis = 0)
         self.permutation_weights = show_weights(
                 self.permutation_importances,
                 feature_names = recipe.dataset.columns.keys())
-        return self
+        return data
 
 
 @dataclass
@@ -128,16 +138,31 @@ class ShapExplain(Explainer):
 
     """ Private Methods """
 
-    def _apply_chapter(self, chapter: 'Chapter') -> 'Chapter':
-        self.method = self.method(model = self.model, data = chapter.data)
-        chapter.explanations['shap_values'] = self.method.shap_values(
+    def _set_algorithm(self, data: 'Chapter') -> object:
+        try:
+            algorithm = self.options[self.algorithm_types[model.name]]
+        except KeyError:
+            algorithm = self.options['kernel']
+        return algorithm.load('algorithm')
+
+    def _apply_to_chapter(self, chapter: 'Chapter') -> 'Chapter':
+        print('test algo', self.algorithm)
+        print('test model', self.model.algorithm)
+        self.algorithm = self.algorithm(
+            model = self.model.algorithm,
+            data = getattr(chapter.data, '_'.join(
+                ['x', self.idea['critic']['data_to_review']])))
+        chapter.explanations['shap_values'] = self.algorithm.shap_values(
             getattr(chapter.data, '_'.join(
                 ['x', self.idea['critic']['data_to_review']])))
-        if self.method_types[self.model] in ['tree']:
+        if self.algorithm_types[self.model] in ['tree']:
             chapter.explanations['shap_interactions'] = (
-                self.method.shap_interaction_values(
+                self.algorithm.shap_interaction_values(
                     getattr(chapter.data, '_'.join(
                         ['x', self.idea['critic']['data_to_review']]))))
+        import shap
+        shap.initjs()
+        shap.force_plot(self.algorithm.expected_value, shap_values[0,:], X.iloc[0,:])
         return chapter
 
     """ Core siMpLify Methods """
@@ -160,7 +185,7 @@ class ShapExplain(Explainer):
                 name = 'shap_explanation',
                 module = 'shap',
                 algorithm = 'TreeExplainer')}
-        self.method_types = {
+        self.algorithm_types = {
             'baseline': 'none',
             'catboost': 'tree',
             'decision_tree': 'tree',
@@ -175,12 +200,17 @@ class ShapExplain(Explainer):
             'tensor_flow': 'deep',
             'torch': 'deep',
             'xgboost': 'tree'}
-        try:
-            self.model = self._get_model(chapter = chapter)
-            self.method =  self.options[self.method_types[self.model.name]]
-        except KeyError:
-            self.method = options['kernel']
         return self
+
+    def apply(self, data: 'Chapter') -> 'Chapter':
+        try:
+            self.model = self._get_estimator(chapter = data)
+            self.algorithm = self.options[self.algorithm_types[self.model.name]]
+        except KeyError:
+            self.algorithm = options['kernel']
+        self.algorithm = self.algorithm.load('algorithm')
+        self._apply_to_chapter(chapter = data)
+        return data
 
 @dataclass
 class SkaterExplain(Explainer):

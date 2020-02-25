@@ -2,7 +2,7 @@
 .. module:: critic
 :synopsis: model evaluation made simple
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -17,7 +17,10 @@ from simplify.core.book import Book
 from simplify.core.book import Chapter
 from simplify.core.book import Technique
 from simplify.core.repository import Repository
+from simplify.core.scholar import Finisher
+from simplify.core.scholar import Parallelizer
 from simplify.core.scholar import Scholar
+from simplify.core.scholar import Specialist
 
 
 @dataclass
@@ -27,8 +30,8 @@ class Anthology(Book):
     Args:
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
@@ -54,36 +57,67 @@ class Anthology(Book):
 
 
 @dataclass
-class Review(object):
+class Review(Chapter):
     """Evaluations for a 'Cookbook' recipe.
 
     Args:
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
             None. If not passed, __class__.__name__.lower() is used.
-        explanations (Dict[str, pd.DataFrame]): Defaults to None.
-        predictions (Dict[str, pd.Series]): Defaults to None.
-        estimations (Dict[str, pd.Series]): Defaults to None.
-        importances (Dict[str, pd.DataFrame]): Defaults to None.
-        reports (Dict[str, pd.DataFrame]): Defaults to None.
+        explanations (Dict[str, pd.DataFrame]): results from any 'Explainer'
+            methods applied to the data analysis. Defaults to an empty
+            dictionary.
+        predictions (Dict[str, pd.Series]): results from any 'Predictor'
+            methods applied to the data analysis. Defaults to an empty
+            dictionary.
+        estimations (Dict[str, pd.Series]): results from any 'Estimator'
+            methods applied to the data analysis. Defaults to an empty
+            dictionary.
+        importances (Dict[str, pd.DataFrame]): results from any 'Ranker'
+            methods applied to the data analysis. Defaults to an empty
+            dictionary.
+        reports (Dict[str, pd.DataFrame]): results from any 'Reporter'
+            methods applied to the data analysis. Defaults to an empty
+            dictionary.
 
     """
     name: Optional[str] = None
-    explanations: Dict[str, pd.DataFrame] = None
-    predictions: Dict[str, pd.Series] = None
-    estimations: Dict[str, pd.Series] = None
-    importances: Dict[str, pd.DataFrame] = None
-    reports: Dict[str, pd.DataFrame] = None
+    explanations: Dict[str, pd.DataFrame] = field(default_factory = dict)
+    predictions: Dict[str, pd.Series] = field(default_factory = dict)
+    estimations: Dict[str, pd.Series] = field(default_factory = dict)
+    importances: Dict[str, pd.DataFrame] = field(default_factory = dict)
+    reports: Dict[str, pd.DataFrame] = field(default_factory = dict)
 
 
 @dataclass
 class CriticTechnique(Technique):
-    """
+    """Base method wrapper for applying algorithms to data.
+
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. Defaults to
+            None or __class__.__name__.lower() if super().__post_init__ is
+            called.
+        step (Optional[str]): name of step when the class instance is to be
+            applied. Defaults to None.
+        module (Optional[str]): name of module where object to use is located
+            (can either be a siMpLify or non-siMpLify module). Defaults to
+            'simplify.core'.
+        algorithm (Optional[object]): callable object which executes the primary
+            method of a class instance. Defaults to None.
+        parameters (Optional[Dict[str, Any]]): parameters to be attached to
+            'algorithm' when 'algorithm' is instanced. Defaults to an empty
+            dictionary.
 
     """
     name: Optional[str] = None
@@ -100,8 +134,10 @@ class CriticTechnique(Technique):
 
     """ Core siMpLify Methods """
 
-    def apply(self, recipe: 'Chapter') -> 'Chapterk':
-        return self.algorithm.apply(recipe = recipe)
+    def apply(self, data: 'Chapter') -> 'Chapter':
+        # self.load('algorithm')
+        # self.algorithm = self.algorithm()
+        return self.algorithm.apply(data = data)
 
 
 @dataclass
@@ -109,99 +145,73 @@ class Critic(Scholar):
     """Applies an 'Anthology' instance to an applied 'Cookbook'.
 
     Args:
-        idea (ClassVar['Idea']): an 'Idea' instance with project settings.
+        worker ('Worker'): instance with information needed to apply a 'Book'
+            instance.
+        idea (ClassVar['Idea']): instance with project settings.
 
     """
+    worker: 'Worker'
     idea: ClassVar['Idea']
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
-        super().__post_init__()
-
+        self = self.idea.apply(instance = self)
+        # Creates 'Finisher' instance to finalize 'Technique' instances.
+        self.finisher = CriticFinisher(worker = self.worker)
+        # Creates 'Specialist' instance to apply 'Technique' instances.
+        self.specialist = CriticSpecialist(worker = self.worker)
+        # Creates 'Parallelizer' instance to apply 'Chapter' instances, if the
+        # option to parallelize has been selected.
+        if self.parallelize:
+            self.parallelizer = Parallelizer(idea = self.idea)
         return self
+
+
+@dataclass
+class CriticFinisher(Finisher):
+    """Finalizes 'Technique' instances with data-dependent parameters.
+
+    Args:
+        worker ('Worker'): instance with information needed to apply a 'Book'
+            instance.
+        idea (ClassVar['Idea']): instance with project settings.
+
+    """
+    worker: 'Worker'
+    idea: ClassVar['Idea']
 
     """ Private Methods """
 
-    def _finalize_techniques(self,
-            book: 'Anthology',
-            cookbook: 'Cookbook') -> 'Anthology':
-        """Finalizes 'Chapter' instances in 'Book'.
+    def _add_explain_conditionals(self,
+            technique: 'Technique',
+            data: 'Dataset') -> 'Technique':
+        """Adds any conditional parameters to 'technique'
 
         Args:
-            book ('Anthology'): instance containing 'chapters' with
-                'techniques'.
-            data ('Dataset): instance with potential information to use to
-                finalize 'parameters' for 'book'.
+            technique ('Technique'): an instance with 'algorithm' and
+                'parameters' not yet combined.
+            data ('Dataset'): data object used to derive hyperparameters.
 
         Returns:
-            'Anthology': with any necessary modofications made.
+            'Technique': with any applicable parameters added.
 
         """
-        for chapter in book.chapters:
-            for technique in chapter.techniques:
-                # Creates empty dictionaries in 'book' to store 'Critic'
-                # evaluations.
-                if not hasattr(book, step.storage):
-                    setattr(book, step, {})
-        return book
 
-    def _apply_technique(self,
-            chapter: 'Chapter',
-            recipe: 'Chapter') -> 'Chapter':
-        """Iterates a single chapter and applies 'techniques' to 'data'.
+        return technique
 
-        Args:
-            chapter ('Chapter'): instance with 'techniques' to apply to 'data'.
-            recipe ('Chapter'): object for 'chapter' 'techniques' to be applied.
 
-        Return:
-            'Chapter': 'Anthology' 'Chapter' instance with changes made.
+@dataclass
+class CriticSpecialist(Specialist):
+    """Base class for applying 'Technique' instances to data.
 
-        """
-        for technique in chapter.techniques:
-            chapter = technique.apply(recipe = recipe)
-        return chapter
+    Args:
+        worker ('Worker'): instance with information needed to apply a 'Book'
+            instance.
+        idea (ClassVar['Idea']): instance with project settings.
 
-    """ Core siMpLify Methods """
-
-    def apply(self,
-            worker: str,
-            project: 'Project',
-            data: 'Dataset',
-            **kwargs) -> ('Project', 'Dataset'):
-        """Applies 'Book' instance in 'project' to 'data' or other stored books.
-
-        Args:
-            worker (str): key to 'Book' instance to apply in 'project'.
-            project ('Project): instance with stored 'Book' instances to apply
-                or to have other 'Book' instances applied to.
-            data (Optional[Union['Dataset', 'Book']]): a data source 'Book'
-                instances in 'project' to potentially be applied.
-            kwargs: any additional parameters to pass.
-
-        Returns:
-            Tuple('Project', 'Data'): instances with any necessary modifications
-                made.
-
-        """
-        project[worker] = self._finalize_chapters(
-            book = project[worker],
-            data = data)
-        if self.parallelize:
-            self.parallelizer.apply_chapters(
-                data = project['analyst'],
-                method = self._apply_technique)
-        else:
-            new_chapters = []
-            for i, recipe in enumerate(project['analyst'].chapters):
-                for chapter in project[worker].chapters:
-                    if self.verbose:
-                        print('Evaluating recipe', str(i + 1))
-                    new_chapters.append(self._apply_technique(
-                        chapter = chapter,
-                        recipe = recipe))
-                project[worker].chapters = new_recipes
-        return project, data
+    """
+    worker: 'Worker'
+    idea: ClassVar['Idea']
 
 
 @dataclass
@@ -297,7 +307,7 @@ class Evaluators(Repository):
                 'simplify': CriticTechnique(
                     name = 'simplify_report',
                     module = 'simplify.critic.algorithms',
-                    algorithm = 'simplify_report',
+                    algorithm = 'SimplifyReport',
                     storage = 'reports'),
                 'confusion': CriticTechnique(
                     name = 'confusion_matrix',

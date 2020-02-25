@@ -2,7 +2,7 @@
 .. module:: scholar
 :synopsis: applies collections of techniques to data
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -20,37 +20,123 @@ try:
 except ImportError:
     from multiprocessing import Pool
 
+from simplify.core.base import SimpleEngineer
+from simplify.core.dataset import Dataset
 from simplify.core.repository import Repository
 from simplify.core.utilities import listify
 from simplify.core.validators import DataValidator
 
 
 @dataclass
-class Scholar(object):
+class Scholar(SimpleEngineer):
     """Base class for applying 'Book' instances to data.
 
     Args:
-        idea ('Idea'): an instance with project settings.
-        worker ('Worker'): instance with information needed to create a Book
+        worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
+        idea (ClassVar['Idea']): instance with project settings.
 
     """
-    worker: Optional['Worker'] = None
-    idea: ClassVar['Idea'] = None
+    worker: 'Worker'
+    idea: ClassVar['Idea']
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         self = self.idea.apply(instance = self)
-        self.parallelizer = Parallelizer(idea = self.idea)
+        # Creates 'Finisher' instance to finalize 'Technique' instances.
+        self.finisher = Finisher(worker = self.worker)
+        # Creates 'Specialist' instance to apply 'Technique' instances.
+        self.specialist = Specialist(worker = self.worker)
+        # Creates 'Parallelizer' instance to apply 'Chapter' instances, if the
+        # option to parallelize has been selected.
+        if self.parallelize:
+            self.parallelizer = Parallelizer(idea = self.idea)
+        return self
+
+    """ Private Methods """
+
+    def _set_data(self,
+            project: 'Project',
+            data: 'Dataset') -> Union['Dataset', 'Book']:
+        """Returns 'data' appropriate to 'worker'.
+
+        Args:
+            project ('Project'): instance with stored 'Book' instances.
+            data ('Dataset'): primary instance used by 'project'.
+
+        Returns:
+            Union['Dataset', 'Book]: primary dataset or 'Book' instance from
+                'project' depending upon the 'data' attribute' of 'worker'.
+
+        """
+        if self.worker.data in ['dataset']:
+            return data
+        else:
+            return project[self.worker.data]
+
+    """ Core siMpLify Methods """
+
+    def apply(self,
+            project: 'Project',
+            data: 'Dataset',
+            **kwargs) -> ('Project', 'Dataset'):
+        """Applies 'Book' instance in 'project' to 'data' or other stored books.
+
+        Args:
+            worker (str): key to 'Book' instance to apply in 'project'.
+            project ('Project): instance with stored 'Book' instances to apply
+                or to have other 'Book' instances applied to.
+            data (Optional[Union['Dataset', 'Book']]): a data source 'Book'
+                instances in 'project' to potentially be applied.
+            kwargs: any additional parameters to pass.
+
+        Returns:
+            Tuple('Project', 'Data'): instances with any necessary modifications
+                made.
+
+        """
+        # Gets appropriate data based upon 'data' attribute of 'worker'.
+        data_to_use = self._set_data(project = project, data = data)
+        # Finalizes each 'Technique' instance and instances each 'algorithm'
+        # with corresponding 'parameters'.
+        project[self.worker.name] = self.finisher.apply(
+            book = project[self.worker.name],
+            data = data_to_use)
+        # Applies each 'Technique' instance to 'data_to_use'.
+        project[self.worker.name] = self.specialist.apply(
+            book = project[self.worker.name],
+            data = data_to_use)
+        return project
+
+
+
+@dataclass
+class Finisher(SimpleEngineer):
+    """Finalizes 'Technique' instances with data-dependent parameters.
+
+    Args:
+        worker ('Worker'): instance with information needed to apply a 'Book'
+            instance.
+        idea (ClassVar['Idea']): instance with project settings.
+
+    """
+    worker: 'Worker'
+    idea: ClassVar['Idea']
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        self = self.idea.apply(instance = self)
         return self
 
     """ Private Methods """
 
     def _finalize_chapters(self, book: 'Book', data: 'Dataset') -> 'Book':
-        """Subclasses may provide their own methods to finalize chapters.
+        """Finalizes 'Chapter' instances in 'Book'.
 
         Args:
-            book ('Book'): instance containing 'chapters' with 'steps'.
+            book ('Book'): instance containing 'chapters' with 'techniques' that
+                have 'data_dependent' and/or 'conditional' 'parameters' to
+                add.
             data ('Dataset): instance with potential information to use to
                 finalize 'parameters' for 'book'.
 
@@ -58,30 +144,51 @@ class Scholar(object):
             'Book': with any necessary modofications made.
 
         """
+        new_chapters = []
+        for chapter in book.chapters:
+            new_chapters.append(
+                self._finalize_techniques(manuscript = chapter, data = data))
+        book.chapters = new_chapters
         return book
 
-    def _finalize_techniques(self, book: 'Book', data: 'Dataset') -> 'Book':
-        """Subclasses may provide their own methods to finalize chapters.
+    def _finalize_techniques(self,
+            manuscript: Union['Book', 'Chapter'],
+            data: ['Dataset', 'Book']) -> Union['Book', 'Chapter']:
+        """Subclasses may provide their own methods to finalize 'techniques'.
 
         Args:
-            book ('Book'): instance containing 'chapters' with 'steps'.
-            data ('Dataset): instance with potential information to use to
-                finalize 'parameters' for 'book'.
+            manuscript (Union['Book', 'Chapter']): manuscript containing
+                'techniques' to apply.
+            data (['Dataset', 'Book']): instance with information used to
+                finalize 'parameters' and/or 'algorithm'.
 
         Returns:
-            'Book': with any necessary modofications made.
+            Union['Book', 'Chapter']: with any necessary modofications made.
 
         """
-        return book
+        new_techniques = []
+        for technique in manuscript.techniques:
+            if not technique.name in ['none']:
+                new_technique = self._add_conditionals(
+                    manuscript = manuscript,
+                    technique = technique,
+                    data = data)
+                new_technique = self._add_data_dependent(
+                    technique = technique,
+                    data = data)
+                new_techniques.append(self._add_parameters_to_algorithm(
+                    technique = technique))
+        manuscript.techniques = new_techniques
+        return manuscript
 
     def _add_conditionals(self,
-            book: 'Book',
+            manuscript: 'Book',
             technique: 'Technique',
             data: Union['Dataset', 'Book']) -> 'Technique':
         """Adds any conditional parameters to a 'Technique' instance.
 
         Args:
-            book ('Book'): Book instance with algorithms to apply to 'data'.
+            manuscript ('Book'): Book instance with algorithms to apply to 'data'.
             technique ('Technique'): instance with parameters which can take
                 new conditional parameters.
             data (Union['Dataset', 'Book']): a data source which might
@@ -93,7 +200,7 @@ class Scholar(object):
         """
         try:
             if technique is not None:
-                return getattr(book, '_'.join(
+                return getattr(manuscript, '_'.join(
                     ['_add', technique.name, 'conditionals']))(
                         technique = technique,
                         data = data)
@@ -152,75 +259,124 @@ class Scholar(object):
                     pass
         return technique
 
-    def _apply_chapter(self,
-            chapter: 'Chapter',
-            data: Union['Dataset', 'Book']) -> 'Chapter':
-        """Iterates a single chapter and applies 'techniques' to 'data'.
-
-        Args:
-            chapter ('Chapter'): instance with 'techniques' to apply to 'data'.
-            data (Union['Dataset', 'Book']): object for 'chapter' 'steps' to be
-                applied.
-
-        Return:
-            'Chapter': with any changes made. Modified 'data' is added to the
-                'Chapter' instance with the attribute name matching the 'name'
-                attribute of 'data'.
-
-        """
-        for technique in chapter.techniques:
-            data = technique.apply(data = data)
-        setattr(chapter, 'data', data)
-        return chapter
-
     """ Core siMpLify Methods """
 
-    def apply(self,
-            worker: str,
-            project: 'Project',
-            data: 'Dataset',
-            **kwargs) -> ('Project', 'Dataset'):
+    def apply(self, book: 'Book', data: Union['Dataset', 'Book']) -> 'Book':
         """Applies 'Book' instance in 'project' to 'data' or other stored books.
 
         Args:
-            worker (str): key to 'Book' instance to apply in 'project'.
-            project ('Project): instance with stored 'Book' instances to apply
-                or to have other 'Book' instances applied to.
-            data (Optional[Union['Dataset', 'Book']]): a data source 'Book'
-                instances in 'project' to potentially be applied.
-            kwargs: any additional parameters to pass.
+            book ('Book'): instance with stored 'Technique' instances (either
+                stored in the 'techniques' or 'chapters' attributes).
+            data ([Union['Dataset', 'Book']): a data source with information to
+                finalize 'parameters' for each 'Technique' instance in 'book'
 
         Returns:
-            Tuple('Project', 'Data'): instances with any necessary modifications
-                made.
+            'Book': with 'parameters' for each 'Technique' instance finalized
+                and connected to 'algorithm'.
 
         """
-        if hasattr(project[worker], 'techniques'):
-            project[worker] = self._finalize_techniques(
-                book = project[worker],
-                data = data)
+        if hasattr(book, 'techniques'):
+            book = self._finalize_techniques(manuscript = book, data = data)
         else:
-            project[worker] = self._finalize_chapters(
-                book = project[worker],
-                data = data)
-        if self.parallelize:
-            self.parallelizer.apply_chapters(
-                data = data,
-                method = self._apply_chapter)
-        else:
-            new_chapters = []
-            for i, chapter in enumerate(project[worker].chapters):
-                if self.verbose:
-                    print('Applying chapter', str(i + 1), 'to data')
-                new_chapters.append(self._apply_chapter(
-                    chapter = chapter,
-                    data = data))
-            project[worker].chapters = new_chapters
-        return project, data
+            book = self._finalize_chapters(book = book, data = data)
+        return book
 
 
 @dataclass
-class Parallelizer(object):
+class Specialist(SimpleEngineer):
+    """Base class for applying 'Technique' instances to data.
+
+    Args:
+        worker ('Worker'): instance with information needed to apply a 'Book'
+            instance.
+        idea (ClassVar['Idea']): instance with project settings.
+
+    """
+    worker: 'Worker'
+    idea: ClassVar['Idea']
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        self = self.idea.apply(instance = self)
+        return self
+
+    """ Private Methods """
+
+    def _apply_chapters(self,
+            book: 'Book',
+            data: Union['Dataset', 'Book']) -> 'Book':
+        """Applies 'chapters' in 'Book' instance in 'project' to 'data'.
+
+        Args:
+            book ('Book'): instance with stored 'Chapter' instances.
+            data ('Dataset'): primary instance used by 'project'.
+
+        Returns:
+            'Book': with modifications made and/or 'data' incorporated.
+
+        """
+        new_chapters = []
+        for i, chapter in enumerate(book.chapters):
+            if self.verbose:
+                print('Applying', chapter.name, str(i + 1), 'to', data.name)
+            new_chapters.append(self._apply_techniques(
+                manuscript = chapter,
+                data = data))
+        book.chapters = new_chapters
+        return book
+
+    def _apply_techniques(self,
+            manuscript: Union['Book', 'Chapter'],
+            data: Union['Dataset', 'Book']) -> Union['Book', 'Chapter']:
+        """Applies 'techniques' in 'manuscript' to 'data'.
+
+        Args:
+            manuscript (Union['Book', 'Chapter']): instance with stored
+                'techniques'.
+            data ('Dataset'): primary instance used by 'manuscript'.
+
+        Returns:
+            Union['Book', 'Chapter']: with modifications made and/or 'data'
+                incorporated.
+
+        """
+        for technique in manuscript.techniques:
+            if self.verbose:
+                print('Applying', technique.name, 'to', data.name)
+            if isinstance(data, Dataset):
+                data = technique.apply(data = data)
+            else:
+                for chapter in data.chapters:
+                    manuscript.chapters.append(technique.apply(data = chapter))
+        if isinstance(data, Dataset):
+            setattr(manuscript, 'data', data)
+        return manuscript
+
+    """ Core siMpLify Methods """
+
+    def apply(self, book: 'Book', data: Union['Dataset', 'Book']) -> 'Book':
+        """Applies 'Book' instance in 'project' to 'data' or other stored books.
+
+        Args:
+            book ('Book'): instance with stored 'Technique' instances (either
+                stored in the 'techniques' or 'chapters' attributes).
+            data ([Union['Dataset', 'Book']): a data source with information to
+                finalize 'parameters' for each 'Technique' instance in 'book'
+
+        Returns:
+            'Book': with 'parameters' for each 'Technique' instance finalized
+                and connected to 'algorithm'.
+
+        """
+        if hasattr(book, 'techniques'):
+            book = self._apply_techniques(manuscript = book, data = data)
+        else:
+            book = self._apply_chapters(book = book, data = data)
+        return book
+
+
+@dataclass
+class Parallelizer(SimpleEngineer):
     """Applies techniques using one or more CPU or GPU cores.
 
     Args:

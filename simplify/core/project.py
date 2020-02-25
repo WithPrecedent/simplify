@@ -2,7 +2,7 @@
 .. module:: siMpLify project
 :synopsis: controller class for siMpLify projects
 :publisher: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -17,17 +17,14 @@ import warnings
 import numpy as np
 import pandas as pd
 
-import simplify
+from simplify.core.base import SimpleLoader
+from simplify.core.base import SimpleSettings
 from simplify.core.book import Book
-from simplify.core.creators import Creator
 from simplify.core.dataset import Dataset
+from simplify.core.filer import Filer
 from simplify.core.idea import Idea
-from simplify.core.inventory import Inventory
-from simplify.core.repository import Outline
-from simplify.core.repository import Repository
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
-from simplify.core.scholar import Scholar
 
 
 @dataclass
@@ -39,19 +36,19 @@ class ProjectManager(object):
             containing the file path or file name (in the current working
             directory) where a file of a supported file type with settings for
             an Idea instance is located. Defaults to None.
-        inventory (Optional[Union['Inventory', str]]): an instance of Inventory
+        filer (Optional[Union['Filer', str]]): an instance of Filer
             or a string containing the full path of where the root folder should
-            be located for file output. A inventory instance contains all file
+            be located for file output. A filer instance contains all file
             path and import/export methods for use throughout the siMpLify
             package. Default is None.
         dataset (Optional[Union['Dataset', 'Data', pd.DataFrame,
             np.ndarray, str]]): an instance of Dataset, an instance of
             Data, a string containing the full file path where a data file
             for a pandas DataFrame is located, a string containing a file name
-            in the default data folder (as defined in the shared Inventory
+            in the default data folder (as defined in the shared Filer
             instance), a full folder path where raw files for data to be
             extracted from, a string containing a folder name which is an
-            attribute in the shared Inventory instance, a DataFrame, or numpy
+            attribute in the shared Filer instance, a DataFrame, or numpy
             ndarray. If a DataFrame, Data instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
             in a new Dataset instance as a DataFrame. Default is None.
@@ -60,19 +57,10 @@ class ProjectManager(object):
             workers corresponding to keys in 'default_workers' to use. Defaults
             to an empty dictionary. If nothing is provided, Project attempts to
             construct workers from 'idea' and 'default_workers'.
-        library (Optional[Dict[str, 'Worker']):  dictionary with keys as strings
-            and values of 'Book' instances. Defaults to an empty dictionary. If
-            not provided (the normal case), 'library' will be constructed from
-            'workers'.
-        auto_publish (Optional[bool]): whether to call the 'publish' method when
-            instanced. Defaults to True.
-        auto_apply (Optional[bool]): whether to call the 'apply' method when
-            instanced. For auto_apply to have an effect, 'dataset' must also
-            be passed. Defaults to False.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
@@ -81,10 +69,17 @@ class ProjectManager(object):
             'Project' instance. The name is used for creating file folders
             related to the 'Project'. If not provided, a string is created from
             the date and time.
+        auto_draft (Optional[bool]): whether to call the 'draft' method when
+            instanced. Defaults to True.
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            instanced. Defaults to True.
+        auto_apply (Optional[bool]): whether to call the 'apply' method when
+            instanced. For auto_apply to have an effect, 'dataset' must also
+            be passed. Defaults to False.
 
     """
     idea: Optional[Union['Idea', str]] = None
-    inventory: Optional[Union['Inventory', str]] = None
+    filer: Optional[Union['Filer', str]] = None
     dataset: Optional[Union[
         'Dataset',
         pd.DataFrame,
@@ -96,37 +91,32 @@ class ProjectManager(object):
             str]]]] = None
     workers: Optional[Union[Dict[str, 'Worker'], List[str]]] = field(
         default_factory = dict)
+    name: Optional[str] = field(default_factory = lambda: 'project')
+    identification: Optional[str] = field(default_factory = datetime_string)
     auto_draft: Optional[bool] = True
     auto_publish: Optional[bool] = True
     auto_apply: Optional[bool] = False
-    name: Optional[str] = field(default_factory = lambda: 'project')
-    identification: Optional[str] = field(default_factory = datetime_string)
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls selected methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Validates 'Idea' instance, adds attributes to current class from it,
-        # and injects it into other base classes.
+        # Validates 'Idea' instance and adds attributes from it.
         self.idea = Idea.create(idea = self.idea)
         self = self.idea.apply(instance = self)
-        self._inject_instance(
-            source = 'idea',
-            targets = [Inventory, Dataset, Creator, Scholar, Repository])
-        # Validates 'Inventory' instance and injects it into base classes.
-        self.inventory = Inventory.create(root_folder = self.inventory)
-        self._inject_instance(
-            source = 'inventory',
-            targets = [Dataset, Book])
+        # Validates 'Filer' instance.
+        self.filer = Filer.create(root_folder = self.filer, idea = self.idea)
+        # Injects 'idea' and 'filer' into base 'SimpleSettings' class.
+        SimpleSettings.idea = self.idea
+        SimpleSettings.filer = self.filer
         # Validates 'Dataset' instance.
         self.dataset = Dataset.create(data = self.dataset)
         # Validates 'workers' attribute.
         self.workers = self._check_workers(workers = self.workers)
         # Creates a project 'overview' and 'Project' instance.
-        overview = self.outline(name = self.name)
         self.project = Project(
             identification = self.identification,
-            overview = overview)
+            overview = self.outline(name = self.name))
         # Calls 'draft' method if 'auto_draft' is True.
         if self.auto_draft:
             self.project = self.draft()
@@ -163,19 +153,6 @@ class ProjectManager(object):
         return self
 
     """ Private Methods """
-
-    def _inject_instance(self, source: str, targets: List[Any]) -> None:
-        """Injects local attribute into other classes.
-
-        Args:
-            source (str): attribute name of item to be injected into each target
-                in 'targets'.
-            targets (List[Any]): objects to inject 'source' into.
-
-        """
-        for target in listify(targets):
-            setattr(target, source, getattr(self, source))
-        return self
 
     def _check_workers(self,
             workers: Union[
@@ -223,22 +200,26 @@ class ProjectManager(object):
                 name = 'analyst',
                 module = 'simplify.analyst.analyst',
                 book = 'Cookbook',
+                chapter = 'Recipe',
                 technique = 'AnalystTechnique',
                 scholar = 'Analyst',
-                options = 'Tools',
-                compare_chapters = True),
+                options = 'Tools'),
             'critic': Worker(
                 name = 'critic',
                 module = 'simplify.critic.critic',
                 book = 'Anthology',
+                chapter = 'Review',
+                technique = 'CriticTechnique',
                 scholar = 'Critic',
-                options = 'Evaluators'),
+                options = 'Evaluators',
+                data = 'analyst'),
             'artist': Worker(
                 name = 'artist',
                 module = 'simplify.artist.artist',
                 book = 'Canvas',
                 scholar = 'Artist',
-                options = 'Mediums')}
+                options = 'Mediums',
+                data = 'critic')}
         return self
 
     def _get_settings(self,
@@ -271,8 +252,6 @@ class ProjectManager(object):
         """
         for key, worker in workers.items():
             workers[key].steps = self.project.overview[key]
-            workers[key].technique = worker.load('technique')
-            workers[key].options = worker.load('options')()
             workers[key].publisher = worker.load('publisher')(worker = worker)
             workers[key].scholar = worker.load('scholar')(worker = worker)
         return workers
@@ -394,6 +373,8 @@ class ProjectManager(object):
             data (Optional['Dataset']): data object for methods to be
                 applied. If not passed, data stored in the 'dataset' is
                 used.
+            kwargs: any other parameters to pass to the 'apply' method of a
+                'Scholar' instance.
 
         """
         # Changes state.
@@ -404,7 +385,7 @@ class ProjectManager(object):
         # Iterates through each worker, creating and applying needed Books,
         # Chapters, and Techniques for each worker in the Project.
         for name, book in self.project.library.items():
-            self.project, self.dataset = self.workers[name].scholar.apply(
+            self.project = self.workers[name].scholar.apply(
                 worker = name,
                 project = self.project,
                 data = self.dataset,
@@ -424,7 +405,7 @@ class Project(MutableMapping):
         overview (Optional[Dict[str, Dict[str, List[str]]]]): nested dictionary
             of workers, steps, and techniques for a siMpLify project. Defaults
             to an empty dictionary. An overview is not strictly needed for
-            object serialization, but provides a good overview of the various
+            object serialization, but provides a good summary of the various
             options selected in a particular 'Project'. As a result, it is used
             by the '__repr__' and '__str__' methods.
         library (Optional[Dict[str, 'Book']]): stored 'Book' instances. Defaults
@@ -493,12 +474,12 @@ class Project(MutableMapping):
     """ Other Dunder Methods """
 
     def __repr__(self) -> str:
+        """Returns string representation of a class instance."""
         return self.__str__()
 
     def __str__(self) -> str:
-        print(' '.join(['Project', self.identification, ':']))
-        print(self.overview)
-        return self
+        """Returns string representation of a class instance."""
+        return f'Project {self.identification}: {str(self.overview)}'
 
     """ Public Methods """
 
@@ -521,14 +502,14 @@ class Project(MutableMapping):
 
 
 @dataclass
-class Worker(object):
+class Worker(SimpleLoader):
     """Object construction instructions used by a Project instance.
 
     Args:
         name (str): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier.
@@ -551,10 +532,13 @@ class Worker(object):
             options for the 'Worker' instance to utilize or a string
             corresponding to a dictionary in 'module' to load. Defaults to an
             empty dictionary.
-        import_folder (Optional[str]): name of attribute in 'inventory' which
+        data (Optional[str]): name of attribute or key in a 'Project' instance
+            'library' to use as a data object to apply methods to. Defaults to
+            'dataset'.
+        import_folder (Optional[str]): name of attribute in 'filer' which
             contains the path to the default folder for importing data objects.
             Defaults to 'processed'.
-        export_folder (Optional[str]): name of attribute in 'inventory' which
+        export_folder (Optional[str]): name of attribute in 'filer' which
             contains the path to the default folder for exporting data objects.
             Defaults to 'processed'.
 
@@ -571,32 +555,19 @@ class Worker(object):
     steps: Optional[List[str]] = field(default_factory = list)
     options: Optional[Union[str, Dict[str, Any]]] = field(
         default_factory = dict)
-    compare_chapters: Optional[bool] = False
+    data: Optional[str] = field(default_factory = lambda: 'dataset')
     import_folder: Optional[str] = field(default_factory = lambda: 'processed')
     export_folder: Optional[str] = field(default_factory = lambda: 'processed')
 
-    """ Public Methods """
-
-    def load(self, component: str) -> object:
-        """Returns 'component' from 'module'.
-
-        Args:
-            component (str): name of object to load from 'module'.
-
-        Returns:
-            object: from 'module'.
-
-        """
-        try:
-            return getattr(
-                import_module(self.module),
-                getattr(self, component))
-        except (ImportError, AttributeError):
-            try:
-                return getattr(
-                    import_module(self.default_module),
-                    getattr(self, component))
-            except (ImportError, AttributeError):
-                raise ImportError(' '.join(
-                    [getattr(self, component), 'is neither in', self.module,
-                        'nor', self.default_module]))
+    def __post_init__(self) -> None:
+        # Declares 'default_components' in case specified components are not
+        # found.
+        self.default_components = {}
+        for attribute in [
+                'book',
+                'chapter',
+                'technique',
+                'publisher',
+                'scholar']:
+            self.default_components[attribute] = getattr(self, attribute)
+        return self

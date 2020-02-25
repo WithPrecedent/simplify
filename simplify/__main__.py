@@ -2,7 +2,7 @@
 .. module:: siMpLify main
 :synopsis: command-line data science made simple
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -43,5 +43,5 @@ if __name__ == '__main__':
     # Calls Project with passed command-line arguments.
     Project(
         idea = arguments.get('-idea'),
-        inventory = arguments.get('-inventory', None),
+        filer = arguments.get('-filer', None),
         dataset = arguments.get('-dataset', None))

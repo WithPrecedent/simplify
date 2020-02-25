@@ -2,7 +2,7 @@
 .. module:: scrape
 :synopsis: data scraper
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -37,5 +37,5 @@ class Scrape(WranglerTechnique):
 
 
     def publish(self, dataset):
-        file_path = os.path.join(self.inventory.external, self.file_name)
+        file_path = os.path.join(self.filer.external, self.file_name)
         return self

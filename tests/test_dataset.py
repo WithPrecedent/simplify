@@ -2,7 +2,7 @@
 .. module:: test dataset
 :synopsis: tests Dataset class
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -19,11 +19,11 @@ def test_dataset():
         raw_data,
         columns = ['name', 'age'],
         index = None))
-    data = Dataset.create(dataset = df)
+    data = Dataset.create(data = df)
     data.downcast()
     assert data['name'].tolist() == ['allison', 'brian', 'corey']
     assert len(data) == 3
-    data.divide_xy(label = 'age')
+    data.create_xy(label = 'age')
     assert data.x['name'].tolist() == ['allison', 'brian', 'corey']
     return
 

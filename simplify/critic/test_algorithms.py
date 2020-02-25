@@ -2,7 +2,7 @@
 .. module:: critic algorithms
 :synopsis: siMpLify algorithms for project evaluation
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 

@@ -1,8 +1,8 @@
 """
-.. module:: inventory
+.. module:: filer
 :synopsis: data science file management made simple
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -18,15 +18,15 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 import pandas as pd
 
-from simplify.core.states import create_states
 from simplify.core.repository import Outline
+from simplify.core.states import create_states
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Inventory(MutableMapping):
+class Filer(MutableMapping):
     """Manages files and folders for siMpLify.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -36,7 +36,7 @@ class Inventory(MutableMapping):
     Args:
         idea ('Idea'): an Idea instance with file-management related settings.
         root_folder (Optional[str]): the complete path from which the other
-            paths and folders used by Inventory should be created. Defaults to
+            paths and folders used by Filer should be created. Defaults to
             None. If not passed, the parent folder of the parent folder of the
             current working directory is used.
         data_folder (Optional[str]): the data subfolder name or a complete path
@@ -60,7 +60,7 @@ class Inventory(MutableMapping):
     data_subfolders: Optional[List[str]] = field(default_factory = list)
     results_folder: Optional[str] = field(default_factory = lambda: 'results')
     states: Optional[Union[List[str], 'SimpleState']] = None
-    idea: ClassVar['Idea'] = None
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Creates initial attributes."""
@@ -85,34 +85,32 @@ class Inventory(MutableMapping):
 
     @classmethod
     def create(cls,
-            inventory: Optional[Union[str, Path, List[str]]] = None,
+            filer: Optional[Union[str, Path, List[str]]] = None,
             idea: Optional['Idea'] = None,
-            **kwargs) -> 'Inventory':
-        """Creates an Inventory instance from passed arguments.
+            **kwargs) -> 'Filer':
+        """Creates an Filer instance from passed arguments.
 
         Args:
-            inventory (Optional[Union[str, Path, List[str]]]): Inventory
+            filer (Optional[Union[str, Path, List[str]]]): Filer
                 instance or root folder for one.
             idea (Optional['Idea']): an Idea instance.
 
         Returns:
-            Inventory: instance, properly configured.
+            Filer: instance, properly configured.
 
         Raises:
-            TypeError if inventory is neither an Inventory instance, string
+            TypeError if filer is neither an Filer instance, string
                 folder path, nor list to create a folder path.
 
         """
-        if idea is not None:
-            cls.idea = idea
-        if isinstance(inventory, Inventory):
-            return inventory
-        elif isinstance(inventory, (str, Path, List)):
-            return cls(root_folder = inventory, **kwargs)
-        elif inventory is None:
-            return cls(**kwargs)
+        if isinstance(filer, Filer):
+            return filer
+        elif isinstance(filer, (str, Path, List)):
+            return cls(root_folder = filer, idea = idea, **kwargs)
+        elif filer is None:
+            return cls(idea = idea, **kwargs)
         else:
-            raise TypeError('inventory must be Inventory type or folder path')
+            raise TypeError('filer must be Filer type or folder path')
 
     """ Required ABC Methods """
 
@@ -132,7 +130,7 @@ class Inventory(MutableMapping):
         try:
             return self.folders[key]
         except KeyError:
-            raise KeyError(' '.join([key, 'is not found in Inventory']))
+            raise KeyError(' '.join([key, 'is not found in Filer']))
 
     def __delitem__(self, key: str) -> None:
         """Deletes 'key' entry in 'folders'.
@@ -436,12 +434,12 @@ class Inventory(MutableMapping):
             file_path (Optional[Union[str, Path]]): a complete file path.
                 Defaults to None.
             folder (Optional[Union[str, Path]]): a complete folder path or the
-                name of a folder stored in 'inventory'. Defaults to None.
+                name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
             file_format (Optional[Union[str, 'FileFormat']]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'inventory'. Defaults to None
+                such an object stored in 'filer'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -478,12 +476,12 @@ class Inventory(MutableMapping):
             file_path (Optional[Union[str, Path]]): a complete file path.
                 Defaults to None.
             folder (Optional[Union[str, Path]]): a complete folder path or the
-                name of a folder stored in 'inventory'. Defaults to None.
+                name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
             file_format (Optional[Union[str, 'FileFormat']]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'inventory'. Defaults to None
+                such an object stored in 'filer'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -554,22 +552,22 @@ class Inventory(MutableMapping):
         self._draft_file_names()
         # Creates importer and exporter instances for file management.
         self.data_importer = Importer(
-            inventory = self,
+            filer = self,
             root_folder = self.data_folder,
             folders = self.import_folders,
             file_format_states = self.import_format_states,
             file_names = self.import_file_names)
         self.data_exporter = Exporter(
-            inventory = self,
+            filer = self,
             root_folder = self.data_folder,
             folders = self.export_folders,
             file_format_states = self.export_format_states,
             file_names = self.export_file_names)
         self.results_importer = Importer(
-            inventory = self,
+            filer = self,
             root_folder = self.data_folder)
         self.results_exporter = Exporter(
-            inventory = self,
+            filer = self,
             root_folder = self.results_folder)
         return self
 
@@ -579,17 +577,17 @@ class SimpleDistributor(ABC):
     """Base class for siMpLify Importer and Exporter.
 
     Args:
-        inventory ('Inventory'): a related Inventory instance.
+        filer ('Filer'): a related Filer instance.
 
     """
 
-    inventory: 'Inventory'
+    filer: 'Filer'
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         # Creates 'Pathifier' instance for dynamic path creation.
         self.pathifier = Pathifier(
-            inventory = self.inventory,
+            filer = self.filer,
             distributor = self)
         return self
 
@@ -614,12 +612,12 @@ class SimpleDistributor(ABC):
         new_kwargs = passed_kwargs
         for variable in file_format.addtional_kwargs:
             if not variable in passed_kwargs:
-                if variable in self.inventory.default_kwargs:
+                if variable in self.filer.default_kwargs:
                     new_kwargs.update(
-                        {variable: self.inventory.default_kwargs[variable]})
-                elif hasattr(self.inventory, variable):
+                        {variable: self.filer.default_kwargs[variable]})
+                elif hasattr(self.filer, variable):
                     new_kwargs.update(
-                        {variable: getattr(self.inventory, variable)})
+                        {variable: getattr(self.filer, variable)})
         return new_kwargs
 
     def _check_file_format(self,
@@ -637,10 +635,10 @@ class SimpleDistributor(ABC):
         if isinstance(file_format, FileFormat):
             return file_format
         elif isinstance(file_format, str):
-            return self.inventory.file_formats[file_format]
+            return self.filer.file_formats[file_format]
         else:
-            return self.inventory.file_formats[
-                self.file_formats[self.inventory.state]]
+            return self.filer.file_formats[
+                self.file_formats[self.filer.state]]
 
     def _make_parameters(self,
             file_format: 'FileFormat',
@@ -673,16 +671,16 @@ class Importer(SimpleDistributor):
     """Manages file importing for siMpLify.
 
     Args:
-        inventory ('Inventory'): related Inventory instance.
+        filer ('Filer'): related Filer instance.
         root_folder (Optional[str]): the root folder for files to be loaded.
-            This should usually be the data or results folder from 'inventory'.
+            This should usually be the data or results folder from 'filer'.
             Defaults to None.
         folders (Optional[Dict[str, str]]): mapping with keys of Project ststes
-            and values corresponding to folders stored in 'inventory'. Defaults
+            and values corresponding to folders stored in 'filer'. Defaults
             to an empty dictionary.
         file_format_states (Optional[Dict[str, str]]): mapping with keys of
             Project states and values corresponding to keys of 'file_formats'
-            in inventory. This mapping is used if different file formats are
+            in filer. This mapping is used if different file formats are
             used at different stages of the project (most often when the
             original data format is not desired for long-term use). Defaults to
             an empty dictionary.
@@ -691,7 +689,7 @@ class Importer(SimpleDistributor):
             dictionary.
 
     """
-    inventory: 'Inventory'
+    filer: 'Filer'
     root_folder: Optional[str] = None
     folders: Optional[Dict[str, str]] = field(default_factory = dict)
     file_format_states: Optional[Dict[str, str]] = field(default_factory = dict)
@@ -724,7 +722,7 @@ class Importer(SimpleDistributor):
             Iterable: matching file paths.
 
         """
-        folder = folder or self.inventory[self.folders[self.inventory.stage]]
+        folder = folder or self.filer[self.folders[self.filer.stage]]
         file_format = self._check_file_format(file_format = file_format)
         if include_subfolders:
             return Path(folder).rglob('.'.join(['*', file_format.extension]))
@@ -778,12 +776,12 @@ class Importer(SimpleDistributor):
             file_path (Optional[Union[str, Path]]): a complete file path.
                 Defaults to None.
             folder (Optional[Union[str, Path]]): a complete folder path or the
-                name of a folder stored in 'inventory'. Defaults to None.
+                name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
             file_format (Optional[Union[str, 'FileFormat']]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'inventory'. Defaults to None
+                such an object stored in 'filer'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -813,16 +811,16 @@ class Exporter(SimpleDistributor):
     """Manages file exporting for siMpLify.
 
     Args:
-        inventory ('Inventory'): related Inventory instance.
+        filer ('Filer'): related Filer instance.
         root_folder (Optional[str]): the root folder for files to be loaded.
-            This should usually be the data or results folder from 'inventory'.
+            This should usually be the data or results folder from 'filer'.
             Defaults to None.
         folders (Optional[Dict[str, str]]): mapping with keys of Project ststes
-            and values corresponding to folders stored in 'inventory'. Defaults
+            and values corresponding to folders stored in 'filer'. Defaults
             to an empty dictionary.
         file_format_states (Optional[Dict[str, str]]): mapping with keys of
             Project states and values corresponding to keys of 'file_formats'
-            in inventory. This mapping is used if different file formats are
+            in filer. This mapping is used if different file formats are
             used at different stages of the project (most often when the
             original data format is not desired for long-term use). Defaults to
             an empty dictionary.
@@ -831,7 +829,7 @@ class Exporter(SimpleDistributor):
             dictionary.
 
     """
-    inventory: 'Inventory' = None
+    filer: 'Filer' = None
     root_folder: Optional[str] = None
     folders: Optional[Dict[str, str]] = field(default_factory = dict)
     file_format_states: Optional[Dict[str, str]] = field(default_factory = dict)
@@ -855,7 +853,7 @@ class Exporter(SimpleDistributor):
         """
         # Checks whether True/False should be exported in data files. If
         # 'boolean_out' is set to False, 1/0 are used instead.
-        if not self.inventory.boolean_out:
+        if not self.filer.boolean_out:
             data.replace({True: 1, False: 0}, inplace = True)
         return data
 
@@ -912,12 +910,12 @@ class Exporter(SimpleDistributor):
             file_path (Optional[Union[str, Path]]): a complete file path.
                 Defaults to None.
             folder (Optional[Union[str, Path]]): a complete folder path or the
-                name of a folder stored in 'inventory'. Defaults to None.
+                name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
             file_format (Optional[Union[str, 'FileFormat']]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'inventory'. Defaults to None
+                such an object stored in 'filer'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -945,11 +943,11 @@ class Pathifier(object):
     """Builds file_paths based upon state.
 
     Args:
-        inventory ('Inventory): related 'Inventory' instance.
+        filer ('Filer): related 'Filer' instance.
         distributor ('SimpleDistributor'): related 'SimpleDistributor' instance.
 
     """
-    inventory: 'Inventory'
+    filer: 'Filer'
     distributor: 'SimpleDistributor'
 
     def __post_init__(self) -> None:
@@ -968,11 +966,11 @@ class Pathifier(object):
 
         """
         if not folder:
-            return self.inventory.folders[self.distributor.folders[
-                self.inventory.state]]
+            return self.filer.folders[self.distributor.folders[
+                self.filer.state]]
         else:
             try:
-                return self.inventory.folders[folder]
+                return self.filer.folders[folder]
             except AttributeError:
                 if isinstance(folder, str):
                     return Path(folder)
@@ -990,7 +988,7 @@ class Pathifier(object):
 
         """
         if not file_name:
-            return self.distributor.file_names[self.inventory.state]
+            return self.distributor.file_names[self.filer.state]
         else:
             return file_name
 
@@ -1052,8 +1050,8 @@ class FileFormat(Outline):
     Args:
         name (str): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier.

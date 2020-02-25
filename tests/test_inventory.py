@@ -1,24 +1,24 @@
 """
-.. module:: inventory test
+.. module:: filer test
 :synopsis: tests Idea class
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
 from pathlib import Path
 
 from simplify.core.idea import Idea
-from simplify.core.inventory import Inventory
+from simplify.core.filer import Filer
 
 
-def test_inventory():
+def test_filer():
     idea = Idea(
         configuration = Path.cwd().joinpath('tests', 'idea_settings.ini'))
-    inventory = Inventory(idea = idea)
-    assert inventory.folders['root'] == Path.cwd().joinpath('..\..')
+    filer = Filer(idea = idea)
+    assert filer.folders['root'] == Path.cwd().joinpath('..\..')
     return
 
 
 if __name__ == '__main__':
-    test_inventory()
+    test_filer()

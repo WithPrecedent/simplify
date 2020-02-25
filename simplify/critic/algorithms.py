@@ -2,7 +2,7 @@
 .. module:: critic algorithms
 :synopsis: siMpLify algorithms for project evaluation
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -335,9 +335,9 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #         Args:
 #             review(Review.report): 'report' from an instance of review
 #         """
-#         self.inventory.save(
+#         self.filer.save(
 #             variable = report,
-#             folder = self.inventory.experiment,
+#             folder = self.filer.experiment,
 #             file_name = self.model_type + '_review',
 #             file_format = 'csv',
 #             header = True)
@@ -539,18 +539,4 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
     #     self.permutation_weights = show_weights(
     #             self.permutation_importances,
     #             feature_names = recipe.dataset.columns.keys())
-    #     return self
-
-    #     def draft(self) -> None:
-    #     super().publish()
-    #     self._options = Repository(contents = {
-    #         'classification': ('sklearn.metrics', 'classification_report'),
-    #         'confusion': ('sklearn.metrics', 'confusion_matrix')}
-    #     return self
-
-    # def publish(self, recipe):
-    #     self.runtime_parameters = {
-    #         'y_true': getattr(recipe.dataset, 'y_' + self.data_to_review),
-    #         'y_pred': recipe.predictions}
-    #     super().implement()
     #     return self

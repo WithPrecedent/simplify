@@ -2,7 +2,7 @@
 .. module:: dataset
 :synopsis: data containment made simple
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -19,11 +19,12 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 import numpy as np
 import pandas as pd
 
+from simplify.core.base import SimpleSettings
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Dataset(object):
+class Dataset(SimpleSettings):
     """Collection of associated pandas data objects.
 
     Args:
@@ -35,19 +36,27 @@ class Dataset(object):
         prefixes (Optional[Dict[str, str]]): keys are column prefixes and
             values are siMpLify proxy datatypes. Defaults to an empty
             dictionary.
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. Defaults to
+            None. If not passed, '__class__.__name__.lower()' is used.
         idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
-        inventory (ClassVar['Inventory']): shared 'Inventory' instance with
+        filer (ClassVar['Filer']): shared 'Filer' instance with
             project file management settings.
 
     """
     data: Optional[Union[pd.DataFrame, np.ndarray, str, Path]] = None
     datatypes: Optional[Dict[str, str]] = field(default_factory = dict)
     prefixes: Optional[Dict[str, str]] = field(default_factory = dict)
-    idea: ClassVar['Idea'] = None
-    inventory: ClassVar['Inventory'] = None
+    name: Optional[str] = None
 
     def __post_init__(self) -> None:
         """Sets instance attributes."""
+        self.name = self.name or self.__class__.__name__.lower()
         self._set_folder_defaults()
         self._initialize_bunches()
         self.types = DataTypes()
@@ -65,7 +74,7 @@ class Dataset(object):
             datatypes: Optional[Dict[str, str]] = None,
             prefixes: Optional[Dict[str, str]] = None,
             idea: Optional['Idea'] = None,
-            inventory: Optional['Inventory'] = None) -> 'Dataset':
+            filer: Optional['Filer'] = None) -> 'Dataset':
         """Creates an Dataset instance.
 
         Either 'data' or 'x' and 'y' should be passed to Datatset, but not both.
@@ -91,7 +100,7 @@ class Dataset(object):
                 dictionary.
             idea (Optional['Idea']): shared 'Idea' instance with project
                 settings.
-            inventory (Optional['Inventory']): shared 'Inventory' instance with
+            filer (Optional['Filer']): shared 'Filer' instance with
                 project file management settings.
 
         Returns:
@@ -105,11 +114,11 @@ class Dataset(object):
             Make 'x' and 'y' combination work for non-DataFrames
 
         """
-        # Injects 'idea' and 'inventory' into 'Dataset' class, if passed.
+        # Injects 'idea' and 'filer' into 'Dataset' class, if passed.
         if idea is not None:
             cls.idea = idea
-        if inventory is not None:
-            cls.inventory = inventory
+        if filer is not None:
+            cls.filer = filer
         if x is not None and y is not None and data is None:
             data = x
             data[cls.idea['analyst']['label']] = y
@@ -154,20 +163,20 @@ class Dataset(object):
         elif isinstance(data, np.ndarray):
             return pd.DataFrame(data = data)
         elif isinstance(data, (str, Path)):
-            return cls.inventory.load(file_path = data)
+            return cls.filer.load(file_path = data)
 
     """ Dunder Methods """
 
     def __getattr__(self,
             attribute: str) -> Union['DataBunch', pd.DataFrame, pd.Series]:
-        if attribute in ['train', 'training']:
-            return self.__dict__[self.__dict__['train_set']]
-        elif attribute in ['test', 'testing']:
-            return self.__dict__[self.__dict__['test_set']]
-        elif attribute in ['x']:
+        if attribute in ['x']:
             return self.__dict__['full_bunch'].x
         elif attribute in ['y']:
             return self.__dict__['full_bunch'].y
+        elif attribute in ['train', 'training']:
+            return self.__dict__[self.__dict__['train_set']]
+        elif attribute in ['test', 'testing']:
+            return self.__dict__[self.__dict__['test_set']]
         elif attribute in ['x_train']:
             return self.__dict__[self.__dict__['train_set']].x
         elif attribute in ['y_train']:
@@ -198,14 +207,14 @@ class Dataset(object):
     def __setattr__(self,
             attribute: str,
             value: Union['DataBunch', pd.DataFrame, pd.Series]) -> None:
-        if attribute in ['train', 'training']:
-            self.__dict__[self.__dict__['train_set']] = value
-        elif attribute in ['test', 'testing']:
-            self.__dict__[self.__dict__['test_set']] = value
-        elif attribute in ['x']:
+        if attribute in ['x']:
             self.__dict__['full_bunch'].x = value
         elif attribute in ['y']:
             self.__dict__['full_bunch'].y = value
+        elif attribute in ['train', 'training']:
+            self.__dict__[self.__dict__['train_set']] = value
+        elif attribute in ['test', 'testing']:
+            self.__dict__[self.__dict__['test_set']] = value
         elif attribute in ['x_train']:
             self.__dict__[self.__dict__['train_set']].x = value
         elif attribute in ['y_train']:
@@ -220,6 +229,17 @@ class Dataset(object):
             self.__dict__['val_bunch'].y = value
         else:
             self.__dict__[attribute] = value
+
+    def __getitem__(self, item: str) -> pd.Series:
+        return self.data[item]
+
+    def __setitem__(self, item: str, value: pd.Series) -> None:
+        self.data[item] = value
+        return self
+
+    def __delitem__(self, item: str) -> None:
+        self.data.drop(item, axis = 'columns', inplace = True)
+        return self
 
     def __len__(self) -> int:
         """Returns length of 'data' instance.
@@ -262,11 +282,13 @@ class Dataset(object):
     """ Private Methods """
 
     def _initialize_bunches(self) -> None:
+        """Initializes 'Databunch' instances with proxy mapping."""
         self._create_bunches()
         self._create_mapping()
         return self
 
     def _create_bunches(self) -> None:
+        """Creates 4 primary 'DataBunch' instances."""
         self.full_bunch = DataBunch(name = 'full')
         self.train_bunch = DataBunch(name = 'training')
         self.test_bunch = DataBunch(name = 'testing')
@@ -274,11 +296,13 @@ class Dataset(object):
         return self
 
     def _create_mapping(self) -> None:
-        self.train_set = self.train_bunch
-        self.test_set = self.test_bunch
+        """Creates initial proxy_mapping for 'train_set' and 'test_set'."""
+        self.train_set = 'train_bunch'
+        self.test_set = 'test_bunch'
         return self
 
     def _set_folder_defaults(self) -> None:
+        """Creates default folders to use for importing and exporting data."""
         self.import_folder = 'processed'
         self.export_folder = 'processed'
         return self
@@ -510,12 +534,22 @@ class Dataset(object):
 
 @dataclass
 class DataBunch(object):
+    """Stores one set of features and label.
 
+    Args:
+        name (str): name used for internal referencing. This should usually be
+            'training', 'testing', 'validation', or 'full'.
+        x (Optional[pd.DataFrame]): feature/independent variables. Defaults to
+            None.
+        y (Optional[pd.Series]): label/dependent variables. Defaults to None.
+
+    """
     name: str
     x: Optional[pd.DataFrame] = None
     y: Optional[pd.Series] = None
 
     def __post_init__(self) -> None:
+        """Creates initial attributes."""
         if self.x is not None:
             self._start_columns = self.x.columns.values
         else:
@@ -524,6 +558,11 @@ class DataBunch(object):
 
     @property
     def dropped_columns(self) -> List[str]:
+        """Returns list of dropped columns for 'x'.
+
+        This property only works in 'x' was passed when the class was instanced.
+
+        """
         if self._start_columns:
             return self._start_columns - self.x.columns.values
         else:
@@ -747,10 +786,10 @@ class DataStage(object):
         test_set (Optional[Tuple[str, str]]): names of attributes in a
             'Dataset' instance to return when 'test' is accessed. Defaults to
             None.
-        import_folder (Optional[str]): name of an attribute in an 'Inventory'
+        import_folder (Optional[str]): name of an attribute in an 'Filer'
             instance corresponding to a path where data should be imported
             from. Defaults to 'processed'.
-        export_folder (Optional[str]): name of an attribute in an 'Inventory'
+        export_folder (Optional[str]): name of an attribute in an 'Filer'
             instance corresponding to a path where data should be exported
             from. Defaults to 'processed'.
 

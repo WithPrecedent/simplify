@@ -2,7 +2,7 @@
 .. module:: repository
 :synopsis: siMpLify base mapping classes
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -29,8 +29,8 @@ class Repository(MutableMapping):
     Args:
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
@@ -47,7 +47,6 @@ class Repository(MutableMapping):
     name: Optional[str] = None
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)
     defaults: Optional[List[str]] = field(default_factory = list)
-    idea: ClassVar['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes attributes and settings."""
@@ -418,8 +417,8 @@ class Outline(Container):
     Args:
         name (str): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
-            the shared Idea instance, 'name' should match the appropriate
-            section name in Idea. When subclassing, it is a good idea to use
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
             the same 'name' attribute as the base class for effective
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier.

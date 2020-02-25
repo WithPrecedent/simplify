@@ -2,7 +2,7 @@
 .. module:: harvest
 :synopsis: parses data sources to create pandas DataFrame
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -47,7 +47,7 @@ class Harvest(SimpleIterable):
         return self
 
     def _publish_organize(self, key):
-        file_path = os.path.join(self.inventory.techniques,
+        file_path = os.path.join(self.filer.techniques,
                                  'organizer_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}
@@ -56,7 +56,7 @@ class Harvest(SimpleIterable):
         return algorithm
 
     def _publish_parse(self, key):
-        file_path = os.path.join(self.inventory.techniques,
+        file_path = os.path.join(self.filer.techniques,
                                  'parser_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}

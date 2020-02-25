@@ -2,7 +2,7 @@
 .. module:: download
 :synopsis: acquires data from online source
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -41,7 +41,7 @@ class Download(WranglerTechnique):
 
     def publish(self, dataset):
         """Downloads file from a URL if the file is available."""
-        file_path = os.path.join(self.inventory.external,
+        file_path = os.path.join(self.filer.external,
                                  self.file_name)
         file_response = requests.get(self.file_url)
         with open(file_path, 'wb') as file:

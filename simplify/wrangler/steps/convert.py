@@ -2,7 +2,7 @@
 .. module:: convert
 :synopsis: converts external data into a usable form
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
@@ -36,7 +36,7 @@ class Convert(WranglerTechnique):
         return self
 
     def _make_path(self, file_name):
-        file_path = os.path.join(self.inventory.external, file_name)
+        file_path = os.path.join(self.filer.external, file_name)
         return file_path
 
     def publish(self):
@@ -46,5 +46,5 @@ class Convert(WranglerTechnique):
 
     def publish(self, dataset):
         converted = self.method(file_path = self.file_path_in)
-        self.inventory.save_df(converted, file_path = self.file_path_out)
+        self.filer.save_df(converted, file_path = self.file_path_out)
         return self

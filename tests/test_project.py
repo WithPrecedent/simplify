@@ -2,7 +2,7 @@
 .. module:: project test
 :synopsis: tests Project class
 :author: Corey Rayburn Yung
-:copyright: 2019
+:copyright: 2019-2020
 :license: Apache-2.0
 """
 
