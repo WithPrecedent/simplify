@@ -109,7 +109,6 @@ class Scholar(SimpleEngineer):
         return project
 
 
-
 @dataclass
 class Finisher(SimpleEngineer):
     """Finalizes 'Technique' instances with data-dependent parameters.

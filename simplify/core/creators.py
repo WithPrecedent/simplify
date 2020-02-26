@@ -248,7 +248,7 @@ class Expert(SimpleCreator):
             try:
                 technique = getattr(self, '_'.join(
                     ['_publish', parameter_type]))(technique = technique)
-            except TypeError:
+            except (TypeError, AttributeError):
                 pass
         return technique
 

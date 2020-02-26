@@ -17,7 +17,7 @@ import pandas as pd
 from simplify.core.base import SimpleSettings
 from simplify.core.book import Technique
 from simplify.core.repository import Repository
-from simplify.critic.critic import CriticTechnique
+from simplify.critic.critic import Evaluator
 
 
 @dataclass
@@ -63,7 +63,7 @@ class Metric(Technique):
 
 @dataclass
 class SklearnMetrics(Repository):
-    """A dictonary of CriticTechnique options for the Analyst subpackage.
+    """A dictonary of Evaluator options for the Analyst subpackage.
 
     Args:
         idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
@@ -164,7 +164,8 @@ class SklearnMetrics(Repository):
             'fbeta': Metric(
                 name = 'fbeta',
                 module = 'sklearn.metrics',
-                algorithm = 'fbeta_score'),
+                algorithm = 'fbeta_score',
+                parameters = {'beta': 1}),
             'hamming_loss': Metric(
                 name = 'hamming_loss',
                 module = 'sklearn.metrics',
@@ -217,6 +218,11 @@ class SklearnMetrics(Repository):
 
     def _regress_metrics(self) -> None:
         self.contents = {
+            'adjusted_r2': Metric(
+                name = 'adjusted_r2',
+                module = 'simplify.critic.metrics',
+                algorithm = 'adjusted_r2',
+                parameters = {'data': 'data', 'r2': 'r2'}),
             'explained_variance': Metric(
                 name = 'explained_variance',
                 module = 'sklearn.metrics',
@@ -265,3 +271,7 @@ class SklearnMetrics(Repository):
         getattr(self, '_'.join(
             ['_', self.idea['analyst']['model_type'], 'metrics']))()
         return self
+    
+
+def adjusted_r2(data: 'DataBundle', r2: float) -> float:
+    return 1 - (1-r2)*(len(data.y)-1)/(len(data.y)-data.x.shape[1]-1)

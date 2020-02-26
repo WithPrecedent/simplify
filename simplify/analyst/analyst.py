@@ -363,6 +363,38 @@ class Analyst(Scholar):
         if self.parallelize:
             self.parallelizer = Parallelizer(idea = self.idea)
         return self
+    
+    """ Private Methods """
+    
+    def _get_model_type(self, data: 'Dataset') -> str:
+        """Infers 'model_type' from data type of 'label' column.
+        
+        Args:
+            data ('Dataset'): instance with completed dataset.
+            
+        Returns:
+            str: containing the name of one of the supported model types.
+            
+        Raises:
+            TypeError: if 'label' attribute is neither None, 'boolean',
+                'category', 'integer' or 'float' data type (using siMpLify
+                proxy datatypes).
+                
+        """
+        if self.label is None:
+            return 'clusterer'
+        elif data.datatypes[self.label] in ['boolean']:
+            return 'classifier'
+        elif data.datatypes[self.label] in ['category']:
+            if len(data[self.label.value_counts()]) == 2:
+                return 'classifier'
+            else:
+                return 'multi_classifier'
+        elif data.datatypes[self.label] in ['integer', 'float']:
+            return 'regressor'
+        else:
+            raise TypeError(
+                'label must be boolean, category, integer, float, or None')
 
 
 @dataclass
@@ -503,7 +535,10 @@ class AnalystSpecialist(Specialist):
         """
         data.stages.change('testing')
         split_algorithm = chapter.techniques[index].algorithm
-        for train_index, test_index in split_algorithm.split(data.x, data.y):
+        for i, (train_index, test_index) in enumerate(
+            split_algorithm.split(data.x, data.y)):
+            if self.verbose:
+                print('Testing data fold', str(i))
             data.x_train = data.x.iloc[train_index]
             data.x_test = data.x.iloc[test_index]
             data.y_train = data.y[train_index]

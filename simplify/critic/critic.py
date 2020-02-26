@@ -89,20 +89,20 @@ class Review(Chapter):
     """
     name: Optional[str] = None
     steps: Optional[List[str]] = field(default_factory = list)
-    explanations: ptional[Dict[str, pd.DataFrame]] = field(
+    explanations: Optional[Dict[str, pd.DataFrame]] = field(
         default_factory = dict)
-    predictions: ptional[Dict[str, pd.Series]] = field(
+    predictions: Optional[Dict[str, pd.Series]] = field(
         default_factory = dict)
-    estimations: ptional[Dict[str, pd.Series]] = field(
+    importances: Optional[Dict[str, pd.DataFrame]] = field(
         default_factory = dict)
-    importances: ptional[Dict[str, pd.DataFrame]] = field(
+    metrics: Optional[Dict[str, pd.Series]] = field(
         default_factory = dict)
-    reports: ptional[Dict[str, pd.DataFrame]] = field(
+    reports: Optional[Dict[str, pd.DataFrame]] = field(
         default_factory = dict)
 
 
 @dataclass
-class CriticTechnique(Technique):
+class Evaluator(Technique):
     """Base method wrapper for applying algorithms to data.
 
     Args:
@@ -115,29 +115,16 @@ class CriticTechnique(Technique):
             __class__.__name__ to make such subclassing easier. Defaults to
             None or __class__.__name__.lower() if super().__post_init__ is
             called.
-        step (Optional[str]): name of step when the class instance is to be
-            applied. Defaults to None.
         module (Optional[str]): name of module where object to use is located
             (can either be a siMpLify or non-siMpLify module). Defaults to
             'simplify.core'.
         algorithm (Optional[object]): callable object which executes the primary
             method of a class instance. Defaults to None.
-        parameters (Optional[Dict[str, Any]]): parameters to be attached to
-            'algorithm' when 'algorithm' is instanced. Defaults to an empty
-            dictionary.
 
     """
     name: Optional[str] = None
-    step: Optional[str] = None
     module: Optional[str] = None
     algorithm: Optional[object] = None
-    storage: Optional[str] = None
-    parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
-    default: Optional[Dict[str, Any]] = field(default_factory = dict)
-    required: Optional[Dict[str, Any]] = field(default_factory = dict)
-    runtime: Optional[Dict[str, str]] = field(default_factory = dict)
-    selected: Optional[Union[bool, List[str]]] = False
-    data_dependent: Optional[Dict[str, str]] = field(default_factory = dict)
 
     """ Private Methods """
 
@@ -164,8 +151,8 @@ class CriticTechnique(Technique):
 
     """ Core siMpLify Methods """
 
-    def apply(self, data: 'Chapter') -> 'Chapter':
-        return self.algorithm.apply(chapter = data)
+    def apply(self, recipe: 'Recipe') -> 'Review':
+        return self.algorithm.apply(recipe = recipe)
 
 
 @dataclass
@@ -193,7 +180,7 @@ class Critic(Scholar):
         if self.parallelize:
             self.parallelizer = Parallelizer(idea = self.idea)
         return self
-
+ 
 
 @dataclass
 class CriticFinisher(Finisher):
@@ -241,10 +228,42 @@ class CriticSpecialist(Specialist):
     worker: 'Worker'
     idea: ClassVar['Idea']
 
+    """ Private Methods """
+
+    def _get_data(self, data: 'Dataset') -> 'DataBunch':
+        """Returns 'data' for model evaluation.
+
+        Args:
+            data ('Dataset'): primary instance used by 'project'.
+
+        Returns:
+            'DataBunch': with data to use in model evaluation.
+
+        """
+        return getattr(data, self.idea['critic']['data_to_review']) 
+    
+    """ Core siMpLify Methods """
+
+    def apply(self, book: 'Book', data: Union['Dataset', 'Book']) -> 'Book':
+        """Applies 'Book' instance in 'project' to 'data' or other stored books.
+
+        Args:
+            book ('Book'): instance with stored 'Technique' instances (either
+                stored in the 'techniques' or 'chapters' attributes).
+            data ([Union['Dataset', 'Book']): a data source with information to
+                finalize 'parameters' for each 'Technique' instance in 'book'
+
+        Returns:
+            'Book': with 'parameters' for each 'Technique' instance finalized
+                and connected to 'algorithm'.
+
+        """
+        return super().apply(book = book, data = self._get_data(data = data))
+    
 
 @dataclass
 class Evaluators(Repository):
-    """A dictonary of CriticTechnique options for the Analyst subpackage.
+    """A dictonary of Evaluator options for the Analyst subpackage.
 
     Args:
         idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
@@ -257,100 +276,72 @@ class Evaluators(Repository):
     def create(self) -> None:
         self.contents = {
             'explain': {
-                'eli5': CriticTechnique(
+                'eli5': Evaluator(
                     name = 'eli5_explain',
                     module = 'simplify.critic.explainers',
-                    algorithm = 'Eli5Explain',
-                    storage = 'explanations'),
-                'shap': CriticTechnique(
+                    algorithm = 'Eli5Explain'),
+                'shap': Evaluator(
                     name = 'shap_explain',
                     module = 'simplify.critic.explainers',
-                    algorithm = 'ShapExplain',
-                    storage = 'explanations'),
-                'skater': CriticTechnique(
+                    algorithm = 'ShapExplain'),
+                'skater': Evaluator(
                     name = 'skater_explain',
                     module = 'simplify.critic.explainers',
-                    algorithm = 'SkaterExplain',
-                    storage = 'explanations')},
+                    algorithm = 'SkaterExplain'),
+                'sklearn': Evaluator(
+                    name = 'sklearn_explain',
+                    module = 'simplify.critic.explainers',
+                    algorithm = 'SklearnExplain')},
             'predict': {
-                'gini': CriticTechnique(
-                    name = 'gini_predict',
-                    module = None,
-                    algorithm = 'predict',
-                    storage = 'predictions'),
-                'shap': CriticTechnique(
+                'eli5': Evaluator(
+                    name = 'eli5_predict',
+                    module = 'simplify.critic.predictors',
+                    algorithm = 'Eli5Predict'),
+                'shap': Evaluator(
                     name = 'shap_predict',
-                    module = 'shap',
-                    algorithm = '',
-                    storage = 'predictions')},
-            'estimate': {
-                'gini': CriticTechnique(
-                    name = 'gini_probabilities',
-                    module = None,
-                    algorithm = 'predict_proba',
-                    storage = 'estimations'),
-                'log': CriticTechnique(
-                    name = 'gini_probabilities',
-                    module = None,
-                    algorithm = 'predict_log_proba',
-                    storage = 'estimations'),
-                'shap': CriticTechnique(
-                    name = 'shap_probabilities',
-                    module = 'shap',
-                    algorithm = '',
-                    storage = 'estimations')},
+                    module = 'simplify.critic.predictors',
+                    algorithm = 'ShapPredict'),
+                'skater': Evaluator(
+                    name = 'skater_predict',
+                    module = 'simplify.critic.predictors',
+                    algorithm = 'SkaterPredict'),
+                'sklearn': Evaluator(
+                    name = 'sklearn_predict',
+                    module = 'simplify.critic.predictors',
+                    algorithm = 'SklearnPredict')},
             'rank': {
-                'permutation': CriticTechnique(
-                    name = 'permutation_importances',
-                    module = None,
-                    algorithm = '',
-                    storage = 'importances'),
-                'gini': CriticTechnique(
-                    name = 'gini_importances',
-                    module = None,
-                    algorithm = 'feature_importances_',
-                    storage = 'importances'),
-                'eli5': CriticTechnique(
-                    name = 'eli5_importances',
-                    module = 'eli5',
-                    algorithm = '',
-                    storage = 'importances'),
-                'shap': CriticTechnique(
-                    name = 'shap_importances',
-                    module = 'shap',
-                    algorithm = '',
-                    storage = 'importances')},
+                'eli5': Evaluator(
+                    name = 'eli5_rank',
+                    module = 'simplify.critic.rankers',
+                    algorithm = 'Eli5Rank'),
+                'shap': Evaluator(
+                    name = 'shap_rank',
+                    module = 'simplify.critic.rankers',
+                    algorithm = 'ShapRank'),
+                'skater': Evaluator(
+                    name = 'skater_rank',
+                    module = 'simplify.critic.rankers',
+                    algorithm = 'SkaterRank'),
+                'sklearn': Evaluator(
+                    name = 'sklearn_rank',
+                    module = 'simplify.critic.rankers',
+                    algorithm = 'SklearnRank')},
             'measure': {
-                'simplify': CriticTechnique(
-                    name = 'simplify_metrics',
-                    module = 'simplify.critic.algorithms',
-                    algorithm = 'compute_metrics',
-                    storage = 'measurements'),
-                'pandas': CriticTechnique(
-                    name = 'pandas_describe',
-                    module = 'simplify.critic.algorithms',
-                    algorithm = 'pandas_describe',
-                    storage = 'measurements')},
+                'simplify': Evaluator(
+                    name = 'simplify_measure',
+                    module = 'simplify.critic.metrics',
+                    algorithm = 'SimplifyMeasure'),
+                'sklearn': Evaluator(
+                    name = 'sklearn_measure',
+                    module = 'simplify.critic.metrics',
+                    algorithm = 'SklearnMeasure')},
             'report': {
-                'simplify': CriticTechnique(
+                'simplify': Evaluator(
                     name = 'simplify_report',
-                    module = 'simplify.critic.algorithms',
-                    algorithm = 'SimplifyReport',
-                    storage = 'reports'),
-                'confusion': CriticTechnique(
-                    name = 'confusion_matrix',
-                    module = 'sklearn.metrics',
-                    algorithm = 'confusion_matrix',
-                    storage = 'reports'),
-                'classification': CriticTechnique(
-                    name = 'classification_report',
-                    module = 'sklearn.metrics',
-                    algorithm = 'classification_report',
-                    storage = 'reports')}}
-        
-        self.contents['model'] = model_options[
-            self.idea['analyst']['model_type']]
-        if self.idea['general']['gpu']:
-            self.contents['model'].update(
-                gpu_options[idea['analyst']['model_type']])
+                    module = 'simplify.critic.reporters',
+                    algorithm = 'SimplifyReport'),
+                'sklearn': Evaluator(
+                    name = 'sklearn_report',
+                    module = 'simplify.critic.reporters',
+                    algorithm = 'SklearnReport')}}
         return self

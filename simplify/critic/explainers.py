@@ -12,12 +12,12 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
 from simplify.core.base import SimpleSettings
-from simplify.critic.critic import CriticTechnique
+from simplify.critic.critic import Evaluator
 from simplify.critic.critic import Review
 
 
 @dataclass
-class Explainer(SimpleSettings, CriticTechnique):
+class Explainer(SimpleSettings, Evaluator):
     """Base class for explaining model performance.
 
     Args:
@@ -161,20 +161,20 @@ class Eli5Explain(Explainer):
 
     def draft(self) -> None:
         self.options = {
-            'permutation' : CriticTechnique(
+            'permutation' : Evaluator(
                 name = 'permutation_importance',
                 module = 'eli5.sklearn',
                 algorithm = 'PermutationImportance',
                 runtime = {'random_state': 'seed', 'estimator': 'estimator'}),
-            'kernel' : CriticTechnique(
+            'kernel' : Evaluator(
                 name = 'shap_explanation',
                 module = 'shap',
                 algorithm = 'KernelExplainer'),
-            'linear' : CriticTechnique(
+            'linear' : Evaluator(
                 name = 'shap_explanation',
                 module = 'shap',
                 algorithm = 'LinearExplainer'),
-            'tree' : CriticTechnique(
+            'tree' : Evaluator(
                 name = 'shap_explanation',
                 module = 'shap',
                 algorithm = 'TreeExplainer')}
@@ -263,19 +263,19 @@ class ShapExplain(Explainer):
 
     def draft(self) -> None:
         self.options = {
-            'deep' : CriticTechnique(
+            'deep' : Evaluator(
                 name = 'shap_explanation',
                 module = 'shap',
                 algorithm = 'DeepExplainer'),
-            'kernel' : CriticTechnique(
+            'kernel' : Evaluator(
                 name = 'shap_explanation',
                 module = 'shap',
                 algorithm = 'KernelExplainer'),
-            'linear' : CriticTechnique(
+            'linear' : Evaluator(
                 name = 'shap_explanation',
                 module = 'shap',
                 algorithm = 'LinearExplainer'),
-            'tree' : CriticTechnique(
+            'tree' : Evaluator(
                 name = 'shap_explanation',
                 module = 'shap',
                 algorithm = 'TreeExplainer')}

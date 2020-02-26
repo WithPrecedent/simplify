@@ -11,7 +11,7 @@ from dataclasses import field
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
-from simplify.critic.critic import CriticTechnique
+from simplify.critic.critic import Evaluator
 
 
 def compute_metrics(data: 'Dataset') -> 'Dataset':
@@ -396,7 +396,7 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 
 
 # @dataclass
-# class Metrics(CriticTechnique):
+# class Metrics(Evaluator):
 #     """Measures model performance.
 
 #     Args:

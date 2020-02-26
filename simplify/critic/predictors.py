@@ -15,11 +15,11 @@ import numpy as np
 import pandas as pd
 
 from simplify.core.base import SimpleSettings
-from simplify.critic.critic import CriticTechnique
+from simplify.critic.critic import Evaluator
 
 
 @dataclass
-class Predictor(SimpleSettings, CriticTechnique):
+class Predictor(SimpleSettings, Evaluator):
     """Base class for report preparation.
 
     Args:

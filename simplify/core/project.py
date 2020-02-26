@@ -209,7 +209,7 @@ class ProjectManager(object):
                 module = 'simplify.critic.critic',
                 book = 'Anthology',
                 chapter = 'Review',
-                technique = 'CriticTechnique',
+                technique = 'Evaluator',
                 scholar = 'Critic',
                 options = 'Evaluators',
                 data = 'analyst'),
