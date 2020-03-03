@@ -14,7 +14,7 @@ import pandas as pd
 
 from simplify.core.definitionsetter import SimpleDirector
 from simplify.core.chapter import Chapter
-from simplify.core.book import Book
+from simplify.core.library import Book
 from simplify.core.definitionsetter import SimpleDirector
 
 

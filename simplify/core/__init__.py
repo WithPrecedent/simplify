@@ -12,11 +12,11 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
 from simplify.core.idea import Idea
-from simplify.core.book import Book
+from simplify.core.library import Book
 from simplify.core.creators import Publisher
 from simplify.core.dataset import Dataset
 from simplify.core.filer import Filer
-from simplify.core.project import ProjectManager
+from simplify.core.project import Project
 from simplify.core.project import Worker
 from simplify.core.scholar import Scholar
 
@@ -27,7 +27,7 @@ __all__ = [
     'Filer',
     'Publisher',
     'Scholar',
-    'ProjectManager',
+    'Project',
     'Worker']
 
 

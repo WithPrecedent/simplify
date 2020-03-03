@@ -13,9 +13,9 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
 from simplify.core.base import SimpleCreator
-from simplify.core.book import Book
-from simplify.core.book import Chapter
-from simplify.core.book import Technique
+from simplify.core.library import Book
+from simplify.core.library import Chapter
+from simplify.core.library import Technique
 from simplify.core.utilities import listify
 
 

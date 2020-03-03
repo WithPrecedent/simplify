@@ -11,7 +11,7 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
 from simplify.core.chapter import Chapter
-from simplify.core.book import Book
+from simplify.core.library import Book
 
 
 @dataclass

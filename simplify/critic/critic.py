@@ -13,9 +13,10 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 import pandas as pd
 
-from simplify.core.book import Book
-from simplify.core.book import Chapter
-from simplify.core.book import Technique
+from simplify.core.library import Book
+from simplify.core.library import Chapter
+from simplify.core.library import Technique
+from simplify.core.manager import Worker
 from simplify.core.repository import Repository
 from simplify.core.scholar import Finisher
 from simplify.core.scholar import Parallelizer
@@ -38,7 +39,7 @@ class Anthology(Book):
             'anthology'
         chapters (Optional[List['Chapter']]): iterable collection of steps and
             techniques to apply at each step. Defaults to an empty list.
-        _iterable(Optional[str]): name of property to store alternative proxy
+        iterable(Optional[str]): name of property to store alternative proxy
             to 'reviews'.
         steps (Optional[List[Tuple[str, str]]]): tuples of steps and
             techniques.
@@ -51,7 +52,7 @@ class Anthology(Book):
     """
     name: Optional[str] = field(default_factory = lambda: 'anthology')
     chapters: Optional[List['Review']] = field(default_factory = list)
-    _iterable: Optional[str] = field(default_factory = lambda: 'reviews')
+    iterable: Optional[str] = field(default_factory = lambda: 'reviews')
     steps: Optional[List[Tuple[str, str]]] = field(default_factory = list)
     techniques: Optional[List['Technique']] = field(default_factory = list)
 
@@ -69,7 +70,7 @@ class Review(Chapter):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
             None. If not passed, __class__.__name__.lower() is used.
-        steps (Optional[List[str]]): 
+        steps (Optional[List[str]]):
         explanations (Dict[str, pd.DataFrame]): results from any 'Explainer'
             methods applied to the data analysis. Defaults to an empty
             dictionary.
@@ -156,7 +157,7 @@ class Evaluator(Technique):
 
 
 @dataclass
-class Critic(Scholar):
+class CriticScholar(Scholar):
     """Applies an 'Anthology' instance to an applied 'Cookbook'.
 
     Args:
@@ -180,7 +181,7 @@ class Critic(Scholar):
         if self.parallelize:
             self.parallelizer = Parallelizer(idea = self.idea)
         return self
- 
+
 
 @dataclass
 class CriticFinisher(Finisher):
@@ -240,8 +241,8 @@ class CriticSpecialist(Specialist):
             'DataBunch': with data to use in model evaluation.
 
         """
-        return getattr(data, self.idea['critic']['data_to_review']) 
-    
+        return getattr(data, self.idea['critic']['data_to_review'])
+
     """ Core siMpLify Methods """
 
     def apply(self, book: 'Book', data: Union['Dataset', 'Book']) -> 'Book':
@@ -259,7 +260,7 @@ class CriticSpecialist(Specialist):
 
         """
         return super().apply(book = book, data = self._get_data(data = data))
-    
+
 
 @dataclass
 class Evaluators(Repository):
@@ -345,3 +346,84 @@ class Evaluators(Repository):
                     module = 'simplify.critic.reporters',
                     algorithm = 'SklearnReport')}}
         return self
+
+
+@dataclass
+class Critic(Worker):
+    """Object construction instructions used by a Project instance.
+
+    Args:
+        name (str): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier.
+        module (Optional[str]): name of module where object to use is located
+            (can either be a siMpLify or non-siMpLify module). Defaults to
+            'simplify.core'.
+        book (Optional[str]): name of Book object in 'module' to load. Defaults
+            to 'Book'.
+        chapter (Optional[str]): name of Chapter object in 'module' to load.
+            Defaults to 'Chapter'.
+        technique (Optional[str]): name of Book object in 'module' to load.
+            Defaults to 'Technique'.
+        publisher (Optional[str]): name of Publisher class in 'module' to load.
+            Defaults to 'Publisher'.
+        scholar (Optional[str]): name of Scholar class in 'module' to load.
+            Defaults to 'Scholar'.
+        steps (Optional[List[str]]): list of steps to execute. Defaults to an
+            empty list.
+        options (Optional[Union[str, Dict[str, Any]]]): a dictionary containing
+            options for the 'Worker' instance to utilize or a string
+            corresponding to a dictionary in 'module' to load. Defaults to an
+            empty dictionary.
+        data (Optional[str]): name of attribute or key in a 'Project' instance
+            'books' to use as a data object to apply methods to. Defaults to
+            'dataset'.
+        import_folder (Optional[str]): name of attribute in 'filer' which
+            contains the path to the default folder for importing data objects.
+            Defaults to 'processed'.
+        export_folder (Optional[str]): name of attribute in 'filer' which
+            contains the path to the default folder for exporting data objects.
+            Defaults to 'processed'.
+        idea (ClassVar['Idea']): shared project configuration settings.
+
+    """
+    name: Optional[str] = field(default_factory = lambda: 'critic')
+    module: Optional[str] = field(
+        default_factory = lambda: 'simplify.critic.critic')
+    book: Optional[str] = field(default_factory = lambda: 'Anthology')
+    chapter: Optional[str] = field(default_factory = lambda: 'Review')
+    technique: Optional[str] = field(default_factory = lambda: 'Evaluator')
+    scholar: Optional[str] = field(default_factory = lambda: 'CriticScholar')
+    options: Optional[str] = field(default_factory = lambda: 'Evaluators')
+    data: Optional[str] = field(default_factory = lambda: 'analyst')
+    idea: ClassVar['Idea']
+
+    """ Core siMpLify Methods """
+
+    def outline(self) -> Dict[str, List[str]]:
+        """Creates dictionary with techniques for each step.
+
+        Returns:
+            Dict[str, Dict[str, List[str]]]: dictionary with keys of steps and
+                values of lists of techniques.
+
+        """
+        catalog = {}
+        steps = self._get_settings(
+            section = self.name,
+            prefix = self.name,
+            suffix = 'steps')
+        for step in steps:
+            techniques = self._get_settings(
+                section = self.name,
+                prefix = self.name,
+                suffix = 'techniques')
+            catalog[step] = []
+            for technique in techniques:
+                if technique in self.options:
+                    catalog[step].append(technique)
+        return catalog

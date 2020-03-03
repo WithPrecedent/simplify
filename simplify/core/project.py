@@ -1,15 +1,17 @@
 """
 .. module:: siMpLify project
-:synopsis: controller class for siMpLify projects
+:synopsis: data science projects made simple
 :publisher: Corey Rayburn Yung
 :copyright: 2019-2020
 :license: Apache-2.0
 """
 
+from collections.abc import Iterable
 from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
 from importlib import import_module
+from pathlib import Path
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 import warnings
@@ -17,18 +19,24 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleLoader
-from simplify.core.base import SimpleSettings
-from simplify.core.book import Book
+from simplify.core.base import SimpleStage
 from simplify.core.dataset import Dataset
 from simplify.core.filer import Filer
 from simplify.core.idea import Idea
+from simplify.core.library import Book
+from simplify.core.library import Chapter
+from simplify.core.library import Library
+from simplify.core.repository import Repository
+from simplify.core.manager import Manager
+from simplify.core.manager import Worker
+from simplify.core.overview import Overview
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
+from simplify.core.utilities import subsetify
 
 
 @dataclass
-class ProjectManager(object):
+class Project(SimpleStage, Iterable):
     """Controller class for siMpLify projects.
 
     Args:
@@ -36,27 +44,27 @@ class ProjectManager(object):
             containing the file path or file name (in the current working
             directory) where a file of a supported file type with settings for
             an Idea instance is located. Defaults to None.
-        filer (Optional[Union['Filer', str]]): an instance of Filer
-            or a string containing the full path of where the root folder should
-            be located for file output. A filer instance contains all file
-            path and import/export methods for use throughout the siMpLify
-            package. Default is None.
-        dataset (Optional[Union['Dataset', 'Data', pd.DataFrame,
-            np.ndarray, str]]): an instance of Dataset, an instance of
-            Data, a string containing the full file path where a data file
-            for a pandas DataFrame is located, a string containing a file name
-            in the default data folder (as defined in the shared Filer
-            instance), a full folder path where raw files for data to be
-            extracted from, a string containing a folder name which is an
-            attribute in the shared Filer instance, a DataFrame, or numpy
-            ndarray. If a DataFrame, Data instance, ndarray, or string is
+        filer (Optional[Union['Filer', str]]): an instance of Filer or a string
+            containing the full path of where the root folder should be located
+            for file output. A filer instance contains all file path and
+            import/export methods for use throughout siMpLify. Default is None.
+        dataset (Optional[Union['Dataset', pd.DataFrame, np.ndarray, str]]): an
+            instance of Dataset, an instance of Data, a string containing the
+            full file path where a data file for a pandas DataFrame is located,
+            a string containing a file name in the default data folder (as
+            defined in the shared Filer instance), a full folder path where raw
+            files for data to be extracted from, a string
+            containing a folder name which is an attribute in the shared Filer
+            instance, a DataFrame, or numpy ndarray. If a DataFrame, Data
+            instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
             in a new Dataset instance as a DataFrame. Default is None.
-        workers (Optional[Union[Dict[str, 'Worker']], List[str]]]): dictionary
-            with keys as strings and values of 'Worker' instances, or a list of
-            workers corresponding to keys in 'default_workers' to use. Defaults
-            to an empty dictionary. If nothing is provided, Project attempts to
-            construct workers from 'idea' and 'default_workers'.
+        workers (Optional[Union[Dict[str, 'Worker'], 'Manager', List[str]]]):
+            dictionary with keys as strings and values of 'Worker' instances, a
+            'Manager' instance, or a list of workers corresponding to keys in
+            'default_workers' to use. Defaults to an empty dictionary. If
+            nothing is provided, Project attempts to construct workers from
+            'idea' and 'default_workers'.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared 'Idea' instance, 'name' should match the appropriate
@@ -89,8 +97,12 @@ class ProjectManager(object):
             pd.DataFrame,
             np.ndarray,
             str]]]] = None
-    workers: Optional[Union[Dict[str, 'Worker'], List[str]]] = field(
-        default_factory = dict)
+    packages: Optional[Union[
+        List[str],
+        Dict[str, 'Package'],
+        Dict[str, 'Worker'],
+        'Repository',
+        'Manager']] = field(default_factory = Repository)
     name: Optional[str] = field(default_factory = lambda: 'project')
     identification: Optional[str] = field(default_factory = datetime_string)
     auto_draft: Optional[bool] = True
@@ -106,265 +118,145 @@ class ProjectManager(object):
         self = self.idea.apply(instance = self)
         # Validates 'Filer' instance.
         self.filer = Filer.create(root_folder = self.filer, idea = self.idea)
-        # Injects 'idea' and 'filer' into base 'SimpleSettings' class.
-        SimpleSettings.idea = self.idea
-        SimpleSettings.filer = self.filer
+        # # Injects 'idea', 'identification, and 'filer' into the base
+        # # 'SimpleSettings'. This ensures that all 'SimpleSettings' subclasses
+        # # have access to the same configuration settings.
+        # SimpleSettings.idea = self.idea
+        # SimpleSettings.identification = self.identification
+        # SimpleSettings.filer = self.filer
         # Validates 'Dataset' instance.
-        self.dataset = Dataset.create(data = self.dataset)
-        # Validates 'workers' attribute.
-        self.workers = self._check_workers(workers = self.workers)
-        # Creates a project 'overview' and 'Project' instance.
-        self.project = Project(
-            identification = self.identification,
-            overview = self.outline(name = self.name))
+        self.dataset = Dataset.create(data = self.dataset, idea = self.idea)
+        # Validates 'packages' or creates it from 'idea' and default packages.
+        self.packages = self._initialize_packages(packages = self.packages)
+        # Creates a 'Manager' instance for storing 'Worker' instances.
+        self.manager = Manager.create(workers = self.packages, idea = self.idea)
+        # Creats an 'Overview' instance, providing an outline of the overall
+        # project from 'Worker' instances stored in 'manager'.
+        self.overview = Overview.create(manager = self.manager)
+        # Creates a 'Library' instance for storing 'Book' instances.
+        self.library = Library.create(manager = self.manager)
         # Calls 'draft' method if 'auto_draft' is True.
         if self.auto_draft:
-            self.project = self.draft()
+            self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
         if self.auto_publish:
-            self.project = self.publish()
+            self.publish()
         # Calls 'apply' method if 'auto_apply' is True.
         if self.auto_apply:
-            self.dataset = self.apply()
+            self.apply()
         return self
 
-    """ Dunder Methods """
+    """ Required ABC Methods """
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable for class instance, depending upon 'stage'.
+
+        Returns:
+            Iterable: different depending upon stage.
+
+        """
+        if self.stage in ['outline']:
+            return iter(self.overview)
+        if self.stage in ['draft']:
+            return iter(self.manager)
+        elif self.stage in ['publish', 'apply']:
+            return iter(self.library)
+
+    """ Other Dunder Methods """
 
     def __call__(self) -> Callable:
-        """Drafts, publishes, and applies ProjectManager.
+        """Drafts, publishes, and applies Project.
 
         This requires an dataset argument to be passed to work properly.
 
-        Calling ProjectManager as a function is compatible with and used by the
+        Calling Project as a function is compatible with and used by the
         command line interface.
 
         Raises:
-            ValueError: if 'dataset' is not passed when ProjectManager is called
-                as a function.
+            ValueError: if 'dataset' is not passed when Project is called as a
+                function.
 
         """
         # Validates 'dataset'.
         if self.dataset is None:
-            raise ValueError(
-                'Calling ProjectManager as a function requires a dataset')
+            raise ValueError('Calling Project as a function requires a dataset')
         else:
             self.auto_apply = True
             self.__post__init()
         return self
 
-    """ Private Methods """
+    def __repr__(self) -> str:
+        """Returns string representation of a class instance."""
+        return self.__str__()
 
-    def _check_workers(self,
-            workers: Union[
-                Dict[str, 'Worker'], List[str]]) -> Dict[str, 'Worker']:
-        """Creates or validates 'workers'.
-
-        Args:
-            workers (Union[Dict[str, 'Worker'], List[str]]): set of 'Worker'
-                instances stored in dict or a list to create one from
-                'default_workers'.
-
-        Returns:
-            Dict[str, 'Worker']: mapping with stored 'Worker' instances.
-
-        """
-        # Sets 'default_workers' to use in 'workers' construction or later
-        # addition.
-        self._set_defaults()
-        if isinstance(workers, list) and workers:
-            new_workers = {}
-            for worker in workers:
-                new_workers[worker] = self.default_workers[worker]
-            return new_workers
-        else:
-            return workers
-
-    def _set_defaults(self) -> None:
-        """Sets 'default_workers' to use."""
-        self.default_workers = {
-            'wrangler': Worker(
-                name = 'wrangler',
-                module = 'simplify.wrangler.wrangler',
-                book = 'Manual',
-                scholar = 'Wrangler',
-                options = 'Mungers',
-                import_folder = 'raw',
-                export_folder = 'raw'),
-            'explorer': Worker(
-                name = 'explorer',
-                module = 'simplify.explorer.explorer',
-                book = 'Ledger',
-                scholar = 'Explorer',
-                options = 'Measures'),
-            'analyst': Worker(
-                name = 'analyst',
-                module = 'simplify.analyst.analyst',
-                book = 'Cookbook',
-                chapter = 'Recipe',
-                technique = 'AnalystTechnique',
-                scholar = 'Analyst',
-                options = 'Tools'),
-            'critic': Worker(
-                name = 'critic',
-                module = 'simplify.critic.critic',
-                book = 'Anthology',
-                chapter = 'Review',
-                technique = 'Evaluator',
-                scholar = 'Critic',
-                options = 'Evaluators',
-                data = 'analyst'),
-            'artist': Worker(
-                name = 'artist',
-                module = 'simplify.artist.artist',
-                book = 'Canvas',
-                scholar = 'Artist',
-                options = 'Mediums',
-                data = 'critic')}
-        return self
-
-    def _get_settings(self,
-            section: str,
-            prefix: str,
-            suffix: str) -> List[str]:
-        """Returns settings from 'idea' based on 'name' and 'suffix'.
-
-        Args:
-            section (str): outer key name in 'idea' section.
-            prefix (str); prefix for an inner key name.
-            suffix (str): suffix to inner key name in 'idea'.
-
-        Returns:
-            List[str]: names of matching workers, steps, or techniques.
-
-        """
-        return listify(self.idea[section]['_'.join([prefix, suffix])])
-
-    def _initialize_workers(self,
-            workers: Dict[str, 'Worker']) -> Dict[str, 'Worker']:
-        """Creates instances for attributes for each Worker in 'workers'.
-
-        Args:
-            workers (Dict[str, 'Worker']): stored Worker instances.
-
-        Returns:
-            Dict[str, 'Worker']: instance with instances added.
-
-        """
-        for key, worker in workers.items():
-            workers[key].steps = self.project.overview[key]
-            workers[key].publisher = worker.load('publisher')(worker = worker)
-            workers[key].scholar = worker.load('scholar')(worker = worker)
-        return workers
-
-    """ Public Methods """
-
-    def add(self,
-            name: Optional[str] = None,
-            worker: Optional['Worker'] = None,
-            **kwargs) -> None:
-        """Adds subpackage to 'workers'.
-
-        Args:
-            name (Optional[str]): name of subpackage. This is used as both the
-                key to the created Worker in 'workers' and as the 'name'
-                attribute in the Worker. Defaults to None. If not provided, the
-                'worker' will be added to 'workers' with the key being the
-                'name' attribute of 'worker'.
-            worker (Optional['Worker']): a completed instance. If not provided,
-                the method will assume all of the parameters needed to construct
-                a 'Worker' instance are in 'kwargs'.
-            **kwargs: other attributes of a 'Worker' instance to pass.
-
-        """
-        if worker is not None:
-            if name is not None:
-                self.workers[name] = worker
-            else:
-                self.workers[worker.name] = worker
-        elif name in self.default_workers:
-            self.workers[name] = self.default_workers[name]
-        else:
-            self.workers[name] = Worker(name = name, **kwargs)
-        return self
+    def __str__(self) -> str:
+        """Returns string representation of a class instance."""
+        return f'Project {self.identification}: {str(self.library.catalog)}'
 
     """ Core siMpLify Methods """
 
-    def outline(self, name: Optional[str] = None) -> (
-            Dict[str, Dict[str, List[str]]]):
-        """Creates nested dictinoary outlining a siMpLify project.
+    def add(self,
+            item: Union[
+                'Package',
+                'Library',
+                'Book',
+                'Chapter',
+                'Manager',
+                'Worker',
+                'Dataset',
+                 str],
+            name: Optional[str] = None,
+            overwrite: Optional[bool] = False) -> None:
+        """Adds 'worker' to 'manager' or 'book' to 'library'.
 
         Args:
-            name (Optional[str]): name of project which should match a section
-                in 'idea'. Defaults to None. If passed, 'name' is assigned as
-                an instance attribute.
-
-        Returns:
-            Dict[str, Dict[str, List[str]]]: nested dictionary of workers,
-                steps, and techniques for a siMpLify project.
-
-        """
-        if name is not None:
-            self.name = name
-        overview = {}
-        # Uses passed 'workers' or gets 'workers' from 'idea'.
-        workers = self.workers or self._check_workers(self._get_settings(
-            section = self.name,
-            prefix = self.name,
-            suffix = 'workers'))
-        for worker in workers:
-            overview[worker] = {}
-            steps = self._get_settings(
-                section = worker,
-                prefix = worker,
-                suffix = 'steps')
-            for step in steps:
-                overview[worker][step] = self._get_settings(
-                    section = worker,
-                    prefix = step,
-                    suffix = 'techniques')
-        return overview
-
-    def draft(self, project: Optional['Project'] = None) -> 'Project':
-        """Initializes 'workers' and drafts a 'Project' instance.
-
-        Args:
-            project (Optional['Project']): an instance to be modified. Defaults
-                to None. If not passed, the local 'project' attribute is used.
-
-        Returns:
-            'Project': with modifications made.
+            item (Union['Package', 'Library', 'Book', 'Chapter', 'Manager',
+                'Worker', 'Dataset', str]): a siMpLify object to add
+            name (Optional[str]): key to use for the passed item in either
+                'library' or 'manager'. Defaults to None. If not passed, the
+                'name' attribute of item will be used as the key for item.
+           overwrite (Optional[bool]): whether to overwrite an existing
+                attribute with the imported object (True) or to update the
+                existing attribute with the imported object, if possible
+                (False). Defaults to True.
 
         """
-        if project is None:
-            project = self.project
-        # Initializes 'workers' by loading appropriate class objects.
-        self.workers = self._initialize_workers(workers = self.workers)
-        # Iterates through 'workers' and creates Book instances in 'workers'.
-        for name, worker in self.workers.items():
-            # Drafts a Book instance for 'worker'.
-            project = worker.publisher.draft(project = project)
-        return project
+        if name is None:
+            try:
+                name = item.name
+            except (AttributeError, TypeError):
+                name = item
+        if isinstance(item, str):
+            self.manager.add(worker = self.options[item].load(), name = name)
+        elif isinstance(item, Worker):
+            self.manager.add(worker = item, name = name)
+        elif isinstance(item, Package):
+            self.options[name] = item
+            self.packages[name] = item
+            self.manager.add(worker = item.load(), name = name)
+        elif isinstance(item, Book):
+            self.library.add(book = item, name = name)
+        else:
+            raise TypeError(
+                'add requires a Worker, Book, Package, or string type')
+        return self
 
-    def publish(self, project: Optional['Project'] = None) -> 'Project':
-        """Finalizes 'Book' instances in 'Project'.
+    def draft(self) -> None:
+        """Initializes 'workers' and drafts a 'Library' instance."""
+        self.change_stage(new_stage = 'draft')
+        # Iterates through 'workers' and creates Book instances in 'library'.
+        for name, worker in self.manager.items():
+            self.library = worker.publisher.draft(library = self.library)
+        return self
 
-        Args:
-            project (Optional['Project']): an instance to be modified. Defaults
-                to None. If not passed, the local 'project' attribute is used.
-
-        Returns:
-            'Project': with modifications made.
-
-        """
-        if project is None:
-            project = self.project
-        # Changes state.
-        self.state = 'publish'
+    def publish(self) -> None:
+        """Finalizes 'Book' instances in 'Library'."""
+        self.change_stage(new_stage = 'publish')
         # Iterates through 'workers' and finalizes each Book instance. The
-        # finalized instances are then placed in 'library'.
-        for name, worker in self.workers.items():
-            project = worker.publisher.publish(project = project)
-        return project
+        # finalized instances are stored in 'library'.
+        for name, worker in self.manager.items():
+            self.library = worker.publisher.publish(library = self.library)
+        return self
 
     def apply(self, data: Optional['Dataset'] = None, **kwargs) -> None:
         """Applies created objects to passed 'data'.
@@ -378,196 +270,190 @@ class ProjectManager(object):
 
         """
         # Changes state.
-        self.state = 'apply'
+        self.change_stage(new_stage = 'apply')
         # Assigns 'data' to 'dataset' attribute and validates it.
         if data:
             self.dataset = Dataset.create(data = data)
         # Iterates through each worker, creating and applying needed Books,
-        # Chapters, and Techniques for each worker in the Project.
-        for name, book in self.project.library.items():
-            self.project = self.workers[name].scholar.apply(
+        # Chapters, and Techniques for each worker in the Library.
+        for name, book in self.library.items():
+            self.library = self.workers[name].scholar.apply(
                 worker = name,
-                project = self.project,
+                library = self.library,
                 data = self.dataset,
                 **kwargs)
         return self
 
+    """ File Import/Export Methods """
 
-@dataclass
-class Project(MutableMapping):
-    """Serializable object containing complete siMpLify project.
-
-    Args:
-        identification (Optional[str]): a unique identification name for this
-            'Project' instance. The name is used for creating file folders
-            related to the 'Project'. If not provided, a string is created from
-            the date and time.
-        overview (Optional[Dict[str, Dict[str, List[str]]]]): nested dictionary
-            of workers, steps, and techniques for a siMpLify project. Defaults
-            to an empty dictionary. An overview is not strictly needed for
-            object serialization, but provides a good summary of the various
-            options selected in a particular 'Project'. As a result, it is used
-            by the '__repr__' and '__str__' methods.
-        library (Optional[Dict[str, 'Book']]): stored 'Book' instances. Defaults
-            to an empty dictionary.
-
-    """
-    identification: Optional[str] = field(default_factory = datetime_string)
-    overview: Optional[Dict[str, Dict[str, List[str]]]] = field(
-        default_factory = dict)
-    library: Optional[Dict[str, 'Book']] = field(default_factory = dict)
-
-    """ Required ABC Methods """
-
-    def __getitem__(self, key: str) -> 'Book':
-        """Returns key from 'library'.
-        Args:
-            key (str): key to item in 'library'.
-
-        Returns:
-            'Book': from 'library'.
-
-        """
-        return self.library[key]
-
-    def __setitem__(self, key: str, value: 'Book') -> None:
-        """Sets 'key' in 'library' to 'value'.
+    def load(self,
+            file_path: Union[str, Path],
+            overwrite: Optional[bool] = True) -> None:
+        """Loads a siMpLify object and stores it in the appropriate attribute.
 
         Args:
-            key (str): key to item in 'library' to set.
-            value ('Book'): instance to place in 'library'.
+            file_path (Union[str, Path]): path to saved 'Library' instance.
+            overwrite (Optional[bool]): whether to overwrite an existing
+                attribute with the imported object (True) or to update the
+                existing attribute with the imported object, if possible
+                (False). Defaults to True.
 
         """
-        self.library[key] = value
+        loaded = self.filer(file_path = file_path)
+        if isinstance(loaded, Project):
+            self = loaded
+        elif isinstance(loaded, Library):
+            if overwrite:
+                self.library = loaded
+            else:
+                self.library.update(loaded)
+        elif isinstance(loaded, Book):
+            self.library.add(book = loaded)
+        elif isinstance(loaded, Manager):
+            if overwrite:
+                self.manager = loaded
+            else:
+                self.manager.update(loaded)
+        elif isinstance(loaded, Worker):
+            self.manager.add(worker = loaded)
+        elif isinstance(loaded, Dataset):
+            if overwrite:
+                self.dataset = loaded
+            else:
+                self.dataset.add(data = loaded)
+        else:
+            raise TypeError(
+                'loaded object must be Projecct, Library, Book, Dataset, \
+                     Manager, or Worker type')
         return self
 
-    def __delitem__(self, key: str) -> None:
-        """Deletes 'key' in 'library'.
+    def save(self,
+            attribute: Union[str, object],
+            file_path: Optional[Union[str, Path]]) -> None:
+        """Saves a siMpLify object.
 
         Args:
-            key (str): key in 'library'.
-
-        """
-        try:
-            del self.library[key]
-        except KeyError:
-            pass
-        return self
-
-    def __iter__(self) -> Iterable:
-        """Returns iterable of 'library'.
-
-        Returns:
-            Iterable: of 'library'.
-
-        """
-        return iter(self.library)
-
-    def __len__(self) -> int:
-        """Returns length of 'library'.
-
-        Returns:
-            int: length of 'library'.
-        """
-        return len(self.library)
-
-    """ Other Dunder Methods """
-
-    def __repr__(self) -> str:
-        """Returns string representation of a class instance."""
-        return self.__str__()
-
-    def __str__(self) -> str:
-        """Returns string representation of a class instance."""
-        return f'Project {self.identification}: {str(self.overview)}'
-
-    """ Public Methods """
-
-    def add(self, book: 'Book') -> None:
-        """Adds 'book' to 'library'.
-
-        Args:
-            book ('Book'): an instance to be added.
+            attribute (Union[str, object]): either the name of the attribute or
+                siMpLify object to save.
+            file_path (Optional[Union[str, Path]]): path to save 'attribute'.
 
         Raises:
-            ValueError: if 'book' is not a 'Book' instance.
+            TypeError: if 'attribute' is not serializable.
 
         """
-        # Validates 'book' type as 'Book' before adding to 'library'.
-        if isinstance(book, Book):
-            self.library[book.name] = book
+        if isinstance(attribute, str):
+            try:
+                attribute = getattr(self, attribute)
+            except AttributeError:
+                try:
+                    attribute = getattr(self.manager, attribute)
+                except AttributeError:
+                    try:
+                        attribute = getattr(self.library, attribute)
+                    except AttributeError:
+                        pass
         else:
-            raise ValueError('book must be a Book instance to add to a Library')
+            raise TypeError(
+                'loaded object must be Projecct, Library, Book, Dataset, \
+                     Manager, or Worker type')
         return self
+
+    """ Private Methods """
+
+    def _initialize_packages(self,
+            packages: Optional[List[str]]) -> Dict[str, 'Package']:
+        """Validates 'packages' or converts them to the appropriate type.
+
+        Args:
+            packages (Optional[List[str]]): a list
+
+        Returns:
+            Dict[str, 'Package']:
+
+        """
+        self.options = self._get_packages()
+        if not packages:
+            try:
+                outer_key = self.__name__.lower()
+                inner_key = f'{self.__name__.lower()}_packages'
+                packages = listify(self.idea[outer_key][inner_key])
+            except KeyError:
+                pass
+        elif isinstance(packages, dict):
+            return packages
+        else:
+            new_packages = {}
+            for package in packages:
+                new_packages[package] = self.options[package]
+            if new_packages:
+                return new_packages
+            else:
+                return self.packages
+
+    def _initialize_library(self, workers: Dict[str, 'Worker']) -> 'Library':
+        """Returns 'Library' instance from settings in 'workers'.
+
+        Args:
+            workers (Dict[str, 'Worker']): dictionary with keys as strings and
+                values of 'Worker'.
+
+        Returns:
+            'Library': with instanced 'books'.
+
+        """
+        self.library = Library(
+            identification = self.identification,
+            catalog = self.manager.outline())
+        for worker in workers:
+            self.library[worker.name] = worker.book()
+        return Library
+
+    def _get_packages(self) -> Dict[str, 'Package']:
+        return {
+            'wrangler': Package(
+                module = 'simplify.wrangler.wrangler',
+                worker = 'Wrangler'),
+            'explorer': Package(
+                module = 'simplify.explorer.explorer',
+                worker = 'Explorer'),
+            'analyst': Package(
+                module = 'simplify.analyst.analyst',
+                worker = 'Analyst'),
+            'critic': Package(
+                module = 'simplify.critic.critic',
+                worker = 'Critic'),
+            'artist': Package(
+                module = 'simplify.artist.artist',
+                worker = 'Artist')}
 
 
 @dataclass
-class Worker(SimpleLoader):
-    """Object construction instructions used by a Project instance.
+class Package(object):
+    """Lazy loader for 'Worker' instances.
 
     Args:
-        name (str): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared 'Idea' instance, 'name' should match the appropriate
-            section name in 'Idea'. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier.
-        module (Optional[str]): name of module where object to use is located
-            (can either be a siMpLify or non-siMpLify module). Defaults to
-            'simplify.core'.
-        book (Optional[str]): name of Book object in 'module' to load. Defaults
-            to 'Book'.
-        chapter (Optional[str]): name of Chapter object in 'module' to load.
-            Defaults to 'Chapter'.
-        technique (Optional[str]): name of Book object in 'module' to load.
-            Defaults to 'Technique'.
-        publisher (Optional[str]): name of Publisher class in 'module' to load.
-            Defaults to 'Publisher'.
-        scholar (Optional[str]): name of Scholar class in 'module' to load.
-            Defaults to 'Scholar'.
-        steps (Optional[List[str]]): list of steps to execute. Defaults to an
-            empty list.
-        options (Optional[Union[str, Dict[str, Any]]]): a dictionary containing
-            options for the 'Worker' instance to utilize or a string
-            corresponding to a dictionary in 'module' to load. Defaults to an
-            empty dictionary.
-        data (Optional[str]): name of attribute or key in a 'Project' instance
-            'library' to use as a data object to apply methods to. Defaults to
-            'dataset'.
-        import_folder (Optional[str]): name of attribute in 'filer' which
-            contains the path to the default folder for importing data objects.
-            Defaults to 'processed'.
-        export_folder (Optional[str]): name of attribute in 'filer' which
-            contains the path to the default folder for exporting data objects.
-            Defaults to 'processed'.
+        module (Optional[str]): name of module where object to use is located.
+        worker (Optional[str]): name of 'Worker' subclass in 'module' to load.
 
     """
-    name: str
-    module: Optional[str] = field(default_factory = lambda: 'simplify.core')
-    default_module: Optional[str] = field(
-        default_factory = lambda: 'simplify.core')
-    book: Optional[str] = field(default_factory = lambda: 'Book')
-    chapter: Optional[str] = field(default_factory = lambda: 'Chapter')
-    technique: Optional[str] = field(default_factory = lambda: 'Technique')
-    publisher: Optional[str] = field(default_factory = lambda: 'Publisher')
-    scholar: Optional[str] = field(default_factory = lambda: 'Scholar')
-    steps: Optional[List[str]] = field(default_factory = list)
-    options: Optional[Union[str, Dict[str, Any]]] = field(
-        default_factory = dict)
-    data: Optional[str] = field(default_factory = lambda: 'dataset')
-    import_folder: Optional[str] = field(default_factory = lambda: 'processed')
-    export_folder: Optional[str] = field(default_factory = lambda: 'processed')
+    module: str
+    worker: str
+    name: Optional[str] = None
 
-    def __post_init__(self) -> None:
-        # Declares 'default_components' in case specified components are not
-        # found.
-        self.default_components = {}
-        for attribute in [
-                'book',
-                'chapter',
-                'technique',
-                'publisher',
-                'scholar']:
-            self.default_components[attribute] = getattr(self, attribute)
+    def __post_init__(self):
+        """Creates a default 'name' if it is not passed."""
+        if self.name is None:
+            self.name = self.worker.lower()
         return self
+
+    """ Core siMpLify Methods """
+
+    def load(self) -> 'Worker':
+        """Returns 'Worker' from 'module'.
+
+        Returns:
+            'Worker': from 'module'.
+
+        """
+        return getattr(import_module(self.module), self.worker)
+

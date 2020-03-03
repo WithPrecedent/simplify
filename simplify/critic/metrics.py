@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from simplify.core.base import SimpleSettings
-from simplify.core.book import Technique
+from simplify.core.library import Technique
 from simplify.core.repository import Repository
 from simplify.critic.critic import Evaluator
 
@@ -271,7 +271,7 @@ class SklearnMetrics(Repository):
         getattr(self, '_'.join(
             ['_', self.idea['analyst']['model_type'], 'metrics']))()
         return self
-    
+
 
 def adjusted_r2(data: 'DataBundle', r2: float) -> float:
     return 1 - (1-r2)*(len(data.y)-1)/(len(data.y)-data.x.shape[1]-1)

@@ -1,13 +1,13 @@
 """
-.. module:: book
+.. module:: library
 :synopsis: primary siMpLify iterable classes
 :author: Corey Rayburn Yung
 :copyright: 2019-2020
 :license: Apache-2.0
 """
 
-from abc import ABC
 from collections.abc import Container
+from collections.abc import MutableMapping
 from collections.abc import MutableSequence
 from dataclasses import dataclass
 from dataclasses import field
@@ -17,7 +17,117 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 from simplify.core.base import SimpleLoader
 from simplify.core.base import SimpleManuscript
+from simplify.core.base import SimpleStage
+from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
+
+
+@dataclass
+class Library(SimpleStage, MutableMapping):
+    """Serializable object containing complete siMpLify library.
+
+    Args:
+        identification (Optional[str]): a unique identification name for this
+            'Library' instance. The name is used for creating file folders
+            related to the 'Library'. If not provided, a string is created
+            from the date and time.
+        catalog (Optional[Dict[str, Dict[str, List[str]]]]): nested dictionary
+            of workers, steps, and techniques for a siMpLify library. Defaults
+            to an empty dictionary. An catalog is not strictly needed for
+            object serialization, but provides a good summary of the various
+            options selected in a particular 'Library'. As a result, it is
+            used by the '__repr__' and '__str__' methods.
+        books (Optional[Dict[str, 'Book']]): stored 'Book' instances. Defaults
+            to an empty dictionary.
+
+    """
+    identification: Optional[str] = field(default_factory = datetime_string)
+    catalog: Optional[Dict[str, Dict[str, List[str]]]] = field(
+        default_factory = dict)
+    books: Optional[Dict[str, 'Book']] = field(default_factory = dict)
+
+    """ Required ABC Methods """
+
+    def __getitem__(self, key: str) -> 'Book':
+        """Returns key from 'books'.
+        Args:
+            key (str): key to item in 'books'.
+
+        Returns:
+            'Book': from 'books'.
+
+        """
+        return self.books[key]
+
+    def __setitem__(self, key: str, value: 'Book') -> None:
+        """Sets 'key' in 'books' to 'value'.
+
+        Args:
+            key (str): key to item in 'books' to set.
+            value ('Book'): instance to place in 'books'.
+
+        """
+        self.books[key] = value
+        return self
+
+    def __delitem__(self, key: str) -> None:
+        """Deletes 'key' in 'books'.
+
+        Args:
+            key (str): key in 'books'.
+
+        """
+        try:
+            del self.books[key]
+        except KeyError:
+            pass
+        return self
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable of 'books'.
+
+        Returns:
+            Iterable: of 'books'.
+
+        """
+        return iter(self.books)
+
+    def __len__(self) -> int:
+        """Returns length of 'books'.
+
+        Returns:
+            int: length of 'books'.
+        """
+        return len(self.books)
+
+    """ Other Dunder Methods """
+
+    def __repr__(self) -> str:
+        """Returns string representation of a class instance."""
+        return self.__str__()
+
+    def __str__(self) -> str:
+        """Returns string representation of a class instance."""
+        return f'Project {self.identification}: {str(self.catalog)}'
+
+    """ Core siMpLify Methods """
+
+    def add(self, book: 'Book') -> None:
+        """Adds 'book' to 'books'.
+
+        Args:
+            book ('Book'): an instance to be added.
+
+        Raises:
+            ValueError: if 'book' is not a 'Book' instance.
+
+        """
+        # Validates 'book' type as 'Book' before adding to 'books'.
+        if isinstance(book, Book):
+            self.books[book.name] = book
+        else:
+            raise ValueError('book must be a Book instance to add to a Library')
+        return self
 
 
 @dataclass

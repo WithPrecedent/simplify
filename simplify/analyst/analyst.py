@@ -22,10 +22,11 @@ from sklearn.utils.validation import check_is_fitted
 
 from simplify.analyst import algorithms
 from simplify.core.base import SimpleSettings
-from simplify.core.book import Book
-from simplify.core.book import Chapter
-from simplify.core.book import Technique
 from simplify.core.creators import Publisher
+from simplify.core.library import Book
+from simplify.core.library import Chapter
+from simplify.core.library import Technique
+from simplify.core.manager import Worker
 from simplify.core.repository import Repository
 from simplify.core.scholar import Finisher
 from simplify.core.scholar import Parallelizer
@@ -51,13 +52,13 @@ class Cookbook(Book):
             'cookbook'
         chapters (Optional[List['Chapter']]): iterable collection of steps and
             techniques to apply at each step. Defaults to an empty list.
-        _iterable(Optional[str]): name of property to store alternative proxy
+        iterable(Optional[str]): name of property to store alternative proxy
             to 'recipes'.
 
     """
     name: Optional[str] = field(default_factory = lambda: 'cookbook')
     chapters: Optional[List['Chapter']] = field(default_factory = list)
-    _iterable: Optional[str] = field(default_factory = lambda: 'recipes')
+    iterable: Optional[str] = field(default_factory = lambda: 'recipes')
 
 
 @dataclass
@@ -187,7 +188,7 @@ def numpy_shield(callable: Callable) -> Callable:
 
 
 @dataclass
-class AnalystTechnique(Technique):
+class Tool(Technique):
     """Base method wrapper for applying algorithms to data.
 
     Args:
@@ -214,7 +215,7 @@ class AnalystTechnique(Technique):
     """
     name: Optional[str] = None
     step: Optional[str] = None
-    module: Optional[str]
+    module: Optional[str] = None
     algorithm: Optional[object] = None
     parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
     default: Optional[Dict[str, Any]] = field(default_factory = dict)
@@ -339,7 +340,7 @@ class AnalystPublisher(Publisher):
 """ Scholar Subclasses """
 
 @dataclass
-class Analyst(Scholar):
+class AnalystScholar(Scholar):
     """Applies a 'Cookbook' instance to data.
 
     Args:
@@ -363,23 +364,23 @@ class Analyst(Scholar):
         if self.parallelize:
             self.parallelizer = Parallelizer(idea = self.idea)
         return self
-    
+
     """ Private Methods """
-    
+
     def _get_model_type(self, data: 'Dataset') -> str:
         """Infers 'model_type' from data type of 'label' column.
-        
+
         Args:
             data ('Dataset'): instance with completed dataset.
-            
+
         Returns:
             str: containing the name of one of the supported model types.
-            
+
         Raises:
             TypeError: if 'label' attribute is neither None, 'boolean',
                 'category', 'integer' or 'float' data type (using siMpLify
                 proxy datatypes).
-                
+
         """
         if self.label is None:
             return 'clusterer'
@@ -575,7 +576,7 @@ class AnalystSpecialist(Specialist):
 
 @dataclass
 class Tools(Repository, SimpleSettings):
-    """A dictonary of AnalystTechnique options for the Analyst subpackage.
+    """A dictonary of Tool options for the Analyst subpackage.
 
     Args:
         idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
@@ -586,7 +587,7 @@ class Tools(Repository, SimpleSettings):
     def create(self) -> None:
         self.contents = {
             'fill': {
-                'defaults': AnalystTechnique(
+                'defaults': Tool(
                     name = 'defaults',
                     module = 'simplify.analyst.algorithms',
                     algorithm = 'smart_fill',
@@ -599,28 +600,28 @@ class Tools(Repository, SimpleSettings):
                         'list': [],
                         'datetime': 1/1/1900,
                         'timedelta': 0}}),
-                'impute': AnalystTechnique(
+                'impute': Tool(
                     name = 'defaults',
                     module = 'sklearn.impute',
                     algorithm = 'SimpleImputer',
                     default = {'defaults': {}}),
-                'knn_impute': AnalystTechnique(
+                'knn_impute': Tool(
                     name = 'defaults',
                     module = 'sklearn.impute',
                     algorithm = 'KNNImputer',
                     default = {'defaults': {}})},
             'categorize': {
-                'automatic': AnalystTechnique(
+                'automatic': Tool(
                     name = 'automatic',
                     module = 'simplify.analyst.algorithms',
                     algorithm = 'auto_categorize',
                     default = {'threshold': 10}),
-                'binary': AnalystTechnique(
+                'binary': Tool(
                     name = 'binary',
                     module = 'sklearn.preprocessing',
                     algorithm = 'Binarizer',
                     default = {'threshold': 0.5}),
-                'bins': AnalystTechnique(
+                'bins': Tool(
                     name = 'bins',
                     module = 'sklearn.preprocessing',
                     algorithm = 'KBinsDiscretizer',
@@ -630,51 +631,51 @@ class Tools(Repository, SimpleSettings):
                     selected = True,
                     required = {'encode': 'onehot'})},
             'scale': {
-                'gauss': AnalystTechnique(
+                'gauss': Tool(
                     name = 'gauss',
                     module = None,
                     algorithm = 'Gaussify',
                     default = {'standardize': False, 'copy': False},
                     selected = True,
                     required = {'rescaler': 'standard'}),
-                'maxabs': AnalystTechnique(
+                'maxabs': Tool(
                     name = 'maxabs',
                     module = 'sklearn.preprocessing',
                     algorithm = 'MaxAbsScaler',
                     default = {'copy': False},
                     selected = True),
-                'minmax': AnalystTechnique(
+                'minmax': Tool(
                     name = 'minmax',
                     module = 'sklearn.preprocessing',
                     algorithm = 'MinMaxScaler',
                     default = {'copy': False},
                     selected = True),
-                'normalize': AnalystTechnique(
+                'normalize': Tool(
                     name = 'normalize',
                     module = 'sklearn.preprocessing',
                     algorithm = 'Normalizer',
                     default = {'copy': False},
                     selected = True),
-                'quantile': AnalystTechnique(
+                'quantile': Tool(
                     name = 'quantile',
                     module = 'sklearn.preprocessing',
                     algorithm = 'QuantileTransformer',
                     default = {'copy': False},
                     selected = True),
-                'robust': AnalystTechnique(
+                'robust': Tool(
                     name = 'robust',
                     module = 'sklearn.preprocessing',
                     algorithm = 'RobustScaler',
                     default = {'copy': False},
                     selected = True),
-                'standard': AnalystTechnique(
+                'standard': Tool(
                     name = 'standard',
                     module = 'sklearn.preprocessing',
                     algorithm = 'StandardScaler',
                     default = {'copy': False},
                     selected = True)},
             'split': {
-                'group_kfold': AnalystTechnique(
+                'group_kfold': Tool(
                     name = 'group_kfold',
                     module = 'sklearn.model_selection',
                     algorithm = 'GroupKFold',
@@ -683,7 +684,7 @@ class Tools(Repository, SimpleSettings):
                     selected = True,
                     fit_method = None,
                     transform_method = 'split'),
-                'kfold': AnalystTechnique(
+                'kfold': Tool(
                     name = 'kfold',
                     module = 'sklearn.model_selection',
                     algorithm = 'KFold',
@@ -693,7 +694,7 @@ class Tools(Repository, SimpleSettings):
                     required = {'shuffle': True},
                     fit_method = None,
                     transform_method = 'split'),
-                'stratified': AnalystTechnique(
+                'stratified': Tool(
                     name = 'stratified',
                     module = 'sklearn.model_selection',
                     algorithm = 'StratifiedKFold',
@@ -703,7 +704,7 @@ class Tools(Repository, SimpleSettings):
                     required = {'shuffle': True},
                     fit_method = None,
                     transform_method = 'split'),
-                'time': AnalystTechnique(
+                'time': Tool(
                     name = 'time',
                     module = 'sklearn.model_selection',
                     algorithm = 'TimeSeriesSplit',
@@ -712,7 +713,7 @@ class Tools(Repository, SimpleSettings):
                     selected = True,
                     fit_method = None,
                     transform_method = 'split'),
-                'train_test': AnalystTechnique(
+                'train_test': Tool(
                     name = 'train_test',
                     module = 'sklearn.model_selection',
                     algorithm = 'ShuffleSplit',
@@ -723,78 +724,78 @@ class Tools(Repository, SimpleSettings):
                     fit_method = None,
                     transform_method = 'split')},
             'encode': {
-                'backward': AnalystTechnique(
+                'backward': Tool(
                     name = 'backward',
                     module = 'category_encoders',
                     algorithm = 'BackwardDifferenceEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'basen': AnalystTechnique(
+                'basen': Tool(
                     name = 'basen',
                     module = 'category_encoders',
                     algorithm = 'BaseNEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'binary': AnalystTechnique(
+                'binary': Tool(
                     name = 'binary',
                     module = 'category_encoders',
                     algorithm = 'BinaryEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'dummy': AnalystTechnique(
+                'dummy': Tool(
                     name = 'dummy',
                     module = 'category_encoders',
                     algorithm = 'OneHotEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'hashing': AnalystTechnique(
+                'hashing': Tool(
                     name = 'hashing',
                     module = 'category_encoders',
                     algorithm = 'HashingEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'helmert': AnalystTechnique(
+                'helmert': Tool(
                     name = 'helmert',
                     module = 'category_encoders',
                     algorithm = 'HelmertEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'james_stein': AnalystTechnique(
+                'james_stein': Tool(
                     name = 'james_stein',
                     module = 'category_encoders',
                     algorithm = 'JamesSteinEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'loo': AnalystTechnique(
+                'loo': Tool(
                     name = 'loo',
                     module = 'category_encoders',
                     algorithm = 'LeaveOneOutEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'm_estimate': AnalystTechnique(
+                'm_estimate': Tool(
                     name = 'm_estimate',
                     module = 'category_encoders',
                     algorithm = 'MEstimateEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'ordinal': AnalystTechnique(
+                'ordinal': Tool(
                     name = 'ordinal',
                     module = 'category_encoders',
                     algorithm = 'OrdinalEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'polynomial': AnalystTechnique(
+                'polynomial': Tool(
                     name = 'polynomial_encoder',
                     module = 'category_encoders',
                     algorithm = 'PolynomialEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'sum': AnalystTechnique(
+                'sum': Tool(
                     name = 'sum',
                     module = 'category_encoders',
                     algorithm = 'SumEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'target': AnalystTechnique(
+                'target': Tool(
                     name = 'target',
                     module = 'category_encoders',
                     algorithm = 'TargetEncoder',
                     data_dependent = {'cols': 'categoricals'}),
-                'woe': AnalystTechnique(
+                'woe': Tool(
                     name = 'weight_of_evidence',
                     module = 'category_encoders',
                     algorithm = 'WOEEncoder',
                     data_dependent = {'cols': 'categoricals'})},
             'mix': {
-                'polynomial': AnalystTechnique(
+                'polynomial': Tool(
                     name = 'polynomial_mixer',
                     module = 'sklearn.preprocessing',
                     algorithm = 'PolynomialFeatures',
@@ -802,25 +803,25 @@ class Tools(Repository, SimpleSettings):
                         'degree': 2,
                         'interaction_only': True,
                         'include_bias': True}),
-                'quotient': AnalystTechnique(
+                'quotient': Tool(
                     name = 'quotient',
                     module = None,
                     algorithm = 'QuotientFeatures'),
-                'sum': AnalystTechnique(
+                'sum': Tool(
                     name = 'sum',
                     module = None,
                     algorithm = 'SumFeatures'),
-                'difference': AnalystTechnique(
+                'difference': Tool(
                     name = 'difference',
                     module = None,
                     algorithm = 'DifferenceFeatures')},
             'cleave': {
-                'cleaver': AnalystTechnique(
+                'cleaver': Tool(
                     name = 'cleaver',
                     module = 'simplify.analyst.algorithms',
                     algorithm = 'Cleaver')},
             'sample': {
-                'adasyn': AnalystTechnique(
+                'adasyn': Tool(
                     name = 'adasyn',
                     module = 'imblearn.over_sampling',
                     algorithm = 'ADASYN',
@@ -828,7 +829,7 @@ class Tools(Repository, SimpleSettings):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'cluster': AnalystTechnique(
+                'cluster': Tool(
                     name = 'cluster',
                     module = 'imblearn.under_sampling',
                     algorithm = 'ClusterCentroids',
@@ -836,7 +837,7 @@ class Tools(Repository, SimpleSettings):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'knn': AnalystTechnique(
+                'knn': Tool(
                     name = 'knn',
                     module = 'imblearn.under_sampling',
                     algorithm = 'AllKNN',
@@ -844,7 +845,7 @@ class Tools(Repository, SimpleSettings):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'near_miss': AnalystTechnique(
+                'near_miss': Tool(
                     name = 'near_miss',
                     module = 'imblearn.under_sampling',
                     algorithm = 'NearMiss',
@@ -852,7 +853,7 @@ class Tools(Repository, SimpleSettings):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'random_over': AnalystTechnique(
+                'random_over': Tool(
                     name = 'random_over',
                     module = 'imblearn.over_sampling',
                     algorithm = 'RandomOverSampler',
@@ -860,7 +861,7 @@ class Tools(Repository, SimpleSettings):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'random_under': AnalystTechnique(
+                'random_under': Tool(
                     name = 'random_under',
                     module = 'imblearn.under_sampling',
                     algorithm = 'RandomUnderSampler',
@@ -868,7 +869,7 @@ class Tools(Repository, SimpleSettings):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'smote': AnalystTechnique(
+                'smote': Tool(
                     name = 'smote',
                     module = 'imblearn.over_sampling',
                     algorithm = 'SMOTE',
@@ -876,7 +877,7 @@ class Tools(Repository, SimpleSettings):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'smotenc': AnalystTechnique(
+                'smotenc': Tool(
                     name = 'smotenc',
                     module = 'imblearn.over_sampling',
                     algorithm = 'SMOTENC',
@@ -886,7 +887,7 @@ class Tools(Repository, SimpleSettings):
                         'categorical_features': 'categoricals_indices'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'smoteenn': AnalystTechnique(
+                'smoteenn': Tool(
                     name = 'smoteenn',
                     module = 'imblearn.combine',
                     algorithm = 'SMOTEENN',
@@ -894,7 +895,7 @@ class Tools(Repository, SimpleSettings):
                     runtime = {'random_state': 'seed'},
                     fit_method = None,
                     transform_method = 'fit_resample'),
-                'smotetomek': AnalystTechnique(
+                'smotetomek': Tool(
                     name = 'smotetomek',
                     module = 'imblearn.combine',
                     algorithm = 'SMOTETomek',
@@ -903,44 +904,44 @@ class Tools(Repository, SimpleSettings):
                     fit_method = None,
                     transform_method = 'fit_resample')},
             'reduce': {
-                'kbest': AnalystTechnique(
+                'kbest': Tool(
                     name = 'kbest',
                     module = 'sklearn.feature_selection',
                     algorithm = 'SelectKBest',
                     default = {'k': 10, 'score_func': 'f_classif'},
                     selected = True),
-                'fdr': AnalystTechnique(
+                'fdr': Tool(
                     name = 'fdr',
                     module = 'sklearn.feature_selection',
                     algorithm = 'SelectFdr',
                     default = {'alpha': 0.05, 'score_func': 'f_classif'},
                     selected = True),
-                'fpr': AnalystTechnique(
+                'fpr': Tool(
                     name = 'fpr',
                     module = 'sklearn.feature_selection',
                     algorithm = 'SelectFpr',
                     default = {'alpha': 0.05, 'score_func': 'f_classif'},
                     selected = True),
-                'custom': AnalystTechnique(
+                'custom': Tool(
                     name = 'custom',
                     module = 'sklearn.feature_selection',
                     algorithm = 'SelectFromModel',
                     default = {'threshold': 'mean'},
                     runtime = {'estimator': 'algorithm'},
                     selected = True),
-                'rank': AnalystTechnique(
+                'rank': Tool(
                     name = 'rank',
                     module = 'simplify.critic.rank',
                     algorithm = 'RankSelect',
                     selected = True),
-                'rfe': AnalystTechnique(
+                'rfe': Tool(
                     name = 'rfe',
                     module = 'sklearn.feature_selection',
                     algorithm = 'RFE',
                     default = {'n_features_to_select': 10, 'step': 1},
                     runtime = {'estimator': 'algorithm'},
                     selected = True),
-                'rfecv': AnalystTechnique(
+                'rfecv': Tool(
                     name = 'rfecv',
                     module = 'sklearn.feature_selection',
                     algorithm = 'RFECV',
@@ -949,52 +950,52 @@ class Tools(Repository, SimpleSettings):
                     selected = True)}}
         model_options = {
             'classify': {
-                'adaboost': AnalystTechnique(
+                'adaboost': Tool(
                     name = 'adaboost',
                     module = 'sklearn.ensemble',
                     algorithm = 'AdaBoostClassifier',
                     transform_method = None),
-                'baseline_classifier': AnalystTechnique(
+                'baseline_classifier': Tool(
                     name = 'baseline_classifier',
                     module = 'sklearn.dummy',
                     algorithm = 'DummyClassifier',
                     required = {'strategy': 'most_frequent'},
                     transform_method = None),
-                'logit': AnalystTechnique(
+                'logit': Tool(
                     name = 'logit',
                     module = 'sklearn.linear_model',
                     algorithm = 'LogisticRegression',
                     transform_method = None),
-                'random_forest': AnalystTechnique(
+                'random_forest': Tool(
                     name = 'random_forest',
                     module = 'sklearn.ensemble',
                     algorithm = 'RandomForestClassifier',
                     transform_method = None),
-                'svm_linear': AnalystTechnique(
+                'svm_linear': Tool(
                     name = 'svm_linear',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'linear', 'probability': True},
                     transform_method = None),
-                'svm_poly': AnalystTechnique(
+                'svm_poly': Tool(
                     name = 'svm_poly',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'poly', 'probability': True},
                     transform_method = None),
-                'svm_rbf': AnalystTechnique(
+                'svm_rbf': Tool(
                     name = 'svm_rbf',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'rbf', 'probability': True},
                     transform_method = None),
-                'svm_sigmoid': AnalystTechnique(
+                'svm_sigmoid': Tool(
                     name = 'svm_sigmoid ',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'sigmoid', 'probability': True},
                     transform_method = None),
-                'tensorflow': AnalystTechnique(
+                'tensorflow': Tool(
                     name = 'tensorflow',
                     module = 'tensorflow',
                     algorithm = None,
@@ -1002,135 +1003,135 @@ class Tools(Repository, SimpleSettings):
                         'batch_size': 10,
                         'epochs': 2},
                     transform_method = None),
-                'xgboost': AnalystTechnique(
+                'xgboost': Tool(
                     name = 'xgboost',
                     module = 'xgboost',
                     algorithm = 'XGBClassifier',
                     # data_dependent = 'scale_pos_weight',
                     transform_method = None)},
             'cluster': {
-                'affinity': AnalystTechnique(
+                'affinity': Tool(
                     name = 'affinity',
                     module = 'sklearn.cluster',
                     algorithm = 'AffinityPropagation',
                     transform_method = None),
-                'agglomerative': AnalystTechnique(
+                'agglomerative': Tool(
                     name = 'agglomerative',
                     module = 'sklearn.cluster',
                     algorithm = 'AgglomerativeClustering',
                     transform_method = None),
-                'birch': AnalystTechnique(
+                'birch': Tool(
                     name = 'birch',
                     module = 'sklearn.cluster',
                     algorithm = 'Birch',
                     transform_method = None),
-                'dbscan': AnalystTechnique(
+                'dbscan': Tool(
                     name = 'dbscan',
                     module = 'sklearn.cluster',
                     algorithm = 'DBSCAN',
                     transform_method = None),
-                'kmeans': AnalystTechnique(
+                'kmeans': Tool(
                     name = 'kmeans',
                     module = 'sklearn.cluster',
                     algorithm = 'KMeans',
                     transform_method = None),
-                'mean_shift': AnalystTechnique(
+                'mean_shift': Tool(
                     name = 'mean_shift',
                     module = 'sklearn.cluster',
                     algorithm = 'MeanShift',
                     transform_method = None),
-                'spectral': AnalystTechnique(
+                'spectral': Tool(
                     name = 'spectral',
                     module = 'sklearn.cluster',
                     algorithm = 'SpectralClustering',
                     transform_method = None),
-                'svm_linear': AnalystTechnique(
+                'svm_linear': Tool(
                     name = 'svm_linear',
                     module = 'sklearn.cluster',
                     algorithm = 'OneClassSVM',
                     transform_method = None),
-                'svm_poly': AnalystTechnique(
+                'svm_poly': Tool(
                     name = 'svm_poly',
                     module = 'sklearn.cluster',
                     algorithm = 'OneClassSVM',
                     transform_method = None),
-                'svm_rbf': AnalystTechnique(
+                'svm_rbf': Tool(
                     name = 'svm_rbf',
                     module = 'sklearn.cluster',
                     algorithm = 'OneClassSVM,',
                     transform_method = None),
-                'svm_sigmoid': AnalystTechnique(
+                'svm_sigmoid': Tool(
                     name = 'svm_sigmoid',
                     module = 'sklearn.cluster',
                     algorithm = 'OneClassSVM',
                     transform_method = None)},
             'regress': {
-                'adaboost': AnalystTechnique(
+                'adaboost': Tool(
                     name = 'adaboost',
                     module = 'sklearn.ensemble',
                     algorithm = 'AdaBoostRegressor',
                     transform_method = None),
-                'baseline_regressor': AnalystTechnique(
+                'baseline_regressor': Tool(
                     name = 'baseline_regressor',
                     module = 'sklearn.dummy',
                     algorithm = 'DummyRegressor',
                     required = {'strategy': 'mean'},
                     transform_method = None),
-                'bayes_ridge': AnalystTechnique(
+                'bayes_ridge': Tool(
                     name = 'bayes_ridge',
                     module = 'sklearn.linear_model',
                     algorithm = 'BayesianRidge',
                     transform_method = None),
-                'lasso': AnalystTechnique(
+                'lasso': Tool(
                     name = 'lasso',
                     module = 'sklearn.linear_model',
                     algorithm = 'Lasso',
                     transform_method = None),
-                'lasso_lars': AnalystTechnique(
+                'lasso_lars': Tool(
                     name = 'lasso_lars',
                     module = 'sklearn.linear_model',
                     algorithm = 'LassoLars',
                     transform_method = None),
-                'ols': AnalystTechnique(
+                'ols': Tool(
                     name = 'ols',
                     module = 'sklearn.linear_model',
                     algorithm = 'LinearRegression',
                     transform_method = None),
-                'random_forest': AnalystTechnique(
+                'random_forest': Tool(
                     name = 'random_forest',
                     module = 'sklearn.ensemble',
                     algorithm = 'RandomForestRegressor',
                     transform_method = None),
-                'ridge': AnalystTechnique(
+                'ridge': Tool(
                     name = 'ridge',
                     module = 'sklearn.linear_model',
                     algorithm = 'Ridge',
                     transform_method = None),
-                'svm_linear': AnalystTechnique(
+                'svm_linear': Tool(
                     name = 'svm_linear',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'linear', 'probability': True},
                     transform_method = None),
-                'svm_poly': AnalystTechnique(
+                'svm_poly': Tool(
                     name = 'svm_poly',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'poly', 'probability': True},
                     transform_method = None),
-                'svm_rbf': AnalystTechnique(
+                'svm_rbf': Tool(
                     name = 'svm_rbf',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'rbf', 'probability': True},
                     transform_method = None),
-                'svm_sigmoid': AnalystTechnique(
+                'svm_sigmoid': Tool(
                     name = 'svm_sigmoid ',
                     module = 'sklearn.svm',
                     algorithm = 'SVC',
                     required = {'kernel': 'sigmoid', 'probability': True},
                     transform_method = None),
-                'xgboost': AnalystTechnique(
+                'xgboost': Tool(
                     name = 'xgboost',
                     module = 'xgboost',
                     algorithm = 'XGBRegressor',
@@ -1138,44 +1139,44 @@ class Tools(Repository, SimpleSettings):
                     transform_method = None)}}
         gpu_options = {
             'classify': {
-                'forest_inference': AnalystTechnique(
+                'forest_inference': Tool(
                     name = 'forest_inference',
                     module = 'cuml',
                     algorithm = 'ForestInference',
                     transform_method = None),
-                'random_forest': AnalystTechnique(
+                'random_forest': Tool(
                     name = 'random_forest',
                     module = 'cuml',
                     algorithm = 'RandomForestClassifier',
                     transform_method = None),
-                'logit': AnalystTechnique(
+                'logit': Tool(
                     name = 'logit',
                     module = 'cuml',
                     algorithm = 'LogisticRegression',
                     transform_method = None)},
             'cluster': {
-                'dbscan': AnalystTechnique(
+                'dbscan': Tool(
                     name = 'dbscan',
                     module = 'cuml',
                     algorithm = 'DBScan',
                     transform_method = None),
-                'kmeans': AnalystTechnique(
+                'kmeans': Tool(
                     name = 'kmeans',
                     module = 'cuml',
                     algorithm = 'KMeans',
                     transform_method = None)},
             'regressor': {
-                'lasso': AnalystTechnique(
+                'lasso': Tool(
                     name = 'lasso',
                     module = 'cuml',
                     algorithm = 'Lasso',
                     transform_method = None),
-                'ols': AnalystTechnique(
+                'ols': Tool(
                     name = 'ols',
                     module = 'cuml',
                     algorithm = 'LinearRegression',
                     transform_method = None),
-                'ridge': AnalystTechnique(
+                'ridge': Tool(
                     name = 'ridge',
                     module = 'cuml',
                     algorithm = 'RidgeRegression',
@@ -1186,3 +1187,58 @@ class Tools(Repository, SimpleSettings):
             self.contents['model'].update(
                 gpu_options[idea['analyst']['model_type']])
         return self.contents
+
+
+@dataclass
+class Analyst(Worker):
+    """Object construction instructions used by a Project instance.
+
+    Args:
+        name (str): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier.
+        module (Optional[str]): name of module where object to use is located
+            (can either be a siMpLify or non-siMpLify module). Defaults to
+            'simplify.core'.
+        book (Optional[str]): name of Book object in 'module' to load. Defaults
+            to 'Book'.
+        chapter (Optional[str]): name of Chapter object in 'module' to load.
+            Defaults to 'Chapter'.
+        technique (Optional[str]): name of Book object in 'module' to load.
+            Defaults to 'Technique'.
+        publisher (Optional[str]): name of Publisher class in 'module' to load.
+            Defaults to 'Publisher'.
+        scholar (Optional[str]): name of Scholar class in 'module' to load.
+            Defaults to 'Scholar'.
+        steps (Optional[List[str]]): list of steps to execute. Defaults to an
+            empty list.
+        options (Optional[Union[str, Dict[str, Any]]]): a dictionary containing
+            options for the 'Worker' instance to utilize or a string
+            corresponding to a dictionary in 'module' to load. Defaults to an
+            empty dictionary.
+        data (Optional[str]): name of attribute or key in a 'Project' instance
+            'library' to use as a data object to apply methods to. Defaults to
+            'dataset'.
+        import_folder (Optional[str]): name of attribute in 'filer' which
+            contains the path to the default folder for importing data objects.
+            Defaults to 'processed'.
+        export_folder (Optional[str]): name of attribute in 'filer' which
+            contains the path to the default folder for exporting data objects.
+            Defaults to 'processed'.
+
+    """
+    name: Optional[str] = field(default_factory = lambda: 'analyst')
+    module: Optional[str] = field(
+        default_factory = lambda: 'simplify.analyst.analyst')
+    book: Optional[str] = field(default_factory = lambda: 'Cookbook')
+    chapter: Optional[str] = field(default_factory = lambda: 'Recipe')
+    technique: Optional[str] = field(default_factory = lambda: 'Tool')
+    publisher: Optional[str] = field(
+        default_factory = lambda: 'AnalystPublisher')
+    scholar: Optional[str] = field(default_factory = lambda: 'AnalystScholar')
+    options: Optional[str] = field(default_factory = lambda: 'Tools')
+    idea: ClassVar['Idea']

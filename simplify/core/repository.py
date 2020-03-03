@@ -403,78 +403,78 @@ class Repository(MutableMapping):
 #         return self
 
 
-@dataclass
-class Outline(Container):
-    """Object construction instructions used by Publisher subclasses.
+# @dataclass
+# class Outline(Container):
+#     """Object construction instructions used by Publisher subclasses.
 
-    Ideally, this class should have no additional methods beyond the lazy
-    loader ('load' method) and __contains__  dunder method.
+#     Ideally, this class should have no additional methods beyond the lazy
+#     loader ('load' method) and __contains__  dunder method.
 
-    Users can use the idiom 'x in Option' to check if a particular attribute
-    exists and is not None. This means default values for optional arguments
-    should generally be set to None to allow use of that idiom.
+#     Users can use the idiom 'x in Option' to check if a particular attribute
+#     exists and is not None. This means default values for optional arguments
+#     should generally be set to None to allow use of that idiom.
 
-    Args:
-        name (str): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared 'Idea' instance, 'name' should match the appropriate
-            section name in 'Idea'. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier.
-        module (str): name of module where object to incorporate is located
-            (can either be a siMpLify or non-siMpLify module).
-        default_module (Optional[str]): a backup module location if a component
-            is not found in 'module'. Defaults to None. If not provided,
-            siMpLify uses 'simplify.core' as 'default_module'.
+#     Args:
+#         name (str): designates the name of the class used for internal
+#             referencing throughout siMpLify. If the class needs settings from
+#             the shared 'Idea' instance, 'name' should match the appropriate
+#             section name in 'Idea'. When subclassing, it is a good idea to use
+#             the same 'name' attribute as the base class for effective
+#             coordination between siMpLify classes. 'name' is used instead of
+#             __class__.__name__ to make such subclassing easier.
+#         module (str): name of module where object to incorporate is located
+#             (can either be a siMpLify or non-siMpLify module).
+#         default_module (Optional[str]): a backup module location if a component
+#             is not found in 'module'. Defaults to None. If not provided,
+#             siMpLify uses 'simplify.core' as 'default_module'.
 
-    """
-    name: str
-    module: str
-    default_module: Optional[str] = None
+#     """
+#     name: str
+#     module: str
+#     default_module: Optional[str] = None
 
-    def __post_init__(self) -> None:
-        """Sets 'default_module' if none is provided."""
-        if self.default_module is None:
-            self.default_module = 'simplify.core'
-        return self
+#     def __post_init__(self) -> None:
+#         """Sets 'default_module' if none is provided."""
+#         if self.default_module is None:
+#             self.default_module = 'simplify.core'
+#         return self
 
-    """ Required ABC Methods """
+#     """ Required ABC Methods """
 
-    def __contains__(self, attribute: str) -> bool:
-        """Returns whether attribute exists in a subclass instance.
+#     def __contains__(self, attribute: str) -> bool:
+#         """Returns whether attribute exists in a subclass instance.
 
-        Args:
-            attribute (str): name of attribute to check.
+#         Args:
+#             attribute (str): name of attribute to check.
 
-        Returns:
-            bool: whether the attribute exists and is not None.
+#         Returns:
+#             bool: whether the attribute exists and is not None.
 
-        """
-        return hasattr(self, attribute) and getattr(self, attribute) is not None
+#         """
+#         return hasattr(self, attribute) and getattr(self, attribute) is not None
 
-    """ Public Methods """
+#     """ Public Methods """
 
-    def load(self, component: str) -> object:
-        """Returns 'component' from 'module'.
+#     def load(self, component: str) -> object:
+#         """Returns 'component' from 'module'.
 
-        Args:
-            component (str): name of object to load from 'module'.
+#         Args:
+#             component (str): name of object to load from 'module'.
 
-        Returns:
-            object: from 'module'.
+#         Returns:
+#             object: from 'module'.
 
-        """
-        try:
-            return getattr(
-                import_module(self.module),
-                getattr(self, component))
-        except (ImportError, AttributeError):
-            try:
-                return getattr(
-                    import_module(self.default_module),
-                    getattr(self, component))
-            except (ImportError, AttributeError):
-                raise ImportError(' '.join(
-                    [getattr(self, component), 'is neither in', self.module,
-                        'nor', self.default_module]))
+#         """
+#         try:
+#             return getattr(
+#                 import_module(self.module),
+#                 getattr(self, component))
+#         except (ImportError, AttributeError):
+#             try:
+#                 return getattr(
+#                     import_module(self.default_module),
+#                     getattr(self, component))
+#             except (ImportError, AttributeError):
+#                 raise ImportError(' '.join(
+#                     [getattr(self, component), 'is neither in', self.module,
+#                         'nor', self.default_module]))

@@ -18,7 +18,7 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 import pandas as pd
 
-from simplify.core.repository import Outline
+from simplify.core.base import SimpleLoader
 from simplify.core.states import create_states
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import deduplicate
@@ -1044,7 +1044,7 @@ class Pathifier(object):
 
 
 @dataclass
-class FileFormat(Outline):
+class FileFormat(SimpleLoader):
     """File format information and instructions
 
     Args:

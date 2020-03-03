@@ -114,9 +114,56 @@ class SimpleManuscript(ABC):
         if self.name is None:
             self.name = self.__class__.__name__.lower()
         try:
-            self.proxify(name = self._iterable)
+            if self.iterable:
+                self.proxify(name = self.iterable)
         except AttributeError:
             pass
+        return self
+
+    """ Dunder Methods """
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable of attribute named in 'iterable' attribute.
+
+        Returns:
+            Iterable: of attribute named in 'iterable' attribute.
+
+        """
+        return iter(getattr(self, self.iterable))
+
+    def __len__(self) -> int:
+        """Returns length of attribute named in 'iterable' attribute.
+
+        Returns:
+            Integer: length of attribute named in 'iterable' attribute.
+
+        """
+        return len(getattr(self, self.iterable))
+
+    """ Proxy Property Methods """
+
+    def _proxy_getter(self) -> List['Technique']:
+        """Proxy getter for 'techniques'.
+
+        Returns:
+            List['Technique'].
+
+        """
+        return self.techniques
+
+    def _proxy_setter(self, value: List['Technique']) -> None:
+        """Proxy setter for 'techniques'.
+
+        Args:
+            value (List['Technique']): list of 'Technique' instances to store.
+
+        """
+        self.techniques = value
+        return self
+
+    def _proxy_deleter(self) -> None:
+        """Proxy deleter for 'techniques'."""
+        self.techniques = []
         return self
 
     """ Public Methods """
@@ -206,3 +253,40 @@ class SimpleLoader(ABC):
         # If 'component' is not a string, it is returned as is.
         else:
             return getattr(self, component)
+
+
+@dataclass
+class SimpleStage(ABC):
+    """Base class for shared state of a siMpLify 'Project' instance."""
+
+    def _post_init__(self) -> None:
+        """Creates core siMpLify stages and initial stage."""
+        self.stages = ['outline', 'draft', 'publish', 'apply']
+        self.stage = 'outline'
+        return self
+
+    """ Stage Management Methods """
+
+    def advance(self) -> None:
+        """Advances to next stage in 'stages'."""
+        self.previous_stage = self.stage
+        stage_index = self.stages.index(self.stage)
+        self.stage = self.stages[self.stage_index + 1]
+        return self
+
+    def change_stage(self, new_stage: str) -> None:
+        """Manually changes 'stage' to 'new_stage'.
+
+        Args:
+            new_stage(str): name of new stage matching a string in 'stages'.
+
+        Raises:
+            TypeError: if new_stage is not in 'stages'.
+
+        """
+        if new_stage in self.stages:
+            self.previous_stage = self.stage
+            self.stage = new_stage
+        else:
+            raise ValueError(' '.join([new_stage, 'is not a recognized stage']))
+        return self
