@@ -19,14 +19,14 @@ from simplify.critic.critic import Evaluator
 
 
 @dataclass
-class Predictor(SimpleSettings, Evaluator):
+class Predictor(Evaluator):
     """Base class for report preparation.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     """ Core siMpLify Methods """
 

@@ -41,7 +41,7 @@ class Repository(MutableMapping):
         defaults (Optional[List[str]]): a list of keys in 'contents' which
             will be used to return items when 'default' is sought. If not
             passed, 'default' will be set to all keys.
-        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
+        idea (Optional['Idea']): shared 'Idea' instance with project settings.
 
     """
     name: Optional[str] = None
@@ -247,12 +247,12 @@ class Repository(MutableMapping):
 #             empty list. All items in 'steps' should correspond to keys in
 #             'repository' before iterating.
 #         repository ('Repository'): instance with options for 'steps'.
-#         idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
+#         idea (Optional['Idea']): shared 'Idea' instance with project settings.
 
 #     """
 #     steps: Union[List[str], str]
 #     repository: 'Repository'
-#     idea: ClassVar['Idea'] = None
+#     idea: Optional['Idea'] = None = None
 
 #     def __post_init__(self) -> None:
 #         self.create()

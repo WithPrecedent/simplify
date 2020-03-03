@@ -19,14 +19,14 @@ from simplify.critic.critic import Evaluator
 
 
 @dataclass
-class Reporter(SimpleSettings, Evaluator):
+class Reporter(Evaluator):
     """Base class for report preparation.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     """ Core siMpLify Methods """
 
@@ -40,10 +40,10 @@ class ConfusionMatrix(Reporter):
     """Summary report for Analyst performance.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     """ Private Methods """
 
@@ -77,10 +77,10 @@ class ClassificationReport(Reporter):
     """Summary report for Analyst performance.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     """ Private Methods """
 
@@ -109,10 +109,10 @@ class SimplifyReporter(Reporter):
     """Summary report for Analyst performance.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
 # @dataclass
 # class Article(object):

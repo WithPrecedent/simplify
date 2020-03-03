@@ -15,7 +15,6 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
 from simplify.core.base import SimpleLoader
-from simplify.core.base import SimpleSettings
 from simplify.core.creators import Publisher
 from simplify.core.library import Book
 from simplify.core.library import Chapter
@@ -36,7 +35,7 @@ class Manager(MutableMapping):
             'default_packages' to use. Defaults to an empty dictionary. If
             nothing is provided, Project attempts to construct workers from
             'idea' and 'default_packages'.
-        idea (ClassVar['Idea']): shared project configuration settings.
+        idea (Optional['Idea']): shared project configuration settings.
 
     """
     workers: Optional[Union[Dict[str, 'Worker'], List[str]]] = field(
@@ -52,8 +51,8 @@ class Manager(MutableMapping):
 
     @classmethod
     def create(cls,
-            packages: Union[Dict[str, Union['Worker', 'Package']], 
-                'Repository', 
+            packages: Union[Dict[str, Union['Worker', 'Package']],
+                'Repository',
                 'Manager'],
             idea: 'Idea') -> 'Manager':
         """Creates a 'Manager' instance from 'packages'.
@@ -78,10 +77,10 @@ class Manager(MutableMapping):
                 return cls(workers = packages, idea = idea)
             else:
                 try:
-                    new_packages = {}
+                    workers = {}
                     for key, package in packages.items():
-                        new_packages[key] = package.load()
-                    return cls(workers = new_packages, idea = idea)
+                        workers[key] = package.load()
+                    return cls(workers = workers, idea = idea)
                 except AttributeError:
                     raise TypeError(
                         'workers values must be Worker or Package type')
@@ -182,7 +181,7 @@ class Manager(MutableMapping):
 
 
 @dataclass
-class Worker(SimpleLoader, SimpleSettings):
+class Worker(SimpleLoader):
     """Object construction instructions used by a Project instance.
 
     Args:
@@ -220,7 +219,7 @@ class Worker(SimpleLoader, SimpleSettings):
         export_folder (Optional[str]): name of attribute in 'filer' which
             contains the path to the default folder for exporting data objects.
             Defaults to 'processed'.
-        idea (ClassVar['Idea']): shared project configuration settings.
+        idea (Optional['Idea']): shared project configuration settings.
 
     """
     name: Optional[str] = None
@@ -240,6 +239,9 @@ class Worker(SimpleLoader, SimpleSettings):
     def __post_init__(self) -> None:
         if self.name is None:
             self.name = self.__class__.__name__.lower()
+        self._to_load = ['chapter', 'technique']
+        self._to_instance = ['book', 'publisher', 'scholar', 'options']
+        self.draft()
         return self
 
     """ Core siMpLify Methods """
@@ -263,6 +265,17 @@ class Worker(SimpleLoader, SimpleSettings):
                 prefix = step,
                 suffix = 'techniques')
         return catalog
+
+    def draft(self) -> None:
+        for attribute in self._to_load + self._to_instance:
+            setattr(self, attribute, self.load(attribute))
+            if attribute in self._to_instance:
+                if attribute in ['scholar', 'publisher']:
+                    setattr(self, attribute, getattr(self, attribute)(
+                        worker = self))
+                else:
+                    setattr(self, attribute, getattr(self, attribute)())
+        return self
 
     """ Private Methods """
 

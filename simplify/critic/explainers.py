@@ -17,14 +17,14 @@ from simplify.critic.critic import Review
 
 
 @dataclass
-class Explainer(SimpleSettings, Evaluator):
+class Explainer(Evaluator):
     """Base class for explaining model performance.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Creates initial attributes."""
@@ -32,7 +32,7 @@ class Explainer(SimpleSettings, Evaluator):
         return self
 
     """ Private Methods """
-    
+
 
 
     """ Core siMpLify Methods """
@@ -44,18 +44,18 @@ class Explainer(SimpleSettings, Evaluator):
         self.algorithm = self._get_algorithm(estimator = self.estimator)
         self.data_attribute = self._get_data(recipe = recipe)
         return self
-    
+
     def apply(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         """Completes 'review' from data in 'chapter'.
-        
+
         Args:
             recipe ('Recipe'): a completed 'Recipe' from a 'Cookbook' instance.
-            review ('Review'): an instance to complete based upon the 
+            review ('Review'): an instance to complete based upon the
                 performance of 'recipe'.
-        
+
         Returns:
             'Review': with assessment of 'recipe' performance.
-        
+
         """
         for step in review.steps:
             try:
@@ -72,29 +72,29 @@ class SklearnExplain(Explainer):
     """Explains model performance with the sklearn package.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
     name: Optional[str] = field(default_factory = lambda: 'sklearn')
 
     """ Private Methods """
-    
+
     def _apply_explain(self, recipe: 'Recipe', review: 'Review') -> 'Review':
 
         return review
 
     def _apply_predict(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         """Makes predictions based upon sklearn package.
-        
+
         Args:
             recipe ('Recipe'): a completed 'Recipe' from a 'Cookbook' instance.
-            review ('Review'): an instance to complete based upon the 
+            review ('Review'): an instance to complete based upon the
                 performance of 'recipe'.
-        
+
         Returns:
             'Review': with assessment of 'recipe' performance.
-        
+
         """
         try:
             review.predictions[self.name] = self.estimator.predict(
@@ -110,53 +110,53 @@ class SklearnExplain(Explainer):
             review.predictions['_'.join([self.name, 'log_probabilities'])] = (
                 self.estimator.predict_log_proba(recipe.data.x_test))
         except AttributeError:
-            pass        
+            pass
         return review
-        
+
     def _apply_rank(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-        
+
     def _apply_measure(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     def _apply_report(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
         return self
-    
+
 
 @dataclass
 class Eli5Explain(Explainer):
     """Explains model performance with the ELI5 package.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
     name: Optional[str] = field(default_factory = lambda: 'eli5')
 
 
     """ Private Methods """
-    
+
     def _apply_explain(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     def _apply_predict(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-        
+
     def _apply_rank(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-        
+
     def _apply_measure(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     def _apply_report(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     """ Core siMpLify Methods """
 
     def draft(self) -> None:
@@ -209,29 +209,29 @@ class ShapExplain(Explainer):
     """Base class for explaining model performance.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
     name: Optional[str] = field(default_factory = lambda: 'shap')
 
     """ Private Methods """
-    
+
     def _apply_explain(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     def _apply_predict(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-        
+
     def _apply_rank(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-        
+
     def _apply_measure(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     def _apply_report(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     def _set_algorithm(self, data: 'Chapter') -> object:
         try:
             algorithm = self.options[self.algorithm_types[model.name]]
@@ -311,26 +311,26 @@ class SkaterExplain(Explainer):
     """Base class for explaining model performance.
 
     Args:
-        idea (ClassVar['Idea']): an instance with project settings.
+        idea (Optional['Idea']): an instance with project settings.
 
     """
     name: Optional[str] = field(default_factory = lambda: 'skater')
-    idea: ClassVar['Idea']
-    
-    
+    idea: Optional['Idea'] = None
+
+
     """ Private Methods """
-    
+
     def _apply_explain(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     def _apply_predict(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-        
+
     def _apply_rank(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-        
+
     def _apply_measure(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review
-    
+
     def _apply_report(self, recipe: 'Recipe', review: 'Review') -> 'Review':
         return review

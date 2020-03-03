@@ -20,14 +20,14 @@ class SimpleSettings(ABC):
     """Provides shared configuration settings and logger to subclasses.
 
     Args:
-        idea (ClassVar['Idea']): instance with general project settings.
+        idea (Optional['Idea']): instance with general project settings.
         filer (ClassVar['Filer']): instance with settings and methods for file
             managerment.
         journal (ClassVar['Journal']): instance which logs activity, errors,
             and timing for a siMpLify 'Project'.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
     filer: ClassVar['Filer']
     journal: ClassVar['Journal']
 
@@ -41,17 +41,17 @@ class SimpleSettings(ABC):
 
 
 @dataclass
-class SimpleCreator(SimpleSettings, ABC):
+class SimpleCreator(ABC):
     """Base class for creating 'Book', 'Chapter', and 'Technique' instances.
 
     Args:
         worker ('Worker'): instance with information needed to create a 'Book'
             instance.
-        idea (ClassVar['Idea']): instance with project settings.
+        idea (Optional['Idea']): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -75,17 +75,17 @@ class SimpleCreator(SimpleSettings, ABC):
 
 
 @dataclass
-class SimpleEngineer(SimpleSettings, ABC):
+class SimpleEngineer(ABC):
     """Base class for applying 'Book' instances to data.
 
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (ClassVar['Idea']): instance with project settings.
+        idea (Optional['Idea']): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""

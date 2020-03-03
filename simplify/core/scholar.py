@@ -34,11 +34,11 @@ class Scholar(SimpleEngineer):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (ClassVar['Idea']): instance with project settings.
+        idea (Optional['Idea']): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -116,11 +116,11 @@ class Finisher(SimpleEngineer):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (ClassVar['Idea']): instance with project settings.
+        idea (Optional['Idea']): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -288,11 +288,11 @@ class Specialist(SimpleEngineer):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (ClassVar['Idea']): instance with project settings.
+        idea (Optional['Idea']): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""

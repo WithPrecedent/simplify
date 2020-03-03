@@ -66,13 +66,13 @@ class SklearnMetrics(Repository):
     """A dictonary of Evaluator options for the Analyst subpackage.
 
     Args:
-        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
+        idea (Optional['Idea']): shared 'Idea' instance with project settings.
 
     To Do:
         Add attributes for cluster metrics.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     """ Private Methods """
 

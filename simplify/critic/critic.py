@@ -163,11 +163,11 @@ class CriticScholar(Scholar):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (ClassVar['Idea']): instance with project settings.
+        idea (Optional['Idea']): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -190,11 +190,11 @@ class CriticFinisher(Finisher):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (ClassVar['Idea']): instance with project settings.
+        idea (Optional['Idea']): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     """ Private Methods """
 
@@ -223,11 +223,11 @@ class CriticSpecialist(Specialist):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (ClassVar['Idea']): instance with project settings.
+        idea (Optional['Idea']): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     """ Private Methods """
 
@@ -267,10 +267,10 @@ class Evaluators(Repository):
     """A dictonary of Evaluator options for the Analyst subpackage.
 
     Args:
-        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
+        idea (Optional['Idea']): shared 'Idea' instance with project settings.
 
     """
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     """ Private Methods """
 
@@ -388,7 +388,7 @@ class Critic(Worker):
         export_folder (Optional[str]): name of attribute in 'filer' which
             contains the path to the default folder for exporting data objects.
             Defaults to 'processed'.
-        idea (ClassVar['Idea']): shared project configuration settings.
+        idea (Optional['Idea']): shared project configuration settings.
 
     """
     name: Optional[str] = field(default_factory = lambda: 'critic')

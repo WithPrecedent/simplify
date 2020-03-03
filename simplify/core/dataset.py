@@ -44,7 +44,7 @@ class Dataset(SimpleSettings):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
             None. If not passed, '__class__.__name__.lower()' is used.
-        idea (ClassVar['Idea']): shared 'Idea' instance with project settings.
+        idea (Optional['Idea']): shared 'Idea' instance with project settings.
         filer (ClassVar['Filer']): shared 'Filer' instance with
             project file management settings.
 
