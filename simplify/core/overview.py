@@ -32,7 +32,7 @@ class Overview(MutableMapping):
 
     @classmethod
     def create(cls, manager: 'Manager') -> 'Overview':
-        """Creates a Manager instance from 'workers'.
+        """Creates an 'Overview' instance from 'workers'.
 
         Args:
             manager ('Manager'): an instance with stored 'workers'.
@@ -48,8 +48,9 @@ class Overview(MutableMapping):
 
     """ Required ABC Methods """
 
-    def __getitem__(self, key: Union[str, Tuple[str, str]]) -> Union[
-            Dict[str, Dict[str, List[str]]], Dict[str, List[str]]]:
+    def __getitem__(self, 
+            key: Union[str, Tuple[str, str]]) -> Union[
+                Dict[str, List[str]], List[str]]:
         """Returns key from 'contents'.
 
         Args:
@@ -58,10 +59,9 @@ class Overview(MutableMapping):
                 from 'contents'.
 
         Returns:
-            Union[Dict[str, Dict[str, List[str]], Dict[str, List[str]]]]:
-                an overview of either one package of a siMpLify project (if
-                'key' is a str) or one step in one package of a siMpLify project
-                (if 'key' is a tuple).
+            Union[Dict[str, List[str]], List[str]]]:man overview of either 
+                one package of a siMpLify project (if 'key' is a str) or one 
+                step in one package of a siMpLify project (if 'key' is a tuple).
 
         Raises:
             TypeError: if 'key' is neither a str nor tuple type.
@@ -77,15 +77,13 @@ class Overview(MutableMapping):
 
     def __setitem__(self,
             key: Union[str, Tuple[str, str]],
-            value: Union[
-                Dict[str, Dict[str, List[str]],
-                Dict[str, List[str]]]]) -> None:
+            value: Union[Dict[str, List[str]], List[str]]) -> None:
         """Sets 'key' in 'contents' to 'value'.
 
         Args:
             key (Union[str, Tuple[str, str]]): key to item in 'contents' to set.
-            value (Union[Dict[str, Dict[str, List[str]], Dict[str,
-                List[str]]]]): dictionary to place in 'contents'.
+            value (Union[Dict[str, List[str]], List[str]]): dictionary or list 
+                to place in 'contents'.
 
         Raises:
             TypeError: if 'key' is neither a str nor tuple type.

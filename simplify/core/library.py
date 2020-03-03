@@ -17,13 +17,12 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 from simplify.core.base import SimpleLoader
 from simplify.core.base import SimpleManuscript
-from simplify.core.base import SimpleStage
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Library(SimpleStage, MutableMapping):
+class Library(MutableMapping):
     """Serializable object containing complete siMpLify library.
 
     Args:
@@ -46,6 +45,24 @@ class Library(SimpleStage, MutableMapping):
         default_factory = dict)
     books: Optional[Dict[str, 'Book']] = field(default_factory = dict)
 
+    """ Factory Method """
+
+    @classmethod
+    def create(cls, manager: 'Manager') -> 'Library':
+        """Creates a 'Library' instance from 'manager'.
+
+        Args:
+            manager ('Manager'): an instance with stored 'workers'.
+
+        Returns:
+            'Library': instance, properly configured.
+
+        """
+        books = {}
+        for name, worker in manager.workers.items():
+            books[name] = worker.load('book')()
+        return cls(books = books)
+    
     """ Required ABC Methods """
 
     def __getitem__(self, key: str) -> 'Book':

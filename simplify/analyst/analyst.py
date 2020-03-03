@@ -1241,4 +1241,4 @@ class Analyst(Worker):
         default_factory = lambda: 'AnalystPublisher')
     scholar: Optional[str] = field(default_factory = lambda: 'AnalystScholar')
     options: Optional[str] = field(default_factory = lambda: 'Tools')
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None

@@ -259,7 +259,7 @@ class SimpleLoader(ABC):
 class SimpleStage(ABC):
     """Base class for shared state of a siMpLify 'Project' instance."""
 
-    def _post_init__(self) -> None:
+    def __post_init__(self) -> None:
         """Creates core siMpLify stages and initial stage."""
         self.stages = ['outline', 'draft', 'publish', 'apply']
         self.stage = 'outline'

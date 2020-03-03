@@ -129,13 +129,16 @@ class Project(SimpleStage, Iterable):
         # Validates 'packages' or creates it from 'idea' and default packages.
         self.packages = self._initialize_packages(packages = self.packages)
         # Creates a 'Manager' instance for storing 'Worker' instances.
-        self.manager = Manager.create(workers = self.packages, idea = self.idea)
+        self.manager = Manager.create(
+            packages = self.packages, 
+            idea = self.idea)
         # Creats an 'Overview' instance, providing an outline of the overall
         # project from 'Worker' instances stored in 'manager'.
         self.overview = Overview.create(manager = self.manager)
         # Creates a 'Library' instance for storing 'Book' instances.
         self.library = Library.create(manager = self.manager)
         # Calls 'draft' method if 'auto_draft' is True.
+        super().__post_init__()
         if self.auto_draft:
             self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
@@ -374,12 +377,12 @@ class Project(SimpleStage, Iterable):
         self.options = self._get_packages()
         if not packages:
             try:
-                outer_key = self.__name__.lower()
-                inner_key = f'{self.__name__.lower()}_packages'
+                outer_key = self.__class__.__name__.lower()
+                inner_key = f'{self.__class__.__name__.lower()}_packages'
                 packages = listify(self.idea[outer_key][inner_key])
             except KeyError:
                 pass
-        elif isinstance(packages, dict):
+        if isinstance(packages, MutableMapping):
             return packages
         else:
             new_packages = {}

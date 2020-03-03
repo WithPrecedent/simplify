@@ -16,7 +16,6 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 from simplify.core.base import SimpleLoader
 from simplify.core.base import SimpleSettings
-from simplify.core.base import SimpleStage
 from simplify.core.creators import Publisher
 from simplify.core.library import Book
 from simplify.core.library import Chapter
@@ -27,7 +26,7 @@ from simplify.core.utilities import listify
 
 
 @dataclass
-class Manager(SimpleStage, SimpleSettings, MutableMapping):
+class Manager(MutableMapping):
     """Stores and manages 'Worker' instances for a 'Project'.
 
     Args:
@@ -42,11 +41,10 @@ class Manager(SimpleStage, SimpleSettings, MutableMapping):
     """
     workers: Optional[Union[Dict[str, 'Worker'], List[str]]] = field(
         default_factory = dict)
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes 'workers' and 'default_packages'."""
-        self.workers = self._check_workers(workers = self.workers)
         self.workers = self._initialize_workers(workers = self.workers)
         return self
 
@@ -54,11 +52,11 @@ class Manager(SimpleStage, SimpleSettings, MutableMapping):
 
     @classmethod
     def create(cls,
-            workers: Optional[Union[
-                Dict[str, 'Worker'],
-                'Repository',
-                'Manager']] = None) -> 'Manager':
-        """Creates a Manager instance from 'workers'.
+            packages: Union[Dict[str, Union['Worker', 'Package']], 
+                'Repository', 
+                'Manager'],
+            idea: 'Idea') -> 'Manager':
+        """Creates a 'Manager' instance from 'packages'.
 
         Args:
             workers (Optional[Union[Dict[str, 'Worker'], 'Repository',
@@ -73,16 +71,22 @@ class Manager(SimpleStage, SimpleSettings, MutableMapping):
                 in that Mutable Mapping are not 'Worker' instances.
 
         """
-
-        if isinstance(workers, Manager):
-            return workers
-        elif isinstance(workers, MutableMapping):
-            if all(isinstance(value, Worker) for value in workers.values()):
-                return cls(workers = workers)
+        if isinstance(packages, Manager):
+            return packages
+        elif isinstance(packages, MutableMapping):
+            if all(isinstance(value, Worker) for value in packages.values()):
+                return cls(workers = packages, idea = idea)
             else:
-                raise TypeError('workers values must be Worker type')
+                try:
+                    new_packages = {}
+                    for key, package in packages.items():
+                        new_packages[key] = package.load()
+                    return cls(workers = new_packages, idea = idea)
+                except AttributeError:
+                    raise TypeError(
+                        'workers values must be Worker or Package type')
         else:
-            raise TypeError('workers must be dict or Repository type')
+            raise TypeError('workers must be dict, Repository, or Manager type')
 
     """ Required ABC Methods """
 
@@ -160,36 +164,6 @@ class Manager(SimpleStage, SimpleSettings, MutableMapping):
 
     """ Private Methods """
 
-    def _check_workers(self,
-            workers: Union[
-                Dict[str, 'Worker'], List[str]]) -> Dict[str, 'Worker']:
-        """Creates or validates 'workers'.
-
-        Args:
-            workers (Union[Dict[str, 'Worker'], List[str]]): set of 'Worker'
-                instances stored in dict or a list to create one from
-                'default_packages'.
-
-        Returns:
-            Dict[str, 'Worker']: mapping with stored 'Worker' instances.
-
-        """
-        if not workers:
-            try:
-                outer_key = self.__name__.lower()
-                inner_key = f'{self.__name__.lower()}_workers'
-                workers = listify(idea[outer_key][inner_key])
-            except KeyError:
-                raise ValueError('workers or idea workers must be passed')
-        elif isinstance(workers, (str, list)):
-            new_workers = {}
-            for worker in listify(workers, default_empty = True):
-                package = self.default_packages[worker]
-                new_workers[worker] = package.load()
-            return new_workers
-        else:
-            return workers
-
     def _initialize_workers(self,
             workers: Dict[str, 'Worker']) -> Dict[str, 'Worker']:
         """Instances 'Worker' subclasses stored in 'workers'.
@@ -203,7 +177,7 @@ class Manager(SimpleStage, SimpleSettings, MutableMapping):
         """
         new_workers = {}
         for key, worker in workers.items():
-            new_workers[key] = worker().load(key)
+            new_workers[key] = worker(idea = self.idea)
         return new_workers
 
 
@@ -261,7 +235,7 @@ class Worker(SimpleLoader, SimpleSettings):
     data: Optional[str] = field(default_factory = lambda: 'dataset')
     import_folder: Optional[str] = field(default_factory = lambda: 'processed')
     export_folder: Optional[str] = field(default_factory = lambda: 'processed')
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         if self.name is None:

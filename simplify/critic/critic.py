@@ -400,7 +400,7 @@ class Critic(Worker):
     scholar: Optional[str] = field(default_factory = lambda: 'CriticScholar')
     options: Optional[str] = field(default_factory = lambda: 'Evaluators')
     data: Optional[str] = field(default_factory = lambda: 'analyst')
-    idea: ClassVar['Idea']
+    idea: Optional['Idea'] = None
 
     """ Core siMpLify Methods """
 
