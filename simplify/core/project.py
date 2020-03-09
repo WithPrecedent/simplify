@@ -19,24 +19,25 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleStage
+from simplify.core.base import SimpleFlow
+from simplify.core.base import SimpleLoader
 from simplify.core.dataset import Dataset
 from simplify.core.filer import Filer
 from simplify.core.idea import Idea
 from simplify.core.library import Book
 from simplify.core.library import Chapter
 from simplify.core.library import Library
-from simplify.core.repository import Repository
 from simplify.core.manager import Manager
 from simplify.core.manager import Worker
 from simplify.core.overview import Overview
+from simplify.core.repository import Repository
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
 from simplify.core.utilities import subsetify
 
 
 @dataclass
-class Project(SimpleStage, Iterable):
+class Project(SimpleFlow):
     """Controller class for siMpLify projects.
 
     Args:
@@ -59,12 +60,10 @@ class Project(SimpleStage, Iterable):
             instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
             in a new Dataset instance as a DataFrame. Default is None.
-        workers (Optional[Union[Dict[str, 'Worker'], 'Manager', List[str]]]):
-            dictionary with keys as strings and values of 'Worker' instances, a
-            'Manager' instance, or a list of workers corresponding to keys in
-            'default_workers' to use. Defaults to an empty dictionary. If
-            nothing is provided, Project attempts to construct workers from
-            'idea' and 'default_workers'.
+        packages (Optional[Union[List[str], Dict[str, 'Package'], Dict[str,
+            'Worker'], 'Repository', 'Manager']]): mapping of 'Package'
+            instances or the information needed to create one and store it in
+            a 'Manager' instance. Defaults to an empty 'Repository' instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared 'Idea' instance, 'name' should match the appropriate
@@ -86,8 +85,8 @@ class Project(SimpleStage, Iterable):
             be passed. Defaults to False.
 
     """
-    idea: Optional[Union['Idea', str]] = None
-    filer: Optional[Union['Filer', str]] = None
+    idea: Optional['Idea'] = None
+    filer: Optional['Filer'] = None
     dataset: Optional[Union[
         'Dataset',
         pd.DataFrame,
@@ -113,32 +112,30 @@ class Project(SimpleStage, Iterable):
         """Initializes class attributes and calls selected methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Validates 'Idea' instance and adds attributes from it.
+        # Validates 'Idea' instance and adds attributes to this instance from
+        # it based upon the 'name' attribute.
         self.idea = Idea.create(idea = self.idea)
         self = self.idea.apply(instance = self)
         # Validates 'Filer' instance.
         self.filer = Filer.create(root_folder = self.filer, idea = self.idea)
-        # # Injects 'idea', 'identification, and 'filer' into the base
-        # # 'SimpleSettings'. This ensures that all 'SimpleSettings' subclasses
-        # # have access to the same configuration settings.
-        # SimpleSettings.idea = self.idea
-        # SimpleSettings.identification = self.identification
-        # SimpleSettings.filer = self.filer
-        # Validates 'Dataset' instance.
-        self.dataset = Dataset.create(data = self.dataset, idea = self.idea)
-        # Validates 'packages' or creates it from 'idea' and default packages.
-        self.packages = self._initialize_packages(packages = self.packages)
         # Creates a 'Manager' instance for storing 'Worker' instances.
         self.manager = Manager.create(
-            packages = self.packages, 
+            packages = self.packages,
             idea = self.idea)
         # Creats an 'Overview' instance, providing an outline of the overall
         # project from 'Worker' instances stored in 'manager'.
         self.overview = Overview.create(manager = self.manager)
         # Creates a 'Library' instance for storing 'Book' instances.
-        self.library = Library.create(manager = self.manager)
-        # Calls 'draft' method if 'auto_draft' is True.
+        self.library = Library.create(
+            manager = self.manager,
+            catalog = self.overview)
+        # Validates 'Dataset' instance.
+        self.dataset = Dataset.create(data = self.dataset, idea = self.idea)
+        # Validates 'packages' or creates it from 'idea' and default packages.
+        self.packages = self._initialize_packages(packages = self.packages)
+        # Initializes 'stage' and validates core siMpLify objects.
         super().__post_init__()
+        # Calls 'draft' method if 'auto_draft' is True.
         if self.auto_draft:
             self.draft()
         # Calls 'publish' method if 'auto_publish' is True.
@@ -149,7 +146,82 @@ class Project(SimpleStage, Iterable):
             self.apply()
         return self
 
-    """ Required ABC Methods """
+    """ Factory Method """
+
+    @classmethod
+    def create(cls,
+            idea: Optional[Union['Idea', str]] = None,
+            filer: Optional[Union['Filer', str]] = None,
+            dataset: Optional[Union[
+                'Dataset',
+                pd.DataFrame,
+                np.ndarray,
+                str,
+                Dict[str, Union[
+                    pd.DataFrame,
+                    np.ndarray,
+                    str]]]] = None,
+            packages: Optional[Union[
+                List[str],
+                Dict[str, 'Package'],
+                Dict[str, 'Worker'],
+                'Repository',
+                'Manager']] = field(default_factory = Repository),
+            name: Optional[str] = field(default_factory = lambda: 'project'),
+            identification: Optional[str] = field(
+                default_factory = datetime_string),
+            auto_draft: Optional[bool] = True,
+            auto_publish: Optional[bool] = True,
+            auto_apply: Optional[bool] = False) -> 'Project':
+        return cls
+    #     """Creates a 'Project' instance from passed arguments.
+
+    #     Args:
+    #         idea (Optional[Union[Idea, str]]): an instance of Idea or a string
+    #             containing the file path or file name (in the current working
+    #             directory) where a file of a supported file type with settings for
+    #             an Idea instance is located. Defaults to None.
+    #         filer (Optional[Union['Filer', str]]): an instance of Filer or a string
+    #             containing the full path of where the root folder should be located
+    #             for file output. A filer instance contains all file path and
+    #             import/export methods for use throughout siMpLify. Default is None.
+    #         dataset (Optional[Union['Dataset', pd.DataFrame, np.ndarray, str]]): an
+    #             instance of Dataset, an instance of Data, a string containing the
+    #             full file path where a data file for a pandas DataFrame is located,
+    #             a string containing a file name in the default data folder (as
+    #             defined in the shared Filer instance), a full folder path where raw
+    #             files for data to be extracted from, a string
+    #             containing a folder name which is an attribute in the shared Filer
+    #             instance, a DataFrame, or numpy ndarray. If a DataFrame, Data
+    #             instance, ndarray, or string is
+    #             passed, the resultant data object is stored in the 'data' attribute
+    #             in a new Dataset instance as a DataFrame. Default is None.
+    #         packages (Optional[Union[List[str], Dict[str, 'Package'], Dict[str,
+    #             'Worker'], 'Repository', 'Manager']]): mapping of 'Package'
+    #             instances or the information needed to create one and store it in
+    #             a 'Manager' instance. Defaults to an empty 'Repository' instance.
+    #         name (Optional[str]): designates the name of the class used for internal
+    #             referencing throughout siMpLify. If the class needs settings from
+    #             the shared 'Idea' instance, 'name' should match the appropriate
+    #             section name in 'Idea'. When subclassing, it is a good idea to use
+    #             the same 'name' attribute as the base class for effective
+    #             coordination between siMpLify classes. 'name' is used instead of
+    #             __class__.__name__ to make such subclassing easier. Defaults to
+    #             'project'.
+    #         identification (Optional[str]): a unique identification name for this
+    #             'Project' instance. The name is used for creating file folders
+    #             related to the 'Project'. If not provided, a string is created from
+    #             the date and time.
+    #         auto_draft (Optional[bool]): whether to call the 'draft' method when
+    #             instanced. Defaults to True.
+    #         auto_publish (Optional[bool]): whether to call the 'publish' method when
+    #             instanced. Defaults to True.
+    #         auto_apply (Optional[bool]): whether to call the 'apply' method when
+    #             instanced. For auto_apply to have an effect, 'dataset' must also
+    #             be passed. Defaults to False.
+    # """
+
+    """ Dunder Methods """
 
     def __iter__(self) -> Iterable:
         """Returns iterable for class instance, depending upon 'stage'.
@@ -170,22 +242,12 @@ class Project(SimpleStage, Iterable):
     def __call__(self) -> Callable:
         """Drafts, publishes, and applies Project.
 
-        This requires an dataset argument to be passed to work properly.
-
         Calling Project as a function is compatible with and used by the
         command line interface.
 
-        Raises:
-            ValueError: if 'dataset' is not passed when Project is called as a
-                function.
-
         """
-        # Validates 'dataset'.
-        if self.dataset is None:
-            raise ValueError('Calling Project as a function requires a dataset')
-        else:
-            self.auto_apply = True
-            self.__post__init()
+        self.auto_apply = True
+        self.__post__init()
         return self
 
     def __repr__(self) -> str:
@@ -194,7 +256,7 @@ class Project(SimpleStage, Iterable):
 
     def __str__(self) -> str:
         """Returns string representation of a class instance."""
-        return f'Project {self.identification}: {str(self.library.catalog)}'
+        return f'Project {self.identification}: {str(self.overview)}'
 
     """ Core siMpLify Methods """
 
@@ -341,7 +403,9 @@ class Project(SimpleStage, Iterable):
             file_path (Optional[Union[str, Path]]): path to save 'attribute'.
 
         Raises:
-            TypeError: if 'attribute' is not serializable.
+            AttributeError: if 'attribute' is a string and cannot be found in
+                the 'Project' subclass or its 'manager' and 'library'
+                attributes.
 
         """
         if isinstance(attribute, str):
@@ -354,11 +418,9 @@ class Project(SimpleStage, Iterable):
                     try:
                         attribute = getattr(self.library, attribute)
                     except AttributeError:
-                        pass
+                        AttributeError(f'attribute not found in {self.name}')
         else:
-            raise TypeError(
-                'loaded object must be Projecct, Library, Book, Dataset, \
-                     Manager, or Worker type')
+            self.filer.save(attribute)
         return self
 
     """ Private Methods """
@@ -374,7 +436,7 @@ class Project(SimpleStage, Iterable):
             Dict[str, 'Package']:
 
         """
-        self.options = self._get_packages()
+        self.options = DEFAULT_OPTIONS
         if not packages:
             try:
                 outer_key = self.__class__.__name__.lower()
@@ -385,69 +447,34 @@ class Project(SimpleStage, Iterable):
         if isinstance(packages, MutableMapping):
             return packages
         else:
-            new_packages = {}
             for package in packages:
-                new_packages[package] = self.options[package]
+                self.add(item = package)
+                # new_packages[package] = self.options[package]
             if new_packages:
                 return new_packages
             else:
                 return self.packages
 
-    def _initialize_library(self, workers: Dict[str, 'Worker']) -> 'Library':
-        """Returns 'Library' instance from settings in 'workers'.
-
-        Args:
-            workers (Dict[str, 'Worker']): dictionary with keys as strings and
-                values of 'Worker'.
-
-        Returns:
-            'Library': with instanced 'books'.
-
-        """
-        self.library = Library(
-            identification = self.identification,
-            catalog = self.manager.outline())
-        for worker in workers:
-            self.library[worker.name] = worker.book()
-        return Library
-
-    def _get_packages(self) -> Dict[str, 'Package']:
-        return {
-            'wrangler': Package(
-                module = 'simplify.wrangler.wrangler',
-                worker = 'Wrangler'),
-            'explorer': Package(
-                module = 'simplify.explorer.explorer',
-                worker = 'Explorer'),
-            'analyst': Package(
-                module = 'simplify.analyst.analyst',
-                worker = 'Analyst'),
-            'critic': Package(
-                module = 'simplify.critic.critic',
-                worker = 'Critic'),
-            'artist': Package(
-                module = 'simplify.artist.artist',
-                worker = 'Artist')}
-
 
 @dataclass
-class Package(object):
+class Package(SimpleLoader):
     """Lazy loader for 'Worker' instances.
 
     Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier.
         module (Optional[str]): name of module where object to use is located.
         worker (Optional[str]): name of 'Worker' subclass in 'module' to load.
 
     """
+    name: str
     module: str
     worker: str
-    name: Optional[str] = None
-
-    def __post_init__(self):
-        """Creates a default 'name' if it is not passed."""
-        if self.name is None:
-            self.name = self.worker.lower()
-        return self
 
     """ Core siMpLify Methods """
 
@@ -460,3 +487,25 @@ class Package(object):
         """
         return getattr(import_module(self.module), self.worker)
 
+
+DEFAULT_OPTIONS = {
+    'wrangler': Package(
+        name = 'wrangler',
+        module = 'simplify.wrangler.wrangler',
+        worker = 'Wrangler'),
+    'explorer': Package(
+        name = 'explorer',
+        module = 'simplify.explorer.explorer',
+        worker = 'Explorer'),
+    'analyst': Package(
+        name = 'analyst',
+        module = 'simplify.analyst.analyst',
+        worker = 'Analyst'),
+    'critic': Package(
+        name = 'critic',
+        module = 'simplify.critic.critic',
+        worker = 'Critic'),
+    'artist': Package(
+        name = 'artist',
+        module = 'simplify.artist.artist',
+        worker = 'Artist')}

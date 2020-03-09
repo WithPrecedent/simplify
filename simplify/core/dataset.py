@@ -19,12 +19,11 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleSettings
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Dataset(SimpleSettings):
+class Dataset(object):
     """Collection of associated pandas data objects.
 
     Args:
@@ -52,6 +51,8 @@ class Dataset(SimpleSettings):
     data: Optional[Union[pd.DataFrame, np.ndarray, str, Path]] = None
     datatypes: Optional[Dict[str, str]] = field(default_factory = dict)
     prefixes: Optional[Dict[str, str]] = field(default_factory = dict)
+    idea: Optional['Idea'] = None
+    filer: Optional['Filer'] = None
     name: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -123,10 +124,6 @@ class Dataset(SimpleSettings):
             data = x
             data[cls.idea['analyst']['label']] = y
         # Creates 'Dataset' based upon argumnets passed.
-        if isinstance(data, Dataset):
-            return data
-        elif data is None:
-            return cls()
         elif isinstance(data, (pd.DataFrame, np.ndarray, str)):
             if datatypes is None:
                 datatypes = dict()
@@ -135,7 +132,9 @@ class Dataset(SimpleSettings):
             return cls(
                 data = cls._validate_data(data = data),
                 datatypes = datatypes,
-                prefixes = prefixes)
+                prefixes = prefixes,
+                idea = idea,
+                filer = filer)
         elif isinstance(data, pd.Series):
             # To do add row to DataFrame.
             pass

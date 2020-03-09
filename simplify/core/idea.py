@@ -19,18 +19,24 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 import pandas as pd
 
+from simplify.core.base import SimpleContainer
 import simplify.core.defaults as simplify_defaults
 from simplify.core.repository import Repository
-from simplify.core.utilities import deduplicate
 from simplify.core.utilities import listify
 from simplify.core.utilities import typify
 
 
 @dataclass
-class Idea(MutableMapping):
-    """Converts a data science idea into python.
+class Idea(SimpleContainer, MutableMapping):
+    """Converts a data science idea into a python object.
 
-    If 'configuration' is imported from a file, Idea creates a dictionary,
+    'Idea' uses a modified version of the Borg design pattern outlined by Alex
+    Martelli, described here: http://www.aleax.it/5ep.html.
+
+    This allows every imported instance of 'Idea' to share the same class
+    variable 'configuration' dictionary containing settings.
+
+    If 'configuration' is imported from a file, 'Idea' creates a dictionary,
     converting dictionary values to appropriate datatypes, and stores portions
     of the 'configuration' dictionary as attributes in other classes. Idea is
     based on python's ConfigParser. It seeks to cure some of the shortcomings of
@@ -133,40 +139,48 @@ class Idea(MutableMapping):
             converted to other datatypes (True) or left alone (False). If
             'configuration' was imported, a False value will leave all values as
             strings. Defaults to True.
+        _shared_state (ClassVar[Dict[str, Any]]): shared state of all class
+            instances. Defaults to an empty dictionary.
 
     """
-    configuration: Dict[str, Dict[str, Any]] = field(default_factory = dict)
+    configuration: Optional[Dict[str, Dict[str, Any]]] = field(
+        default_factory = dict)
     infer_types: Optional[bool] = True
+    # _shared_state: ClassVar[Dict[str, Any]] = field(default = {})
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         # Validates 'configuration'.
         if isinstance(self.configuration, (str, Path)):
-            self.configuration = load_configuration(
-                file_path = self.configuration)
+            self.configuration = self.create(idea = self.configuration)
         # Infers types for values in 'configuration', if option selected.
         if self.infer_types:
             self._infer_types()
         # Adds 'simplify_defaults' as backup settings to 'configuration'.
-        self._create_backup()
+        self._chain_defaults()
+        # Implements Borg pattern so that all 'Idea' instances will share the
+        # same state.
+        # self.__dict__ = self._shared_state
         return self
 
     """ Factory Method """
 
     @classmethod
-    def create(cls, idea: Union[Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
-        """Creates an Idea instance from passed argument.
+    def create(cls,
+            idea: Union[
+                str, Path, Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
+        """Creates an 'Idea' instance from passed argument.
 
         Args:
-            idea (Union[Dict[str, Dict[str, Any]], 'Idea']): a dict, a str file
-                path to an ini, csv, or py file with settings, or an Idea
+            idea (Union[Dict[str, Path, Dict[str, Any]], 'Idea']): a dict, a str
+                file path to an ini, csv, or py file with settings, or an Idea
                 instance with a 'configuration' attribute.
 
         Returns:
-            Idea instance, properly configured.
+            'Idea' instance, properly configured.
 
         Raises:
-            TypeError: if 'idea' is neither a dict, str, nor Idea instance.
+            TypeError: if 'idea' is neither a dict, str, nor 'Idea' instance.
 
         """
 
@@ -328,7 +342,7 @@ class Idea(MutableMapping):
 
     """ Private Methods """
 
-    def _create_backup(self) -> None:
+    def _chain_defaults(self) -> None:
         """Creates set of mappings for siMpLify settings lookup."""
         defaults = {}
         for key, attribute in simplify_defaults.__dict__.items():
@@ -356,23 +370,40 @@ class Idea(MutableMapping):
             except (AttributeError, KeyError):
                 return {}
 
-    def _get_special(self, instance: object, suffix: str) -> List[str]:
+    def _get_special(self, section: str, prefix: str, suffix: str) -> List[str]:
         """Returns list of strings from appropriate item in 'configuration'.
 
         Args:
-            instance (object): siMpLify class with 'name' attribute to find
-                matching item in 'configuration'.
-            suffix (str): suffix of item in 'configuration'.
+            section (str): outer key for item in 'configuration'.
+            prefix (str): prefix to inner key for item in 'configuration'.
+            suffix (str): suffix of inner key for item in 'configuration'.
 
         Returns:
             List[str]: item from 'configuration.
 
         """
         try:
-            return listify(self.configuration[instance.name]['_'.join(
-                [instance.name, suffix])])
+            return listify(self.configuration[section][f'{prefix}_{suffix}'])
         except (KeyError, AttributeError):
             return None
+
+    # def _get_special(self, instance: object, suffix: str) -> List[str]:
+    #     """Returns list of strings from appropriate item in 'configuration'.
+
+    #     Args:
+    #         instance (object): siMpLify class with 'name' attribute to find
+    #             matching item in 'configuration'.
+    #         suffix (str): suffix of item in 'configuration'.
+
+    #     Returns:
+    #         List[str]: item from 'configuration.
+
+    #     """
+    #     try:
+    #         return listify(self.configuration[instance.name]['_'.join(
+    #             [instance.name, suffix])])
+    #     except (KeyError, AttributeError):
+    #         return None
 
     def _get_techniques(self, instance: object) -> Dict[str, Dict[str, None]]:
         """Returns nested dictionary of techniques.
@@ -569,6 +600,20 @@ class Idea(MutableMapping):
 
     """ Core siMpLify Methods """
 
+    def add(self, section: str, dictionary: Dict[str, Any]) -> None:
+        """Adds entry to 'configuration'.
+
+        Args:
+            section (str): name of section to add 'dictionary' to.
+            dictionary (Dict[str, Any]): dict to add to 'section'.
+
+        """
+        if section in self.configuration:
+            self.configuration[section].update(dictionary)
+        else:
+            self.configuration[section] = dictionary
+        return self
+
     def apply(self,
             instance: object,
             inject_specials: Optional[bool] = True,
@@ -602,4 +647,37 @@ class Idea(MutableMapping):
             overwrite = overwrite)
         return instance
 
+    """ Special Access Methods """
 
+    def get_packages(self, section: str) -> List[str]:
+        return self._get_special(
+            section = section,
+            prefix = section,
+            suffix = 'packages')
+
+    def get_steps(self, section: str) -> List[str]:
+        return self._get_special(
+            section = section,
+            prefix = section,
+            suffix = 'step')
+
+    def get_techniques(self, section: str) -> List[str]:
+        techniques = {}
+        for key, value in self.configuration[section].items():
+            if '_techniques' in key:
+                new_key = key.partition('_techniques')[0]
+                techniques[new_key] = self._get_special(
+                    section = section,
+                    prefix = new_key,
+                    suffix = 'techniques')
+        return techniques
+
+    def get_parameters(self, step: str, technique: str) -> Dict[str, Any]:
+        try:
+            return self.configuration[f'{technique}_parameters']
+        except KeyError:
+            try:
+                return self.configuration[f'{step}_parameters']
+            except KeyError:
+                raise KeyError(
+                    f'parameters for {step} and {technique} not found')

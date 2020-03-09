@@ -62,7 +62,7 @@ class Library(MutableMapping):
         for name, worker in manager.workers.items():
             books[name] = worker.load('book')()
         return cls(books = books)
-    
+
     """ Required ABC Methods """
 
     def __getitem__(self, key: str) -> 'Book':
@@ -228,6 +228,19 @@ class Book(SimpleManuscript):
         self.chapters.extend(listify(chapters, default_empty = True))
         return self
 
+    def proxify(self, name: str) -> None:
+        """Adds a proxy property to refer to class iterable.
+
+        Args:
+            name (str): name of proxy property.
+
+        """
+        setattr(self, name, property(
+            fget = self._proxy_getter,
+            fset = self._proxy_setter,
+            fdel = self._proxy_deleter))
+        return self
+
 
 @dataclass
 class Chapter(SimpleManuscript):
@@ -266,6 +279,11 @@ class Technique(SimpleLoader):
         module (Optional[str]): name of module where object to use is located
             (can either be a siMpLify or non-siMpLify module). Defaults to
             'simplify.core'.
+        default_module (Optional[str]): name of a backup module where object to
+            use is located (can either be a siMpLify or non-siMpLify module).
+            Defaults to 'simplify.core'. Subclasses should not generally
+            override this attribute. It allows the 'load' method to use generic
+            classes if the specified one is not found.
         algorithm (Optional[object]): callable object which executes the primary
             method of a class instance. Defaults to None.
         parameters (Optional[Dict[str, Any]]): parameters to be attached to
@@ -273,9 +291,11 @@ class Technique(SimpleLoader):
             dictionary.
 
     """
-    name: Optional[str] = None
+    name: str
     step: Optional[str] = None
-    module: Optional[str] = None
+    module: Optional[str] = field(default_factory = lambda: 'simplify.core')
+    default_module: Optional[str] = field(
+        default_factory = lambda: 'simplify.core')
     algorithm: Optional[object] = None
     parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
 
@@ -292,3 +312,43 @@ class Technique(SimpleLoader):
             f'technique: {self.name} '
             f'step: {self.step} '
             f'parameters: {str(self.parameters)} ')
+
+    """ Public Methods """
+
+    def load(self, component: str) -> object:
+        """Returns 'component' from 'module' or 'default_module.
+
+        If 'component' is not a str, it is assumed to have already been loaded
+        and is returned as is.
+
+        Args:
+            component (str): name of object to load from 'module' or
+                'default_module'.
+
+        Raises:
+            ImportError: if 'component' is not found in 'module' or
+                'default_module'.
+
+        Returns:
+            object: from 'module' or 'default_module'.
+
+        """
+        # If 'component' is a string, attempts to load from 'module' or, if not
+        # found there, 'default_module'.
+        if isinstance(getattr(self, component), str):
+            try:
+                return getattr(
+                    import_module(self.module),
+                    getattr(self, component))
+            except (ImportError, AttributeError):
+                try:
+                    return getattr(
+                        import_module(self.default_module),
+                        getattr(self, component))
+                except (ImportError, AttributeError):
+                    raise ImportError(' '.join(
+                        [getattr(self, component), 'is neither in',
+                            self.module, 'nor', self.default_module]))
+        # If 'component' is not a string, it is returned as is.
+        else:
+            return getattr(self, component)

@@ -7,6 +7,7 @@
 """
 
 from abc import ABC
+from abc import abstractclassmethod
 from abc import abstractmethod
 from dataclasses import dataclass
 from dataclasses import field
@@ -16,27 +17,71 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 
 @dataclass
-class SimpleSettings(ABC):
-    """Provides shared configuration settings and logger to subclasses.
+class SimpleFlow(ABC):
+    """Base class for the core siMpLify workflow."""
 
-    Args:
-        idea (Optional['Idea']): instance with general project settings.
-        filer (ClassVar['Filer']): instance with settings and methods for file
-            managerment.
-        journal (ClassVar['Journal']): instance which logs activity, errors,
-            and timing for a siMpLify 'Project'.
-
-    """
-    idea: Optional['Idea'] = None
-    filer: ClassVar['Filer']
-    journal: ClassVar['Journal']
+    self.stages: List[str] = field(
+        default = lambda: ['initialize', 'draft', 'publish', 'apply'])
 
     def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
+        """Initializes class attributes and calls selected methods."""
+        # Creates core siMpLify stages and initial stage.
+        self.stage = self.stages[0]
+        return self
+
+    """ Required Subclass Methods """
+
+    @abstractclassmethod
+    def create(cls, *args, **kwargs) -> 'SimpleFlow':
+        """Subclasses must provide their own methods."""
+        pass
+
+    @abstractmethod
+    def add(self, item: Union['SimpleContainer', 'SimpleLoader']) -> None:
+        """Subclasses must provide their own methods."""
+        pass
+
+    @abstractmethod
+    def draft(self) -> None:
+        """Subclasses must provide their own methods."""
+        return self
+
+    @abstractmethod
+    def publish(self) -> None:
+        """Subclasses must provide their own methods."""
+        return self
+
+    @abstractmethod
+    def apply(self, **kwargs) -> None:
+        """Subclasses must provide their own methods."""
+        return self
+
+    """ Stage Management Methods """
+
+    def advance(self) -> None:
+        """Advances to next stage in 'stages'."""
+        self.previous_stage = self.stage
         try:
-            self = self.idea.apply(instance = self)
-        except AttributeError:
+            self.stage = self.stages[self.stages.index(self.stage) + 1]
+        except IndexError:
             pass
+        return self
+
+    def change_stage(self, new_stage: str) -> None:
+        """Manually changes 'stage' to 'new_stage'.
+
+        Args:
+            new_stage(str): name of new stage matching a string in 'stages'.
+
+        Raises:
+            ValueError: if new_stage is not in 'stages'.
+
+        """
+        if new_stage in self.stages:
+            self.previous_stage = self.stage
+            self.stage = new_stage
+        else:
+            raise ValueError(' '.join([new_stage, 'is not a recognized stage']))
         return self
 
 
@@ -61,7 +106,7 @@ class SimpleCreator(ABC):
             pass
         return self
 
-    """ Core siMpLify Methods """
+    """ Required Subclass Methods """
 
     @abstractmethod
     def draft(self, project: 'Project') -> 'Project':
@@ -76,16 +121,7 @@ class SimpleCreator(ABC):
 
 @dataclass
 class SimpleEngineer(ABC):
-    """Base class for applying 'Book' instances to data.
-
-    Args:
-        worker ('Worker'): instance with information needed to apply a 'Book'
-            instance.
-        idea (Optional['Idea']): instance with project settings.
-
-    """
-    worker: 'Worker'
-    idea: Optional['Idea'] = None
+    """Base class for applying 'Book' instances to data."""
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -95,96 +131,42 @@ class SimpleEngineer(ABC):
             pass
         return self
 
-    """ Core siMpLify Methods """
+    """ Required Subclass Methods """
 
     @abstractmethod
-    def apply(self,
-            project: 'Project',
-            data: Optional['Dataset'] = None) -> 'Project':
+    def apply(self, project: 'Project', **kwargs) -> 'Project':
         """Subclasses must provide their own methods."""
         return project
 
 
 @dataclass
-class SimpleManuscript(ABC):
-    """Base class for 'Book' and 'Chapter'."""
+class SimpleContainer(ABC):
+    """Base class for core siMpLify container classes."""
 
     def __post_init__(self) -> None:
-        """Initializes attributes and settings."""
-        if self.name is None:
-            self.name = self.__class__.__name__.lower()
+        """Initializes class instance attributes."""
         try:
-            if self.iterable:
-                self.proxify(name = self.iterable)
+            self = self.idea.apply(instance = self)
         except AttributeError:
             pass
         return self
 
-    """ Dunder Methods """
+    """ Required Subclass Methods """
 
-    def __iter__(self) -> Iterable:
-        """Returns iterable of attribute named in 'iterable' attribute.
+    @abstractclassmethod
+    def create(cls, *args, **kwargs) -> 'SimpleContainer':
+        """Subclasses must provide their own methods."""
+        pass
 
-        Returns:
-            Iterable: of attribute named in 'iterable' attribute.
-
-        """
-        return iter(getattr(self, self.iterable))
-
-    def __len__(self) -> int:
-        """Returns length of attribute named in 'iterable' attribute.
-
-        Returns:
-            Integer: length of attribute named in 'iterable' attribute.
-
-        """
-        return len(getattr(self, self.iterable))
-
-    """ Proxy Property Methods """
-
-    def _proxy_getter(self) -> List['Technique']:
-        """Proxy getter for 'techniques'.
-
-        Returns:
-            List['Technique'].
-
-        """
-        return self.techniques
-
-    def _proxy_setter(self, value: List['Technique']) -> None:
-        """Proxy setter for 'techniques'.
-
-        Args:
-            value (List['Technique']): list of 'Technique' instances to store.
-
-        """
-        self.techniques = value
-        return self
-
-    def _proxy_deleter(self) -> None:
-        """Proxy deleter for 'techniques'."""
-        self.techniques = []
-        return self
-
-    """ Public Methods """
-
-    def proxify(self, name: str) -> None:
-        """Adds a proxy property to refer to class iterable.
-
-        Args:
-            name (str): name of proxy property.
-
-        """
-        setattr(self, name, property(
-            fget = self._proxy_getter,
-            fset = self._proxy_setter,
-            fdel = self._proxy_deleter))
-        return self
+    @abstractmethod
+    def add(self, item: Union['SimpleContainer', 'SimpleLoader']) -> None:
+        """Subclasses must provide their own methods."""
+        pass
 
 
 @dataclass
 class SimpleLoader(ABC):
-    """Lazy loader for low-level objects used in a siMpLify project.
+    """Base class for lazy loaders for low-level siMpLify objects.
 
     Args:
         name (str): designates the name of the class used for internal
@@ -197,96 +179,27 @@ class SimpleLoader(ABC):
         module (Optional[str]): name of module where object to use is located
             (can either be a siMpLify or non-siMpLify module). Defaults to
             'simplify.core'.
-        default_module (Optional[str]): name of a backup module where object to
-            use is located (can either be a siMpLify or non-siMpLify module).
-            Defaults to 'simplify.core'. Subclasses should not generally
-            override this attribute. It allows the 'load' method to use generic
-            classes if the specified one is not found.
 
     """
     name: str
     module: Optional[str] = field(default_factory = lambda: 'simplify.core')
-    default_module: Optional[str] = field(
-         default_factory = lambda: 'simplify.core')
 
-    """ Public Methods """
+    """ Core siMpLify Methods """
 
     def load(self, component: str) -> object:
-        """Returns 'component' from 'module' or 'default_module.
+        """Returns 'component' from 'module'.
 
         If 'component' is not a str, it is assumed to have already been loaded
         and is returned as is.
 
         Args:
-            component (str): name of object to load from 'module' or
-                'default_module'.
-
-        Raises:
-            ImportError: if 'component' is not found in 'module' or
-                'default_module'.
+            component (str): name of local attribute to load from 'module'.
 
         Returns:
-            object: from 'module' or 'default_module'.
+            object: from 'module'.
 
         """
-        # If 'component' is a string, attempts to load from 'module' or, if not
-        # found there, 'default_module'.
-        if isinstance(getattr(self, component), str):
-            try:
-                return getattr(
-                    import_module(self.module),
-                    getattr(self, component))
-            except (ImportError, AttributeError):
-                try:
-                    return getattr(
-                        import_module(self.default_module),
-                        getattr(self, component))
-                except (ImportError, AttributeError):
-                    try:
-                        return getattr(
-                            import_module(self.default_module),
-                            self.default_components[component])
-                    except (ImportError, AttributeError):
-                        raise ImportError(' '.join(
-                            [getattr(self, component), 'is neither in',
-                                self.module, 'nor', self.default_module]))
-        # If 'component' is not a string, it is returned as is.
+        if isinstance(component, str):
+            return getattr(import_module(self.module), getattr(self, component))
         else:
             return getattr(self, component)
-
-
-@dataclass
-class SimpleStage(ABC):
-    """Base class for shared state of a siMpLify 'Project' instance."""
-
-    def __post_init__(self) -> None:
-        """Creates core siMpLify stages and initial stage."""
-        self.stages = ['outline', 'draft', 'publish', 'apply']
-        self.stage = 'outline'
-        return self
-
-    """ Stage Management Methods """
-
-    def advance(self) -> None:
-        """Advances to next stage in 'stages'."""
-        self.previous_stage = self.stage
-        stage_index = self.stages.index(self.stage)
-        self.stage = self.stages[self.stage_index + 1]
-        return self
-
-    def change_stage(self, new_stage: str) -> None:
-        """Manually changes 'stage' to 'new_stage'.
-
-        Args:
-            new_stage(str): name of new stage matching a string in 'stages'.
-
-        Raises:
-            TypeError: if new_stage is not in 'stages'.
-
-        """
-        if new_stage in self.stages:
-            self.previous_stage = self.stage
-            self.stage = new_stage
-        else:
-            raise ValueError(' '.join([new_stage, 'is not a recognized stage']))
-        return self

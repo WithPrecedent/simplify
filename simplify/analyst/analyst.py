@@ -21,7 +21,6 @@ from sklearn.utils import check_X_y
 from sklearn.utils.validation import check_is_fitted
 
 from simplify.analyst import algorithms
-from simplify.core.base import SimpleSettings
 from simplify.core.creators import Publisher
 from simplify.core.library import Book
 from simplify.core.library import Chapter
@@ -354,6 +353,7 @@ class AnalystScholar(Scholar):
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
+        print('test idea in analyst', self.idea)
         self = self.idea.apply(instance = self)
         # Creates 'Finisher' instance to finalize 'Technique' instances.
         self.finisher = AnalystFinisher(worker = self.worker)
@@ -575,7 +575,7 @@ class AnalystSpecialist(Specialist):
 """ Options """
 
 @dataclass
-class Tools(Repository, SimpleSettings):
+class Tools(Repository):
     """A dictonary of Tool options for the Analyst subpackage.
 
     Args:
