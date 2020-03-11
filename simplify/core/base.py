@@ -17,29 +17,37 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 
 @dataclass
-class SimpleFlow(ABC):
-    """Base class for the core siMpLify workflow."""
+class SimpleSystem(ABC):
+    """Base class for the core siMpLify workflow.
 
-    self.stages: List[str] = field(
-        default = lambda: ['initialize', 'draft', 'publish', 'apply'])
+    A 'SimpleSystem' subclass maintains a progress state stored in the attribute
+    'stage'. The 'stage' corresponds to whether one of the core workflow
+    methods has been called. The string stored in 'stage' can then be used by
+    subclasses to alter instance behavior, call methods, or change access
+    methods.
+
+    """
 
     def __post_init__(self) -> None:
         """Initializes class attributes and calls selected methods."""
         # Creates core siMpLify stages and initial stage.
+        self.stages = ['initialize', 'draft', 'publish', 'apply']
         self.stage = self.stages[0]
         return self
 
-    """ Required Subclass Methods """
+    """ Required Construction Subclass Methods """
 
     @abstractclassmethod
-    def create(cls, *args, **kwargs) -> 'SimpleFlow':
+    def create(cls, *args, **kwargs) -> 'SimpleSystem':
         """Subclasses must provide their own methods."""
         pass
 
     @abstractmethod
-    def add(self, item: Union['SimpleContainer', 'SimpleLoader']) -> None:
+    def add(self, item: Union['SimpleContainer', 'SimpleComponent']) -> None:
         """Subclasses must provide their own methods."""
-        pass
+        return self
+
+    """ Required Workflow Subclass Methods """
 
     @abstractmethod
     def draft(self) -> None:
@@ -56,6 +64,14 @@ class SimpleFlow(ABC):
         """Subclasses must provide their own methods."""
         return self
 
+    """ Dunder Methods """
+
+    def __getattribute__(self, attribute):
+        if attribute in self.stages:
+            self.stage = attribute
+        return super().__getattribute__(attribute)
+
+
     """ Stage Management Methods """
 
     def advance(self) -> None:
@@ -67,21 +83,21 @@ class SimpleFlow(ABC):
             pass
         return self
 
-    def change_stage(self, new_stage: str) -> None:
-        """Manually changes 'stage' to 'new_stage'.
+    def change(self, stage: str) -> None:
+        """Manually changes 'stage' attribute to 'stage'.
 
         Args:
-            new_stage(str): name of new stage matching a string in 'stages'.
+            stage(str): name of new stage matching a string in 'stages'.
 
         Raises:
-            ValueError: if new_stage is not in 'stages'.
+            ValueError: if 'stage' is not in 'stages'.
 
         """
-        if new_stage in self.stages:
+        if stage in self.stages:
             self.previous_stage = self.stage
-            self.stage = new_stage
+            self.stage = stage
         else:
-            raise ValueError(' '.join([new_stage, 'is not a recognized stage']))
+            raise ValueError(' '.join([stage, 'is not a recognized stage']))
         return self
 
 
@@ -109,31 +125,6 @@ class SimpleCreator(ABC):
     """ Required Subclass Methods """
 
     @abstractmethod
-    def draft(self, project: 'Project') -> 'Project':
-        """Subclasses must provide their own methods."""
-        return project
-
-    @abstractmethod
-    def publish(self, project: 'Project') -> 'Project':
-        """Subclasses must provide their own methods."""
-        return project
-
-
-@dataclass
-class SimpleEngineer(ABC):
-    """Base class for applying 'Book' instances to data."""
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        try:
-            self = self.idea.apply(instance = self)
-        except AttributeError:
-            pass
-        return self
-
-    """ Required Subclass Methods """
-
-    @abstractmethod
     def apply(self, project: 'Project', **kwargs) -> 'Project':
         """Subclasses must provide their own methods."""
         return project
@@ -143,14 +134,6 @@ class SimpleEngineer(ABC):
 class SimpleContainer(ABC):
     """Base class for core siMpLify container classes."""
 
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        try:
-            self = self.idea.apply(instance = self)
-        except AttributeError:
-            pass
-        return self
-
     """ Required Subclass Methods """
 
     @abstractclassmethod
@@ -159,13 +142,13 @@ class SimpleContainer(ABC):
         pass
 
     @abstractmethod
-    def add(self, item: Union['SimpleContainer', 'SimpleLoader']) -> None:
+    def add(self, item: Union['SimpleContainer', 'SimpleComponent']) -> None:
         """Subclasses must provide their own methods."""
         pass
 
 
 @dataclass
-class SimpleLoader(ABC):
+class SimpleComponent(ABC):
     """Base class for lazy loaders for low-level siMpLify objects.
 
     Args:
@@ -183,6 +166,14 @@ class SimpleLoader(ABC):
     """
     name: str
     module: Optional[str] = field(default_factory = lambda: 'simplify.core')
+
+    """ Required Subclass Methods """
+
+    @abstractclassmethod
+    def create(cls, *args, **kwargs) -> 'SimpleContainer':
+        """Subclasses must provide their own methods."""
+        pass
+
 
     """ Core siMpLify Methods """
 

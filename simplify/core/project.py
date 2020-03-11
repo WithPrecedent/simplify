@@ -19,8 +19,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleFlow
-from simplify.core.base import SimpleLoader
+from simplify.core.base import SimpleSystem
+from simplify.core.base import SimpleComponent
 from simplify.core.dataset import Dataset
 from simplify.core.filer import Filer
 from simplify.core.idea import Idea
@@ -37,7 +37,7 @@ from simplify.core.utilities import subsetify
 
 
 @dataclass
-class Project(SimpleFlow):
+class Project(SimpleSystem):
     """Controller class for siMpLify projects.
 
     Args:
@@ -457,7 +457,7 @@ class Project(SimpleFlow):
 
 
 @dataclass
-class Package(SimpleLoader):
+class Package(SimpleComponent):
     """Lazy loader for 'Worker' instances.
 
     Args:

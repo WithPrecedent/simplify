@@ -15,7 +15,7 @@ from importlib import import_module
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
-from simplify.core.base import SimpleLoader
+from simplify.core.base import SimpleComponent
 from simplify.core.base import SimpleManuscript
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
@@ -261,7 +261,7 @@ class Chapter(SimpleManuscript):
 
 
 @dataclass
-class Technique(SimpleLoader):
+class Technique(SimpleComponent):
     """Base method wrapper for applying algorithms to data.
 
     Args:

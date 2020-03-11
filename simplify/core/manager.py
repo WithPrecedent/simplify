@@ -14,7 +14,7 @@ from inspect import isclass
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
-from simplify.core.base import SimpleLoader
+from simplify.core.base import SimpleComponent
 from simplify.core.creators import Publisher
 from simplify.core.library import Book
 from simplify.core.library import Chapter
@@ -181,7 +181,7 @@ class Manager(MutableMapping):
 
 
 @dataclass
-class Worker(SimpleLoader):
+class Worker(SimpleComponent):
     """Object construction instructions used by a Project instance.
 
     Args:
