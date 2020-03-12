@@ -185,7 +185,7 @@ class SimpleRepository(ABC):
         if self.name is None:
             self.name = self.__class__.__name__.lower()
         # Allows subclasses to customize 'contents' with 'create'.
-        self = self.create(contents = contents, defaults = defaults)
+        self = self.create(contents = self.contents, defaults = self.defaults)
         # Stores 1-level nested dict as a Repository instance.
         self.nestify()
         # Declares list of wildcards for external reference.
