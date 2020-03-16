@@ -17,12 +17,13 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
 
 from simplify.core.base import SimpleComponent
 from simplify.core.base import SimpleContainer
+from simplify.core.base import SimpleRepository
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
 
 
 @dataclass
-class Library(MutableMapping):
+class Library(SimpleRepository):
     """Serializable object containing complete siMpLify library.
 
     Args:
@@ -189,59 +190,6 @@ class Book(SimpleContainer):
 
         """
         return len(self.chapters)
-
-    """ Proxy Property Methods """
-
-    def _proxy_getter(self) -> List['Chapter']:
-        """Proxy getter for 'chapters'.
-
-        Returns:
-            List['Chapter'].
-
-        """
-        return self.chapters
-
-    def _proxy_setter(self, value: List['Chapter']) -> None:
-        """Proxy setter for 'chapters'.
-
-        Args:
-            value (List['Chapter']): list of 'Chapter' instances to store.
-
-        """
-        self.chapters = value
-        return self
-
-    def _proxy_deleter(self) -> None:
-        """Proxy deleter for 'chapters'."""
-        self.chapters = []
-        return self
-
-    """ Public Methods """
-
-    def add(self,
-            chapters: Union[List['Chapter'], 'Chapter']) -> None:
-        """Combines 'chapters' with existing 'chapters' attribute.
-
-        Args:
-            chapters (Union['Chapter', List['Chapter']]): a 'Chapter' instance
-                or list of such instances.
-
-        """
-        self.chapters.extend(listify(chapters, default_empty = True))
-        return self
-
-    def proxify(self, name: str) -> None:
-        """Adds a proxy property to refer to class iterable.
-
-        Args:
-            name (str): name of proxy property.
-
-        """
-        setattr(self, name, property(
-            fget = self._proxy_getter,
-            fset = self._proxy_setter,
-            fdel = self._proxy_deleter))
-        return self
 
 
 @dataclass

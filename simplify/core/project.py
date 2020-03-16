@@ -466,9 +466,9 @@ class Project(SimpleSystem):
         if isinstance(packages, MutableMapping):
             return packages
         else:
+            new_packages = {}
             for package in packages:
-                self.add(item = package)
-                # new_packages[package] = self.options[package]
+                new_packages[package] = self.options[package]
             if new_packages:
                 return new_packages
             else:
