@@ -1075,8 +1075,8 @@ class FileFormat(SimpleComponent):
 
     """
 
-    name: str
-    module: str
+    name: Optional[str] = None
+    module: Optional[str] = field(default_factory = lambda: 'simplify.core')
     extension: Optional[str] = None
     import_method: Optional[str] = None
     export_method: Optional[str] = None

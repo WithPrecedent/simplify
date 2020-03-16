@@ -16,7 +16,7 @@ from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
     Tuple, Union)
 
 from simplify.core.base import SimpleComponent
-from simplify.core.base import SimpleManuscript
+from simplify.core.base import SimpleContainer
 from simplify.core.utilities import datetime_string
 from simplify.core.utilities import listify
 
@@ -40,7 +40,9 @@ class Library(MutableMapping):
             to an empty dictionary.
 
     """
-    identification: Optional[str] = field(default_factory = datetime_string)
+    name: Optional[str] = field(default_factory = datetime_string)
+    contents: Optional[Dict[str, Any]] = field(default_factory = dict)
+    defaults: Optional[List[str]] = field(default_factory = list)
     catalog: Optional[Dict[str, Dict[str, List[str]]]] = field(
         default_factory = dict)
     books: Optional[Dict[str, 'Book']] = field(default_factory = dict)
@@ -148,7 +150,7 @@ class Library(MutableMapping):
 
 
 @dataclass
-class Book(SimpleManuscript):
+class Book(SimpleContainer):
     """Standard class for top-level siMpLify package iterable storage.
 
     Args:
@@ -243,7 +245,7 @@ class Book(SimpleManuscript):
 
 
 @dataclass
-class Chapter(SimpleManuscript):
+class Chapter(SimpleContainer):
     """Standard class for bottom-level siMpLify package iterable storage.
 
     Args:

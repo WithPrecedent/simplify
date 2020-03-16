@@ -38,6 +38,9 @@ class Manager(MutableMapping):
         idea (Optional['Idea']): shared project configuration settings.
 
     """
+    name: Optional[str] = None
+    contents: Optional[Dict[str, Any]] = field(default_factory = dict)
+    defaults: Optional[List[str]] = field(default_factory = list)
     workers: Optional[Union[Dict[str, 'Worker'], List[str]]] = field(
         default_factory = dict)
     idea: Optional['Idea'] = None
@@ -154,11 +157,10 @@ class Manager(MutableMapping):
 
         """
         # Validates 'worker' type as 'Worker' before adding to 'workers'.
-        if isinstance(worker, Worker):
+        if isinstance(worker, Worker) or issubclass(worker, Worker):
             self.workers[worker.name] = worker
         else:
-            raise ValueError(
-                'worker must be a Worker instance to add to a Manager')
+            raise ValueError('worker must be a Worker or subclass instance')
         return self
 
     """ Private Methods """
@@ -295,4 +297,3 @@ class Worker(SimpleComponent):
 
         """
         return listify(self.idea[section]['_'.join([prefix, suffix])])
-

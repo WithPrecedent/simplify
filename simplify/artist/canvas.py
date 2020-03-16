@@ -27,7 +27,7 @@ class Canvas(Book):
             filer or a string containing the full path of where the root
             folder should be located for file output. A filer instance
             contains all file path and import/export methods for use throughout
-            the siMpLify package. Default is None.
+            the siMpLify package. Defaults to None.
         dataset (Optional[Union['Dataset', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Dataset, a string containing
             the full file path where a data file for a pandas DataFrame or
@@ -35,11 +35,11 @@ class Canvas(Book):
             data folder, as defined in the shared Filer instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
-            attribute in a new Dataset instance. Default is None.
+            attribute in a new Dataset instance. Defaults to None.
         steps (Optional[Union[List[str], str]]): ordered names of Book
             subclasses to include. These names should match keys in the
             'options' attribute. If using the Idea instance settings, this
-            argument should not be passed. Default is None.
+            argument should not be passed. Defaults to None.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared 'Idea' instance, 'name' should match the appropriate

@@ -48,7 +48,7 @@ class Project(SimpleSystem):
         filer (Optional[Union['Filer', str]]): an instance of Filer or a string
             containing the full path of where the root folder should be located
             for file output. A filer instance contains all file path and
-            import/export methods for use throughout siMpLify. Default is None.
+            import/export methods for use throughout siMpLify. Defaults to None.
         dataset (Optional[Union['Dataset', pd.DataFrame, np.ndarray, str]]): an
             instance of Dataset, an instance of Data, a string containing the
             full file path where a data file for a pandas DataFrame is located,
@@ -59,7 +59,7 @@ class Project(SimpleSystem):
             instance, a DataFrame, or numpy ndarray. If a DataFrame, Data
             instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
-            in a new Dataset instance as a DataFrame. Default is None.
+            in a new Dataset instance as a DataFrame. Defaults to None.
         packages (Optional[Union[List[str], Dict[str, 'Package'], Dict[str,
             'Worker'], 'Repository', 'Manager']]): mapping of 'Package'
             instances or the information needed to create one and store it in
@@ -112,16 +112,20 @@ class Project(SimpleSystem):
         """Initializes class attributes and calls selected methods."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
-        # Validates 'Idea' instance and adds attributes to this instance from
-        # it based upon the 'name' attribute.
+        # Validates 'Idea' instance.
         self.idea = Idea.create(idea = self.idea)
-        self = self.idea.apply(instance = self)
         # Validates 'Filer' instance.
         self.filer = Filer.create(root_folder = self.filer, idea = self.idea)
+        # Validates 'Dataset' instance.
+        self.dataset = Dataset.create(data = self.dataset, idea = self.idea)
+        # Adds general attributes from 'idea'.
+        self = self.idea.apply(instance = self)
         # Creates a 'Manager' instance for storing 'Worker' instances.
         self.manager = Manager.create(
-            packages = self.packages,
-            idea = self.idea)
+            packages=self.packages,
+            idea=self.idea)
+        # Validates 'packages' or creates it from 'idea' and default packages.
+        self.packages = self._initialize_packages(packages = self.packages)
         # Creats an 'Overview' instance, providing an outline of the overall
         # project from 'Worker' instances stored in 'manager'.
         self.overview = Overview.create(manager = self.manager)
@@ -129,10 +133,6 @@ class Project(SimpleSystem):
         self.library = Library.create(
             manager = self.manager,
             catalog = self.overview)
-        # Validates 'Dataset' instance.
-        self.dataset = Dataset.create(data = self.dataset, idea = self.idea)
-        # Validates 'packages' or creates it from 'idea' and default packages.
-        self.packages = self._initialize_packages(packages = self.packages)
         # Initializes 'stage' and validates core siMpLify objects.
         super().__post_init__()
         # Calls 'draft' method if 'auto_draft' is True.
@@ -173,53 +173,72 @@ class Project(SimpleSystem):
             auto_draft: Optional[bool] = True,
             auto_publish: Optional[bool] = True,
             auto_apply: Optional[bool] = False) -> 'Project':
-        return cls
-    #     """Creates a 'Project' instance from passed arguments.
+        """Creates a 'Project' instance from passed arguments.
 
-    #     Args:
-    #         idea (Optional[Union[Idea, str]]): an instance of Idea or a string
-    #             containing the file path or file name (in the current working
-    #             directory) where a file of a supported file type with settings for
-    #             an Idea instance is located. Defaults to None.
-    #         filer (Optional[Union['Filer', str]]): an instance of Filer or a string
-    #             containing the full path of where the root folder should be located
-    #             for file output. A filer instance contains all file path and
-    #             import/export methods for use throughout siMpLify. Default is None.
-    #         dataset (Optional[Union['Dataset', pd.DataFrame, np.ndarray, str]]): an
-    #             instance of Dataset, an instance of Data, a string containing the
-    #             full file path where a data file for a pandas DataFrame is located,
-    #             a string containing a file name in the default data folder (as
-    #             defined in the shared Filer instance), a full folder path where raw
-    #             files for data to be extracted from, a string
-    #             containing a folder name which is an attribute in the shared Filer
-    #             instance, a DataFrame, or numpy ndarray. If a DataFrame, Data
-    #             instance, ndarray, or string is
-    #             passed, the resultant data object is stored in the 'data' attribute
-    #             in a new Dataset instance as a DataFrame. Default is None.
-    #         packages (Optional[Union[List[str], Dict[str, 'Package'], Dict[str,
-    #             'Worker'], 'Repository', 'Manager']]): mapping of 'Package'
-    #             instances or the information needed to create one and store it in
-    #             a 'Manager' instance. Defaults to an empty 'Repository' instance.
-    #         name (Optional[str]): designates the name of the class used for internal
-    #             referencing throughout siMpLify. If the class needs settings from
-    #             the shared 'Idea' instance, 'name' should match the appropriate
-    #             section name in 'Idea'. When subclassing, it is a good idea to use
-    #             the same 'name' attribute as the base class for effective
-    #             coordination between siMpLify classes. 'name' is used instead of
-    #             __class__.__name__ to make such subclassing easier. Defaults to
-    #             'project'.
-    #         identification (Optional[str]): a unique identification name for this
-    #             'Project' instance. The name is used for creating file folders
-    #             related to the 'Project'. If not provided, a string is created from
-    #             the date and time.
-    #         auto_draft (Optional[bool]): whether to call the 'draft' method when
-    #             instanced. Defaults to True.
-    #         auto_publish (Optional[bool]): whether to call the 'publish' method when
-    #             instanced. Defaults to True.
-    #         auto_apply (Optional[bool]): whether to call the 'apply' method when
-    #             instanced. For auto_apply to have an effect, 'dataset' must also
-    #             be passed. Defaults to False.
-    # """
+        Args:
+            idea (Optional[Union[Idea, str]]): an instance of Idea or a string
+                containing the file path or file name (in the current working
+                directory) where a file of a supported file type with settings
+                for an Idea instance is located. Defaults to None.
+            filer (Optional[Union['Filer', str]]): an instance of Filer or a
+                string containing the full path of where the root folder should
+                be located for file output. A filer instance contains all file
+                path and import/export methods for use throughout siMpLify.
+                Defaults to None.
+            dataset (Optional[Union['Dataset', pd.DataFrame, np.ndarray, str]]):
+                an instance of Dataset, an instance of Data, a string containing
+                the full file path where a data file for a pandas DataFrame is
+                located, a string containing a file name in the default data
+                folder (as defined in the shared Filer instance), a full folder
+                path where raw files for data to be extracted from, a string
+                containing a folder name which is an attribute in the shared
+                Filer instance, a DataFrame, or numpy ndarray. If a DataFrame,
+                Data instance, ndarray, or string is passed, the resultant data
+                object is stored in the 'data' attribute in a new Dataset
+                instance as a DataFrame. Defaults to None.
+            packages (Optional[Union[List[str], Dict[str, 'Package'], Dict[str,
+                'Worker'], 'Repository', 'Manager']]): mapping of 'Package'
+                instances or the information needed to create one and store it
+                in a 'Manager' instance. Defaults to an empty 'Repository'
+                instance.
+            name (Optional[str]): designates the name of the class instance used
+                for internal referencing throughout siMpLify. If the class
+                instance needs settings from the shared 'Idea' instance, 'name'
+                should match the appropriate section name in that 'Idea'
+                instance. When subclassing, it is a good idea to use the same
+                'name' attribute as the base class for effective coordination
+                between siMpLify classes. 'name' is used instead of
+                __class__.__name__ to make such subclassing easier. Defaults to
+                'project'.
+            identification (Optional[str]): a unique identification name for
+                this 'Project' instance. The name is used for creating file
+                folders related to the 'Project'. If not provided, a string is
+                created from the date and time.
+            auto_draft (Optional[bool]): whether to call the 'draft' method when
+                instanced. Defaults to True.
+            auto_publish (Optional[bool]): whether to call the 'publish' method
+                when instanced. Defaults to True.
+            auto_apply (Optional[bool]): whether to call the 'apply' method when
+                instanced. For auto_apply to have an effect, 'dataset' must also
+                be passed. Defaults to False.
+
+        """
+        # Validates 'Idea' instance.
+        idea = Idea.create(idea = idea)
+        # Validates 'Filer' instance.
+        filer = Filer.create(root_folder = filer, idea = idea)
+        # Validates 'Dataset' instance.
+        dataset = Dataset.create(data = dataset, idea = idea)
+        return cls(
+            idea = idea,
+            filer = filer,
+            dataset = dataset,
+            packages = packages,
+            name = name,
+            identificaiton = identification,
+            auto_draft = auto_draft,
+            auto_publish = auto_publish,
+            auto_apply = auto_apply)
 
     """ Dunder Methods """
 
@@ -292,15 +311,15 @@ class Project(SimpleSystem):
             except (AttributeError, TypeError):
                 name = item
         if isinstance(item, str):
-            self.manager.add(worker = self.options[item].load(), name = name)
+            self.manager.add(worker = self.options[item].load())
         elif isinstance(item, Worker):
-            self.manager.add(worker = item, name = name)
+            self.manager.add(worker = item)
         elif isinstance(item, Package):
             self.options[name] = item
             self.packages[name] = item
-            self.manager.add(worker = item.load(), name = name)
+            self.manager.add(worker = item.load())
         elif isinstance(item, Book):
-            self.library.add(book = item, name = name)
+            self.library.add(book = item)
         else:
             raise TypeError(
                 'add requires a Worker, Book, Package, or string type')
@@ -472,9 +491,9 @@ class Package(SimpleComponent):
         worker (Optional[str]): name of 'Worker' subclass in 'module' to load.
 
     """
-    name: str
-    module: str
-    worker: str
+    name: Optional[str] = None
+    module: Optional[str] = None
+    worker: Optional[str] = None
 
     """ Core siMpLify Methods """
 

@@ -20,7 +20,7 @@ try:
 except ImportError:
     from multiprocessing import Pool
 
-from simplify.core.base import SimpleEngineer
+from simplify.core.base import SimpleCreator
 from simplify.core.dataset import Dataset
 from simplify.core.repository import Repository
 from simplify.core.utilities import listify
@@ -28,7 +28,7 @@ from simplify.core.validators import DataValidator
 
 
 @dataclass
-class Scholar(SimpleEngineer):
+class Scholar(SimpleCreator):
     """Base class for applying 'Book' instances to data.
 
     Args:
@@ -110,7 +110,7 @@ class Scholar(SimpleEngineer):
 
 
 @dataclass
-class Finisher(SimpleEngineer):
+class Finisher(SimpleCreator):
     """Finalizes 'Technique' instances with data-dependent parameters.
 
     Args:
@@ -282,7 +282,7 @@ class Finisher(SimpleEngineer):
 
 
 @dataclass
-class Specialist(SimpleEngineer):
+class Specialist(SimpleCreator):
     """Base class for applying 'Technique' instances to data.
 
     Args:
@@ -375,7 +375,7 @@ class Specialist(SimpleEngineer):
 
 
 @dataclass
-class Parallelizer(SimpleEngineer):
+class Parallelizer(SimpleCreator):
     """Applies techniques using one or more CPU or GPU cores.
 
     Args:

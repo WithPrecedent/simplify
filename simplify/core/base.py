@@ -27,18 +27,22 @@ class SimpleSystem(ABC):
     methods.
 
     Args:
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared 'Idea' instance, 'name' should match the appropriate
-            section name in 'Idea'. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. Defaults to
-            None or __class__.__name__.lower() if super().__post_init__ is
-            called.
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class instance
+            needs settings from the shared 'Idea' instance, 'name' should match
+            the appropriate section name in that 'Idea' instance. When
+            subclassing, it is a good idea to use the same 'name' attribute as
+            the base class for effective coordination between siMpLify classes.
+            'name' is used instead of __class__.__name__ to make such
+            subclassing easier. Defaults to None or __class__.__name__.lower().
 
     """
     name: Optional[str] = None
+    stages: Optional[List[str]] = field(default_factory = lambda: [
+        'initialize',
+        'draft',
+        'publish',
+        'apply'])
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -46,24 +50,30 @@ class SimpleSystem(ABC):
         if self.name is None:
             self.name = self.__class__.__name__.lower()
         # Creates core siMpLify stages and initial stage.
-        self.stages = ['initialize', 'draft', 'publish', 'apply']
+        # self.stages = ['initialize', 'draft', 'publish', 'apply']
         self.stage = self.stages[0]
         return self
 
-    """ Required Construction Methods """
+    """ Factory Method """
 
-    @abstractclassmethod
+    @classmethod
     def create(cls, *args, **kwargs) -> 'SimpleSystem':
-        """Subclasses must provide their own methods."""
-        pass
+        """Returns a class object based upon arguments passed.
+
+        This is a placeholder that returns a basic version of the class.
+        Subclasses should provide alternate methods for more complicated
+        construction.
+
+        """
+        return cls(*args, **kwargs)
+
+    """ Required Methods """
 
     @abstractmethod
     def add(self, item: Union[
         'SimpleContainer', 'SimpleComponent', 'SimpleSystem']) -> None:
         """Subclasses must provide their own methods."""
         return self
-
-    """ Required Workflow Methods """
 
     @abstractmethod
     def draft(self) -> None:
@@ -92,8 +102,11 @@ class SimpleSystem(ABC):
             attribute (str): name of attribute sought.
 
         """
-        if attribute in self.stages:
-            self.change(stage = attribute)
+        try:
+            if attribute in super().__getattribute__('stages'):
+                super().__getattribute__('change')(stage = attribute)
+        except AttributeError:
+            pass
         return super().__getattribute__(attribute)
 
     """ Stage Management Methods """
@@ -146,6 +159,19 @@ class SimpleCreator(ABC):
             pass
         return self
 
+    """ Factory Method """
+
+    @classmethod
+    def create(cls, *args, **kwargs) -> 'SimpleSystem':
+        """Returns a class object based upon arguments passed.
+
+        This is a placeholder that returns a basic version of the class.
+        Subclasses should provide alternate methods for more complicated
+        construction.
+
+        """
+        return cls(*args, **kwargs)
+
     """ Required Subclass Methods """
 
     @abstractmethod
@@ -159,15 +185,14 @@ class SimpleRepository(ABC):
     """Base class for policy and option storage.
 
     Args:
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared 'Idea' instance, 'name' should match the appropriate
-            section name in 'Idea'. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. Defaults to
-            None or __class__.__name__.lower() if super().__post_init__ is
-            called.
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class instance
+            needs settings from the shared 'Idea' instance, 'name' should match
+            the appropriate section name in that 'Idea' instance. When
+            subclassing, it is a good idea to use the same 'name' attribute as
+            the base class for effective coordination between siMpLify classes.
+            'name' is used instead of __class__.__name__ to make such
+            subclassing easier. Defaults to None or __class__.__name__.lower().
         contents (Optional[str, Any]): stored dictionary. Defaults to an empty
             dictionary.
         defaults (Optional[List[str]]): a list of keys in 'contents' which
@@ -194,11 +219,17 @@ class SimpleRepository(ABC):
         self.defaults = self.defaults or list(self.contents.keys())
         return self
 
-    """ Factory Class Method """
+    """ Factory Method """
 
     @classmethod
-    def create(cls, *args, **kwargs) -> 'SimpleRepository':
-        """Subclasses must provide their own methods."""
+    def create(cls, *args, **kwargs) -> 'SimpleSystem':
+        """Returns a class object based upon arguments passed.
+
+        This is a placeholder that returns a basic version of the class.
+        Subclasses should provide alternate methods for more complicated
+        construction.
+
+        """
         return cls(*args, **kwargs)
 
     """ Required ABC Methods """
@@ -366,13 +397,13 @@ class SimpleRepository(ABC):
         return new_contents
 
     def subsetify(self, keys: Union[List[str], str]) -> 'Repository':
-        """Returns a subset of a Repository
+        """Returns a subset of a Repository.
 
         Args:
             keys (Union[List[str], str]): key(s) to get key/values.
 
         Returns:
-            'Repository': with only keys in 'key'.
+            'Repository': with only keys in 'keys'.
 
         """
         return Repository(
@@ -384,15 +415,14 @@ class SimpleContainer(ABC):
     """Base class for core siMpLify container classes.
 
     Args:
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared 'Idea' instance, 'name' should match the appropriate
-            section name in 'Idea'. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. Defaults to
-            None or __class__.__name__.lower() if super().__post_init__ is
-            called.
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class instance
+            needs settings from the shared 'Idea' instance, 'name' should match
+            the appropriate section name in that 'Idea' instance. When
+            subclassing, it is a good idea to use the same 'name' attribute as
+            the base class for effective coordination between siMpLify classes.
+            'name' is used instead of __class__.__name__ to make such
+            subclassing easier. Defaults to None or __class__.__name__.lower().
 
     """
     name: Optional[str] = None
@@ -404,12 +434,20 @@ class SimpleContainer(ABC):
             self.name = self.__class__.__name__.lower()
         return self
 
-    """ Required Subclass Methods """
+    """ Factory Method """
 
-    @abstractclassmethod
-    def create(cls, *args, **kwargs) -> 'SimpleContainer':
-        """Subclasses must provide their own methods."""
-        pass
+    @classmethod
+    def create(cls, *args, **kwargs) -> 'SimpleSystem':
+        """Returns a class object based upon arguments passed.
+
+        This is a placeholder that returns a basic version of the class.
+        Subclasses should provide alternate methods for more complicated
+        construction.
+
+        """
+        return cls(*args, **kwargs)
+
+    """ Required Subclass Methods """
 
     @abstractmethod
     def add(self, item: Union['SimpleContainer', 'SimpleComponent']) -> None:
@@ -418,19 +456,114 @@ class SimpleContainer(ABC):
 
 
 @dataclass
+class SimpleProxy(ABC):
+    """Mixin which creates proxy name for an instance attribute.
+
+    The 'proxify' method dynamically creates a property to access the stored
+    attribute. This allows class instances to customize names of stored
+    attributes while still using base siMpLify classes.
+
+    """
+
+    """ Proxy Property Methods """
+
+    def _proxy_getter(self) -> Any:
+        """Proxy getter for '_attribute'.
+
+        Returns:
+            Any: value stored at '_attribute'.
+
+        """
+        return getattr(self, self._attribute)
+
+    def _proxy_setter(self, value: Any) -> None:
+        """Proxy setter for '_attribute'.
+
+        Args:
+            value (Any): value to set attribute to.
+
+        """
+        setattr(self, self._attribute, value)
+        return self
+
+    def _proxy_deleter(self) -> None:
+        """Proxy deleter for '_attribute'."""
+        setattr(self, self._attribute, self._default_proxy_value)
+        return self
+
+    """ Other Private Methods """
+
+    def _proxify_attribute(self, proxy: str) -> None:
+        """Creates proxy property for 'attribute'.
+
+        Args:
+            proxy (str): name of proxy property to create.
+
+        """
+        setattr(self, proxy, property(
+            fget = self._proxy_getter,
+            fset = self._proxy_setter,
+            fdel = self._proxy_deleter))
+        return self
+
+    def _proxify_methods(self, proxy: str) -> None:
+        """Creates proxy method with an alternate name.
+
+        Args:
+            proxy (str): name of proxy to repalce in method names.
+
+        """
+        for item in dir(self):
+            if (self.attribute in item
+                    and not item.startswith('__')
+                    and callabe(item)):
+                self.__dict__[item.replace(self.attribute, proxy)] = (
+                    getattr(self, item))
+        return self
+
+    """ Public Methods """
+
+    def proxify(self,
+                proxy: str,
+                attribute: str,
+                default_value: Optional[Any] = None,
+                proxify_methods: Optional[bool] = True) -> None:
+        """Adds a proxy property to refer to class iterable.
+
+        Args:
+            proxy (str): name of proxy property to create.
+            attribute (str): name of attribute to link the proxy property to.
+            default_value (Optional[Any]): default value to use when deleting
+                an item in 'attribute'. Defaults to None.
+            proxify_methods (Optiona[bool]): whether to create proxy methods
+                replacing 'attribute' in the original method name with 'proxy'.
+                So, for example, 'add_chapter' would become 'add_recipe' if
+                'proxy' was 'recipe' and 'attribute' was 'chapter'. The original
+                method remains as well as the proxy. Defaults to True.
+
+        """
+
+        self._attribute = attribute
+        self._default_proxy_value = default_value
+        self._proxify_attribute(proxy = proxy)
+        if proxify_methods:
+            self._proxify_methods(proxy = proxy)
+        return self
+
+
+@dataclass
 class SimpleComponent(ABC):
     """Base class for lazy loaders for low-level siMpLify objects.
 
     Args:
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared 'Idea' instance, 'name' should match the appropriate
-            section name in 'Idea'. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. Defaults to
-            None or __class__.__name__.lower() if super().__post_init__ is
-            called.
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class instance
+            needs settings from the shared 'Idea' instance, 'name' should match
+            the appropriate section name in that 'Idea' instance. When
+            subclassing, it is a good idea to use the same 'name' attribute as
+            the base class for effective coordination between siMpLify classes.
+            'name' is used instead of __class__.__name__ to make such
+            subclassing easier. Defaults to None or __class__.__name__.lower().
         module (Optional[str]): name of module where object to use is located
             (can either be a siMpLify or non-siMpLify module). Defaults to
             'simplify.core'.
@@ -446,11 +579,17 @@ class SimpleComponent(ABC):
             self.name = self.__class__.__name__.lower()
         return self
 
-    """ Factory Class Method """
+    """ Factory Method """
 
     @classmethod
-    def create(cls, *args, **kwargs) -> 'SimpleComponent':
-        """Subclasses must provide their own methods."""
+    def create(cls, *args, **kwargs) -> 'SimpleSystem':
+        """Returns a class object based upon arguments passed.
+
+        This is a placeholder that returns a basic version of the class.
+        Subclasses should provide alternate methods for more complicated
+        construction.
+
+        """
         return cls(*args, **kwargs)
 
     """ Core siMpLify Methods """
