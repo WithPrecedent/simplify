@@ -9,6 +9,7 @@
 from abc import ABC
 from abc import abstractclassmethod
 from abc import abstractmethod
+from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
 from importlib import import_module
@@ -35,22 +36,21 @@ class SimpleSystem(ABC):
             the base class for effective coordination between siMpLify classes.
             'name' is used instead of __class__.__name__ to make such
             subclassing easier. Defaults to None or __class__.__name__.lower().
+        stages (Optional[List[str]]): list of recognized states which correspond
+            to methods within a class instance. Defaults to ['initialize',
+            'draft', 'publish', 'apply'].
 
     """
     name: Optional[str] = None
-    stages: Optional[List[str]] = field(default_factory = lambda: [
-        'initialize',
-        'draft',
-        'publish',
-        'apply'])
+    stages: Optional[List[str]] = field(
+        default_factory = lambda: ['initialize', 'draft', 'publish', 'apply'])
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         # Sets 'name' to default value if it is not passed.
         if self.name is None:
             self.name = self.__class__.__name__.lower()
-        # Creates core siMpLify stages and initial stage.
-        # self.stages = ['initialize', 'draft', 'publish', 'apply']
+        # Sets initial stage.
         self.stage = self.stages[0]
         return self
 
@@ -71,7 +71,7 @@ class SimpleSystem(ABC):
 
     @abstractmethod
     def add(self, item: Union[
-        'SimpleContainer', 'SimpleComponent', 'SimpleSystem']) -> None:
+        'SimpleSystem', 'SimpleContainer', 'SimpleComponent']) -> None:
         """Subclasses must provide their own methods."""
         return self
 
@@ -86,14 +86,14 @@ class SimpleSystem(ABC):
         return self
 
     @abstractmethod
-    def apply(self, **kwargs) -> None:
+    def apply(self, *args, **kwargs) -> None:
         """Subclasses must provide their own methods."""
         return self
 
     """ Dunder Methods """
 
     def __getattribute__(self, attribute: str) -> Any:
-        """Changes 'stage' if one of the corresponding methods is called.
+        """Changes 'stage' if one of the corresponding methods are called.
 
         If attribute matches any item in 'stages', the 'stage' attribute is
         assigned to 'attribute.'
@@ -140,29 +140,12 @@ class SimpleSystem(ABC):
 
 @dataclass
 class SimpleCreator(ABC):
-    """Base class for creating 'SimpleContainer' and 'SimpleComponent'.
-
-    Args:
-        worker ('Worker'): instance with information needed to create a 'Book'
-            instance.
-        idea (Optional['Idea']): instance with project settings.
-
-    """
-    worker: 'Worker'
-    idea: Optional['Idea'] = None
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        try:
-            self = self.idea.apply(instance = self)
-        except AttributeError:
-            pass
-        return self
+    """Base class for creating or modifying other siMpLify classes."""
 
     """ Factory Method """
 
     @classmethod
-    def create(cls, *args, **kwargs) -> 'SimpleSystem':
+    def create(cls, *args, **kwargs) -> 'SimpleCreator':
         """Returns a class object based upon arguments passed.
 
         This is a placeholder that returns a basic version of the class.
@@ -175,13 +158,21 @@ class SimpleCreator(ABC):
     """ Required Subclass Methods """
 
     @abstractmethod
-    def apply(self, system: 'SimpleSystem', **kwargs) -> 'SimpleSystem':
+    def apply(self,
+            data: Union[
+                'SimpleSystem',
+                'SimpleContainer',
+                'SimpleComponent'],
+            **kwargs) -> Union[
+                    'SimpleSystem',
+                    'SimpleContainer',
+                    'SimpleComponent']:
         """Subclasses must provide their own methods."""
         return self
 
 
 @dataclass
-class SimpleRepository(ABC):
+class SimpleRepository(MutableMapping):
     """Base class for policy and option storage.
 
     Args:
@@ -195,6 +186,8 @@ class SimpleRepository(ABC):
             subclassing easier. Defaults to None or __class__.__name__.lower().
         contents (Optional[str, Any]): stored dictionary. Defaults to an empty
             dictionary.
+        wildcards (Optional[List[str]]): a list of wildcard keys which return
+            lists of values. Defaults to ['all', 'default', 'none'].
         defaults (Optional[List[str]]): a list of keys in 'contents' which
             will be used to return items when 'default' is sought. If not
             passed, 'default' will be set to all keys.
@@ -203,6 +196,8 @@ class SimpleRepository(ABC):
     name: Optional[str] = None
     contents: Optional[Dict[str, Any]] = field(default_factory = dict)
     defaults: Optional[List[str]] = field(default_factory = list)
+    wildcards: Optional[List[str]] = field(
+        default_factory = lambda: ['all', 'default', 'none'])
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -210,11 +205,13 @@ class SimpleRepository(ABC):
         if self.name is None:
             self.name = self.__class__.__name__.lower()
         # Allows subclasses to customize 'contents' with 'create'.
-        self = self.create(contents = self.contents, defaults = self.defaults)
-        # Stores 1-level nested dict as a Repository instance.
+        self = self.create(
+            name = self.name,
+            contents = self.contents,
+            defaults = self.defaults,
+            wildcards = self.wildcards)
+        # Stores nested dictionaries as 'SimpleRepository' instances.
         self.nestify()
-        # Declares list of wildcards for external reference.
-        self.wildcards = ['all', 'default', 'none']
         # Sets 'default' to all keys of 'contents', if not passed.
         self.defaults = self.defaults or list(self.contents.keys())
         return self
@@ -222,7 +219,7 @@ class SimpleRepository(ABC):
     """ Factory Method """
 
     @classmethod
-    def create(cls, *args, **kwargs) -> 'SimpleSystem':
+    def create(cls, *args, **kwargs) -> 'SimpleRepository':
         """Returns a class object based upon arguments passed.
 
         This is a placeholder that returns a basic version of the class.
@@ -235,7 +232,7 @@ class SimpleRepository(ABC):
     """ Required ABC Methods """
 
     def __getitem__(self, key: Union[List[str], str]) -> List[Any]:
-        """Returns value for 'key' in 'contents'.
+        """Returns value(s) for 'key' in 'contents'.
 
         If there are no matches, the method searches for a matching wildcard
         option.
@@ -250,14 +247,12 @@ class SimpleRepository(ABC):
         if key in ['all', ['all']]:
             return list(self.contents.values())
         elif key in ['default', ['default']]:
-            return list(self.subsetify(self.defaults).values())
+            return list(self.subsetify(keys = self.defaults).values())
         elif key in ['none', ['none']]:
             return []
         else:
             try:
                 return self.contents[key]
-            # try:
-            #     return list(self.subsetify(listify(key)).values())
             except KeyError:
                 raise KeyError(' '.join([key, 'is not in', self.name]))
 
@@ -279,7 +274,8 @@ class SimpleRepository(ABC):
         """Deletes 'key' in 'contents'.
 
         Args:
-            key (Union[List[str], str]): name(s) of key(s) in 'contents'.
+            key (Union[List[str], str]): name(s) of key(s) in 'contents' to
+                delete the key/value pair.
 
         """
         self.contents = {
@@ -306,7 +302,8 @@ class SimpleRepository(ABC):
 
     """ Other Dunder Methods """
 
-    def __add__(self, other: Union['Repository', Dict[str, Any]]) -> None:
+    def __add__(self,
+            other: Union['SimpleRepository', Dict[str, Any]]) -> None:
         """Combines argument with 'contents'.
 
         Args:
@@ -317,7 +314,8 @@ class SimpleRepository(ABC):
         self.add(contents = other)
         return self
 
-    def __iadd__(self, other: Union['Repository', Dict[str, Any]]) -> None:
+    def __iadd__(self,
+            other: Union['SimpleRepository', Dict[str, Any]]) -> None:
         """Combines argument with 'contents'.
 
         Args:
@@ -348,53 +346,45 @@ class SimpleRepository(ABC):
 
     """ Construction Method """
 
-    def add(self,
-            key: Optional[str] = None,
-            value: Optional[Any] = None,
-            contents: Optional[Union[
-                'Repository', Dict[str, Any]]] = None) -> None:
+    def add(self, contents: Union['SimpleRepository', Dict[str, Any]]) -> None:
         """Combines arguments with 'contents'.
 
         Args:
-            key (Optional[str]): key for 'value' to use. Defaults to None.
-            value (Optional[Any]): item to store in 'contents'. Defaults to
-                None.
-            contents (Optional[Union['Repository', Dict[str, Any]]]):
-                another 'Repository' instance/subclass or a compatible
-                dictionary. Defaults to None.
+            contents (Union['SimpleRepository', Dict[str, Any]]): another
+                'SimpleRepository' instance/subclass or a compatible dictionary.
 
         """
         if key is not None and value is not None:
             self.contents[key] = value
         if contents is not None:
             self.contents.update(contents)
-        self.nestify()
+        self.nestify(contents = self.contents)
         return self
 
     """ Structural Methods """
 
-    def flatten(self) -> None:
-        """Moves 1-level nested dict to outer level with tuple key."""
-        new_contents = {}
-        for outer_key, outer_value in self.contents.items():
-            if isinstance(value, dict):
-                for inner_key, inner_value in outer_value.items():
-                    new_contents[(outer_key, inner_key)] = inner_value
-            else:
-                new_contents[key] = value
-        self.contents = new_contents
-        return self
-
     def nestify(self,
-            contents: ['SimpleRepository', Dict[str, Any]]) -> 'Repository':
-        """Converts 1 level of nesting to Repository instances."""
-        new_contents = {}
+            contents: Union[
+                'SimpleRepository',
+                Dict[str, Any]]) -> 'SimpleRepository':
+        """Converts nested dictionaries to 'SimpleRepository' instances.
+
+        Args:
+            contents (Union['SimpleRepository', Dict[str, Any]]): mutable
+                mapping to be converted to a 'SimpleRepository' instance.
+
+        Returns:
+            'SimpleRepository': subclass instance with 'contents' stored.
+
+        """
+        new_repository = self.__new__(wildcards = self.wildcards)
         for key, value in contents.items():
             if isinstance(value, dict):
-                new_contents[key] = self.nestify(contents = value)
+                new_repository.add(
+                    contents = {key: self.nestify(contents = value)})
             else:
-                new_contents[key] = Repository(contents = value)
-        return new_contents
+                new_repository.add(contents = {key: value})
+        return new_repository
 
     def subsetify(self, keys: Union[List[str], str]) -> 'Repository':
         """Returns a subset of a Repository.
@@ -406,8 +396,8 @@ class SimpleRepository(ABC):
             'Repository': with only keys in 'keys'.
 
         """
-        return Repository(
-            contents = {i: self.contents[i] for i in listify(keys)})
+        return self.__new__(
+            contents = {i: self.contents.get(i) for i in listify(keys)})
 
 
 @dataclass
@@ -437,7 +427,7 @@ class SimpleContainer(ABC):
     """ Factory Method """
 
     @classmethod
-    def create(cls, *args, **kwargs) -> 'SimpleSystem':
+    def create(cls, *args, **kwargs) -> 'SimpleContainer':
         """Returns a class object based upon arguments passed.
 
         This is a placeholder that returns a basic version of the class.
@@ -582,7 +572,7 @@ class SimpleComponent(ABC):
     """ Factory Method """
 
     @classmethod
-    def create(cls, *args, **kwargs) -> 'SimpleSystem':
+    def create(cls, *args, **kwargs) -> 'SimpleComponent':
         """Returns a class object based upon arguments passed.
 
         This is a placeholder that returns a basic version of the class.

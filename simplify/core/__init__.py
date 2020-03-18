@@ -16,7 +16,7 @@ from simplify.core.library import Book
 from simplify.core.creators import Publisher
 from simplify.core.dataset import Dataset
 from simplify.core.filer import Filer
-from simplify.core.project import Package
+from simplify.core.manager import Package
 from simplify.core.project import Project
 
 from simplify.core.scholar import Scholar

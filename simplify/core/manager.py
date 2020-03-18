@@ -183,6 +183,38 @@ class Manager(MutableMapping):
 
 
 @dataclass
+class Package(SimpleComponent):
+    """Lazy loader for 'Worker' instances.
+
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier.
+        module (Optional[str]): name of module where object to use is located.
+        worker (Optional[str]): name of 'Worker' subclass in 'module' to load.
+
+    """
+    name: Optional[str] = None
+    module: Optional[str] = None
+    worker: Optional[str] = None
+
+    """ Core siMpLify Methods """
+
+    def load(self) -> 'Worker':
+        """Returns 'Worker' from 'module'.
+
+        Returns:
+            'Worker': from 'module'.
+
+        """
+        return getattr(import_module(self.module), self.worker)
+    
+
+@dataclass
 class Worker(SimpleComponent):
     """Object construction instructions used by a Project instance.
 

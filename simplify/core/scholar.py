@@ -24,7 +24,6 @@ from simplify.core.base import SimpleCreator
 from simplify.core.dataset import Dataset
 from simplify.core.repository import Repository
 from simplify.core.utilities import listify
-from simplify.core.validators import DataValidator
 
 
 @dataclass

@@ -6,8 +6,6 @@
 :license: Apache-2.0
 """
 
-from collections.abc import Iterable
-from collections.abc import MutableMapping
 from dataclasses import dataclass
 from dataclasses import field
 from importlib import import_module
@@ -161,18 +159,7 @@ class Project(SimpleSystem):
                     pd.DataFrame,
                     np.ndarray,
                     str]]]] = None,
-            packages: Optional[Union[
-                List[str],
-                Dict[str, 'Package'],
-                Dict[str, 'Worker'],
-                'Repository',
-                'Manager']] = field(default_factory = Repository),
-            name: Optional[str] = field(default_factory = lambda: 'project'),
-            identification: Optional[str] = field(
-                default_factory = datetime_string),
-            auto_draft: Optional[bool] = True,
-            auto_publish: Optional[bool] = True,
-            auto_apply: Optional[bool] = False) -> 'Project':
+            **kwargs) -> 'Project':
         """Creates a 'Project' instance from passed arguments.
 
         Args:
@@ -196,31 +183,6 @@ class Project(SimpleSystem):
                 Data instance, ndarray, or string is passed, the resultant data
                 object is stored in the 'data' attribute in a new Dataset
                 instance as a DataFrame. Defaults to None.
-            packages (Optional[Union[List[str], Dict[str, 'Package'], Dict[str,
-                'Worker'], 'Repository', 'Manager']]): mapping of 'Package'
-                instances or the information needed to create one and store it
-                in a 'Manager' instance. Defaults to an empty 'Repository'
-                instance.
-            name (Optional[str]): designates the name of the class instance used
-                for internal referencing throughout siMpLify. If the class
-                instance needs settings from the shared 'Idea' instance, 'name'
-                should match the appropriate section name in that 'Idea'
-                instance. When subclassing, it is a good idea to use the same
-                'name' attribute as the base class for effective coordination
-                between siMpLify classes. 'name' is used instead of
-                __class__.__name__ to make such subclassing easier. Defaults to
-                'project'.
-            identification (Optional[str]): a unique identification name for
-                this 'Project' instance. The name is used for creating file
-                folders related to the 'Project'. If not provided, a string is
-                created from the date and time.
-            auto_draft (Optional[bool]): whether to call the 'draft' method when
-                instanced. Defaults to True.
-            auto_publish (Optional[bool]): whether to call the 'publish' method
-                when instanced. Defaults to True.
-            auto_apply (Optional[bool]): whether to call the 'apply' method when
-                instanced. For auto_apply to have an effect, 'dataset' must also
-                be passed. Defaults to False.
 
         """
         # Validates 'Idea' instance.
@@ -233,12 +195,7 @@ class Project(SimpleSystem):
             idea = idea,
             filer = filer,
             dataset = dataset,
-            packages = packages,
-            name = name,
-            identificaiton = identification,
-            auto_draft = auto_draft,
-            auto_publish = auto_publish,
-            auto_apply = auto_apply)
+            **kwargs)
 
     """ Dunder Methods """
 
@@ -249,7 +206,7 @@ class Project(SimpleSystem):
             Iterable: different depending upon stage.
 
         """
-        if self.stage in ['outline']:
+        if self.stage in ['initialize']:
             return iter(self.overview)
         if self.stage in ['draft']:
             return iter(self.manager)
@@ -327,7 +284,6 @@ class Project(SimpleSystem):
 
     def draft(self) -> None:
         """Initializes 'workers' and drafts a 'Library' instance."""
-        self.change_stage(new_stage = 'draft')
         # Iterates through 'workers' and creates Book instances in 'library'.
         for name, worker in self.manager.items():
             self.library = worker.publisher.draft(library = self.library)
@@ -335,7 +291,6 @@ class Project(SimpleSystem):
 
     def publish(self) -> None:
         """Finalizes 'Book' instances in 'Library'."""
-        self.change_stage(new_stage = 'publish')
         # Iterates through 'workers' and finalizes each Book instance. The
         # finalized instances are stored in 'library'.
         for name, worker in self.manager.items():
@@ -353,8 +308,6 @@ class Project(SimpleSystem):
                 'Scholar' instance.
 
         """
-        # Changes state.
-        self.change_stage(new_stage = 'apply')
         # Assigns 'data' to 'dataset' attribute and validates it.
         if data:
             self.dataset = Dataset.create(data = data)
@@ -455,7 +408,7 @@ class Project(SimpleSystem):
             Dict[str, 'Package']:
 
         """
-        self.options = DEFAULT_OPTIONS
+        self.options = self.idea['packages']
         if not packages:
             try:
                 outer_key = self.__class__.__name__.lower()
@@ -463,7 +416,7 @@ class Project(SimpleSystem):
                 packages = listify(self.idea[outer_key][inner_key])
             except KeyError:
                 pass
-        if isinstance(packages, MutableMapping):
+        if isinstance(packages, dict):
             return packages
         else:
             new_packages = {}
@@ -473,58 +426,3 @@ class Project(SimpleSystem):
                 return new_packages
             else:
                 return self.packages
-
-
-@dataclass
-class Package(SimpleComponent):
-    """Lazy loader for 'Worker' instances.
-
-    Args:
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared 'Idea' instance, 'name' should match the appropriate
-            section name in 'Idea'. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier.
-        module (Optional[str]): name of module where object to use is located.
-        worker (Optional[str]): name of 'Worker' subclass in 'module' to load.
-
-    """
-    name: Optional[str] = None
-    module: Optional[str] = None
-    worker: Optional[str] = None
-
-    """ Core siMpLify Methods """
-
-    def load(self) -> 'Worker':
-        """Returns 'Worker' from 'module'.
-
-        Returns:
-            'Worker': from 'module'.
-
-        """
-        return getattr(import_module(self.module), self.worker)
-
-
-DEFAULT_OPTIONS = {
-    'wrangler': Package(
-        name = 'wrangler',
-        module = 'simplify.wrangler.wrangler',
-        worker = 'Wrangler'),
-    'explorer': Package(
-        name = 'explorer',
-        module = 'simplify.explorer.explorer',
-        worker = 'Explorer'),
-    'analyst': Package(
-        name = 'analyst',
-        module = 'simplify.analyst.analyst',
-        worker = 'Analyst'),
-    'critic': Package(
-        name = 'critic',
-        module = 'simplify.critic.critic',
-        worker = 'Critic'),
-    'artist': Package(
-        name = 'artist',
-        module = 'simplify.artist.artist',
-        worker = 'Artist')}

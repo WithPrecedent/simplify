@@ -41,14 +41,13 @@ class Overview(MutableMapping):
             'Overview': instance, properly configured.
 
         """
-        contents = {}
-        for name, worker in manager.workers.items():
-            contents[name] = worker.outline()
+        contents = {
+            name: worker.outline() for name, worker in manager.workers.items()}
         return cls(contents = contents)
 
     """ Required ABC Methods """
 
-    def __getitem__(self, 
+    def __getitem__(self,
             key: Union[str, Tuple[str, str]]) -> Union[
                 Dict[str, List[str]], List[str]]:
         """Returns key from 'contents'.
@@ -59,8 +58,8 @@ class Overview(MutableMapping):
                 from 'contents'.
 
         Returns:
-            Union[Dict[str, List[str]], List[str]]]:man overview of either 
-                one package of a siMpLify project (if 'key' is a str) or one 
+            Union[Dict[str, List[str]], List[str]]]:man overview of either
+                one package of a siMpLify project (if 'key' is a str) or one
                 step in one package of a siMpLify project (if 'key' is a tuple).
 
         Raises:
@@ -76,13 +75,13 @@ class Overview(MutableMapping):
                 f'{self.__class__.__name__} requires str or tuple type')
 
     def __setitem__(self,
-            key: Union[str, Tuple[str, str]],
-            value: Union[Dict[str, List[str]], List[str]]) -> None:
+                key: Union[str, Tuple[str, str]],
+                value: Union[Dict[str, List[str]], List[str]]) -> None:
         """Sets 'key' in 'contents' to 'value'.
 
         Args:
             key (Union[str, Tuple[str, str]]): key to item in 'contents' to set.
-            value (Union[Dict[str, List[str]], List[str]]): dictionary or list 
+            value (Union[Dict[str, List[str]], List[str]]): dictionary or list
                 to place in 'contents'.
 
         Raises:
@@ -92,7 +91,7 @@ class Overview(MutableMapping):
         if isinstance(key, str):
             self.contents[key] = value
         elif isinstance(key, tuple):
-            if not key[0] in self.contents:
+            if key[0] not in self.contents:
                 self.contents[key[0]] = {}
             self.contents[key[0]][key[1]] = value
         else:
