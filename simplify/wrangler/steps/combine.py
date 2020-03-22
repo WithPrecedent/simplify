@@ -6,14 +6,14 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 
 import numpy as np
 
 from simplify.core.definitionsetter import WranglerTechnique
 
 
-@dataclass
+@dataclasses.dataclass
 class Combine(WranglerTechnique):
     """Combines features into new features.
 
@@ -55,7 +55,7 @@ class Combine(WranglerTechnique):
         return dataset
 
     def draft(self) -> None:
-        self._options = Repository(contents = {'all': self._combine_all,
+        self._options = SimpleRepository(contents = {'all': self._combine_all,
                         'any': self._combine_any,
                         'dict': self._dict}
         if isinstance(self.method, str):

@@ -8,26 +8,25 @@
 
 from ast import literal_eval
 from collections.abc import Container
-from dataclasses import dataclass
-from dataclasses import field
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
 from datetime import datetime
 from datetime import timedelta
-from pathlib import Path
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from pathlib import pathlib.Path
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from simplify.core.utilities import listify
+from simplify.core.utilities import utilities.listify
 
 
-@dataclass
+@dataclasses.dataclass
 class Dataset(object):
     """Collection of associated pandas data objects.
 
     Args:
-        data (Optional[Union[pd.DataFrame, np.ndarray, str, Path]]): a dataset
+        data (Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]]): a dataset
             for all pandas objects to be derived or file path information for
             such an object to be imported. Defaults to None.
         datatypes (Optional[Dict[str, str]]): keys are column names and values
@@ -48,9 +47,9 @@ class Dataset(object):
             project file management settings.
 
     """
-    data: Optional[Union[pd.DataFrame, np.ndarray, str, Path]] = None
-    datatypes: Optional[Dict[str, str]] = field(default_factory = dict)
-    prefixes: Optional[Dict[str, str]] = field(default_factory = dict)
+    data: Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]] = None
+    datatypes: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
+    prefixes: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
     idea: Optional['Idea'] = None
     filer: Optional['Filer'] = None
     name: Optional[str] = None
@@ -69,9 +68,9 @@ class Dataset(object):
 
     @classmethod
     def create(cls,
-            data: Optional[Union[pd.DataFrame, np.ndarray, str, Path]] = None,
-            x: Optional[Union[pd.DataFrame, np.ndarray, str, Path]] = None,
-            y: Optional[Union[pd.Series, np.ndarray, str, Path]] = None,
+            data: Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]] = None,
+            x: Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]] = None,
+            y: Optional[Union[pd.Series, np.ndarray, str, pathlib.Path]] = None,
             datatypes: Optional[Dict[str, str]] = None,
             prefixes: Optional[Dict[str, str]] = None,
             idea: Optional['Idea'] = None,
@@ -83,13 +82,13 @@ class Dataset(object):
         'x' and 'y' already divided.
 
         Args:
-            data (Optional[Union[pd.DataFrame, np.ndarray, str, Path]]): a
+            data (Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]]): a
                 dataset for all pandas objects to be derived or file path
                 information for such an object to be imported. Defaults to None.
-            x (Optional[Union[pd.DataFrame, np.ndarray, str, Path]]): a dataset
+            x (Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]]): a dataset
                 with all features for data analysis or file path information for
                 such an object to be imported. Defaults to None.
-            y (Optional[Union[pd.Series, np.ndarray, str, Path]]): a
+            y (Optional[Union[pd.Series, np.ndarray, str, pathlib.Path]]): a
                 1-dimensional data object containing the dependent variable or
                 file path information for such an object to be imported.
                 Defaults to None.
@@ -145,12 +144,12 @@ class Dataset(object):
 
     @classmethod
     def _validate_data(cls,
-            data: Union[pd.DataFrame, np.ndarray, str, Path]) -> pd.DataFrame:
+            data: Union[pd.DataFrame, np.ndarray, str, pathlib.Path]) -> pd.DataFrame:
         """Validates 'data' as or converts 'data' to a pandas DataFrame.
 
         Args:
             data (Union[pd.DataFrame, np.ndarray, str]): a pandas DataFrame,
-                numpy array, or path (in string or Path form) of a file with
+                numpy array, or path (in string or pathlib.Path form) of a file with
                 data to be loaded into a pandas DataFrame.
 
         Returns:
@@ -161,7 +160,7 @@ class Dataset(object):
             return data
         elif isinstance(data, np.ndarray):
             return pd.DataFrame(data = data)
-        elif isinstance(data, (str, Path)):
+        elif isinstance(data, (str, pathlib.Path)):
             return cls.filer.load(file_path = data)
 
     """ Dunder Methods """
@@ -318,7 +317,7 @@ class Dataset(object):
 
         """
         if columns:
-            return listify(columns)
+            return utilities.listify(columns)
         else:
             return list(self.data.columns.values)
 
@@ -357,7 +356,7 @@ class Dataset(object):
 
         """
         return [
-            self.data.columns.get_loc(column) for column in listify(columns)]
+            self.data.columns.get_loc(column) for column in utilities.listify(columns)]
 
     def _initialize_datatypes(self) -> None:
         """Initializes datatypes for stored pandas data object."""
@@ -398,7 +397,7 @@ class Dataset(object):
                 columns.
 
         """
-        for name in listify(columns):
+        for name in utilities.listify(columns):
             self.data[name] = self.types.convert(
                 proxy_type = datatype,
                 column = self.data[name])
@@ -531,7 +530,7 @@ class Dataset(object):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class DataBunch(object):
     """Stores one set of features and label.
 
@@ -568,7 +567,7 @@ class DataBunch(object):
             return []
 
 
-@dataclass
+@dataclasses.dataclass
 class DataTypes(Container):
 
     def __post_init__(self) -> None:
@@ -668,12 +667,12 @@ class DataTypes(Container):
             self.downcast(proxy_type = proxy_type, column = column))
 
 
-@dataclass
+@dataclasses.dataclass
 class DataStages(object):
     """Base class for data state management."""
 
     parent: object
-    stages: Optional[Union[List[str], Dict[str, 'SimpleStage']]] = field(
+    stages: Optional[Union[List[str], Dict[str, 'SimpleStage']]] = dataclasses.field(
         default_factory = dict)
     initial: Optional[str] = None
 
@@ -774,7 +773,7 @@ class DataStages(object):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class DataStage(object):
     """A single stage in data processing for a siMpLify project.
 
@@ -795,8 +794,8 @@ class DataStage(object):
     """
     train_set: Optional[Tuple[str, str]] = None
     test_set: Optional[Tuple[str, str]] = None
-    import_folder: Optional[str] = field(default_factory = lambda: 'processed')
-    export_folder: Optional[str] = field(default_factory = lambda: 'processed')
+    import_folder: Optional[str] = dataclasses.field(default_factory = lambda: 'processed')
+    export_folder: Optional[str] = dataclasses.field(default_factory = lambda: 'processed')
 
     """ Core SiMpLify Methods """
 

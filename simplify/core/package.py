@@ -1,33 +1,302 @@
 """
-.. module:: scholar
-:synopsis: applies collections of techniques to data
-:author: Corey Rayburn Yung
+.. module:: package
+:synopsis: generic siMpLify subpackage
+:publisher: Corey Rayburn Yung
 :copyright: 2019-2020
 :license: Apache-2.0
 """
 
-from collections.abc import MutableMapping
-from dataclasses import dataclass
-from dataclasses import field
-import multiprocessing as mp
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+import collections.abc
+import dataclasses
+import importlib
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+
+try:
+    import pathos.multiprocessing as mp
+except ImportError:
+    import multiprocessing as mp
 
 import numpy as np
 import pandas as pd
-try:
-    from pathos.multiprocessing import ProcessPool as Pool
-except ImportError:
-    from multiprocessing import Pool
 
-from simplify.core.base import SimpleCreator
-from simplify.core.dataset import Dataset
-from simplify.core.repository import Repository
-from simplify.core.utilities import listify
+from simplify.core import base
+from simplify.core import utilities
 
 
-@dataclass
-class Scholar(SimpleCreator):
+@dataclasses.dataclass
+class Worker(SimpleComponent):
+    """Object construction instructions used by a Project instance.
+
+    Args:
+        name (str): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier.
+        idea (Optional['Idea']): shared project configuration settings.
+        module (Optional[str]): name of module where object to use is located
+            (can either be a siMpLify or non-siMpLify module). Defaults to
+            'simplify.core'.
+        book (Optional[str]): name of Book object in 'module' to load. Defaults
+            to 'Book'.
+        chapter (Optional[str]): name of Chapter object in 'module' to load.
+            Defaults to 'Chapter'.
+        technique (Optional[str]): name of Book object in 'module' to load.
+            Defaults to 'Technique'.
+        author (Optional[str]): name of Publisher class in 'module' to load.
+            Defaults to 'Publisher'.
+        publisher (Optional[str]): name of Publisher class in 'module' to load.
+            Defaults to 'Publisher'.
+        scholar (Optional[str]): name of Scholar class in 'module' to load.
+            Defaults to 'Scholar'.
+        steps (Optional[List[str]]): list of steps to execute. Defaults to an
+            empty list.
+        options (Optional[str]): name of a 'SimpleRepository' instance with various
+            options available to a particular 'Worker' instance. Defaults to
+            an empty 'SimpleRepository'.
+        data (Optional[str]): name of attribute or key in a 'Project' instance
+            'books' to use as a data object to apply methods to. Defaults to
+            'dataset'.
+        import_folder (Optional[str]): name of attribute in 'filer' which
+            contains the path to the default folder for importing data objects.
+            Defaults to 'processed'.
+        export_folder (Optional[str]): name of attribute in 'filer' which
+            contains the path to the default folder for exporting data objects.
+            Defaults to 'processed'.
+
+    """
+    name: Optional[str] = None
+    idea: Optional['Idea'] = None
+    module: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'simplify.core.package')
+    book: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Book')
+    chapter: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Chapter')
+    technique: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Technique')
+    author: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Author')
+    publisher: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Publisher')
+    scholar: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Scholar')
+    options: Optional[str] = dataclasses.field(
+        default_factory = base.SimpleRepository)
+    data: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'dataset')
+    import_folder: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'processed')
+    export_folder: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'processed')
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        super().__post_init__()
+        self._to_load = ['chapter', 'technique']
+        self._to_instance = ['book', 'publisher', 'scholar', 'options']
+        for attribute in self._to_load + self._to_instance:
+            setattr(self, attribute, self.load(attribute))
+            if attribute in ['scholar', 'publisher']:
+                setattr(self, attribute, getattr(self, attribute)(
+                    worker = self))
+            else:
+                setattr(self, attribute, getattr(self, attribute)())
+        return self
+
+    """ Core siMpLify Methods """
+
+    def outline(self) -> Dict[str, List[str]]:
+        """Creates dictionary with techniques for each step.
+
+        Returns:
+            Dict[str, Dict[str, List[str]]]: dictionary with keys of steps and
+                values of lists of techniques.
+
+        """
+        steps = self._get_settings(
+            section = self.name,
+            prefix = self.name,
+            suffix = 'steps')
+        return {
+            step: self._get_settings(
+                section = self.name,
+                prefix = step,
+                suffix = 'techniques')
+            for step in steps}
+
+    """ Private Methods """
+
+    def _get_settings(self,
+            section: str,
+            prefix: str,
+            suffix: str) -> List[str]:
+        """Returns settings from 'idea' based on 'name' and 'suffix'.
+
+        Args:
+            section (str): outer key name in 'idea' section.
+            prefix (str); prefix for an inner key name.
+            suffix (str): suffix to inner key name in 'idea'.
+
+        Returns:
+            List[str]: names of matching workers, steps, or techniques.
+
+        """
+        return utilities.listify(self.idea[section]['_'.join([prefix, suffix])])
+
+
+@dataclasses.dataclass
+class Book(base.SimplePlan, base.SimpleProxy):
+    """Standard class for top-level siMpLify package iterable storage.
+
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. Defaults to
+            None. If not passed, __class__.__name__.lower() is used.
+        chapters (Optional[List['Chapter']]): iterable collection of 'Chapter'
+            instances. Defaults to an empty list.
+
+    """
+    name: Optional[str] = None
+    chapters: Optional[List['Chapter']] = dataclasses.field(
+        default_factory = list)
+
+    def __post_init__(self) -> None:
+        """Converts 'chapters' to a property pointing to 'steps' attribte."""
+        self.steps = self.chapters
+        self.proxify(proxy = 'chapters', name = 'steps')
+        return self
+
+
+@dataclasses.dataclass
+class Chapter(base.SimplePlan, base.SimpleProxy):
+    """Standard class for siMpLify nested iterable storage.
+
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. Defaults to
+            None. If not passed, __class__.__name__.lower() is used.
+
+    """
+    name: Optional[str] = None
+    techniques: Optional[List['Technique']] = dataclasses.field(
+        default_factory = list)
+
+    def __post_init__(self) -> None:
+        """Converts 'techniques' to a property pointing to 'steps' attribte."""
+        self.steps = self.chapters
+        self.proxify(proxy = 'techniques', name = 'steps')
+        return self
+
+
+@dataclasses.dataclass
+class Technique(SimpleComponent):
+    """Base method wrapper for applying algorithms to data.
+
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. Defaults to
+            None or __class__.__name__.lower() if super().__post_init__ is
+            called.
+        step (Optional[str]): name of step when the class instance is to be
+            applied. Defaults to None.
+        module (Optional[str]): name of module where object to use is located
+            (can either be a siMpLify or non-siMpLify module). Defaults to
+            'simplify.core'.
+        default_module (Optional[str]): name of a backup module where object to
+            use is located (can either be a siMpLify or non-siMpLify module).
+            Defaults to 'simplify.core'. Subclasses should not generally
+            override this attribute. It allows the 'load' method to use generic
+            classes if the specified one is not found.
+        algorithm (Optional[object]): callable object which executes the primary
+            method of a class instance. Defaults to None.
+        parameters (Optional[Dict[str, Any]]): parameters to be attached to
+            'algorithm' when 'algorithm' is instanced. Defaults to an empty
+            dictionary.
+
+    """
+    name: str
+    step: Optional[str] = None
+    module: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'simplify.core')
+    algorithm: Optional[object] = None
+    parameters: Optional[Dict[str, Any]] = dataclasses.field(
+        default_factory = dict)
+
+    """ Other Dunder Methods """
+
+    def __repr__(self) -> str:
+        """Returns string representation of a class instance."""
+        return self.__str__()
+
+    def __str__(self) -> str:
+        """Returns string representation of a class instance."""
+        return (
+            f'siMpLify {self.__class__.__name__} '
+            f'technique: {self.name} '
+            f'step: {self.step} '
+            f'parameters: {str(self.parameters)} ')
+
+    """ Public Methods """
+
+    def load(self, component: str) -> object:
+        """Returns 'component' from 'module' or 'default_module.
+
+        If 'component' is not a str, it is assumed to have already been loaded
+        and is returned as is.
+
+        Args:
+            component (str): name of object to load from 'module' or
+                'default_module'.
+
+        Raises:
+            ImportError: if 'component' is not found in 'module' or
+                'default_module'.
+
+        Returns:
+            object: from 'module' or 'default_module'.
+
+        """
+        # If 'component' is a string, attempts to load from 'module' or, if not
+        # found there, 'default_module'.
+        if isinstance(getattr(self, component), str):
+            try:
+                return getattr(
+                    importlib.import_module(self.module),
+                    getattr(self, component))
+            except (ImportError, AttributeError):
+                try:
+                    return getattr(
+                        importlib.import_module(self.default_module),
+                        getattr(self, component))
+                except (ImportError, AttributeError):
+                    raise ImportError(' '.join(
+                        [getattr(self, component), 'is neither in',
+                            self.module, 'nor', self.default_module]))
+        # If 'component' is not a string, it is returned as is.
+        else:
+            return getattr(self, component)
+
+
+@dataclasses.dataclass
+class Scholar(base.SimpleCreator):
     """Base class for applying 'Book' instances to data.
 
     Args:
@@ -108,7 +377,7 @@ class Scholar(SimpleCreator):
         return project
 
 
-@dataclass
+@dataclasses.dataclass
 class Finisher(SimpleCreator):
     """Finalizes 'Technique' instances with data-dependent parameters.
 
@@ -280,7 +549,7 @@ class Finisher(SimpleCreator):
         return book
 
 
-@dataclass
+@dataclasses.dataclass
 class Specialist(SimpleCreator):
     """Base class for applying 'Technique' instances to data.
 
@@ -373,7 +642,7 @@ class Specialist(SimpleCreator):
         return book
 
 
-@dataclass
+@dataclasses.dataclass
 class Parallelizer(SimpleCreator):
     """Applies techniques using one or more CPU or GPU cores.
 
@@ -428,7 +697,7 @@ class Parallelizer(SimpleCreator):
             'Book': with its iterable applied to data.
 
         """
-        with Pool() as pool:
+        with mp.Pool() as pool:
             pool.starmap(method, arguments)
         pool.close()
         return self
@@ -457,7 +726,7 @@ class Parallelizer(SimpleCreator):
             arguments.append((chapter, data))
         results = []
         chapters_keys = list(book.chapters.keys())
-        with Pool() as pool:
+        with mp.Pool() as pool:
             results.append[pool.map(method, arguments)]
         pool.close()
         pool.join()
@@ -479,7 +748,7 @@ class Parallelizer(SimpleCreator):
 
         """
         dfs = np.array_split(data.data, mp.cpu_count(), axis = 0)
-        pool = Pool()
+        pool = mp.Pool()
         data.data = np.vstack(pool.map(method, dfs))
         pool.close()
         pool.join()

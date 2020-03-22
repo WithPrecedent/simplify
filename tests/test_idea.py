@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from pathlib import Path
+from pathlib import pathlib.Path
 from simplify.core.idea import Idea
 
 def test_idea():

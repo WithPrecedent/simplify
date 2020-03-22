@@ -6,9 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -17,7 +16,7 @@ from simplify.core.definitionsetter import SimpleDirector
 from simplify.core.definitionsetter import Option
 
 
-@dataclass
+@dataclasses.dataclass
 class Styler(SimpleIterable):
     """Sets data visualization style.
 

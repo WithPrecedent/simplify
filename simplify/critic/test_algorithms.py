@@ -6,13 +6,12 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 
-@dataclass
+@dataclasses.dataclass
 class Eli5Explain(object):
     """Explains fit model with eli5 package.
 
@@ -64,7 +63,7 @@ class Eli5Explain(object):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class ShapExplain(object):
     """Explains fit model with shap package.
 
@@ -135,7 +134,7 @@ class ShapExplain(object):
         return getattr(recipe, self.name)
 
 
-@dataclass
+@dataclasses.dataclass
 class SkaterExplain(object):
     """Explains fit model with skater package.
 

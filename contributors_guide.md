@@ -1,6 +1,6 @@
 # Contribution Guidelines
 
-siMpLify uses a code structure patterned after the writing process. Each major subpackage in the siMpLify package  (Wrangler, Analyst, Explorer, Critic, Artist)creates a Book object which contains particular implementations (Chapters) which have one or more steps (Repository).
+siMpLify uses a code structure patterned after the writing process. Each major subpackage in the siMpLify package  (Wrangler, Analyst, Explorer, Critic, Artist)creates a Book object which contains particular implementations (Chapters) which have one or more steps (SimpleRepository).
 
     Wrangler creates an Manual of Plans.
     Analyst creates a Cookbook of Recipes.
@@ -8,7 +8,7 @@ siMpLify uses a code structure patterned after the writing process. Each major s
     Critic creates a Collection of Reviews.
     Artist creates a Canvas of Illustrations.
 
-siMpLify is fully extensible. Additional subpackages, Books, Chapters, and Repository can be added to a Project. To contribute to siMpLify, please follow these basic rules:
+siMpLify is fully extensible. Additional subpackages, Books, Chapters, and SimpleRepository can be added to a Project. To contribute to siMpLify, please follow these basic rules:
 
 ## Style
 
@@ -31,7 +31,7 @@ please wrap them in a function or method (as with the 'add_suffix' and 'add_pref
     * publish: finalizes attributes after any runtime changes. (required).
     * apply: applies selected options to passed arguments (optional).
 
-Any new subpackages, Books, Chapters, and Repository should follow a similar template. All classes within siMpLify should use the new @dataclass accessor to minimize boilerplate code (introduced in python 3.7)
+Any new subpackages, Books, Chapters, and SimpleRepository should follow a similar template. All classes within siMpLify should use the new @dataclasses.dataclass accessor to minimize boilerplate code (introduced in python 3.7)
 
 2. siMpLify lazily (runtime) loads most external and internal modules. This is done to lower overhead and incorporate "soft" dependencies. As a result, contributions hould follow these general idioms for importing objects within modules.
 
@@ -41,11 +41,11 @@ Any new subpackages, Books, Chapters, and Repository should follow a similar tem
 
     Then, to import the needed object, use this general code:
 
-        from importlib import import_module
+        from importlib import importlib.import_module
 
-        getattr(import_module(self.workers[key][0]), self.workers[key][1])
+        getattr(importlib.import_module(self.workers[key][0]), self.workers[key][1])
 
-    For Technique-level classes, a special class has been created to construct needed external and internal objects. It is the Option class in the Contributor module. Follow the documentation there for creating Repository.
+    For Technique-level classes, a special class has been created to construct needed external and internal objects. It is the Option class in the Contributor module. Follow the documentation there for creating SimpleRepository.
 
     Chapters should not require an module importation.
 

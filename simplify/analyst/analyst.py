@@ -7,12 +7,11 @@
 """
 
 from copy import deepcopy
-from dataclasses import dataclass
-from dataclasses import field
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
 from functools import wraps
 from inspect import signature
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -26,17 +25,17 @@ from simplify.core.library import Book
 from simplify.core.library import Chapter
 from simplify.core.library import Technique
 from simplify.core.manager import Worker
-from simplify.core.repository import Repository
+from simplify.core.repository import SimpleRepository
 from simplify.core.scholar import Finisher
 from simplify.core.scholar import Parallelizer
 from simplify.core.scholar import Scholar
 from simplify.core.scholar import Specialist
-from simplify.core.utilities import listify
+from simplify.core.utilities import utilities.listify
 
 
 """ Book Subclasses """
 
-@dataclass
+@dataclasses.dataclass
 class Cookbook(Book):
     """Standard class for iterable storage in the Analyst subpackage.
 
@@ -55,12 +54,12 @@ class Cookbook(Book):
             to 'recipes'.
 
     """
-    name: Optional[str] = field(default_factory = lambda: 'cookbook')
-    chapters: Optional[List['Chapter']] = field(default_factory = list)
-    iterable: Optional[str] = field(default_factory = lambda: 'recipes')
+    name: Optional[str] = dataclasses.field(default_factory = lambda: 'cookbook')
+    chapters: Optional[List['Chapter']] = dataclasses.field(default_factory = list)
+    iterable: Optional[str] = dataclasses.field(default_factory = lambda: 'recipes')
 
 
-@dataclass
+@dataclasses.dataclass
 class Recipe(Chapter):
     """Standard class for bottom-level Analyst subpackage iterable storage.
 
@@ -83,8 +82,8 @@ class Recipe(Chapter):
 
     """
     name: Optional[str] = None
-    steps: Optional[List[Tuple[str, str]]] = field(default_factory = list)
-    techniques: Optional[List['Technique']] = field(default_factory = list)
+    steps: Optional[List[Tuple[str, str]]] = dataclasses.field(default_factory = list)
+    techniques: Optional[List['Technique']] = dataclasses.field(default_factory = list)
 
     """ Dunder Methods """
 
@@ -159,10 +158,10 @@ class Recipe(Chapter):
                 to create one.
 
         """
-        if isinstance(listify(techniques)[0], Tuple):
-            self.steps.extend(listify(techniques))
+        if isinstance(utilities.listify(techniques)[0], Tuple):
+            self.steps.extend(utilities.listify(techniques))
         else:
-            self.techniques.extend(listify(techniques))
+            self.techniques.extend(utilities.listify(techniques))
         return self
 
 
@@ -186,7 +185,7 @@ def numpy_shield(callable: Callable) -> Callable:
     return wrapper
 
 
-@dataclass
+@dataclasses.dataclass
 class Tool(Technique):
     """Base method wrapper for applying algorithms to data.
 
@@ -216,16 +215,16 @@ class Tool(Technique):
     step: Optional[str] = None
     module: Optional[str] = None
     algorithm: Optional[object] = None
-    parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
-    default: Optional[Dict[str, Any]] = field(default_factory = dict)
-    required: Optional[Dict[str, Any]] = field(default_factory = dict)
-    runtime: Optional[Dict[str, str]] = field(default_factory = dict)
+    parameters: Optional[Dict[str, Any]] = dataclasses.field(default_factory = dict)
+    default: Optional[Dict[str, Any]] = dataclasses.field(default_factory = dict)
+    required: Optional[Dict[str, Any]] = dataclasses.field(default_factory = dict)
+    runtime: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
     selected: Optional[Union[bool, List[str]]] = False
-    data_dependent: Optional[Dict[str, str]] = field(default_factory = dict)
-    parameter_space: Optional[Dict[str, List[Union[int, float]]]] = field(
+    data_dependent: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
+    parameter_space: Optional[Dict[str, List[Union[int, float]]]] = dataclasses.field(
         default_factory = dict)
-    fit_method: Optional[str] = field(default_factory = lambda: 'fit')
-    transform_method: Optional[str] = field(
+    fit_method: Optional[str] = dataclasses.field(default_factory = lambda: 'fit')
+    transform_method: Optional[str] = dataclasses.field(
         default_factory = lambda: 'transform')
 
     """ Core siMpLify Methods """
@@ -299,7 +298,7 @@ class Tool(Technique):
 
 """ Publisher Subclass """
 
-@dataclass
+@dataclasses.dataclass
 class AnalystPublisher(Publisher):
     """Creates 'Cookbook'
 
@@ -338,7 +337,7 @@ class AnalystPublisher(Publisher):
 
 """ Scholar Subclasses """
 
-@dataclass
+@dataclasses.dataclass
 class AnalystScholar(Scholar):
     """Applies a 'Cookbook' instance to data.
 
@@ -398,7 +397,7 @@ class AnalystScholar(Scholar):
                 'label must be boolean, category, integer, float, or None')
 
 
-@dataclass
+@dataclasses.dataclass
 class AnalystFinisher(Finisher):
     """Finalizes 'Technique' instances with data-dependent parameters.
 
@@ -466,7 +465,7 @@ class AnalystFinisher(Finisher):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class AnalystSpecialist(Specialist):
     """Base class for applying 'Technique' instances to data.
 
@@ -574,8 +573,8 @@ class AnalystSpecialist(Specialist):
 
 """ Options """
 
-@dataclass
-class Tools(Repository):
+@dataclasses.dataclass
+class Tools(SimpleRepository):
     """A dictonary of Tool options for the Analyst subpackage.
 
     Args:
@@ -1189,7 +1188,7 @@ class Tools(Repository):
         return self.contents
 
 
-@dataclass
+@dataclasses.dataclass
 class Analyst(Worker):
     """Object construction instructions used by a Project instance.
 
@@ -1231,14 +1230,14 @@ class Analyst(Worker):
             Defaults to 'processed'.
 
     """
-    name: Optional[str] = field(default_factory = lambda: 'analyst')
-    module: Optional[str] = field(
+    name: Optional[str] = dataclasses.field(default_factory = lambda: 'analyst')
+    module: Optional[str] = dataclasses.field(
         default_factory = lambda: 'simplify.analyst.analyst')
-    book: Optional[str] = field(default_factory = lambda: 'Cookbook')
-    chapter: Optional[str] = field(default_factory = lambda: 'Recipe')
-    technique: Optional[str] = field(default_factory = lambda: 'Tool')
-    publisher: Optional[str] = field(
+    book: Optional[str] = dataclasses.field(default_factory = lambda: 'Cookbook')
+    chapter: Optional[str] = dataclasses.field(default_factory = lambda: 'Recipe')
+    technique: Optional[str] = dataclasses.field(default_factory = lambda: 'Tool')
+    publisher: Optional[str] = dataclasses.field(
         default_factory = lambda: 'AnalystPublisher')
-    scholar: Optional[str] = field(default_factory = lambda: 'AnalystScholar')
-    options: Optional[str] = field(default_factory = lambda: 'Tools')
+    scholar: Optional[str] = dataclasses.field(default_factory = lambda: 'AnalystScholar')
+    options: Optional[str] = dataclasses.field(default_factory = lambda: 'Tools')
     idea: Optional['Idea'] = None

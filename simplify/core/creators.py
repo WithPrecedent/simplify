@@ -6,21 +6,16 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from itertools import product
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+import dataclasses
+import itertools
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.base import SimpleCreator
-from simplify.core.library import Book
-from simplify.core.library import Chapter
-from simplify.core.library import Technique
-from simplify.core.utilities import listify
+from simplify.core import base
+from simplify.core import utilities
 
 
-@dataclass
-class Publisher(SimpleCreator):
+@dataclasses.dataclass
+class Publisher(base.SimpleCreator):
 
     worker: 'Worker'
 
@@ -70,8 +65,8 @@ class Publisher(SimpleCreator):
         return self.author.publish(project = project)
 
 
-@dataclass
-class Author(SimpleCreator):
+@dataclasses.dataclass
+class Author(base.SimpleCreator):
 
     worker: 'Worker'
 
@@ -98,7 +93,7 @@ class Author(SimpleCreator):
         # Creates 'possible' list of lists of 'techniques'.
         possible = list(project.overview[self.worker.name].values())
         # Creates a list of lists of the Cartesian product of 'possible'.
-        combinations = list(map(list, product(*possible)))
+        combinations = list(map(list, itertools.product(*possible)))
         # Creates Chapter instance for every combination of techniques.
         for techniques in combinations:
             step_pairs = tuple(zip(steps, techniques))
@@ -208,8 +203,8 @@ class Author(SimpleCreator):
             return self._publish_parallel(project = project)
 
 
-@dataclass
-class Expert(SimpleCreator):
+@dataclasses.dataclass
+class Expert(base.SimpleCreator):
 
     worker: 'Worker'
 

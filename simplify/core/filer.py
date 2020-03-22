@@ -6,27 +6,21 @@
 :license: Apache-2.0
 """
 
-from abc import ABC
-from collections.abc import MutableMapping
+import collections.abc
 import csv
-from dataclasses import dataclass
-from dataclasses import field
+import dataclasses
 import datetime
-from pathlib import Path
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+import pathlib
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.base import SimpleComponent
-from simplify.core.states import create_states
-from simplify.core.utilities import datetime_string
-from simplify.core.utilities import deduplicate
-from simplify.core.utilities import listify
+from simplify.core import base
+from simplify.core import utilities
 
 
-@dataclass
-class Filer(MutableMapping):
+@dataclasses.dataclass
+class Filer(collections.abc.MutableMapping):
     """Manages files and folders for siMpLify.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -54,11 +48,11 @@ class Filer(MutableMapping):
             states or a 'SimpleState' instance. Defaults to None.
 
     """
-    root_folder: Optional[Union[str, List[str]]] = field(
+    root_folder: Optional[Union[str, List[str]]] = dataclasses.field(
         default_factory = ['..', '..'])
-    data_folder: Optional[str] = field(default_factory = lambda: 'data')
-    data_subfolders: Optional[List[str]] = field(default_factory = list)
-    results_folder: Optional[str] = field(default_factory = lambda: 'results')
+    data_folder: Optional[str] = dataclasses.field(default_factory = lambda: 'data')
+    data_subfolders: Optional[List[str]] = dataclasses.field(default_factory = list)
+    results_folder: Optional[str] = dataclasses.field(default_factory = lambda: 'results')
     states: Optional[Union[List[str], 'SimpleState']] = None
     idea: Optional['Idea'] = None
 
@@ -85,13 +79,13 @@ class Filer(MutableMapping):
 
     @classmethod
     def create(cls,
-            filer: Optional[Union[str, Path, List[str]]] = None,
+            filer: Optional[Union[str, pathlib.Path, List[str]]] = None,
             idea: Optional['Idea'] = None,
             **kwargs) -> 'Filer':
         """Creates an Filer instance from passed arguments.
 
         Args:
-            filer (Optional[Union[str, Path, List[str]]]): Filer
+            filer (Optional[Union[str, pathlib.Path, List[str]]]): Filer
                 instance or root folder for one.
             idea (Optional['Idea']): an Idea instance.
 
@@ -105,7 +99,7 @@ class Filer(MutableMapping):
         """
         if isinstance(filer, Filer):
             return filer
-        elif isinstance(filer, (str, Path, List)):
+        elif isinstance(filer, (str, pathlib.Path, List)):
             return cls(root_folder = filer, idea = idea, **kwargs)
         elif filer is None:
             return cls(idea = idea, **kwargs)
@@ -114,14 +108,14 @@ class Filer(MutableMapping):
 
     """ Required ABC Methods """
 
-    def __getitem__(self, key: str) -> Path:
+    def __getitem__(self, key: str) -> pathlib.Path:
         """Returns value for 'key' in 'folders'.
 
         Args:
             key (str): name of key in 'folders'.
 
         Returns:
-            Path: item stored as a 'folders'.
+            pathlib.Path: item stored as a 'folders'.
 
         Raises:
             KeyError: if 'key' is not in 'folders'.
@@ -177,15 +171,15 @@ class Filer(MutableMapping):
     """ Private Methods """
 
     def _draft_root(self) -> None:
-        """Turns 'root_folder' into a Path object."""
+        """Turns 'root_folder' into a pathlib.Path object."""
         self.root_folder = self.root_folder or ['..', '..']
         if isinstance(self.root_folder, list):
-            root = Path.cwd()
+            root = pathlib.Path.cwd()
             for item in self.root_folder:
                 root = root.joinpath(item)
             self.folders['root'] = root
         else:
-            self.folders['root'] = Path(self.root_folder)
+            self.folders['root'] = pathlib.Path(self.root_folder)
         return self
 
     def _draft_core_folders(self) -> None:
@@ -349,18 +343,18 @@ class Filer(MutableMapping):
             'visualize': 'processed'}
         return self
 
-    def _make_unique_path(self, folder: Path, name: str) -> Path:
+    def _make_unique_path(self, folder: pathlib.Path, name: str) -> pathlib.Path:
         """Creates a unique path to avoid overwriting a file or folder.
 
         Thanks to RealPython for this bit of code:
         https://realpython.com/python-pathlib/.
 
         Args:
-            folder (Path): the folder where the file or folder will be located.
+            folder (pathlib.Path): the folder where the file or folder will be located.
             name (str): the basic name that should be used.
 
         Returns:
-            Path: with a unique name. If the original name conflicts with an
+            pathlib.Path: with a unique name. If the original name conflicts with an
                 existing file/folder, a counter is used to find a unique name
                 with the counter appended as a suffix to the original name.
 
@@ -375,8 +369,8 @@ class Filer(MutableMapping):
     def _pathlibify(self,
             folder: str,
             name: Optional[str] = None,
-            extension: Optional[str] = None) -> Path:
-        """Converts strings to pathlib Path object.
+            extension: Optional[str] = None) -> pathlib.Path:
+        """Converts strings to pathlib pathlib.Path object.
 
         If 'name' and 'extension' are passed, a file path is created. Otherwise,
         a folder path is created.
@@ -387,7 +381,7 @@ class Filer(MutableMapping):
             extension (Optional[str]): the extension of the file.
 
         Returns:
-            Path: formed from string arguments.
+            pathlib.Path: formed from string arguments.
 
         """
         try:
@@ -400,28 +394,28 @@ class Filer(MutableMapping):
                 folder = self.folders['root'].joinpath(folder)
         if name and extension:
             return folder.joinpath('.'.join([name, extension]))
-        elif isinstance(folder, Path):
+        elif isinstance(folder, pathlib.Path):
             return folder
         else:
-            return Path(folder)
+            return pathlib.Path(folder)
 
-    def _write_folder(self, folder: Union[str, Path]) -> None:
+    def _write_folder(self, folder: Union[str, pathlib.Path]) -> None:
         """Writes folder to disk.
 
         Parent folders are created as needed.
 
         Args:
-            folder (Union[str, Path]): intended folder to write to disk.
+            folder (Union[str, pathlib.Path]): intended folder to write to disk.
 
         """
-        Path.mkdir(folder, parents = True, exist_ok = True)
+        pathlib.Path.mkdir(folder, parents = True, exist_ok = True)
         return self
 
     """ File Input/Output Methods """
 
     def load(self,
-            file_path: Optional[Union[str, Path]] = None,
-            folder: Optional[Union[str, Path]] = None,
+            file_path: Optional[Union[str, pathlib.Path]] = None,
+            folder: Optional[Union[str, pathlib.Path]] = None,
             file_name: Optional[str] = None,
             file_format: Optional[Union[str, 'FileFormat']] = None,
             **kwargs) -> Any:
@@ -431,9 +425,9 @@ class Filer(MutableMapping):
         file_path is passed, folder and file_name are ignored.
 
         Args:
-            file_path (Optional[Union[str, Path]]): a complete file path.
+            file_path (Optional[Union[str, pathlib.Path]]): a complete file path.
                 Defaults to None.
-            folder (Optional[Union[str, Path]]): a complete folder path or the
+            folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
                 name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
@@ -461,8 +455,8 @@ class Filer(MutableMapping):
 
     def save(self,
             variable: Any,
-            file_path: Optional[Union[str, Path]] = None,
-            folder: Optional[Union[str, Path]] = None,
+            file_path: Optional[Union[str, pathlib.Path]] = None,
+            folder: Optional[Union[str, pathlib.Path]] = None,
             file_name: Optional[str] = None,
             file_format: Optional[Union[str, 'FileFormat']] = None,
             **kwargs) -> None:
@@ -473,9 +467,9 @@ class Filer(MutableMapping):
 
         Args:
             variable (Any): object to be save to disk.
-            file_path (Optional[Union[str, Path]]): a complete file path.
+            file_path (Optional[Union[str, pathlib.Path]]): a complete file path.
                 Defaults to None.
-            folder (Optional[Union[str, Path]]): a complete folder path or the
+            folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
                 name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
@@ -510,7 +504,7 @@ class Filer(MutableMapping):
 
         """
         if name is None:
-            name = '_'.join('project', datetime_string())
+            name = '_'.join('project', utilities.datetime_string())
         self.folders['project'] = self.folders['results'].joinpath(name)
         self._write_folder(folder = self.folders['project'])
         return self
@@ -542,7 +536,7 @@ class Filer(MutableMapping):
         """Initializes core paths and attributes."""
         # Initializes 'state' for state management.
         self.state = create_states(states = self.states)
-        # Transforms root folder path into a Path object.
+        # Transforms root folder path into a pathlib.Path object.
         self._draft_root()
         # Creates basic folder structure and writes folders to disk.
         self._draft_core_folders()
@@ -572,7 +566,7 @@ class Filer(MutableMapping):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class SimpleDistributor(ABC):
     """Base class for siMpLify Importer and Exporter.
 
@@ -585,8 +579,8 @@ class SimpleDistributor(ABC):
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
-        # Creates 'Pathifier' instance for dynamic path creation.
-        self.pathifier = Pathifier(
+        # Creates 'pathlib.Pathifier' instance for dynamic path creation.
+        self.pathifier = pathlib.Pathifier(
             filer = self.filer,
             distributor = self)
         return self
@@ -666,7 +660,7 @@ class SimpleDistributor(ABC):
         return parameters
 
 
-@dataclass
+@dataclasses.dataclass
 class Importer(SimpleDistributor):
     """Manages file importing for siMpLify.
 
@@ -691,9 +685,9 @@ class Importer(SimpleDistributor):
     """
     filer: 'Filer'
     root_folder: Optional[str] = None
-    folders: Optional[Dict[str, str]] = field(default_factory = dict)
-    file_format_states: Optional[Dict[str, str]] = field(default_factory = dict)
-    file_names: Optional[Dict[str, str]] = field(default_factory = dict)
+    folders: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
+    file_format_states: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
+    file_names: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
 
     """ Public Methods """
 
@@ -702,7 +696,7 @@ class Importer(SimpleDistributor):
         return self.apply(**kwargs)
 
     def make_batch(self,
-            folder: Optional[Union[str, Path]] = None,
+            folder: Optional[Union[str, pathlib.Path]] = None,
             file_format: Optional[Union[str, 'FileFormat']] = None,
             include_subfolders: Optional[bool] = True) -> Iterable:
         """Creates an iterable of paths for importing files.
@@ -711,7 +705,7 @@ class Importer(SimpleDistributor):
         matching 'file_format' files.
 
         Args:
-            folder (Optional[Union[str, Path]]): path of folder or string
+            folder (Optional[Union[str, pathlib.Path]]): path of folder or string
                 corresponding to class attribute with path. Defaults to None.
             file_format (Optional[Union[str, 'FileFormat']]): file format name
                 or a FileFormat instance. Defeaults to None.
@@ -725,9 +719,9 @@ class Importer(SimpleDistributor):
         folder = folder or self.filer[self.folders[self.filer.stage]]
         file_format = self._check_file_format(file_format = file_format)
         if include_subfolders:
-            return Path(folder).rglob('.'.join(['*', file_format.extension]))
+            return pathlib.Path(folder).rglob('.'.join(['*', file_format.extension]))
         else:
-            return Path(folder).glob('.'.join(['*', file_format.extension]))
+            return pathlib.Path(folder).glob('.'.join(['*', file_format.extension]))
 
     # def iterate_batch(self,
     #         chapters: List[str],
@@ -762,8 +756,8 @@ class Importer(SimpleDistributor):
     """ Core siMpLify Methods """
 
     def apply(self,
-            file_path: Optional[Union[str, Path]] = None,
-            folder: Optional[Union[str, Path]] = None,
+            file_path: Optional[Union[str, pathlib.Path]] = None,
+            folder: Optional[Union[str, pathlib.Path]] = None,
             file_name: Optional[str] = None,
             file_format: Optional[Union[str, 'FileFormat']] = None,
             **kwargs) -> Any:
@@ -773,9 +767,9 @@ class Importer(SimpleDistributor):
         file_path is passed, folder and file_name are ignored.
 
         Args:
-            file_path (Optional[Union[str, Path]]): a complete file path.
+            file_path (Optional[Union[str, pathlib.Path]]): a complete file path.
                 Defaults to None.
-            folder (Optional[Union[str, Path]]): a complete folder path or the
+            folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
                 name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
@@ -806,7 +800,7 @@ class Importer(SimpleDistributor):
         return tool(file_path, **parameters)
 
 
-@dataclass
+@dataclasses.dataclass
 class Exporter(SimpleDistributor):
     """Manages file exporting for siMpLify.
 
@@ -831,9 +825,9 @@ class Exporter(SimpleDistributor):
     """
     filer: 'Filer' = None
     root_folder: Optional[str] = None
-    folders: Optional[Dict[str, str]] = field(default_factory = dict)
-    file_format_states: Optional[Dict[str, str]] = field(default_factory = dict)
-    file_names: Optional[Dict[str, str]] = field(default_factory = dict)
+    folders: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
+    file_format_states: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
+    file_names: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
 
     """ Private Methods """
 
@@ -895,8 +889,8 @@ class Exporter(SimpleDistributor):
 
     def apply(self,
             variable: Any,
-            file_path: Optional[Union[str, Path]] = None,
-            folder: Optional[Union[str, Path]] = None,
+            file_path: Optional[Union[str, pathlib.Path]] = None,
+            folder: Optional[Union[str, pathlib.Path]] = None,
             file_name: Optional[str] = None,
             file_format: Optional[Union[str, 'FileFormat']] = None,
             **kwargs) -> None:
@@ -907,9 +901,9 @@ class Exporter(SimpleDistributor):
 
         Args:
             variable (Any): object to be save to disk.
-            file_path (Optional[Union[str, Path]]): a complete file path.
+            file_path (Optional[Union[str, pathlib.Path]]): a complete file path.
                 Defaults to None.
-            folder (Optional[Union[str, Path]]): a complete folder path or the
+            folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
                 name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
@@ -938,8 +932,8 @@ class Exporter(SimpleDistributor):
         return self
 
 
-@dataclass
-class Pathifier(object):
+@dataclasses.dataclass
+class pathlib.Pathifier(object):
     """Builds file_paths based upon state.
 
     Args:
@@ -973,7 +967,7 @@ class Pathifier(object):
                 return self.filer.folders[folder]
             except AttributeError:
                 if isinstance(folder, str):
-                    return Path(folder)
+                    return pathlib.Path(folder)
                 else:
                     return folder
 
@@ -995,7 +989,7 @@ class Pathifier(object):
     def _make_path(self,
             folder: str,
             file_name: str,
-            file_format: 'FileFormat') -> Path:
+            file_format: 'FileFormat') -> pathlib.Path:
         """Creates completed file_path from passed arguments.
 
         Args:
@@ -1005,7 +999,7 @@ class Pathifier(object):
                 selected file format.
 
         Returns:
-            Path: completed file path.
+            pathlib.Path: completed file path.
 
         """
         return folder.joinpath('.'.join([file_name, file_format.extension]))
@@ -1016,7 +1010,7 @@ class Pathifier(object):
             file_path: Optional[str] = None,
             folder: Optional[str] = None,
             file_name: Optional[str] = None,
-            file_format: 'FileFormat' = None) -> Path:
+            file_format: 'FileFormat' = None) -> pathlib.Path:
         """Creates file path from passed arguments.
 
         Args:
@@ -1032,10 +1026,10 @@ class Pathifier(object):
             str of completed file path.
 
         """
-        if isinstance(file_path, Path):
+        if isinstance(file_path, pathlib.Path):
             return file_path
         elif isinstance(file_path, str):
-            return Path(file_path)
+            return pathlib.Path(file_path)
         else:
             return self._make_path(
                 folder = self._check_folder(folder = folder),
@@ -1043,7 +1037,7 @@ class Pathifier(object):
                 file_format = file_format)
 
 
-@dataclass
+@dataclasses.dataclass
 class FileFormat(SimpleComponent):
     """File format information and instructions
 
@@ -1076,7 +1070,7 @@ class FileFormat(SimpleComponent):
     """
 
     name: Optional[str] = None
-    module: Optional[str] = field(default_factory = lambda: 'simplify.core')
+    module: Optional[str] = dataclasses.field(default_factory = lambda: 'simplify.core')
     extension: Optional[str] = None
     import_method: Optional[str] = None
     export_method: Optional[str] = None

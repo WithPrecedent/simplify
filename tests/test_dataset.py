@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from pathlib import Path
+from pathlib import pathlib.Path
 
 import pandas as pd
 

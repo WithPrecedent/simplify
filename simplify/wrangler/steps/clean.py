@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 
 from simplify.core.definitionsetter import WranglerTechnique
 
@@ -24,7 +24,7 @@ DEFAULT_OPTIONS = {
     'combine': ['simplify.wrangler.steps.combine', 'Combine']}
 
 
-@dataclass
+@dataclasses.dataclass
 class Clean(SimpleIterable):
     """Cleans, munges, and parsers data using fast, vectorized methods.
 

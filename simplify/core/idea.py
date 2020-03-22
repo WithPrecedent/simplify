@@ -6,42 +6,32 @@
 :license: Apache-2.0
 """
 
-from collections import ChainMap
-from collections.abc import MutableMapping
-from configparser import ConfigParser
-from dataclasses import dataclass
-from dataclasses import field
-from importlib import import_module
-from pathlib import Path
+import collections
+import collections.abc
+import configparser
+import dataclasses
+import importlib
+import pathlib
 import re
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from simplify.core.base import SimpleContainer
-import simplify.core.defaults as simplify_defaults
-from simplify.core.repository import Repository
-from simplify.core.utilities import listify
-from simplify.core.utilities import typify
+from simplify.core import base
+from simplify.core import defaults
+from simplify.core import utilities
 
 
-@dataclass
-class Idea(SimpleContainer, MutableMapping):
+@dataclasses.dataclass
+class Idea(base.SimpleContainer, collections.abc.MutableMapping):
     """Converts a data science idea into a python object.
-
-    'Idea' uses a modified version of the Borg design pattern outlined by Alex
-    Martelli, described here: http://www.aleax.it/5ep.html.
-
-    This allows every imported instance of 'Idea' to share the same class
-    variable 'configuration' dictionary containing settings.
 
     If 'configuration' is imported from a file, 'Idea' creates a dictionary,
     converting dictionary values to appropriate datatypes, and stores portions
     of the 'configuration' dictionary as attributes in other classes. Idea is
     based on python's ConfigParser. It seeks to cure some of the shortcomings of
-    the base ConfigParser including:
-        1) All values in ConfigParser are strings by default.
+    the base configparser.ConfigParser including:
+        1) All values in configparser.ConfigParser are strings by default.
         2) The nested structure for getting items creates verbose code.
         3) It uses OrderedDict (python 3.6+ stepss regular dictionaries).
 
@@ -50,7 +40,7 @@ class Idea(SimpleContainer, MutableMapping):
         2) a file name which is located in the current working directory,
             which will automatically be loaded into Idea;
                                 or,
-        3) a prebuilt ConfigParser compatible nested dictionary.
+        3) a prebuilt configparser.ConfigParser compatible nested dictionary.
 
     If 'infer_types' is set to True (the default option), the dictionary values
     are automatically converted to appropriate datatypes (str, list, float,
@@ -139,28 +129,22 @@ class Idea(SimpleContainer, MutableMapping):
             converted to other datatypes (True) or left alone (False). If
             'configuration' was imported, a False value will leave all values as
             strings. Defaults to True.
-        _shared_state (ClassVar[Dict[str, Any]]): shared state of all class
-            instances. Defaults to an empty dictionary.
 
     """
-    configuration: Optional[Dict[str, Dict[str, Any]]] = field(
+    configuration: Optional[Dict[str, Dict[str, Any]]] = dataclasses.field(
         default_factory = dict)
     infer_types: Optional[bool] = True
-    # _shared_state: ClassVar[Dict[str, Any]] = field(default = {})
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         # Validates 'configuration'.
-        if isinstance(self.configuration, (str, Path)):
+        if isinstance(self.configuration, (str, pathlib.Path)):
             self.configuration = self.create(idea = self.configuration)
         # Infers types for values in 'configuration', if option selected.
         if self.infer_types:
             self._infer_types()
         # Adds 'simplify_defaults' as backup settings to 'configuration'.
         self._chain_defaults()
-        # Implements Borg pattern so that all 'Idea' instances will share the
-        # same state.
-        # self.__dict__ = self._shared_state
         return self
 
     """ Factory Method """
@@ -168,13 +152,16 @@ class Idea(SimpleContainer, MutableMapping):
     @classmethod
     def create(cls,
             idea: Union[
-                str, Path, Dict[str, Dict[str, Any]], 'Idea']) -> 'Idea':
+                str,
+                pathlib.Path,
+                Dict[str, Dict[str, Any]],
+                'Idea']) -> 'Idea':
         """Creates an 'Idea' instance from passed argument.
 
         Args:
-            idea (Union[Dict[str, Path, Dict[str, Any]], 'Idea']): a dict, a str
-                file path to an ini, csv, or py file with settings, or an Idea
-                instance with a 'configuration' attribute.
+            idea (Union[Dict[str, pathlib.Path, Dict[str, Any]], 'Idea']): a
+                dict, a str file path to an ini, csv, or py file with settings,
+                or an Idea instance with a 'configuration' attribute.
 
         Returns:
             'Idea' instance, properly configured.
@@ -220,7 +207,7 @@ class Idea(SimpleContainer, MutableMapping):
 
             """
             try:
-                configuration = ConfigParser(dict_type = dict)
+                configuration = configparser.ConfigParser(dict_type = dict)
                 configuration.optionxform = lambda option: option
                 configuration.read(str(file_path))
                 return dict(configuration._sections)
@@ -244,17 +231,17 @@ class Idea(SimpleContainer, MutableMapping):
 
             """
             try:
-                return getattr(import_module(file_path), '__dict__')
+                return getattr(importlib.import_module(file_path), '__dict__')
             except FileNotFoundError:
                 raise FileNotFoundError(' '.join(['configuration file',
                     file_path, 'not found']))
 
         if isinstance(idea, Idea):
             return idea
-        elif isinstance(idea, (dict, MutableMapping)):
+        elif isinstance(idea, (dict, collections.abc.MutableMapping)):
             return cls(configuration = idea)
-        elif isinstance(idea, (str, Path)):
-            extension = str(Path(idea).suffix)[1:]
+        elif isinstance(idea, (str, pathlib.Path)):
+            extension = str(pathlib.Path(idea).suffix)[1:]
             load_method = locals()['_'.join(['_load_from', extension])]
             return cls(configuration = load_method(file_path = idea))
         elif idea is None:
@@ -284,9 +271,8 @@ class Idea(SimpleContainer, MutableMapping):
             for section in list(self.configuration.keys()):
                 try:
                     return self.configuration[section][key]
-                    break
                 except KeyError:
-                    pass
+                    raise KeyError(f'{key} is not found in {self.name}')
 
     def __setitem__(self, key: str, value: Dict[str, Any]) -> None:
         """Creates new key/value pair(s) in a section of the active dictionary.
@@ -344,10 +330,10 @@ class Idea(SimpleContainer, MutableMapping):
 
     def _chain_defaults(self) -> None:
         """Creates set of mappings for siMpLify settings lookup."""
-        defaults = {}
-        for key, attribute in simplify_defaults.__dict__.items():
-            defaults[key.lower()] = attribute
-        self.configuration = ChainMap(self.configuration, defaults)
+        defaults = {
+            k.lower(): v
+            for k, v in defaults.simplify_defaults.__dict__.items()}
+        self.configuration = collections.ChainMap(self.configuration, defaults)
         return self
 
     def _get_parameters(self, instance: object) -> Dict[str, Any]:
@@ -383,27 +369,10 @@ class Idea(SimpleContainer, MutableMapping):
 
         """
         try:
-            return listify(self.configuration[section][f'{prefix}_{suffix}'])
+            return utilities.listify(
+                self.configuration[section][f'{prefix}_{suffix}'])
         except (KeyError, AttributeError):
             return None
-
-    # def _get_special(self, instance: object, suffix: str) -> List[str]:
-    #     """Returns list of strings from appropriate item in 'configuration'.
-
-    #     Args:
-    #         instance (object): siMpLify class with 'name' attribute to find
-    #             matching item in 'configuration'.
-    #         suffix (str): suffix of item in 'configuration'.
-
-    #     Returns:
-    #         List[str]: item from 'configuration.
-
-    #     """
-    #     try:
-    #         return listify(self.configuration[instance.name]['_'.join(
-    #             [instance.name, suffix])])
-    #     except (KeyError, AttributeError):
-    #         return None
 
     def _get_techniques(self, instance: object) -> Dict[str, Dict[str, None]]:
         """Returns nested dictionary of techniques.
@@ -414,19 +383,19 @@ class Idea(SimpleContainer, MutableMapping):
 
         Returns:
             Dict[str, Dict[str, None]]: techniques dictionary prepared to be
-                loaded into a 'Repository' instance.
+                loaded into a 'SimpleRepository' instance.
 
         """
         contents = {}
         try:
             for key, value in self.configuration[instance.name].items():
                 if (key.endswith('_techniques')
-                        and not value in [None, 'none', 'None']):
+                        and value not in [None, 'none', 'None']):
                     step = key.replace('_techniques', '')
                     contents[step] = {}
-                    for technique in listify(value):
+                    for technique in utilities.listify(value):
                         contents[step][technique] = None
-            return Repository(contents = contents)
+            return SimpleRepository(contents = contents)
         except (KeyError, AttributeError):
             return None
 
@@ -440,12 +409,12 @@ class Idea(SimpleContainer, MutableMapping):
         new_bundle = {}
         for key, value in self.configuration.items():
             if isinstance(value, dict):
-                inner_bundle = {}
-                for inner_key, inner_value in value.items():
-                    inner_bundle[inner_key] = typify(inner_value)
+                inner_bundle = {
+                    inner_key: utilities.typify(inner_value)
+                    for inner_key, inner_value in value.items()}
                 new_bundle[key] = inner_bundle
             else:
-                new_bundle[key] = typify(value)
+                new_bundle[key] = utilities.typify(value)
         self.configuration = new_bundle
         return self
 
@@ -496,7 +465,7 @@ class Idea(SimpleContainer, MutableMapping):
         except AttributeError:
             pass
         try:
-            sections.extend(listify(instance.idea_sections))
+            sections.extend(utilities.listify(instance.idea_sections))
         except AttributeError:
             pass
         for section in sections:
@@ -633,27 +602,21 @@ class Idea(SimpleContainer, MutableMapping):
             instance (object): siMpLify class instance with modifications made.
 
         """
-        # Adds special attributes appropraite to instance.
         if inject_specials:
             for special in ['parameters', 'steps', 'techniques', 'workers']:
                 if hasattr(instance, special):
                     getattr(self, '_'.join(['inject', special]))(
                         instance = instance,
                         overwrite = overwrite)
-        # Adds 'general' and other appropriate items to 'instance' as attributes
-        # from 'configuration.
-        instance = self.inject_attributes(
-            instance = instance,
-            overwrite = overwrite)
-        return instance
+        return self.inject_attributes(instance=instance, overwrite=overwrite)
 
     """ Special Access Methods """
 
-    def get_packages(self, section: str) -> List[str]:
+    def get_workers(self, section: str) -> List[str]:
         return self._get_special(
             section = section,
             prefix = section,
-            suffix = 'packages')
+            suffix = 'workers')
 
     def get_steps(self, section: str) -> List[str]:
         return self._get_special(

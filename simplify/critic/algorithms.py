@@ -6,10 +6,9 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.critic.critic import Evaluator
 
@@ -29,7 +28,7 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #     algorithm = 'explain_prediction_df')
 
 
-# """ Prediction Repository """
+# """ Prediction SimpleRepository """
 
 # prediction_gini = Technique(
 #     name = 'gini_predictions',
@@ -55,7 +54,7 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #     module = 'self',
 #     algorithm = '_get_shap_probabilities')
 
-# """ Ranking Repository """
+# """ Ranking SimpleRepository """
 
 # rank_gini = Technique(
 #     name = 'gini_importances',
@@ -74,7 +73,7 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #     module = 'self',
 #     algorithm = '_get_shap_importances')
 
-""" Metrics Repository """
+""" Metrics SimpleRepository """
 
 # def _get_brier_score_loss_parameters(self, parameters, recipe = None):
 #     if self.step in 'brier_score_loss':
@@ -239,7 +238,7 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #     algorithm = 'zero_one_loss')
 
 
-# @dataclass
+# @dataclasses.dataclass
 # class Article(object):
 
 #     def __post_init__(self) -> None:
@@ -269,14 +268,14 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #             self.best_recipe = recipe
 #             self.best_recipe_score = self.article.loc[
 #                     self.article.index[-1],
-#                     listify(self.metrics)[0]]
+#                     utilities.listify(self.metrics)[0]]
 #         elif (self.article.loc[
 #                 self.article.index[-1],
-#                 listify(self.metrics)[0]] > self.best_recipe_score):
+#                 utilities.listify(self.metrics)[0]] > self.best_recipe_score):
 #             self.best_recipe = recipe
 #             self.best_recipe_score = self.article.loc[
 #                     self.article.index[-1],
-#                     listify(self.metrics)[0]]
+#                     utilities.listify(self.metrics)[0]]
 #         return self
 
 #     def _format_step(self, attribute):
@@ -299,7 +298,7 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #         """Prints output to the console about the best recipe."""
 #         if self.verbose:
 #             print('The best test recipe, based upon the',
-#                   listify(self.metrics)[0], 'metric with a score of',
+#                   utilities.listify(self.metrics)[0], 'metric with a score of',
 #                   f'{self.best_recipe_score: 4.4f}', 'is:')
 #             for step in getattr(self,
 #                     self.iterator).best_recipe.steps:
@@ -395,7 +394,7 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #     'zero_one': ['sklearn.metrics', 'zero_one_loss']}
 
 
-# @dataclass
+# @dataclasses.dataclass
 # class Metrics(Evaluator):
 #     """Measures model performance.
 
@@ -414,7 +413,7 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #     parameters: object = None
 #     name: str = 'metrics'
 #     auto_draft: bool = True
-#     options: Dict = field(default_factory = lambda: DEFAULT_OPTIONS)
+#     options: Dict = dataclasses.field(default_factory = lambda: DEFAULT_OPTIONS)
 
 #     def __post_init__(self) -> None:
 #         super().__post_init__()
@@ -508,7 +507,7 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
     #         return None
 
     # def _get_permutation_importances(self, recipe):
-    #     scorer = listify(self.metrics_steps)[0]
+    #     scorer = utilities.listify(self.metrics_steps)[0]
     #     base_score, score_decreases = self.workers[self.step](
     #             score_func = scorer,
     #             x = getattr(recipe.dataset, 'x_' + self.data_to_review),

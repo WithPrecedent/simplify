@@ -6,15 +6,14 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.chapter import Chapter
 from simplify.core.library import Book
 
 
-@dataclass
+@dataclasses.dataclass
 class Canvas(Book):
     """Builds tools for data visualization.
 
@@ -72,7 +71,7 @@ class Canvas(Book):
     """ Private Methods """
 
     def _draft_options(self) -> None:
-        self._options = Repository(contents = {
+        self._options = SimpleRepository(contents = {
             'styler': ('simplify.artist.steps.styler', 'Styler'),
             'painter': ('simplify.artist.steps.paint', 'Painter'),
             'animator': ('simplify.artist.steps.animator', 'Animator')}
@@ -102,7 +101,7 @@ class Canvas(Book):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class Illustration(Chapter):
 
     def __post_init__(self) -> None:

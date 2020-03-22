@@ -7,21 +7,20 @@
 """
 
 from collections.abc import Container
-from collections.abc import MutableMapping
-from dataclasses import dataclass
-from dataclasses import field
-from importlib import import_module
-from pathlib import Path
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from collections.abc import collections.abc.MutableMapping
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
+from importlib import importlib.import_module
+from pathlib import pathlib.Path
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from simplify.core.utilities import listify
+from simplify.core.utilities import utilities.listify
 
 
-@dataclass
+@dataclasses.dataclass
 class Outline(Container):
     """Object construction instructions used by Publisher subclasses.
 
@@ -85,12 +84,12 @@ class Outline(Container):
         """
         try:
             return getattr(
-                import_module(self.module),
+                importlib.import_module(self.module),
                 getattr(self, component))
         except (ImportError, AttributeError):
             try:
                 return getattr(
-                    import_module(self.default_module),
+                    importlib.import_module(self.default_module),
                     getattr(self, component))
             except (ImportError, AttributeError):
                 raise ImportError(' '.join(
@@ -98,8 +97,8 @@ class Outline(Container):
                         'nor', self.default_module]))
 
 
-@dataclass
-class SimpleType(MutableMapping):
+@dataclasses.dataclass
+class SimpleType(collections.abc.MutableMapping):
     """Base class for proxy typing."""
 
     types: Dict[str, Any]

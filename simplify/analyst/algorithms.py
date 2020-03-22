@@ -6,10 +6,9 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -134,7 +133,7 @@ def drop_infrequently_true(
     if columns is None:
         columns = data.booleans
     infrequents = []
-    for column in listify(columns):
+    for column in utilities.listify(columns):
         try:
             if data[column].mean() < threshold:
                 infrequents.append(column)
@@ -169,7 +168,7 @@ def smart_fill(
 
 
 
-# @dataclass
+# @dataclasses.dataclass
 # class Gaussify(TechniqueOutline):
 #     """Transforms data columns to more gaussian distribution.
 
@@ -220,7 +219,7 @@ def smart_fill(
 #                     dataset.x[column])
 #         return dataset
 
-# @dataclass
+# @dataclasses.dataclass
 # class CompareCleaves(TechniqueOutline):
 #     """[summary]
 
@@ -270,7 +269,7 @@ def smart_fill(
 #                        'mutual_class': mutual_info_classif,
 #                        'mutual_regress': mutual_info_regression}
 
-# @dataclass
+# @dataclasses.dataclass
 # class CombineCleaves(TechniqueOutline):
 #     """[summary]
 
@@ -288,7 +287,7 @@ def smart_fill(
 #         return self
 
 
-# @dataclass
+# @dataclasses.dataclass
 # class SearchComposer(AnalystComposer):
 #     """Searches for optimal model hyperparameters using specified step.
 
@@ -372,7 +371,7 @@ def smart_fill(
 #         return self
 
 
-# @dataclass
+# @dataclasses.dataclass
 # class SearchAnalystTechnique(AnalystTechnique):
 #     """[summary]
 

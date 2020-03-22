@@ -1,18 +1,18 @@
 """
 .. module:: idea repository
-:synopsis: tests Repository and Plan classes
+:synopsis: tests SimpleRepository and Plan classes
 :author: Corey Rayburn Yung
 :copyright: 2019-2020
 :license: Apache-2.0
 """
 
-from pathlib import Path
+from pathlib import pathlib.Path
 from simplify.core.repository import Plan
-from simplify.core.repository import Repository
+from simplify.core.repository import SimpleRepository
 
 
 def test_repository():
-    repository = Repository(contents = {
+    repository = SimpleRepository(contents = {
         'run' : 'tired',
         'sleep': 'rested',
         'walk': 'relax'})

@@ -6,10 +6,9 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -18,7 +17,7 @@ from simplify.core.base import SimpleSettings
 from simplify.critic.critic import Evaluator
 
 
-@dataclass
+@dataclasses.dataclass
 class Predictor(Evaluator):
     """Base class for report preparation.
 

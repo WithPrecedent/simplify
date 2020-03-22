@@ -6,13 +6,13 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 import os
 
 from simplify.core.definitionsetter import WranglerTechnique
 
 
-@dataclass
+@dataclasses.dataclass
 class Divide(WranglerTechnique):
     """Divides data source files so that they can be loaded in memory.
 

@@ -1,5 +1,5 @@
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 from functools import wraps
 from inspect import getfullargspec
 import re
@@ -15,7 +15,7 @@ import pandas as pd
 
 """ Mixins """
 
-@dataclass
+@dataclasses.dataclass
 class SimpleIterables(object):
 
     @staticmethod
@@ -46,7 +46,7 @@ class SimpleIterables(object):
         elif isinstance(iterable, pd.DataFrame):
             return iterable.edit_suffix(suffix)
 
-@dataclass
+@dataclasses.dataclass
 class SimpleParser(object):
 
     @staticmethod
@@ -119,7 +119,7 @@ class SimpleParser(object):
         return len(variable.split(' ')) - 1
 
 
-@dataclass
+@dataclasses.dataclass
 class SimpleUtilities(object):
 
     def _check_lengths(self, variable1, variable2):
@@ -131,5 +131,5 @@ class SimpleUtilities(object):
             variable1: string or list.
             variable2: string or list.
         """
-        return len(listify(variable1) == listify(variable2))
+        return len(utilities.listify(variable1) == utilities.listify(variable2))
 

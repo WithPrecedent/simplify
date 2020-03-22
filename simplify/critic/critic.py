@@ -6,10 +6,9 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -17,14 +16,14 @@ from simplify.core.library import Book
 from simplify.core.library import Chapter
 from simplify.core.library import Technique
 from simplify.core.manager import Worker
-from simplify.core.repository import Repository
+from simplify.core.repository import SimpleRepository
 from simplify.core.scholar import Finisher
 from simplify.core.scholar import Parallelizer
 from simplify.core.scholar import Scholar
 from simplify.core.scholar import Specialist
 
 
-@dataclass
+@dataclasses.dataclass
 class Anthology(Book):
     """Applies techniques to 'Cookbook' instances to assess performance.
 
@@ -50,14 +49,14 @@ class Anthology(Book):
             an empty list.
 
     """
-    name: Optional[str] = field(default_factory = lambda: 'anthology')
-    chapters: Optional[List['Review']] = field(default_factory = list)
-    iterable: Optional[str] = field(default_factory = lambda: 'reviews')
-    steps: Optional[List[Tuple[str, str]]] = field(default_factory = list)
-    techniques: Optional[List['Technique']] = field(default_factory = list)
+    name: Optional[str] = dataclasses.field(default_factory = lambda: 'anthology')
+    chapters: Optional[List['Review']] = dataclasses.field(default_factory = list)
+    iterable: Optional[str] = dataclasses.field(default_factory = lambda: 'reviews')
+    steps: Optional[List[Tuple[str, str]]] = dataclasses.field(default_factory = list)
+    techniques: Optional[List['Technique']] = dataclasses.field(default_factory = list)
 
 
-@dataclass
+@dataclasses.dataclass
 class Review(Chapter):
     """Evaluations for a 'Cookbook' recipe.
 
@@ -89,20 +88,20 @@ class Review(Chapter):
 
     """
     name: Optional[str] = None
-    steps: Optional[List[str]] = field(default_factory = list)
-    explanations: Optional[Dict[str, pd.DataFrame]] = field(
+    steps: Optional[List[str]] = dataclasses.field(default_factory = list)
+    explanations: Optional[Dict[str, pd.DataFrame]] = dataclasses.field(
         default_factory = dict)
-    predictions: Optional[Dict[str, pd.Series]] = field(
+    predictions: Optional[Dict[str, pd.Series]] = dataclasses.field(
         default_factory = dict)
-    importances: Optional[Dict[str, pd.DataFrame]] = field(
+    importances: Optional[Dict[str, pd.DataFrame]] = dataclasses.field(
         default_factory = dict)
-    metrics: Optional[Dict[str, pd.Series]] = field(
+    metrics: Optional[Dict[str, pd.Series]] = dataclasses.field(
         default_factory = dict)
-    reports: Optional[Dict[str, pd.DataFrame]] = field(
+    reports: Optional[Dict[str, pd.DataFrame]] = dataclasses.field(
         default_factory = dict)
 
 
-@dataclass
+@dataclasses.dataclass
 class Evaluator(Technique):
     """Base method wrapper for applying algorithms to data.
 
@@ -156,7 +155,7 @@ class Evaluator(Technique):
         return self.algorithm.apply(recipe = recipe)
 
 
-@dataclass
+@dataclasses.dataclass
 class CriticScholar(Scholar):
     """Applies an 'Anthology' instance to an applied 'Cookbook'.
 
@@ -183,7 +182,7 @@ class CriticScholar(Scholar):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class CriticFinisher(Finisher):
     """Finalizes 'Technique' instances with data-dependent parameters.
 
@@ -216,7 +215,7 @@ class CriticFinisher(Finisher):
         return technique
 
 
-@dataclass
+@dataclasses.dataclass
 class CriticSpecialist(Specialist):
     """Base class for applying 'Technique' instances to data.
 
@@ -262,8 +261,8 @@ class CriticSpecialist(Specialist):
         return super().apply(book = book, data = self._get_data(data = data))
 
 
-@dataclass
-class Evaluators(Repository):
+@dataclasses.dataclass
+class Evaluators(SimpleRepository):
     """A dictonary of Evaluator options for the Analyst subpackage.
 
     Args:
@@ -348,7 +347,7 @@ class Evaluators(Repository):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class Critic(Worker):
     """Object construction instructions used by a Project instance.
 
@@ -391,15 +390,15 @@ class Critic(Worker):
         idea (Optional['Idea']): shared project configuration settings.
 
     """
-    name: Optional[str] = field(default_factory = lambda: 'critic')
-    module: Optional[str] = field(
+    name: Optional[str] = dataclasses.field(default_factory = lambda: 'critic')
+    module: Optional[str] = dataclasses.field(
         default_factory = lambda: 'simplify.critic.critic')
-    book: Optional[str] = field(default_factory = lambda: 'Anthology')
-    chapter: Optional[str] = field(default_factory = lambda: 'Review')
-    technique: Optional[str] = field(default_factory = lambda: 'Evaluator')
-    scholar: Optional[str] = field(default_factory = lambda: 'CriticScholar')
-    options: Optional[str] = field(default_factory = lambda: 'Evaluators')
-    data: Optional[str] = field(default_factory = lambda: 'analyst')
+    book: Optional[str] = dataclasses.field(default_factory = lambda: 'Anthology')
+    chapter: Optional[str] = dataclasses.field(default_factory = lambda: 'Review')
+    technique: Optional[str] = dataclasses.field(default_factory = lambda: 'Evaluator')
+    scholar: Optional[str] = dataclasses.field(default_factory = lambda: 'CriticScholar')
+    options: Optional[str] = dataclasses.field(default_factory = lambda: 'Evaluators')
+    data: Optional[str] = dataclasses.field(default_factory = lambda: 'analyst')
     idea: Optional['Idea'] = None
 
     """ Core siMpLify Methods """

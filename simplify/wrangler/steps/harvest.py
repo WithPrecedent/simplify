@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 import os
 
 from simplify.core.definitionsetter import WranglerTechnique
@@ -25,7 +25,7 @@ DEFAULT_OPTIONS = {
     'parse': ['simplify.core.retool', 'ReTool']}
 
 
-@dataclass
+@dataclasses.dataclass
 class Harvest(SimpleIterable):
     """Extracts data from text or other sources.
 

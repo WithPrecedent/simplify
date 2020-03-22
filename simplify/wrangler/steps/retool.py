@@ -16,7 +16,7 @@ classes and methods to address the specified goals based upon the
 arguments passed.
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 import numpy as np
 import pandas as pd
 import re
@@ -24,7 +24,7 @@ import re
 from simplify.core.definitionsetter import SimpleDirector
 
 
-@dataclass
+@dataclasses.dataclass
 class ReTool(SimpleDirector):
     """Contains shared methods for regex tools in the ReTool package.
 
@@ -119,7 +119,7 @@ class ReTool(SimpleDirector):
                              'verbose': re.VERBOSE,
                              'ascii': re.ASCII}
         # Sets options for matcher classes.
-        self._options = Repository(contents = {'organize': ReOrganize,
+        self._options = SimpleRepository(contents = {'organize': ReOrganize,
                         'parse': ReSearch,
                         'keyword': ReFrame}
         return self
@@ -182,7 +182,7 @@ class ReTool(SimpleDirector):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class ReBuild(object):
 
     keys: str = 'keys'
@@ -214,7 +214,7 @@ class ReBuild(object):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class ReLoad(object):
 
     keys: str = 'keys'
@@ -256,7 +256,7 @@ class ReLoad(object):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class ReMatch(object):
 
     def __post_init__(self) -> None:
@@ -286,7 +286,7 @@ class ReMatch(object):
         return df
 
 
-@dataclass
+@dataclasses.dataclass
 class ReFrame(ReMatch):
     """Stores and applies vectorized string and regular expression matching
     methods (when possible) to pandas dataframes.
@@ -366,7 +366,7 @@ class ReFrame(ReMatch):
         return df
 
 
-@dataclass
+@dataclasses.dataclass
 class ReSearch(ReMatch):
 
     expressions: object
@@ -426,7 +426,7 @@ class ReSearch(ReMatch):
         return df
 
 
-@dataclass
+@dataclasses.dataclass
 class ReOrganize(ReMatch):
     """Stores and applies string and regular expression matching methods to
     python strings for dividing strings into a pandas series.
@@ -464,7 +464,7 @@ class ReOrganize(ReMatch):
         return df, source
 
 
-@dataclass
+@dataclasses.dataclass
 class ReTypes(SimpleType):
     """Stores dictionaries related to specialized types used by the ReTool
     subpackage.

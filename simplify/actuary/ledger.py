@@ -6,9 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -18,7 +17,7 @@ from simplify.core.library import Book
 from simplify.core.definitionsetter import SimpleDirector
 
 
-@dataclass
+@dataclasses.dataclass
 class Ledger(Book):
     """
 
@@ -95,7 +94,7 @@ class Ledger(Book):
 
     def draft(self) -> None:
         """Sets default options for the Explorer's analysis."""
-        self._options = Repository(contents = {
+        self._options = SimpleRepository(contents = {
             'summary': ('simplify.explorer.steps.summarize', 'Summarize'),
             'test': ('simplify.explorer.steps.test', 'Test')}
         # Sets plan container
@@ -109,7 +108,7 @@ class Ledger(Book):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class Summary(Chapter):
 
     def __post_init__(self) -> None:

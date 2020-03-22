@@ -7,7 +7,7 @@ dependencies:
 - category_encoders
 - configparser
 - cython
-- dataclasses
+- dataclasses.dataclasses
 - eli5
 - flit
 - git
@@ -21,7 +21,7 @@ dependencies:
 - numpy
 - pandas
 - pip
-- pip: 
+- pip:
   - tensorflow-gpu==2.0.0-rc0
 - psutil
 - pyqt

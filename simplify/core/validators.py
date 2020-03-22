@@ -8,11 +8,10 @@
 
 from abc import ABC
 from functools import wraps
-from importlib import import_module
+from importlib import importlib.import_module
 from inspect import signature
-from pathlib import Path
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from pathlib import pathlib.Path
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -21,7 +20,7 @@ from simplify.core.idea import Idea
 from simplify.core.dataset import Dataset
 from simplify.core.filer import Filer
 from simplify.core.utilities import deduplicate
-from simplify.core.utilities import listify
+from simplify.core.utilities import utilities.listify
 
 
 class SimpleValidator(ABC):
@@ -288,7 +287,7 @@ def ColumnsValidator(SimpleValidator):
     def _create_columns(self,
         arguments: Dict[str, Union[List[str], str]]) -> Dict[str, List[str]]:
         try:
-            arguments['columns'] = listify(arguments['columns'])
+            arguments['columns'] = utilities.listify(arguments['columns'])
         except KeyError:
             arguments['columns'] = []
         return arguments
@@ -296,7 +295,7 @@ def ColumnsValidator(SimpleValidator):
     def _create_prefixes(self,
         arguments: Dict[str, Union[List[str], str]]) -> Dict[str, List[str]]:
         try:
-            arguments['columns'] = listify(arguments['columns'])
+            arguments['columns'] = utilities.listify(arguments['columns'])
         except KeyError:
             arguments['columns'] = []
         return arguments
@@ -305,7 +304,7 @@ def ColumnsValidator(SimpleValidator):
     def _create_suffixes(self,
         arguments: Dict[str, Union[List[str], str]]) -> Dict[str, List[str]]:
         try:
-            arguments['columns'] = listify(arguments['columns'])
+            arguments['columns'] = utilities.listify(arguments['columns'])
         except KeyError:
             arguments['columns'] = []
         return arguments
@@ -314,7 +313,7 @@ def ColumnsValidator(SimpleValidator):
     def _create_mask(self,
         arguments: Dict[str, Union[List[str], str]]) -> Dict[str, List[str]]:
         try:
-            arguments['columns'] = listify(arguments['columns'])
+            arguments['columns'] = utilities.listify(arguments['columns'])
         except KeyError:
             arguments['columns'] = []
         return arguments
@@ -345,7 +344,7 @@ def ColumnsValidator(SimpleValidator):
             if 'columns' in unpassed:
                 columns = []
             else:
-                columns = listify(arguments['columns'])
+                columns = utilities.listify(arguments['columns'])
             try:
                 columns.extend(
                     make_column_list(prefixes = arguments['prefixes']))
@@ -407,20 +406,20 @@ def ColumnsValidator(SimpleValidator):
             pass
         try:
             temp_list = []
-            for prefix in listify(prefixes, default_null = True):
+            for prefix in utilities.listify(prefixes, default_null = True):
                 temp_list = [col for col in df if col.startswith(prefix)]
                 column_names.extend(temp_list)
         except TypeError:
             pass
         try:
             temp_list = []
-            for prefix in listify(suffixes, default_null = True):
+            for prefix in utilities.listify(suffixes, default_null = True):
                 temp_list = [col for col in df if col.endswith(suffix)]
                 column_names.extend(temp_list)
         except TypeError:
             pass
         try:
-            column_names.extend(listify(columns, default_null = True))
+            column_names.extend(utilities.listify(columns, default_null = True))
         except TypeError:
             pass
         return deduplicate(iterable = column_names)

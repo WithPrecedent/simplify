@@ -6,14 +6,14 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 import os
 import requests
 
 from simplify.core.definitionsetter import WranglerTechnique
 
 
-@dataclass
+@dataclasses.dataclass
 class Download(WranglerTechnique):
     """Acquires data from an online source.
 

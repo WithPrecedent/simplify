@@ -6,35 +6,25 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from importlib import import_module
-from pathlib import Path
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+import dataclasses
+import importlib
+import pathlib
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import warnings
 
 import numpy as np
 import pandas as pd
 
-from simplify.core.base import SimpleSystem
-from simplify.core.base import SimpleComponent
-from simplify.core.dataset import Dataset
-from simplify.core.filer import Filer
-from simplify.core.idea import Idea
-from simplify.core.library import Book
-from simplify.core.library import Chapter
-from simplify.core.library import Library
-from simplify.core.manager import Manager
-from simplify.core.manager import Worker
-from simplify.core.overview import Overview
-from simplify.core.repository import Repository
-from simplify.core.utilities import datetime_string
-from simplify.core.utilities import listify
-from simplify.core.utilities import subsetify
+import simplify
+from simplify.core import base
+from simplify.core import dataset
+from simplify.core import filer
+from simplify.core import idea
+from simplify.core import worker
+from simplify.core import utilities
 
 
-@dataclass
+@dataclasses.dataclass
 class Project(SimpleSystem):
     """Controller class for siMpLify projects.
 
@@ -58,10 +48,10 @@ class Project(SimpleSystem):
             instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
             in a new Dataset instance as a DataFrame. Defaults to None.
-        packages (Optional[Union[List[str], Dict[str, 'Package'], Dict[str,
-            'Worker'], 'Repository', 'Manager']]): mapping of 'Package'
+        workers (Optional[Union[List[str], Dict[str, 'Package'], Dict[str,
+            'Worker'], 'SimpleRepository', 'Manager']]): mapping of 'Package'
             instances or the information needed to create one and store it in
-            a 'Manager' instance. Defaults to an empty 'Repository' instance.
+            a 'Manager' instance. Defaults to an empty 'SimpleRepository' instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
             the shared 'Idea' instance, 'name' should match the appropriate
@@ -94,14 +84,14 @@ class Project(SimpleSystem):
             pd.DataFrame,
             np.ndarray,
             str]]]] = None
-    packages: Optional[Union[
+    workers: Optional[Union[
         List[str],
-        Dict[str, 'Package'],
         Dict[str, 'Worker'],
-        'Repository',
-        'Manager']] = field(default_factory = Repository)
-    name: Optional[str] = field(default_factory = lambda: 'project')
-    identification: Optional[str] = field(default_factory = datetime_string)
+        'SimpleRepository',
+        'Manager']] = dataclasses.field(default_factory = SimpleRepository)
+    name: Optional[str] = dataclasses.field(default_factory = lambda: 'project')
+    identification: Optional[str] = dataclasses.field(
+        default_factory = utilities.datetime_string)
     auto_draft: Optional[bool] = True
     auto_publish: Optional[bool] = True
     auto_apply: Optional[bool] = False
@@ -120,10 +110,10 @@ class Project(SimpleSystem):
         self = self.idea.apply(instance = self)
         # Creates a 'Manager' instance for storing 'Worker' instances.
         self.manager = Manager.create(
-            packages=self.packages,
+            workers = self.workers,
             idea=self.idea)
-        # Validates 'packages' or creates it from 'idea' and default packages.
-        self.packages = self._initialize_packages(packages = self.packages)
+        # Validates 'workers' or creates it from 'idea' and default workers.
+        self.workers = self._initialize_workers(workers = self.workers)
         # Creats an 'Overview' instance, providing an outline of the overall
         # project from 'Worker' instances stored in 'manager'.
         self.overview = Overview.create(manager = self.manager)
@@ -273,7 +263,7 @@ class Project(SimpleSystem):
             self.manager.add(worker = item)
         elif isinstance(item, Package):
             self.options[name] = item
-            self.packages[name] = item
+            self.workers[name] = item
             self.manager.add(worker = item.load())
         elif isinstance(item, Book):
             self.library.add(book = item)
@@ -324,12 +314,13 @@ class Project(SimpleSystem):
     """ File Import/Export Methods """
 
     def load(self,
-            file_path: Union[str, Path],
+            file_path: Union[str, pathlib.Path],
             overwrite: Optional[bool] = True) -> None:
         """Loads a siMpLify object and stores it in the appropriate attribute.
 
         Args:
-            file_path (Union[str, Path]): path to saved 'Library' instance.
+            file_path (Union[str, pathlib.Path]): path to saved 'Library'
+                instance.
             overwrite (Optional[bool]): whether to overwrite an existing
                 attribute with the imported object (True) or to update the
                 existing attribute with the imported object, if possible
@@ -366,13 +357,14 @@ class Project(SimpleSystem):
 
     def save(self,
             attribute: Union[str, object],
-            file_path: Optional[Union[str, Path]]) -> None:
+            file_path: Optional[Union[str, pathlib.Path]]) -> None:
         """Saves a siMpLify object.
 
         Args:
             attribute (Union[str, object]): either the name of the attribute or
                 siMpLify object to save.
-            file_path (Optional[Union[str, Path]]): path to save 'attribute'.
+            file_path (Optional[Union[str, pathlib.Path]]): path to save
+                'attribute'.
 
         Raises:
             AttributeError: if 'attribute' is a string and cannot be found in
@@ -397,32 +389,53 @@ class Project(SimpleSystem):
 
     """ Private Methods """
 
-    def _initialize_packages(self,
-            packages: Optional[List[str]]) -> Dict[str, 'Package']:
-        """Validates 'packages' or converts them to the appropriate type.
+    def _initialize_workers(self,
+                workers: Optional[List[str]]) -> Dict[str, 'Package']:
+        """Validates 'workers' or converts them to the appropriate type.
 
         Args:
-            packages (Optional[List[str]]): a list
+            workers (Optional[List[str]]): a list
 
         Returns:
             Dict[str, 'Package']:
 
         """
-        self.options = self.idea['packages']
-        if not packages:
+        self.options = self.idea['workers']
+        if not workers:
             try:
                 outer_key = self.__class__.__name__.lower()
-                inner_key = f'{self.__class__.__name__.lower()}_packages'
-                packages = listify(self.idea[outer_key][inner_key])
+                inner_key = f'{self.__class__.__name__.lower()}_workers'
+                workers = utilities.listify(self.idea[outer_key][inner_key])
             except KeyError:
                 pass
-        if isinstance(packages, dict):
-            return packages
+        if isinstance(workers, dict):
+            return workers
         else:
-            new_packages = {}
-            for package in packages:
-                new_packages[package] = self.options[package]
-            if new_packages:
-                return new_packages
+            new_workers = {p: self.options[p] for p in workers}
+            if new_workers:
+                return new_workers
             else:
-                return self.packages
+                return self.workers
+
+
+DEFAULT_WORKERS = {
+    'wrangler': worker.Worker(
+        name = 'wrangler',
+        module = 'simplify.wrangler.wrangler',
+        worker = 'Wrangler'),
+    'explorer': worker.Worker(
+        name = 'explorer',
+        module = 'simplify.explorer.explorer',
+        worker = 'Explorer'),
+    'analyst': worker.Worker(
+        name = 'analyst',
+        module = 'simplify.analyst.analyst',
+        worker = 'Analyst'),
+    'critic': worker.Worker(
+        name = 'critic',
+        module = 'simplify.critic.critic',
+        worker = 'Critic'),
+    'artist': worker.Worker(
+        name = 'artist',
+        module = 'simplify.artist.artist',
+        worker = 'Artist')}

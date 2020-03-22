@@ -6,29 +6,6 @@
 :license: Apache-2.0
 """
 
-from simplify.core.manager import Package
-
-PACKAGES = {
-    'wrangler': Package(
-        name = 'wrangler',
-        module = 'simplify.wrangler.wrangler',
-        worker = 'Wrangler'),
-    'explorer': Package(
-        name = 'explorer',
-        module = 'simplify.explorer.explorer',
-        worker = 'Explorer'),
-    'analyst': Package(
-        name = 'analyst',
-        module = 'simplify.analyst.analyst',
-        worker = 'Analyst'),
-    'critic': Package(
-        name = 'critic',
-        module = 'simplify.critic.critic',
-        worker = 'Critic'),
-    'artist': Package(
-        name = 'artist',
-        module = 'simplify.artist.artist',
-        worker = 'Artist')}
 
 GENERAL = {
     'verbose': True,

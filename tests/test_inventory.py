@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from pathlib import Path
+from pathlib import pathlib.Path
 
 from simplify.core.idea import Idea
 from simplify.core.filer import Filer
@@ -14,9 +14,9 @@ from simplify.core.filer import Filer
 
 def test_filer():
     idea = Idea(
-        configuration = Path.cwd().joinpath('tests', 'idea_settings.ini'))
+        configuration = pathlib.Path.cwd().joinpath('tests', 'idea_settings.ini'))
     filer = Filer(idea = idea)
-    assert filer.folders['root'] == Path.cwd().joinpath('..\..')
+    assert filer.folders['root'] == pathlib.Path.cwd().joinpath('..\..')
     return
 
 

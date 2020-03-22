@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 
 import pandas as pd
 
@@ -26,7 +26,7 @@ DEFAULT_OPTIONS = {
     'streamline': ['simplify.wrangler.steps.streamline', 'Streamline']}
 
 
-@dataclass
+@dataclasses.dataclass
 class Deliver(SimpleIterable):
     """Makes final structural changes to data before analysis.
 

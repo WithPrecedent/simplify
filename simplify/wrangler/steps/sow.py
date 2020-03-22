@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 
 from simplify.core.definitionsetter import WranglerTechnique
 
@@ -26,7 +26,7 @@ DEFAULT_OPTIONS = {
     'divide': ['simplify.wrangler.steps.divide', 'Divide']}
 
 
-@dataclass
+@dataclasses.dataclass
 class Sow(SimpleIterable):
     """Acquires and performs basic preparation of data sources.
 

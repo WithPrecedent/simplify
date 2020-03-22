@@ -7,14 +7,14 @@
 """
 
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 
 import pandas as pd
 
 from simplify.core.definitionsetter import WranglerTechnique
 
 
-@dataclass
+@dataclasses.dataclass
 class Reshape(WranglerTechnique):
     """Reshapes a DataFrame to wide or long form.
 

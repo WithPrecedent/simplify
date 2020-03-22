@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 
 from simplify.core.definitionsetter import WranglerTechnique
 
@@ -24,7 +24,7 @@ DEFAULT_OPTIONS = {
     'supplement': ['simplify.wrangler.steps.supplement', 'Supplement']}
 
 
-@dataclass
+@dataclasses.dataclass
 class Bale(SimpleIterable):
     """Class for combining different datasets."""
     step: object = None

@@ -6,14 +6,14 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 
 import pandas as pd
 
 from simplify.core.definitionsetter import WranglerTechnique
 
 
-@dataclass
+@dataclasses.dataclass
 class Streamline(WranglerTechnique):
     """Combines, divides, and otherwise prepares features for analysis.
 

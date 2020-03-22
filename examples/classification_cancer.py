@@ -10,17 +10,17 @@ import sys
 sys.path.insert(0, os.path.join('..', 'simplify'))
 sys.path.insert(0, os.path.join('..', '..', 'simplify'))
 
-from pathlib import Path
+from pathlib import pathlib.Path
 
 import pandas as pd
 import numpy as np
-from sklearn.datasets import load_breast_cancer
+import sklearn.datasets
 
 from simplify import Project
 
 
 # Loads cancer data and converts from numpy arrays to a pandas DataFrame.
-cancer = load_breast_cancer()
+cancer = sklearn.datasets.load_breast_cancer()
 df = pd.DataFrame(
     data = np.c_[cancer['data'], cancer['target']],
     columns = np.append(cancer['feature_names'], ['target']))
@@ -28,7 +28,7 @@ df = pd.DataFrame(
 # root_folder = os.path.join('..', '..')
 # Sets location of configuration settings for the project. Depending upon your
 # OS and python configuration, one of these might work better.
-idea = Path.cwd().joinpath('examples', 'cancer_settings.ini')
+idea = pathlib.Path.cwd().joinpath('examples', 'cancer_settings.ini')
 #idea = os.path.join(os.getcwd(), 'cancer_settings.ini')
 
 # Creates siMpLify project, automatically configuring the process based upon

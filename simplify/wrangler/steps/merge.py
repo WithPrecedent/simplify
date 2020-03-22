@@ -6,12 +6,12 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 
 from simplify.core.definitionsetter import WranglerTechnique
 
 
-@dataclass
+@dataclasses.dataclass
 class Merge(WranglerTechnique):
     """Merges data sources together.
 
@@ -34,7 +34,7 @@ class Merge(WranglerTechnique):
         return self
 
     def draft(self) -> None:
-        self._options = Repository(contents = {}
+        self._options = SimpleRepository(contents = {}
         return self
 
     def publish(self, dataset, sources):

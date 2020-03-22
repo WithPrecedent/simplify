@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from pathlib import Path
+from pathlib import pathlib.Path
 
 import pandas as pd
 import pytest
@@ -17,7 +17,7 @@ from simplify.core.project import Project
 
 def test_project():
     idea = Idea(
-        configuration = Path.cwd().joinpath('tests', 'idea_settings.ini'))
+        configuration = pathlib.Path.cwd().joinpath('tests', 'idea_settings.ini'))
     project = Project(idea = idea)
     print('test', project.library)
     return

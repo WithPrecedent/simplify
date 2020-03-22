@@ -6,26 +6,22 @@
 :license: Apache-2.0
 """
 
-from abc import ABC
-from abc import abstractclassmethod
-from abc import abstractmethod
-from collections.abc import MutableMapping
-from dataclasses import dataclass
-from dataclasses import field
-from importlib import import_module
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+import abc
+import collections.abc
+import dataclasses
+import importlib
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 
-@dataclass
-class SimpleSystem(ABC):
+@dataclasses.dataclass
+class SimpleSystem(abc.ABC):
     """Base class for a siMpLify workflow.
 
     A 'SimpleSystem' subclass maintains a progress state stored in the attribute
     'stage'. The 'stage' corresponds to whether one of the core workflow
     methods has been called. The string stored in 'stage' can then be used by
     subclasses to alter instance behavior, call methods, or change access
-    methods.
+    method functionality.
 
     Args:
         name (Optional[str]): designates the name of the class instance used
@@ -42,7 +38,7 @@ class SimpleSystem(ABC):
 
     """
     name: Optional[str] = None
-    stages: Optional[List[str]] = field(
+    stages: Optional[List[str]] = dataclasses.field(
         default_factory = lambda: ['initialize', 'draft', 'publish', 'apply'])
 
     def __post_init__(self) -> None:
@@ -69,23 +65,23 @@ class SimpleSystem(ABC):
 
     """ Required Methods """
 
-    @abstractmethod
+    @abc.abstractmethod
     def add(self, item: Union[
         'SimpleSystem', 'SimpleContainer', 'SimpleComponent']) -> None:
         """Subclasses must provide their own methods."""
         return self
 
-    @abstractmethod
+    @abc.abstractmethod
     def draft(self) -> None:
         """Subclasses must provide their own methods."""
         return self
 
-    @abstractmethod
+    @abc.abstractmethod
     def publish(self) -> None:
         """Subclasses must provide their own methods."""
         return self
 
-    @abstractmethod
+    @abc.abstractmethod
     def apply(self, *args, **kwargs) -> None:
         """Subclasses must provide their own methods."""
         return self
@@ -104,43 +100,59 @@ class SimpleSystem(ABC):
         """
         try:
             if attribute in super().__getattribute__('stages'):
-                super().__getattribute__('change')(stage = attribute)
+                super().__getattribute__('advance')(stage = attribute)
         except AttributeError:
             pass
         return super().__getattribute__(attribute)
 
-    """ Stage Management Methods """
+    """ Stage Management Method """
 
-    def advance(self) -> None:
-        """Advances to next stage in 'stages'."""
-        self.previous_stage = self.stage
-        try:
-            self.stage = self.stages[self.stages.index(self.stage) + 1]
-        except IndexError:
-            print(f'No further stages exist; stage will remain at {self.stage}')
-        return self
-
-    def change(self, stage: str) -> None:
-        """Manually changes 'stage' attribute to 'stage' argument.
+    def advance(self, stage: Optional[str] = None) -> None:
+        """Advances to next stage in 'stages' or to 'stage' argument.
 
         Args:
-            stage(str): name of stage matching a string in 'stages'.
+            stage(Optional[str]): name of stage matching a string in 'stages'.
 
         Raises:
-            ValueError: if 'stage' is not in 'stages'.
+            ValueError: if 'stage' is neither None nor in 'stages'.
 
         """
-        if stage in self.stages:
-            self.previous_stage = self.stage
+        self.previous_stage = self.stage
+        if stage is None:
+            try:
+                self.stage = self.stages[self.stages.index(self.stage) + 1]
+            except IndexError:
+                pass
+        elif stage in self.stages:
             self.stage = stage
         else:
             raise ValueError(' '.join([stage, 'is not a recognized stage']))
         return self
 
 
-@dataclass
-class SimpleCreator(ABC):
-    """Base class for creating or modifying other siMpLify classes."""
+@dataclasses.dataclass
+class SimpleCreator(abc.ABC):
+    """Base class for creating or modifying other siMpLify classes.
+
+    Args:
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class instance
+            needs settings from the shared 'Idea' instance, 'name' should match
+            the appropriate section name in that 'Idea' instance. When
+            subclassing, it is a good idea to use the same 'name' attribute as
+            the base class for effective coordination between siMpLify classes.
+            'name' is used instead of __class__.__name__ to make such
+            subclassing easier. Defaults to None or __class__.__name__.lower().
+
+    """
+    name: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        # Sets 'name' to default value if it is not passed.
+        if self.name is None:
+            self.name = self.__class__.__name__.lower()
+        return self
 
     """ Factory Method """
 
@@ -157,7 +169,7 @@ class SimpleCreator(ABC):
 
     """ Required Subclass Methods """
 
-    @abstractmethod
+    @abc.abstractmethod
     def apply(self,
             data: Union[
                 'SimpleSystem',
@@ -171,8 +183,8 @@ class SimpleCreator(ABC):
         return self
 
 
-@dataclass
-class SimpleRepository(MutableMapping):
+@dataclasses.dataclass
+class SimpleRepository(collections.abc.MutableMapping):
     """Base class for policy and option storage.
 
     Args:
@@ -194,10 +206,11 @@ class SimpleRepository(MutableMapping):
 
     """
     name: Optional[str] = None
-    contents: Optional[Dict[str, Any]] = field(default_factory = dict)
-    defaults: Optional[List[str]] = field(default_factory = list)
-    wildcards: Optional[List[str]] = field(
+    contents: Optional[Dict[str, Any]] = dataclasses.field(
+        default_factory = dict)
+    wildcards: Optional[List[str]] = dataclasses.field(
         default_factory = lambda: ['all', 'default', 'none'])
+    defaults: Optional[List[str]] = dataclasses.field(default_factory = list)
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -247,7 +260,7 @@ class SimpleRepository(MutableMapping):
         if key in ['all', ['all']]:
             return list(self.contents.values())
         elif key in ['default', ['default']]:
-            return list(self.subsetify(keys = self.defaults).values())
+            return list(self.utilities.subsetify(keys = self.defaults).values())
         elif key in ['none', ['none']]:
             return []
         else:
@@ -279,7 +292,8 @@ class SimpleRepository(MutableMapping):
 
         """
         self.contents = {
-            i: self.contents[i] for i in self.contents if i not in listify(key)}
+            i: self.contents[i]
+            for i in self.contents if i not in utilities.listify(key)}
         return self
 
     def __iter__(self) -> Iterable:
@@ -307,8 +321,8 @@ class SimpleRepository(MutableMapping):
         """Combines argument with 'contents'.
 
         Args:
-            other (Union['Repository', Dict[str, Any]]): another
-                'Repository' instance or compatible dictionary.
+            other (Union['SimpleRepository', Dict[str, Any]]): another
+                'SimpleRepository' instance or compatible dictionary.
 
         """
         self.add(contents = other)
@@ -319,8 +333,8 @@ class SimpleRepository(MutableMapping):
         """Combines argument with 'contents'.
 
         Args:
-            other (Union['Repository', Dict[str, Any]]): another
-                'Repository' instance or compatible dictionary.
+            other (Union['SimpleRepository', Dict[str, Any]]): another
+                'SimpleRepository' instance or compatible dictionary.
 
         """
         self.add(contents = other)
@@ -354,11 +368,8 @@ class SimpleRepository(MutableMapping):
                 'SimpleRepository' instance/subclass or a compatible dictionary.
 
         """
-        if key is not None and value is not None:
-            self.contents[key] = value
-        if contents is not None:
-            self.contents.update(contents)
-        self.nestify(contents = self.contents)
+        self.contents.update(contents)
+        self.contents = self.nestify(contents = self.contents)
         return self
 
     """ Structural Methods """
@@ -386,42 +397,43 @@ class SimpleRepository(MutableMapping):
                 new_repository.add(contents = {key: value})
         return new_repository
 
-    def subsetify(self, keys: Union[List[str], str]) -> 'Repository':
-        """Returns a subset of a Repository.
+    def subsetify(self, keys: Union[List[str], str]) -> 'SimpleRepository':
+        """Returns a subset of a SimpleRepository.
 
         Args:
             keys (Union[List[str], str]): key(s) to get key/values.
 
         Returns:
-            'Repository': with only keys in 'keys'.
+            'SimpleRepository': with only keys in 'keys'.
 
         """
-        return self.__new__(
-            contents = {i: self.contents.get(i) for i in listify(keys)})
+        return self.__new__(contents = {
+                i: self.contents.get(i) for i in utilities.listify(keys)})
 
 
-@dataclass
-class SimpleContainer(ABC):
-    """Base class for core siMpLify container classes.
+@dataclasses.dataclass
+class SimplePlan(collections.abc.MutableSequence):
+    """
 
     Args:
-        name (Optional[str]): designates the name of the class instance used
-            for internal referencing throughout siMpLify. If the class instance
-            needs settings from the shared 'Idea' instance, 'name' should match
-            the appropriate section name in that 'Idea' instance. When
-            subclassing, it is a good idea to use the same 'name' attribute as
-            the base class for effective coordination between siMpLify classes.
-            'name' is used instead of __class__.__name__ to make such
-            subclassing easier. Defaults to None or __class__.__name__.lower().
+        items (Optional[Union[List[], str]): an ordred set of items. Defaults
+            to an empty list.
+        idea (Optional['Idea']): shared 'Idea' instance with project settings.
 
     """
-    name: Optional[str] = None
+    items: Optional[Union[
+        List[Union[
+            'SimpleComponent',
+            'SimpleCreator',
+            str]],
+        'SimpleComponent',
+        'SimpleCreator',
+        str]] = dataclasses.field(default_factory = list)
+    idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
-        # Sets 'name' to default value if it is not passed.
-        if self.name is None:
-            self.name = self.__class__.__name__.lower()
+        self.items = utilities.listify(self.items)
         return self
 
     """ Factory Method """
@@ -437,16 +449,234 @@ class SimpleContainer(ABC):
         """
         return cls(*args, **kwargs)
 
-    """ Required Subclass Methods """
+    """ Required ABC Methods """
 
-    @abstractmethod
-    def add(self, item: Union['SimpleContainer', 'SimpleComponent']) -> None:
-        """Subclasses must provide their own methods."""
-        pass
+    def __getitem__(self, index: Union[int, str, slice]) -> Any:
+        """Returns 'items' or a wildcard option.
+
+        Args:
+            key (Union[int, str, slice]):
+
+        Returns:
+            Any: a whole or part of a Repository values with key(s) matching
+                'key'.
+
+        """
+        try:
+            return self.items[index]
+        except TypeError:
+            return self.items.index(index)
 
 
-@dataclass
-class SimpleProxy(ABC):
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Sets 'key' in 'repository' to 'value'.
+
+        Args:
+            key (str): name of key in 'repository'.
+            value (Any): value to be paired with 'key' in 'repository'.
+
+        """
+        self.repository[key] = value
+        if key not in self.items:
+            self.items.append(key)
+        return self
+
+    def __delitem__(self, key: str) -> None:
+        """Deletes 'key' entry in 'repository'.
+
+        Args:
+            key (str): name of key in 'repository'.
+
+        """
+        try:
+            del self.repository[key]
+            self.items.remove(key)
+        except (KeyError, ValueError):
+            pass
+        return self
+
+    def __iter__(self) -> Iterable:
+        """Returns iterable from 'repository'.
+
+        Returns:
+            Iterable: the portion of 'repository' with keys matching 'items' in
+                the order of 'items'.
+
+        """
+        return iter(self.items)
+
+    def __len__(self) -> int:
+        """Returns length of attribute named in 'iterable'.
+
+        Returns:
+            Integer: length of attribute named in 'iterable'.
+
+        """
+        return len(self.items)
+
+    def insert(self,
+            index: int,
+            item: str,
+            value: Optional[Any] = None) -> None:
+        """Inserts item in 'items' at 'index'.
+
+        Args:
+            index (int): location in 'items' to insert 'item'.
+            item (str): item to insert at 'index' in 'items'.
+
+        """
+        self.items.insert(index, item)
+        if value is not None:
+            self.repository[item] = value
+        return self
+
+    """ Other Dunder Methods """
+
+    def __add__(self, other: Union['Repository', Dict[str, Any]]) -> None:
+        """Combines argument with 'repository'.
+
+        Args:
+            other (Union['Repository', Dict[str, Any]]): another
+                'Repository' instance or compatible dictionary.
+
+        """
+        self.add(repository = other)
+        return self
+
+    def __iadd__(self, other: Union['Repository', Dict[str, Any]]) -> None:
+        """Combines argument with 'repository'.
+
+        Args:
+            other (Union['Repository', Dict[str, Any]]): another
+                'Repository' instance or compatible dictionary.
+
+        """
+        self.add(repository = other)
+        return self
+
+    def __repr__(self) -> str:
+        """Returns '__str__' representation.
+
+        Returns:
+            str: default dictionary representation of 'repository'.
+
+        """
+        return self.__str__()
+
+    def __str__(self) -> str:
+        """Returns default dictionary representation of repository.
+
+        Returns:
+            str: default dictionary representation of 'repository'.
+
+        """
+        return self.repository.__str__()
+
+    """ Public Methods """
+
+    def add(self, items: Union['SimpleContainer', 'SimpleComponent']) -> None:
+        """Combines 'items' with 'items' attribute.
+
+        Args:
+            items (Union[List[str], str]): item(s) to add to the end of the
+                'items' attribute.
+
+        """
+        self.items.extend(utilities.listify(items))
+        return self
+
+
+@dataclasses.dataclass
+class SimpleComponent(ABC):
+    """Base class for lazy loaders for low-level siMpLify objects.
+
+    Args:
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class instance
+            needs settings from the shared 'Idea' instance, 'name' should match
+            the appropriate section name in that 'Idea' instance. When
+            subclassing, it is a good idea to use the same 'name' attribute as
+            the base class for effective coordination between siMpLify classes.
+            'name' is used instead of __class__.__name__ to make such
+            subclassing easier. Defaults to None or __class__.__name__.lower().
+        module (Optional[str]): name of module where object to use is located
+            (can either be a siMpLify or non-siMpLify module). Defaults to
+            'simplify.core'.
+        default_module (Optional[str]): name of a backup module where object to
+            use is located (can either be a siMpLify or non-siMpLify module).
+            Defaults to 'simplify.core'. Subclasses should not generally
+            override this attribute. It allows the 'load' method to use generic
+            classes if the specified one is not found.
+
+    """
+    name: Optional[str] = None
+    module: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'simplify.core')
+    default_module: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'simplify.core')
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        # Sets 'name' to default value if it is not passed.
+        if self.name is None:
+            self.name = self.__class__.__name__.lower()
+        return self
+
+    """ Factory Method """
+
+    @classmethod
+    def create(cls, *args, **kwargs) -> 'SimpleComponent':
+        """Returns a class object based upon arguments passed.
+
+        This is a placeholder that returns a basic version of the class.
+        Subclasses should provide alternate methods for more complicated
+        construction.
+
+        """
+        return cls(*args, **kwargs)
+
+    """ Core siMpLify Methods """
+
+    def load(self, attribute: str) -> object:
+        """Returns object named in 'attribute'.
+
+        If 'attribute' is not a str, it is assumed to have already been loaded
+        and is returned as is.
+
+        The method searches both 'module' and 'default_module' for the named
+        'attribute'.
+
+        Args:
+            attribute (str): name of local attribute to load from 'module' or
+                'default_module'.
+
+        Returns:
+            object: from 'module' pr 'default_module'.
+
+        """
+        # If 'attribute' is a string, attempts to load from 'module' or, if not
+        # found there, 'default_module'.
+        if isinstance(getattr(self, attribute), str):
+            try:
+                return getattr(
+                    importlib.import_module(self.module),
+                    getattr(self, attribute))
+            except (ImportError, AttributeError):
+                try:
+                    return getattr(
+                        importlib.import_module(self.default_module),
+                        getattr(self, attribute))
+                except (ImportError, AttributeError):
+                    raise ImportError(' '.join(
+                        [getattr(self, attribute), 'is neither in',
+                            self.module, 'nor', self.default_module]))
+        # If 'attribute' is not a string, it is returned as is.
+        else:
+            return getattr(self, attribute)
+
+
+@dataclasses.dataclass
+class SimpleProxy(abc.ABC):
     """Mixin which creates proxy name for an instance attribute.
 
     The 'proxify' method dynamically creates a property to access the stored
@@ -539,65 +769,3 @@ class SimpleProxy(ABC):
         if proxify_methods:
             self._proxify_methods(proxy = proxy)
         return self
-
-
-@dataclass
-class SimpleComponent(ABC):
-    """Base class for lazy loaders for low-level siMpLify objects.
-
-    Args:
-        name (Optional[str]): designates the name of the class instance used
-            for internal referencing throughout siMpLify. If the class instance
-            needs settings from the shared 'Idea' instance, 'name' should match
-            the appropriate section name in that 'Idea' instance. When
-            subclassing, it is a good idea to use the same 'name' attribute as
-            the base class for effective coordination between siMpLify classes.
-            'name' is used instead of __class__.__name__ to make such
-            subclassing easier. Defaults to None or __class__.__name__.lower().
-        module (Optional[str]): name of module where object to use is located
-            (can either be a siMpLify or non-siMpLify module). Defaults to
-            'simplify.core'.
-
-    """
-    name: Optional[str] = None
-    module: Optional[str] = field(default_factory = lambda: 'simplify.core')
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Sets 'name' to default value if it is not passed.
-        if self.name is None:
-            self.name = self.__class__.__name__.lower()
-        return self
-
-    """ Factory Method """
-
-    @classmethod
-    def create(cls, *args, **kwargs) -> 'SimpleComponent':
-        """Returns a class object based upon arguments passed.
-
-        This is a placeholder that returns a basic version of the class.
-        Subclasses should provide alternate methods for more complicated
-        construction.
-
-        """
-        return cls(*args, **kwargs)
-
-    """ Core siMpLify Methods """
-
-    def load(self, name: Optional[str] = None) -> object:
-        """Returns attribute matching 'name' from 'module'.
-
-        If 'name' is not a str, it is assumed to have already been loaded
-        and is returned as is.
-
-        Args:
-            name (str): name of local attribute to load from 'module'.
-
-        Returns:
-            object: from 'module'.
-
-        """
-        if isinstance(name, str):
-            return getattr(import_module(self.module), getattr(self, name))
-        else:
-            return getattr(self, name)

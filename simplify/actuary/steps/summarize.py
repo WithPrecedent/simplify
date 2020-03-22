@@ -6,9 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -16,7 +15,7 @@ from simplify.core.definitionsetter import SimpleDirector
 from simplify.core.definitionsetter import Option
 
 
-@dataclass
+@dataclasses.dataclass
 class Summarize(SimpleDirector):
     """Summarizes data.
 
@@ -42,7 +41,7 @@ class Summarize(SimpleDirector):
     def draft(self) -> None:
         """Sets options for Summarize class."""
         super().draft()
-        self._options = Repository(contents = {
+        self._options = SimpleRepository(contents = {
             'count': Option(
                 name = 'count',
                 module = 'numpy.ndarray',

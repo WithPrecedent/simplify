@@ -6,21 +6,20 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from simplify.core.base import SimpleSettings
 from simplify.core.library import Technique
-from simplify.core.repository import Repository
+from simplify.core.repository import SimpleRepository
 from simplify.critic.critic import Evaluator
 
 
-@dataclass
+@dataclasses.dataclass
 class Metric(Technique):
     """Base class for model performance evaluation measurements.
 
@@ -50,10 +49,10 @@ class Metric(Technique):
 
     """
     name: Optional[str] = None
-    step: Optional[str] = field(default_factory = lambda: 'measure')
+    step: Optional[str] = dataclasses.field(default_factory = lambda: 'measure')
     module: Optional[str] = None
     algorithm: Optional[object] = None
-    parameters: Optional[Dict[str, Any]] = field(default_factory = dict)
+    parameters: Optional[Dict[str, Any]] = dataclasses.field(default_factory = dict)
     negative: Optional[bool] = False
     probabilities: Optional[bool] = False
     actual: Optional[str] = 'y_true'
@@ -61,8 +60,8 @@ class Metric(Technique):
     conditional: Optional[bool] = False
 
 
-@dataclass
-class SklearnMetrics(Repository):
+@dataclasses.dataclass
+class SklearnMetrics(SimpleRepository):
     """A dictonary of Evaluator options for the Analyst subpackage.
 
     Args:

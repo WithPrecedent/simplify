@@ -6,7 +6,7 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
+from dataclasses.dataclasses import dataclasses.dataclass
 
 from simplify.core.utilities import local_backups
 from simplify.core.package import SimpleBook
@@ -29,7 +29,7 @@ DEFAULT_OPTIONS = {
     'deliver': ['simplify.wrangler.deliver', 'Deliver']}
 
 
-@dataclass
+@dataclasses.dataclass
 class Manual(SimpleBook):
     """Implements data parsing, wrangling, munging, merging, engineering, and
     cleaning methods for the siMpLify package.
@@ -105,11 +105,11 @@ class Manual(SimpleBook):
         for step in self.steps:
             step_instance = self.draft_class(name = step,
                                             index_column = self.index_column)
-            for step in listify(getattr(self, step + '_steps')):
+            for step in utilities.listify(getattr(self, step + '_steps')):
                 tool_instance = self.edit_step(
                         step = step,
                         step = step,
-                        parameters = listify(getattr(self, step)))
+                        parameters = utilities.listify(getattr(self, step)))
                 step_instance.steps.append(tool_instance)
             step_instance.publish()
             self.drafts.append(step_instance)

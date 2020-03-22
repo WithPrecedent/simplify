@@ -6,10 +6,9 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -18,7 +17,7 @@ from simplify.core.base import SimpleSettings
 from simplify.critic.critic import Evaluator
 
 
-@dataclass
+@dataclasses.dataclass
 class Reporter(Evaluator):
     """Base class for report preparation.
 
@@ -35,7 +34,7 @@ class Reporter(Evaluator):
         return data
 
 
-@dataclass
+@dataclasses.dataclass
 class ConfusionMatrix(Reporter):
     """Summary report for Analyst performance.
 
@@ -72,7 +71,7 @@ class ConfusionMatrix(Reporter):
         return data
 
 
-@dataclass
+@dataclasses.dataclass
 class ClassificationReport(Reporter):
     """Summary report for Analyst performance.
 
@@ -104,7 +103,7 @@ class ClassificationReport(Reporter):
         return data
 
 
-@dataclass
+@dataclasses.dataclass
 class SimplifyReporter(Reporter):
     """Summary report for Analyst performance.
 
@@ -114,7 +113,7 @@ class SimplifyReporter(Reporter):
     """
     idea: Optional['Idea'] = None
 
-# @dataclass
+# @dataclasses.dataclass
 # class Article(object):
 
 #     def __post_init__(self) -> None:
@@ -144,14 +143,14 @@ class SimplifyReporter(Reporter):
 #             self.best_recipe = recipe
 #             self.best_recipe_score = self.article.loc[
 #                     self.article.index[-1],
-#                     listify(self.metrics)[0]]
+#                     utilities.listify(self.metrics)[0]]
 #         elif (self.article.loc[
 #                 self.article.index[-1],
-#                 listify(self.metrics)[0]] > self.best_recipe_score):
+#                 utilities.listify(self.metrics)[0]] > self.best_recipe_score):
 #             self.best_recipe = recipe
 #             self.best_recipe_score = self.article.loc[
 #                     self.article.index[-1],
-#                     listify(self.metrics)[0]]
+#                     utilities.listify(self.metrics)[0]]
 #         return self
 
 #     def _format_step(self, attribute):
@@ -174,7 +173,7 @@ class SimplifyReporter(Reporter):
 #         """Prints output to the console about the best recipe."""
 #         if self.verbose:
 #             print('The best test recipe, based upon the',
-#                   listify(self.metrics)[0], 'metric with a score of',
+#                   utilities.listify(self.metrics)[0], 'metric with a score of',
 #                   f'{self.best_recipe_score: 4.4f}', 'is:')
 #             for step in getattr(self,
 #                     self.iterator).best_recipe.steps:

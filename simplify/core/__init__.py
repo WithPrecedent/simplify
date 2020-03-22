@@ -8,8 +8,7 @@
 
 import numpy as np
 import pandas as pd
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.idea import Idea
 from simplify.core.library import Book

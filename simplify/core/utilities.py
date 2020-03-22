@@ -9,11 +9,10 @@
 from datetime import datetime
 from functools import wraps
 from inspect import signature
-from pathlib import Path
+from pathlib import pathlib.Path
 import time
 from types import FunctionType
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from more_itertools import unique_everseen
 import numpy as np
@@ -147,26 +146,26 @@ def numify(variable: str) -> Union[int, float, str]:
         except ValueError:
             return variable
 
-def pathlibify(path: Union[str, Path]) -> Path:
-    """Converts string 'path' to pathlib Path object.
+def pathlibify(path: Union[str, pathlib.Path]) -> pathlib.Path:
+    """Converts string 'path' to pathlib pathlib.Path object.
 
     Args:
-        path (Union[str, Path]): either a string representation of a path or a
-            Path object.
+        path (Union[str, pathlib.Path]): either a string representation of a path or a
+            pathlib.Path object.
 
     Returns:
-        Path object.
+        pathlib.Path object.
 
     Raises:
-        TypeError if 'path' is neither a str or Path type.
+        TypeError if 'path' is neither a str or pathlib.Path type.
 
     """
     if isinstance(path, str):
-        return Path(path)
-    elif isinstance(path, Path):
+        return pathlib.Path(path)
+    elif isinstance(path, pathlib.Path):
         return path
     else:
-        raise TypeError('path must be str or Path type')
+        raise TypeError('path must be str or pathlib.Path type')
 
 def stringify(
         variable: Union[str, List],
@@ -254,7 +253,7 @@ def typify(variable: str) -> Union[List, int, float, bool, str]:
 
 """ Decorators """
 
-def timer(process: Optional[str] = None) -> Callable:
+def simple_timer(process: Optional[str] = None) -> Callable:
     """Decorator for computing the length of time a process takes.
 
     Args:

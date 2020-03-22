@@ -6,9 +6,8 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from math import ceil, sqrt
 import matplotlib.pyplot as plt
@@ -18,7 +17,7 @@ from simplify.core.definitionsetter import SimpleDirector
 from simplify.core.definitionsetter import Option
 
 
-@dataclass
+@dataclasses.dataclass
 class Painter(SimpleDirector):
     """Creates data analysis visualizations.
 
@@ -51,7 +50,7 @@ class Painter(SimpleDirector):
         return max_display
 
     def _draft_options(self) -> None:
-        self._options = Repository(contents = {
+        self._options = SimpleRepository(contents = {
             'calibration': Option(
                 name = 'calibration',
                 module = 'skplt.metrics',
@@ -205,7 +204,7 @@ class Painter(SimpleDirector):
 
     def histogram(self, features = None, file_name = 'histogram.png',
                   **kwargs):
-        for feature in listify(features):
+        for feature in utilities.listify(features):
             seaborn.distplot(self.x[feature], feature, **kwargs)
             self.save(feature + '_' + file_name)
         return self

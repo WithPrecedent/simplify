@@ -6,17 +6,16 @@
 :license: Apache-2.0
 """
 
-from dataclasses import dataclass
-from dataclasses import field
-from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Optional,
-    Tuple, Union)
+from dataclasses.dataclasses import dataclasses.dataclass
+from dataclasses.dataclasses import dataclasses.field
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from simplify.core.base import SimpleSettings
 from simplify.critic.critic import Evaluator
 from simplify.critic.critic import Review
 
 
-@dataclass
+@dataclasses.dataclass
 class Explainer(Evaluator):
     """Base class for explaining model performance.
 
@@ -67,7 +66,7 @@ class Explainer(Evaluator):
         return review
 
 
-@dataclass
+@dataclasses.dataclass
 class SklearnExplain(Explainer):
     """Explains model performance with the sklearn package.
 
@@ -76,7 +75,7 @@ class SklearnExplain(Explainer):
 
     """
     idea: Optional['Idea'] = None
-    name: Optional[str] = field(default_factory = lambda: 'sklearn')
+    name: Optional[str] = dataclasses.field(default_factory = lambda: 'sklearn')
 
     """ Private Methods """
 
@@ -128,7 +127,7 @@ class SklearnExplain(Explainer):
         return self
 
 
-@dataclass
+@dataclasses.dataclass
 class Eli5Explain(Explainer):
     """Explains model performance with the ELI5 package.
 
@@ -137,7 +136,7 @@ class Eli5Explain(Explainer):
 
     """
     idea: Optional['Idea'] = None
-    name: Optional[str] = field(default_factory = lambda: 'eli5')
+    name: Optional[str] = dataclasses.field(default_factory = lambda: 'eli5')
 
 
     """ Private Methods """
@@ -204,7 +203,7 @@ class Eli5Explain(Explainer):
         return data
 
 
-@dataclass
+@dataclasses.dataclass
 class ShapExplain(Explainer):
     """Base class for explaining model performance.
 
@@ -213,7 +212,7 @@ class ShapExplain(Explainer):
 
     """
     idea: Optional['Idea'] = None
-    name: Optional[str] = field(default_factory = lambda: 'shap')
+    name: Optional[str] = dataclasses.field(default_factory = lambda: 'shap')
 
     """ Private Methods """
 
@@ -306,7 +305,7 @@ class ShapExplain(Explainer):
         self._apply_to_chapter(chapter = data)
         return data
 
-@dataclass
+@dataclasses.dataclass
 class SkaterExplain(Explainer):
     """Base class for explaining model performance.
 
@@ -314,7 +313,7 @@ class SkaterExplain(Explainer):
         idea (Optional['Idea']): an instance with project settings.
 
     """
-    name: Optional[str] = field(default_factory = lambda: 'skater')
+    name: Optional[str] = dataclasses.field(default_factory = lambda: 'skater')
     idea: Optional['Idea'] = None
 
 
