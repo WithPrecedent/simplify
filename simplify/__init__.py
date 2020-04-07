@@ -9,7 +9,7 @@
 from simplify.core.base import SimpleSystem
 from simplify.core.base import SimpleCreator
 from simplify.core.base import SimpleSimpleRepository
-from simplify.core.base import SimpleContainer
+from simplify.core.base import SimpleRepository
 from simplify.core.base import SimpleComponent
 from simplify.core.dataset import Dataset
 from simplify.core.filer import Filer
@@ -26,7 +26,7 @@ __all__ = [
     'SimpleSystem',
     'SimpleCreator',
     'SimpleSimpleRepository',
-    'SimpleContainer',
+    'SimpleRepository',
     'SimpleComponent',
     'Dataset',
     'Filer',

@@ -38,7 +38,7 @@ class Metric(Technique):
         module (Optional[str]): name of module where object to use is located
             (can either be a siMpLify or non-siMpLify module). Defaults to
             'simplify.core'.
-        algorithm (Optional[object]): callable object which executes the primary
+        algorithm (Optional[object]): process object which executes the primary
             method of a class instance. Defaults to None.
         parameters (Optional[Dict[str, Any]]): parameters to be attached to
             'algorithm' when 'algorithm' is instanced. Defaults to an empty

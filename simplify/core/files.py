@@ -1,6 +1,6 @@
 """
-.. module:: filer
-:synopsis: data science file management made simple
+.. module:: files
+:synopsis: file management made simple
 :author: Corey Rayburn Yung
 :copyright: 2019-2020
 :license: Apache-2.0
@@ -50,9 +50,12 @@ class Filer(collections.abc.MutableMapping):
     """
     root_folder: Optional[Union[str, List[str]]] = dataclasses.field(
         default_factory = ['..', '..'])
-    data_folder: Optional[str] = dataclasses.field(default_factory = lambda: 'data')
-    data_subfolders: Optional[List[str]] = dataclasses.field(default_factory = list)
-    results_folder: Optional[str] = dataclasses.field(default_factory = lambda: 'results')
+    data_folder: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'data')
+    data_subfolders: Optional[List[str]] = dataclasses.field(
+        default_factory = list)
+    results_folder: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'results')
     states: Optional[Union[List[str], 'SimpleState']] = None
     idea: Optional['Idea'] = None
 
@@ -343,7 +346,8 @@ class Filer(collections.abc.MutableMapping):
             'visualize': 'processed'}
         return self
 
-    def _make_unique_path(self, folder: pathlib.Path, name: str) -> pathlib.Path:
+    def _make_unique_path(self,
+            folder: pathlib.Path, name: str) -> pathlib.Path:
         """Creates a unique path to avoid overwriting a file or folder.
 
         Thanks to RealPython for this bit of code:
@@ -685,9 +689,12 @@ class Importer(SimpleDistributor):
     """
     filer: 'Filer'
     root_folder: Optional[str] = None
-    folders: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
-    file_format_states: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
-    file_names: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
+    folders: Optional[Dict[str, str]] = dataclasses.field(
+        default_factory = dict)
+    file_format_states: Optional[Dict[str, str]] = dataclasses.field(
+        default_factory = dict)
+    file_names: Optional[Dict[str, str]] = dataclasses.field(
+        default_factory = dict)
 
     """ Public Methods """
 
@@ -719,9 +726,11 @@ class Importer(SimpleDistributor):
         folder = folder or self.filer[self.folders[self.filer.stage]]
         file_format = self._check_file_format(file_format = file_format)
         if include_subfolders:
-            return pathlib.Path(folder).rglob('.'.join(['*', file_format.extension]))
+            return pathlib.Path(folder).rglob('.'.join(
+                ['*', file_format.extension]))
         else:
-            return pathlib.Path(folder).glob('.'.join(['*', file_format.extension]))
+            return pathlib.Path(folder).glob('.'.join(
+                ['*', file_format.extension]))
 
     # def iterate_batch(self,
     #         chapters: List[str],
@@ -767,8 +776,8 @@ class Importer(SimpleDistributor):
         file_path is passed, folder and file_name are ignored.
 
         Args:
-            file_path (Optional[Union[str, pathlib.Path]]): a complete file path.
-                Defaults to None.
+            file_path (Optional[Union[str, pathlib.Path]]): a complete file
+                path. Defaults to None.
             folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
                 name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
@@ -825,9 +834,12 @@ class Exporter(SimpleDistributor):
     """
     filer: 'Filer' = None
     root_folder: Optional[str] = None
-    folders: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
-    file_format_states: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
-    file_names: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
+    folders: Optional[Dict[str, str]] = dataclasses.field(
+        default_factory = dict)
+    file_format_states: Optional[Dict[str, str]] = dataclasses.field(
+        default_factory = dict)
+    file_names: Optional[Dict[str, str]] = dataclasses.field(
+        default_factory = dict)
 
     """ Private Methods """
 
@@ -901,8 +913,8 @@ class Exporter(SimpleDistributor):
 
         Args:
             variable (Any): object to be save to disk.
-            file_path (Optional[Union[str, pathlib.Path]]): a complete file path.
-                Defaults to None.
+            file_path (Optional[Union[str, pathlib.Path]]): a complete file
+                path. Defaults to None.
             folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
                 name of a folder stored in 'filer'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
@@ -933,7 +945,7 @@ class Exporter(SimpleDistributor):
 
 
 @dataclasses.dataclass
-class pathlib.Pathifier(object):
+class Pathifier(object):
     """Builds file_paths based upon state.
 
     Args:
@@ -1070,7 +1082,8 @@ class FileFormat(SimpleComponent):
     """
 
     name: Optional[str] = None
-    module: Optional[str] = dataclasses.field(default_factory = lambda: 'simplify.core')
+    module: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'simplify.core')
     extension: Optional[str] = None
     import_method: Optional[str] = None
     export_method: Optional[str] = None

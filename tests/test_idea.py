@@ -11,15 +11,15 @@ from simplify.core.idea import Idea
 
 def test_idea():
     ini_idea = Idea(configuration = 'idea_settings.ini', infer_types = True)
-    assert ini_idea.configuration == {
+    assert ini_idea == {
         'general': {'verbose': True, 'seed': 43},
         'simplify': {'simplify_steps': ['analyst', 'critic']}}
     # py_idea = Idea(configuration = 'idea_settings.py', infer_types = True)
-    # assert py_idea.configuration == {
+    # assert py_idea == {
     #     'general': {'verbose': True, 'seed': 43},
     #     'simplify': {'simplify_steps': ['analyst', 'critic']}}
     # csv_idea = Idea(configuration = 'idea_settings.csv', infer_types = True)
-    # assert csv_idea.configuration == {
+    # assert csv_idea == {
     #     'general': {'verbose': True, 'seed': 43},
     #     'simplify': {'simplify_steps': ['analyst', 'critic']}}
     return

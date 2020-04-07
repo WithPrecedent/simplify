@@ -10,7 +10,7 @@ import sys
 sys.path.insert(0, os.path.join('..', 'simplify'))
 sys.path.insert(0, os.path.join('..', '..', 'simplify'))
 
-from pathlib import pathlib.Path
+import pathlib
 
 import pandas as pd
 import numpy as np

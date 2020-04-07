@@ -17,15 +17,15 @@ import pandas as pd
 
 import simplify
 from simplify.core import base
+from simplify.core import configuration
 from simplify.core import dataset
-from simplify.core import filer
-from simplify.core import idea
+from simplify.core import files
 from simplify.core import worker
 from simplify.core import utilities
 
 
 @dataclasses.dataclass
-class Project(SimpleSystem):
+class Project(base.SimpleSystem):
     """Controller class for siMpLify projects.
 
     Args:
@@ -88,7 +88,7 @@ class Project(SimpleSystem):
         List[str],
         Dict[str, 'Worker'],
         'SimpleRepository',
-        'Manager']] = dataclasses.field(default_factory = SimpleRepository)
+        'Manager']] = dataclasses.field(default_factory = base.SimpleRepository)
     name: Optional[str] = dataclasses.field(default_factory = lambda: 'project')
     identification: Optional[str] = dataclasses.field(
         default_factory = utilities.datetime_string)
@@ -101,24 +101,21 @@ class Project(SimpleSystem):
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
         # Validates 'Idea' instance.
-        self.idea = Idea.create(idea = self.idea)
-        # Validates 'Filer' instance.
-        self.filer = Filer.create(root_folder = self.filer, idea = self.idea)
-        # Validates 'Dataset' instance.
-        self.dataset = Dataset.create(data = self.dataset, idea = self.idea)
+        self.idea = configuration.Idea(contents = self.idea)
         # Adds general attributes from 'idea'.
-        self = self.idea.apply(instance = self)
-        # Creates a 'Manager' instance for storing 'Worker' instances.
-        self.manager = Manager.create(
-            workers = self.workers,
-            idea=self.idea)
-        # Validates 'workers' or creates it from 'idea' and default workers.
+        self.idea.inject(instance = self)
+        # Validates 'Filer' instance.
+        self.filer = files.Filer(root_folder = self.filer, idea = self.idea)
+        # Validates 'Dataset' instance.
+        self.dataset = dataset.Dataset(data = self.dataset, idea = self.idea)
+        # Validates and initializes 'workers'.
+        self.workers = self._validate_workers(workers = self.workers)
         self.workers = self._initialize_workers(workers = self.workers)
         # Creats an 'Overview' instance, providing an outline of the overall
         # project from 'Worker' instances stored in 'manager'.
         self.overview = Overview.create(manager = self.manager)
         # Creates a 'Library' instance for storing 'Book' instances.
-        self.library = Library.create(
+        self.library = base.Simple(
             manager = self.manager,
             catalog = self.overview)
         # Initializes 'stage' and validates core siMpLify objects.
@@ -134,59 +131,6 @@ class Project(SimpleSystem):
             self.apply()
         return self
 
-    """ Factory Method """
-
-    @classmethod
-    def create(cls,
-            idea: Optional[Union['Idea', str]] = None,
-            filer: Optional[Union['Filer', str]] = None,
-            dataset: Optional[Union[
-                'Dataset',
-                pd.DataFrame,
-                np.ndarray,
-                str,
-                Dict[str, Union[
-                    pd.DataFrame,
-                    np.ndarray,
-                    str]]]] = None,
-            **kwargs) -> 'Project':
-        """Creates a 'Project' instance from passed arguments.
-
-        Args:
-            idea (Optional[Union[Idea, str]]): an instance of Idea or a string
-                containing the file path or file name (in the current working
-                directory) where a file of a supported file type with settings
-                for an Idea instance is located. Defaults to None.
-            filer (Optional[Union['Filer', str]]): an instance of Filer or a
-                string containing the full path of where the root folder should
-                be located for file output. A filer instance contains all file
-                path and import/export methods for use throughout siMpLify.
-                Defaults to None.
-            dataset (Optional[Union['Dataset', pd.DataFrame, np.ndarray, str]]):
-                an instance of Dataset, an instance of Data, a string containing
-                the full file path where a data file for a pandas DataFrame is
-                located, a string containing a file name in the default data
-                folder (as defined in the shared Filer instance), a full folder
-                path where raw files for data to be extracted from, a string
-                containing a folder name which is an attribute in the shared
-                Filer instance, a DataFrame, or numpy ndarray. If a DataFrame,
-                Data instance, ndarray, or string is passed, the resultant data
-                object is stored in the 'data' attribute in a new Dataset
-                instance as a DataFrame. Defaults to None.
-
-        """
-        # Validates 'Idea' instance.
-        idea = Idea.create(idea = idea)
-        # Validates 'Filer' instance.
-        filer = Filer.create(root_folder = filer, idea = idea)
-        # Validates 'Dataset' instance.
-        dataset = Dataset.create(data = dataset, idea = idea)
-        return cls(
-            idea = idea,
-            filer = filer,
-            dataset = dataset,
-            **kwargs)
-
     """ Dunder Methods """
 
     def __iter__(self) -> Iterable:
@@ -196,12 +140,7 @@ class Project(SimpleSystem):
             Iterable: different depending upon stage.
 
         """
-        if self.stage in ['initialize']:
-            return iter(self.overview)
-        if self.stage in ['draft']:
-            return iter(self.manager)
-        elif self.stage in ['publish', 'apply']:
-            return iter(self.library)
+        return iter(self.workers)
 
     """ Other Dunder Methods """
 
@@ -300,14 +239,13 @@ class Project(SimpleSystem):
         """
         # Assigns 'data' to 'dataset' attribute and validates it.
         if data:
-            self.dataset = Dataset.create(data = data)
+            self.dataset = Dataset(data = data, idea = self.idea)
         # Iterates through each worker, creating and applying needed Books,
         # Chapters, and Techniques for each worker in the Library.
         for name, book in self.library.items():
-            self.library = self.workers[name].scholar.apply(
-                worker = name,
-                library = self.library,
+            self.dataset, self.library = self.workers[name].apply(
                 data = self.dataset,
+                library = self.library,
                 **kwargs)
         return self
 
@@ -418,24 +356,33 @@ class Project(SimpleSystem):
                 return self.workers
 
 
-DEFAULT_WORKERS = {
+@dataclasses.dataclass
+class Package(base.SimpleComponent):
+
+    name: Optional[str] = None
+    module: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'simplify.core')
+    instructions: Optional[str] = 'Instructions'
+
+
+DEFAULT_PACKAGES = {
     'wrangler': worker.Worker(
         name = 'wrangler',
         module = 'simplify.wrangler.wrangler',
-        worker = 'Wrangler'),
+        instructions = 'WranglerInstructions'),
     'explorer': worker.Worker(
         name = 'explorer',
         module = 'simplify.explorer.explorer',
-        worker = 'Explorer'),
+        instructions = 'ExplorerInstructions'),
     'analyst': worker.Worker(
         name = 'analyst',
         module = 'simplify.analyst.analyst',
-        worker = 'Analyst'),
+        instructions = 'AnalystInstructions'),
     'critic': worker.Worker(
         name = 'critic',
         module = 'simplify.critic.critic',
-        worker = 'Critic'),
+        instructions = 'CriticInstructions'),
     'artist': worker.Worker(
         name = 'artist',
         module = 'simplify.artist.artist',
-        worker = 'Artist')}
+        instructions = 'ArtistInstructions')}

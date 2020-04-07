@@ -1,16 +1,288 @@
 """
-.. module:: repository
-:synopsis: siMpLify base mapping classes
-:author: Corey Rayburn Yung
+.. module:: Worker
+:synopsis: generic siMpLify manager
+:publisher: Corey Rayburn Yung
 :copyright: 2019-2020
 :license: Apache-2.0
 """
 
 import collections.abc
 import dataclasses
+import importlib
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+try:
+    import pathos.multiprocessing as mp
+except ImportError:
+    import multiprocessing as mp
+
+import numpy as np
+import pandas as pd
+
+from simplify.core import base
 from simplify.core import utilities
+
+
+@dataclasses.dataclass
+class Instructions(object):
+    """Instructions for 'Worker' construction and usage.
+
+    Args:
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class
+            instance needs settings from the shared 'Idea' instance, 'name'
+            should match the appropriate section name in that 'Idea' instance.
+            When subclassing, it is a good idea to use the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes. Defaults to None or __class__.__name__.lower().
+        module (Optional[str]): name of module where object to use is located
+            (can either be a siMpLify or non-siMpLify module). Defaults to
+            'simplify.core.worker'.
+        default_module (Optional[str]): a backup name of module where object to
+            use is located (can either be a siMpLify or non-siMpLify module).
+            Defaults to 'simplify.core.worker'.
+        overview (Optional['Overview']): an instance with an outline of
+            strategies selected for a particular 'Worker'. Defaults to an empty
+            'Overview' instance.
+        book (Optional[str]): name of Book object in 'module' to load. Defaults
+            to 'Book'.
+        chapter (Optional[str]): name of Chapter object in 'module' to load.
+            Defaults to 'Chapter'.
+        technique (Optional[str]): name of Book object in 'module' to load.
+            Defaults to 'Technique'.
+        options (Optional[str]): name of a 'SimpleRepository' instance with
+            various options available to a particular 'Worker' instance.
+            Defaults to an empty 'SimpleRepository'.
+        data (Optional[str]): name of attribute or key in a 'Project' instance
+            'books' to use as a data object to apply methods to. Defaults to
+            'dataset'.
+        import_folder (Optional[str]): name of attribute in 'filer' which
+            contains the path to the default folder for importing data objects.
+            Defaults to 'processed'.
+        export_folder (Optional[str]): name of attribute in 'filer' which
+            contains the path to the default folder for exporting data objects.
+            Defaults to 'processed'.
+        comparer (Optional[bool]): whether the 'Worker' has a parallel structure
+            allowing for comparison of different alternatives (True) or is a
+            singular sequence of steps (False). Defaults to False.
+
+    """
+    name: Optional[str] = None
+    module: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'simplify.core.worker')
+    default_module: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'simplify.core.worker')
+    overview: Optional['Overview'] = dataclasses.field(
+        default_factory = Overview)
+    book: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Book')
+    chapter: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Chapter')
+    technique: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Technique')
+    options: Optional[str] = dataclasses.field(
+        default_factory = base.SimpleRepository)
+    data: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'dataset')
+    import_folder: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'processed')
+    export_folder: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'processed')
+    comparer: Optional[bool] = False
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        # Activates select attributes.
+        self._load_attributes()
+        return self
+
+    """ Private Methods """
+
+    def _load_attributes(self,
+            attributes: Optional[List[str]] = None) -> None:
+        """Initializes select attribute classes.
+
+        If 'attributes' is not passed, a default list of attributes is used.
+
+        Args:
+            attributes (Optional[List[str]]): attributes to use the lazy loader
+                in the 'load' method on. Defaults to None.
+
+        """
+        if not attributes:
+            attributes = ['book', 'chapter', 'technique', 'options']
+        for attribute in attributes:
+            setattr(self, attribute, self.load(attribute = attribute))
+        return self
+
+    """ Core siMpLify Methods """
+
+    def load(self, attribute: str) -> object:
+        """Returns object named in 'attribute'.
+
+        If 'attribute' is not a str, it is assumed to have already been loaded
+        and is returned as is.
+
+        The method searches both 'module' and 'default_module' for the named
+        'attribute'.
+
+        Args:
+            attribute (str): name of local attribute to load from 'module' or
+                'default_module'.
+
+        Returns:
+            object: from 'module' or 'default_module'.
+
+        """
+        # If 'attribute' is a string, attempts to load from 'module' or, if not
+        # found there, 'default_module'.
+        if isinstance(getattr(self, attribute), str):
+            try:
+                return getattr(
+                    importlib.import_module(self.module),
+                    getattr(self, attribute))
+            except (ImportError, AttributeError):
+                try:
+                    return getattr(
+                        importlib.import_module(self.default_module),
+                        getattr(self, attribute))
+                except (ImportError, AttributeError):
+                    raise ImportError(
+                        f'{getattr(self, attribute)} is neither in \
+                        {self.module} nor {self.default_module}')
+        # If 'attribute' is not a string, it is returned as is.
+        else:
+            return getattr(self, attribute)
+
+
+@dataclasses.dataclass
+class Worker(base.SimpleSystem):
+    """Generic subpackage controller class for siMpLify data projects.
+
+    Args:
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class
+            instance needs settings from the shared 'Idea' instance, 'name'
+            should match the appropriate section name in that 'Idea' instance.
+            When subclassing, it is a good idea to use the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes. Defaults to None or __class__.__name__.lower().
+        idea (Optional['Idea']): shared project configuration settings.
+        options (Optional['SimpleRepository']):
+        book (Optional['Book']):
+        auto_draft (Optional[bool]): whether to call the 'draft' method when
+            instanced. Defaults to True.
+        auto_publish (Optional[bool]): whether to call the 'publish' method when
+            instanced. Defaults to True.
+        auto_apply (Optional[bool]): whether to call the 'apply' method when
+            instanced. For auto_apply to have an effect, 'dataset' must also
+            be passed. Defaults to False.
+
+    """
+    name: Optional[str] = None
+    instructions: Optional['Instructions'] = None
+    idea: Optional['Idea'] = None
+    options: Optional['SimpleRepository'] = None
+    book: Optional['Book'] = None
+    auto_draft: Optional[bool] = True
+    auto_publish: Optional[bool] = True
+    auto_apply: Optional[bool] = False
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        super().__post_init__()
+        return self
+
+    """ Core siMpLify Methods """
+
+    def publish(self, project: 'Project') -> 'Project':
+        """Finalizes 'Book' instance in 'project'.
+
+        Args:
+            project ('Project'): an instance for a 'Book' instance to be
+                modified.
+
+        Returns:
+            'Project': with 'Book' instance modified.
+
+        """
+        if self.instructions.comparer:
+            return self._publish_comparer()
+        else:
+            return self._publish_sequencer()
+
+    """ Private Methods """
+
+    def _instances_attributes(self,
+            attributes: Optional[List[str]] = None) -> None:
+        """Instances select attribute classes.
+
+        If 'attributes' is not passed, a default list of attributes is used.
+
+        Args:
+            attributes (Optional[List[str]]): attributes to instance.
+
+        """
+        if not attributes:
+            attributes = ['book', 'options']
+        for attribute in attributes:
+            if attribute in ['options']:
+                setattr(self, attribute, getattr(
+                    self.instructions, attribute)(idea = self.idea))
+            else:
+                setattr(self, attribute, getattr(
+                    self.instructions, attribute)())
+        return self
+
+    def _publish_comparer(self, project: 'Project') -> 'Project':
+        """Finalizes 'Book' instance in 'project'.
+
+        Args:
+            project ('Project'): an instance for a 'Book' instance to be
+                modified.
+
+        Returns:
+            'Project': with 'Book' instance modified.
+
+        """
+        new_chapters = []
+        for chapter in project[self.worker.name].chapters:
+            new_chapters.append(self._publish_techniques(manuscript = chapter))
+        project[self.worker.name].chapters = new_chapters
+        return project
+
+    def _publish_sequencer(self, project: 'Project') -> 'Project':
+        """Finalizes 'Book' instance in 'project'.
+
+        Args:
+            project ('Project'): an instance for a 'Book' instance to be
+                modified.
+
+        Returns:
+            'Project': with 'Book' instance modified.
+
+        """
+        project[self.worker.name] = self._publish_techniques(
+            manuscript = project[self.worker.name])
+        return project
+
+    def _publish_techniques(self,
+            manuscript: Union['Book', 'Chapter']) -> Union['Book', 'Chapter']:
+        """Finalizes 'techniques' in 'Book' or 'Chapter' instance.
+
+        Args:
+            manuscript (Union['Book', 'Chapter']): an instance with 'steps' to
+                be converted to 'techniques'.
+
+        Returns:
+            Union['Book', 'Chapter']: with 'techniques' added.
+
+        """
+        techniques = []
+        for step in manuscript.steps:
+            techniques.extend(self.expert.publish(step = step))
+        manuscript.techniques = techniques
+        return manuscript
 
 
 @dataclasses.dataclass
@@ -35,6 +307,28 @@ class Overview(base.SimpleRepository):
     name: Optional[str] = None
     contents: Optional[Dict[str, Dict[str, List[str]]]] = dataclasses.field(
         default_factory = dict)
+
+    # """ Factory Method """
+
+    # @classmethod
+    # def create(cls,
+    #         name: str,
+    #         source: 'SimpleRepository',
+    #         steps: Optional[Union[List[str], 'SimpleRepository']],
+    #         idea: Optional['Idea'],
+    #         level: Optional[str],
+    #         **kwargs) -> 'SimpleRepository':
+    #     """Returns a class object based upon arguments passed.
+
+    #     """
+    #     if isinstance(items, cls):
+    #         return items
+    #     else:
+    #         new_repository = cls(name = name, **kwargs)
+    #         if not steps:
+    #             new_repository.steps = getattr(idea, f'_get_{level}')(name)
+    #         new_repository.add(items = source[steps])
+    #         return new_repository
 
     """ Factory Method """
 
@@ -191,12 +485,14 @@ class Manager(base.SimpleRepository):
 
     """
     name: Optional[str] = None
-    contents: Optional[Dict[str, Any]] = dataclasses.field(default_factory = dict)
+    contents: Optional[Dict[str, Any]] = dataclasses.field(
+        default_factory = dict)
     defaults: Optional[List[str]] = dataclasses.field(default_factory = list)
     wildcards: Optional[List[str]] = dataclasses.field(
         default_factory = lambda: ['all', 'default', 'none'])
-    workers: Optional[Union[Dict[str, 'Worker'], List[str]]] = dataclasses.field(
-        default_factory = dict)
+    workers: Optional[Union[
+        Dict[str, 'Worker'], List[str]]] = dataclasses.field(
+            default_factory = dict)
     idea: Optional['Idea'] = None
 
     def __post_init__(self) -> None:

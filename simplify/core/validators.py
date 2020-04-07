@@ -27,12 +27,12 @@ class SimpleValidator(ABC):
     """Base class decorator to convert arguments to proper types."""
 
     def __init__(self,
-            callable: Callable,
+            process: Callable,
             validators: Optional[Dict[str, Callable]] = None) -> None:
         """Sets initial validator options.
 
         Args:
-            callable (Callable): wrapped method, function, or callable class.
+            process (Callable): wrapped method, function, or process class.
             validators Optional[Dict[str, Callable]]: keys are names of
                 parameters and values are functions to convert or validate
                 passed arguments. Those functions must return a completed
@@ -40,8 +40,8 @@ class SimpleValidator(ABC):
                 to None.
 
         """
-        self.callable = callable
-        update_wrapper(self, self.callable)
+        self.process = process
+        update_wrapper(self, self.process)
         if self.validators is None:
             self.validators = {}
         return self
@@ -49,18 +49,18 @@ class SimpleValidator(ABC):
     """ Required Wrapper Method """
 
     def __call__(self) -> Callable:
-        """Converts arguments of 'callable' to appropriate type.
+        """Converts arguments of 'process' to appropriate type.
 
         Returns:
             Callable: with all arguments converted to appropriate types.
 
         """
-        call_signature = signature(self.callable)
-        @wraps(self.callable)
+        call_signature = signature(self.process)
+        @wraps(self.process)
         def wrapper(self, *args, **kwargs):
             arguments = dict(call_signature.bind(*args, **kwargs).arguments)
             arguments = self.apply(arguments = arguments)
-            return self.callable(self, **arguments)
+            return self.process(self, **arguments)
         return wrapper
 
     """ Core siMpLify Methods """
@@ -97,11 +97,11 @@ def SimplifyValidator(SimpleValidator):
 
     """
 
-    def __init__(self, callable: Callable) -> None:
+    def __init__(self, process: Callable) -> None:
         """Sets initial validator options.
 
         Args:
-            callable (Callable): wrapped method, function, or callable class.
+            process (Callable): wrapped method, function, or process class.
 
         """
         self.validators = {
@@ -126,11 +126,11 @@ def DataValidator(SimpleValidator):
 
     """
 
-    def __init__(self, callable: Callable) -> None:
+    def __init__(self, process: Callable) -> None:
         """Sets initial validator options.
 
         Args:
-            callable (Callable): wrapped method, function, or callable class.
+            process (Callable): wrapped method, function, or process class.
 
         """
         self.validators = {
@@ -142,7 +142,7 @@ def DataValidator(SimpleValidator):
     """ Required Wrapper Method """
 
     def __call__(self) -> Callable:
-        """Converts arguments of 'callable' to appropriate type.
+        """Converts arguments of 'process' to appropriate type.
 
         All passed parameter names are converted to lower case to avoid issues
         with arguments passed with 'X' and 'Y' instead of 'x' and 'y'.
@@ -151,13 +151,13 @@ def DataValidator(SimpleValidator):
             Callable: with all arguments converted to appropriate types.
 
         """
-        call_signature = signature(self.callable)
-        @wraps(self.callable)
+        call_signature = signature(self.process)
+        @wraps(self.process)
         def wrapper(self, *args, **kwargs):
             arguments = dict(call_signature.bind(*args, **kwargs).arguments)
             arguments = self._convert_names(arguments = arguments)
             self._store_names(arguments = arguments)
-            result = self.callable(self, **arguments)
+            result = self.process(self, **arguments)
             result = self.apply(result = result)
             return result
         return wrapper
@@ -183,7 +183,7 @@ def DataValidator(SimpleValidator):
         """Converts data arguments to truncated, lower-case names.
 
         Args:
-            arguments (Dict[str, Any]): passed arguments to 'callable'.
+            arguments (Dict[str, Any]): passed arguments to 'process'.
 
         Returns:
             Dict[str, Any]: with any data arguments changed to either 'x' or
@@ -250,11 +250,11 @@ def DataValidator(SimpleValidator):
 def ColumnsValidator(SimpleValidator):
     """Decorator for creating column lists for wrapped methods."""
 
-    def __init__(self, callable: Callable) -> None:
+    def __init__(self, process: Callable) -> None:
         """Sets initial validator options.
 
         Args:
-            callable (Callable): wrapped method, function, or callable class.
+            process (Callable): wrapped method, function, or process class.
 
         """
         self.validators = {
@@ -268,18 +268,18 @@ def ColumnsValidator(SimpleValidator):
     """ Required Wrapper Method """
 
     def __call__(self) -> Callable:
-        """Converts arguments of 'callable' to appropriate type.
+        """Converts arguments of 'process' to appropriate type.
 
         Returns:
             Callable: with all arguments converted to appropriate types.
 
         """
-        call_signature = signature(self.callable)
-        @wraps(self.callable)
+        call_signature = signature(self.process)
+        @wraps(self.process)
         def wrapper(self, *args, **kwargs):
             arguments = dict(call_signature.bind(*args, **kwargs).arguments)
             arguments = self.apply(arguments = arguments)
-            return self.callable(self, **arguments)
+            return self.process(self, **arguments)
         return wrapper
 
     """ Private Methods """

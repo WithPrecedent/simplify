@@ -1,397 +1,176 @@
 """
-.. module:: creators
-:synopsis: constructs books, chapters, and techniques
+.. module:: base
+:synopsis: project workflow made simple
 :author: Corey Rayburn Yung
 :copyright: 2019-2020
 :license: Apache-2.0
 """
 
+import abc
+import collections.abc
 import dataclasses
-import itertools
+import importlib
+import pathlib
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core import base
-from simplify.core import utilities
+try:
+    import pathos.multiprocessing as mp
+except ImportError:
+    import multiprocessing as mp
 
 
 @dataclasses.dataclass
-class Publisher(base.SimpleCreator):
+class SimpleHandler(abc.ABC):
+    """Base class for creating or modifying other siMpLify classes."""
 
-    worker: 'Worker'
+    """ Required Subclass Methods """
 
-    def __post_init__(self) -> None:
-        """Creates 'author' which is used to create 'Chapter' instances."""
-        self.author = Author(worker = self.worker)
+    @abc.abstractmethod
+    def apply(self, data: 'SimpleFoundation', **kwargs) -> 'SimpleFoundation':
+        """Subclasses must provide their own methods."""
         return self
-
-    """ Private Methods """
-
-    def _initialize_worker_attributes(self) -> None:
-        """Loads and/or instances core 'worker' attributes."""
-        # Instances selected attributes.
-        for attribute in ['book', 'options']:
-            setattr(self.worker, attribute, self.worker.load(attribute)())
-        # Loads class for selected attributes without instancing.
-        for attribute in ['chapter', 'technique']:
-            setattr(self.worker, attribute, self.worker.load(attribute))
-        return self
-
-    """ Core siMpLify Methods """
-
-    def draft(self, project: 'Project') -> 'Project':
-        """Drafts 'Book' instance and deposits it in 'project'.
-
-        Args:
-            project ('Project'): an instance for a 'Book' instance to be added.
-
-        Returns:
-            'Project': with 'Book' instance added.
-
-        """
-        self._initialize_worker_attributes()
-        project[self.worker.name] = self.worker.book
-        return self.author.draft(project = project)
-
-    def publish(self, project: 'Project') -> 'Project':
-        """Finalizes 'Book' instance and deposits it in 'project'.
-
-        Args:
-            project ('Project'): an instance for a 'Book' instance to be added.
-
-        Returns:
-            'Project': with 'Book' instance added.
-
-        """
-        return self.author.publish(project = project)
 
 
 @dataclasses.dataclass
-class Author(base.SimpleCreator):
+class SimpleParallel(SimpleHandler):
+    """Applies workflow using one or more CPU or GPU cores.
 
-    worker: 'Worker'
+    Args:
+        gpu (Optional[bool]): whether to use GPU cores, when possible, to
+            parallelize operations (True) or to solely use CPU cores (False).
+            Defaults to False.
 
-    def __post_init__(self) -> None:
-        """Creates 'expert' which is used to create 'Technique' instances."""
-        self.expert = Expert(worker = self.worker)
-        return self
+    """
 
-    """ Private Methods """
-
-    def _draft_parallel(self, project: 'Project') -> 'Project':
-        """Drafts 'Book' instance with a parallel chapter structure.
-
-        Args:
-            project ('Project'): an instance for a 'Book' instance to be
-                modified.
-
-        Returns:
-            'Project': with 'Book' instance modified.
-
-        """
-        # Creates list of steps from 'project'.
-        steps = list(project.overview[self.worker.name].keys())
-        # Creates 'possible' list of lists of 'techniques'.
-        possible = list(project.overview[self.worker.name].values())
-        # Creates a list of lists of the Cartesian product of 'possible'.
-        combinations = list(map(list, itertools.product(*possible)))
-        # Creates Chapter instance for every combination of techniques.
-        for techniques in combinations:
-            step_pairs = tuple(zip(steps, techniques))
-            chapter = self.worker.load('chapter')(steps = step_pairs)
-            project[self.worker.name].chapters.append(chapter)
-        return project
-
-    def _draft_serial(self, project: 'Project') -> 'Project':
-        """Drafts 'Book' instance with a serial 'techniques' structure.
-
-        Args:
-            project ('Project'): an instance for a 'Book' instance to be
-                modified.
-
-        Returns:
-            'Project': with 'Book' instance modified.
-
-        """
-        new_steps = []
-        for step, techniques in project.overview[self.worker.name].items():
-            for technique in techniques:
-                new_steps.append((step, technique))
-        project[self.worker.name].steps.extend(new_steps)
-        return project
-
-    def _publish_parallel(self, project: 'Project') -> 'Project':
-        """Finalizes 'Book' instance in 'project'.
-
-        Args:
-            project ('Project'): an instance for a 'Book' instance to be
-                modified.
-
-        Returns:
-            'Project': with 'Book' instance modified.
-
-        """
-        new_chapters = []
-        for chapter in project[self.worker.name].chapters:
-            new_chapters.append(self._publish_techniques(manuscript = chapter))
-        project[self.worker.name].chapters = new_chapters
-        return project
-
-    def _publish_serial(self, project: 'Project') -> 'Project':
-        """Finalizes 'Book' instance in 'project'.
-
-        Args:
-            project ('Project'): an instance for a 'Book' instance to be
-                modified.
-
-        Returns:
-            'Project': with 'Book' instance modified.
-
-        """
-        project[self.worker.name] = self._publish_techniques(
-            manuscript = project[self.worker.name])
-        return project
-
-    def _publish_techniques(self,
-            manuscript: Union['Book', 'Chapter']) -> Union['Book', 'Chapter']:
-        """Finalizes 'techniques' in 'Book' or 'Chapter' instance.
-
-        Args:
-            manuscript (Union['Book', 'Chapter']): an instance with 'steps' to
-                be converted to 'techniques'.
-
-        Returns:
-            Union['Book', 'Chapter']: with 'techniques' added.
-
-        """
-        techniques = []
-        for step in manuscript.steps:
-            techniques.extend(self.expert.publish(step = step))
-        manuscript.techniques = techniques
-        return manuscript
-
-    """ Core siMpLify Methods """
-
-    def draft(self, project: 'Project') -> 'Project':
-        """Drafts 'Chapter' instances and deposits them in 'project'.
-
-        Args:
-            project ('Project'): an instance for a 'Book' instance to be added.
-
-        Returns:
-            'Project': with 'Book' instance added.
-
-        """
-        if hasattr(project[self.worker.name], 'steps'):
-            return self._draft_serial(project = project)
-        else:
-            return self._draft_parallel(project = project)
-
-    def publish(self, project: 'Project') -> 'Project':
-        """Finalizes 'Book' instance in 'project'.
-
-        Args:
-            project ('Project'): an instance for a 'Book' instance to be
-                modified.
-
-        Returns:
-            'Project': with 'Book' instance modified.
-
-        """
-        if hasattr(project[self.worker.name], 'steps'):
-            return self._publish_serial(project = project)
-        else:
-            return self._publish_parallel(project = project)
-
-
-@dataclasses.dataclass
-class Expert(base.SimpleCreator):
-
-    worker: 'Worker'
+    gpu: Optional[bool] = False
 
     """ Private Methods """
 
-    def _publish_technique(self,
-            technique: 'Technique',
-            step: Tuple[str, str]) -> 'Technique':
-        """Finalizes 'technique'.
-
-        Args:
-            technique ('Technique'): an instance for parameters to be added to.
-
-        Returns:
-            'Technique': instance with parameters added.
-
+    def _apply_gpu(self, process: Callable, data: object, **kwargs) -> object:
         """
-        technique.step = step[0]
-        if technique.module and technique.algorithm:
-            technique.algorithm = technique.load('algorithm')
-        return self._publish_parameters(technique = technique)
-
-    def _publish_parameters(self, technique: 'Technique') -> 'Technique':
-        """Finalizes 'parameters' for 'technique'.
-
-        Args:
-            technique ('Technique'): an instance for parameters to be added to.
-
-        Returns:
-            'Technique': instance with parameters added.
-
-        """
-        parameter_types = ['idea', 'selected', 'required', 'runtime']
-        # Iterates through types of 'parameter_types'.
-        for parameter_type in parameter_types:
-            try:
-                technique = getattr(self, '_'.join(
-                    ['_publish', parameter_type]))(technique = technique)
-            except (TypeError, AttributeError):
-                pass
-        return technique
-
-    def _publish_idea(self, technique: 'Technique') -> 'Technique':
-        """Acquires parameters from 'Idea' instance.
-
-        Args:
-            technique ('Technique'): an instance for parameters to be added to.
-
-        Returns:
-            'Technique': instance with parameters added.
 
         """
         try:
-            technique.parameters.update(
-                self.idea['_'.join([technique.name, 'parameters'])])
-        except KeyError:
-            try:
-                technique.parameters.update(
-                    self.idea['_'.join([technique.step, 'parameters'])])
-            except AttributeError:
-                pass
-        return technique
-
-    def _publish_selected(self, technique: 'Technique') -> 'Technique':
-        """Limits parameters to those appropriate to the 'technique'.
-
-        If 'technique.selected' is True, the keys from 'technique.defaults' are
-        used to select the final returned parameters.
-
-        If 'technique.selected' is a list of parameter keys, then only those
-        parameters are selected for the final returned parameters.
-
-        Args:
-            technique ('Technique'): an instance for parameters to be added to.
-
-        Returns:
-            'Technique': instance with parameters added.
-
-        """
-        if technique.selected:
-            if isinstance(technique.selected, list):
-                parameters_to_use = technique.selected
-            else:
-                parameters_to_use = list(technique.default.keys())
-            new_parameters = {}
-            for key, value in technique.parameters.items():
-                if key in parameters_to_use:
-                    new_parameters.update({key: value})
-            technique.parameters = new_parameters
-        return technique
-
-    def _publish_required(self, technique: 'Technique') -> 'Technique':
-        """Adds required parameters (mandatory additions) to 'parameters'.
-
-        Args:
-            technique ('Technique'): an instance for parameters to be added to.
-
-        Returns:
-            'Technique': instance with parameters added.
-
-        """
-        try:
-            technique.parameters.update(technique.required)
+            return process(data, **kwargs)
         except TypeError:
-            pass
-        return technique
+            return self._apply_cpu(process = process, data = data, **kwargs)
 
-    def _publish_search(self, technique: 'Technique') -> 'Technique':
-        """Separates variables with multiple options to search parameters.
-
-        Args:
-            technique ('Technique'): an instance for parameters to be added to.
-
-        Returns:
-            'Technique': instance with parameters added.
+    def _apply_cpu(self, process: Callable, data: object, **kwargs) -> object:
+        """
 
         """
-        technique.parameter_space = {}
-        new_parameters = {}
-        for parameter, values in technique.parameters.items():
-            if isinstance(values, list):
-                if any(isinstance(i, float) for i in values):
-                    technique.parameter_space.update(
-                        {parameter: uniform(values[0], values[1])})
-                elif any(isinstance(i, int) for i in values):
-                    technique.parameter_space.update(
-                        {parameter: randint(values[0], values[1])})
-            else:
-                new_parameters.update({parameter: values})
-        technique.parameters = new_parameters
-        return technique
-
-    def _publish_runtime(self, technique: 'Technique') -> 'Technique':
-        """Adds parameters that are determined at runtime.
-
-        The primary example of a runtime parameter throughout siMpLify is the
-        addition of a random seed for a consistent, replicable state.
-
-        Args:
-            technique ('Technique'): an instance for parameters to be added to.
-
-        Returns:
-            'Technique': instance with parameters added.
-
-        """
-        try:
-            for key, value in technique.runtime.items():
-                try:
-                    technique.parameters.update(
-                        {key: getattr(self.idea['general'], value)})
-                except AttributeError:
-                    raise AttributeError(' '.join(
-                        ['no matching runtime parameter', key, 'found']))
-        except (AttributeError, TypeError):
-            pass
-        return technique
+        results = []
+        arguments = data
+        arguments.update(kwargs)
+        with mp.Pool() as pool:
+            results.append(pool.starmap(method, arguments))
+        pool.close()
+        return results
 
     """ Core siMpLify Methods """
 
-    def draft(self, project: 'Project') -> 'Project':
-        return project
-
-    def publish(self, step: Tuple[str, str]) -> 'Technique':
-        """Finalizes 'Technique' instance from 'step'.
-
-        Args:
-            step (Tuple[str, str]): information needed to create a 'Technique'
-                instance.
-
-        Returns:
-            'Technique': instance ready for application.
+    def apply(self, process: Callable, data: object, **kwargs) -> object:
+        """
 
         """
-        if step[1] in ['none']:
-            return [self.worker.technique(name = 'none', step = step[0])]
-        elif step[1] in ['all', 'default']:
-            final_techniques = []
-            techniques = self.worker.options[step[0]][step[1]]
-            for technique in techniques:
-                final_techniques.append(
-                    self._publish_technique(
-                        step = step,
-                        technique = technique))
-            return final_techniques
+        if self.gpu:
+            return self._apply_gpu(process = process, data = data, **kwargs)
         else:
-            # Gets appropriate Technique and creates an instance.
-            technique = self.worker.options[step[0]][step[1]]
-            return [self._publish_technique(
-                step = step,
-                technique = technique)]
+            return self._apply_cpu(process = process, data = data, **kwargs)
+        return results
+
+
+@dataclasses.dataclass
+class SimpleProxy(abc.ABC):
+    """Mixin which creates proxy name for an instance attribute.
+
+    The 'proxify' method dynamically creates a property to access the stored
+    attribute. This allows class instances to customize names of stored
+    attributes while still using base siMpLify classes.
+
+    """
+
+    """ Proxy Property Methods """
+
+    def _proxy_getter(self) -> Any:
+        """Proxy getter for '_attribute'.
+
+        Returns:
+            Any: value stored at '_attribute'.
+
+        """
+        return getattr(self, self._attribute)
+
+    def _proxy_setter(self, value: Any) -> None:
+        """Proxy setter for '_attribute'.
+
+        Args:
+            value (Any): value to set attribute to.
+
+        """
+        setattr(self, self._attribute, value)
+        return self
+
+    def _proxy_deleter(self) -> None:
+        """Proxy deleter for '_attribute'."""
+        setattr(self, self._attribute, self._default_proxy_value)
+        return self
+
+    """ Other Private Methods """
+
+    def _proxify_attribute(self, proxy: str) -> None:
+        """Creates proxy property for 'attribute'.
+
+        Args:
+            proxy (str): name of proxy property to create.
+
+        """
+        setattr(self, proxy, property(
+            fget = self._proxy_getter,
+            fset = self._proxy_setter,
+            fdel = self._proxy_deleter))
+        return self
+
+    def _proxify_methods(self, proxy: str) -> None:
+        """Creates proxy method with an alternate name.
+
+        Args:
+            proxy (str): name of proxy to repalce in method names.
+
+        """
+        for item in dir(self):
+            if (self._attribute in item
+                    and not item.startswith('__')
+                    and callabe(item)):
+                self.__dict__[item.replace(self._attribute, proxy)] = (
+                    getattr(self, item))
+        return self
+
+    """ Public Methods """
+
+    def proxify(self,
+                proxy: str,
+                attribute: str,
+                default_value: Optional[Any] = None,
+                proxify_methods: Optional[bool] = True) -> None:
+        """Adds a proxy property to refer to class iterable.
+
+        Args:
+            proxy (str): name of proxy property to create.
+            attribute (str): name of attribute to link the proxy property to.
+            default_value (Optional[Any]): default value to use when deleting
+                an item in 'attribute'. Defaults to None.
+            proxify_methods (Optiona[bool]): whether to create proxy methods
+                replacing 'attribute' in the original method name with 'proxy'.
+                So, for example, 'add_chapter' would become 'add_recipe' if
+                'proxy' was 'recipe' and 'attribute' was 'chapter'. The original
+                method remains as well as the proxy. Defaults to True.
+
+        """
+        self._attribute = attribute
+        self._default_proxy_value = default_value
+        self._proxify_attribute(proxy = proxy)
+        if proxify_methods:
+            self._proxify_methods(proxy = proxy)
+        return self
+

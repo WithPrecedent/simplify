@@ -1,20 +1,20 @@
 """
 .. module:: utilities
-:synopsis: workers made simple
+:synopsis: general functions and decorators for siMpLify
 :author: Corey Rayburn Yung
 :copyright: 2019-2020
 :license: Apache-2.0
 """
 
-from datetime import datetime
-from functools import wraps
-from inspect import signature
-from pathlib import pathlib.Path
+import datetime
+import functools
+import inspect
+import pathlib
 import time
-from types import FunctionType
+import types
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from more_itertools import unique_everseen
+import more_itertools
 import numpy as np
 import pandas as pd
 
@@ -66,7 +66,7 @@ def datetime_string() -> str:
         str with current date and time in Y/M/D/H/M format.
 
     """
-    return datetime.now().strftime('%Y-%m-%d_%H-%M')
+    return datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')
 
 def deduplicate(iterable: Union[List, pd.DataFrame, pd.Series]) -> (
         Union[List, pd.DataFrame, pd.Series]):
@@ -82,7 +82,7 @@ def deduplicate(iterable: Union[List, pd.DataFrame, pd.Series]) -> (
 
     """
     try:
-        return list(unique_everseen(iterable))
+        return list(more_itertools.unique_everseen(iterable))
     except TypeError:
         return iterable.drop_duplicates(inplace = True)
 
@@ -97,7 +97,7 @@ def is_nested(dictionary: Dict[Any, Any]) -> bool:
             dict (meaning that 'contents' is nested).
 
     """
-    return any(isinstance(d, dict) for d in dictionary.values())
+    return any(isinstance(v, dict) for v in dictionary.values())
 
 def listify(
         variable: Any,
@@ -147,11 +147,11 @@ def numify(variable: str) -> Union[int, float, str]:
             return variable
 
 def pathlibify(path: Union[str, pathlib.Path]) -> pathlib.Path:
-    """Converts string 'path' to pathlib pathlib.Path object.
+    """Converts string 'path' to pathlib.pathlib.Path object.
 
     Args:
-        path (Union[str, pathlib.Path]): either a string representation of a path or a
-            pathlib.Path object.
+        path (Union[str, pathlib.Path]): either a string representation of a
+            path or a pathlib.Path object.
 
     Returns:
         pathlib.Path object.
@@ -166,6 +166,72 @@ def pathlibify(path: Union[str, pathlib.Path]) -> pathlib.Path:
         return path
     else:
         raise TypeError('path must be str or pathlib.Path type')
+
+def propertify(
+        instance: object,
+        name: str,
+        getter: Callable,
+        setter: Optional[Callable],
+        deleter: Optional[Callable]) -> object:
+    """Adds 'name' property to 'instance' at runtime.
+
+    Args:
+        instance (object): instance to add a property to.
+        name (str): name that the new property should be given.
+        getter (Callable): getter method for the new property.
+        setter (Optional[Callable]): setter method for the new property.
+        deleter (Optional[Callable]): deleter method for the new property.
+
+    Returns:
+        object: with new 'name' property added.
+
+    """
+    def _bind_process(process: Callable, instance: object) -> Callable:
+        """Binds 'process' to 'instance'.
+
+        Args:
+            process (Callable): function, method in 'instance' or method in
+                another class instance.
+            instance (object): class instance to bind 'process to'.
+
+        Returns:
+            Callable: appropriate process object.
+
+        """
+        if process.im_self is not None:
+            if process.__name__ in instance.__dict__:
+                return process
+            else:
+                setattr(instance, process.__name__, process)
+                return getattr(instance, process.__name__)
+        else:
+            types.MethodType(process, instance, instance.__class__)
+            return getattr(instance, process.__name__)
+
+    def _property_not_implemented() -> NotImplemented:
+        raise NotImplemented(f'property method is not implemented')
+
+    if setter and deleter:
+        setattr(instance, name, property(
+            fget = _bind_process(process = getter, instance = instance),
+            fset = _bind_process(process = setter, instance = instance),
+            fdel = _bind_process(process = deleter, instance = instance)))
+    elif setter:
+        setattr(instance, name, property(
+            fget = _bind_process(process = getter, instance = instance),
+            fset = _bind_process(process = setter, instance = instance),
+            fdel = _property_not_implemented))
+    elif deleter:
+        setattr(instance, name, property(
+            fget = _bind_process(process = getter, instance = instance),
+            fset = _property_not_implemented,
+            fdel = _bind_process(process = deleter, instance = instance)))
+    else:
+        setattr(instance, name, property(
+            fget = _bind_process(process = getter, instance = instance)),
+            fset = _property_not_implemented,
+            fdel = _property_not_implemented)
+    return instance
 
 def stringify(
         variable: Union[str, List],
@@ -198,20 +264,23 @@ def stringify(
         except TypeError:
             return variable
 
-def subsetify(dictionary: Dict[Any, Any], subset: List[Any]) -> Dict[Any, Any]:
+def subsetify(
+    dictionary: Dict[Any, Any],
+    subset: Union[Any, List[Any]]) -> Dict[Any, Any]:
     """Returns a subset of a dictionary.
 
     The returned subset is a dictionary with keys in 'subset'.
 
     Args:
         dictionary (Dict[Any, Any]): dict to be subsetted.
-        subset (List[Any]): list of keys to get key/values from dictionary.
+        subset (Union[Any, List[Any]]): key(s) to get key/value pairs from
+            'dictionary'.
 
     Returns:
         Dict[Any, Any]: with only keys in 'subset'
 
     """
-    return {key: dictionary[key] for key in subset}
+    return {key: dictionary[key] for key in listify(subset)}
 
 def typify(variable: str) -> Union[List, int, float, bool, str]:
     """Converts stingsr to appropriate, supported datatypes.
@@ -226,7 +295,10 @@ def typify(variable: str) -> Union[List, int, float, bool, str]:
 
     Returns:
         variable (str, list, int, float, or bool): converted variable.
+
     """
+    if not isinstance(variable, str):
+        return variable
     try:
         return int(variable)
     except ValueError:
@@ -239,17 +311,9 @@ def typify(variable: str) -> Union[List, int, float, bool, str]:
                 return False
             elif ', ' in variable:
                 variable = variable.split(', ')
-                return [numify(v) for v in variable]
+                return [numify(item) for item in variable]
             else:
-                variable = numify(variable)
-                if variable in ['True', 'true', 'TRUE']:
-                    return True
-                elif variable in ['False', 'false', 'FALSE']:
-                    return False
-                elif variable in ['None', 'none', 'NONE']:
-                    return 'none'
-                else:
-                    return variable
+                return variable
 
 """ Decorators """
 
@@ -262,7 +326,7 @@ def simple_timer(process: Optional[str] = None) -> Callable:
 
     """
     if not process:
-        if isinstance(process, FunctionType):
+        if isinstance(process, types.FunctionType):
             process = process.__class__.__name__
         else:
             process = process.__class__.__name__
@@ -304,7 +368,8 @@ def localize_arguments(
     """
     def shell_localize_arguments(method: Callable, *args, **kwargs):
         def wrapper(self, *args, **kwargs):
-            arguments = dict(signature(method).bind(*args, **kwargs).arguments)
+            arguments = dict(
+                inspect.signature(method).bind(*args, **kwargs).arguments)
             for argument, value in arguments.items():
                 if argument not in self.__dict__ or override:
                     if ((includes and argument in includes)
@@ -339,26 +404,27 @@ def use_local_backups(
     """
     def shell_use_local_backups(method: Callable, *args, **kwargs):
         def wrapper(self, *args, **kwargs):
-            call_signature = signature(method)
-            parameters = dict(call_signature.parameters)
-            arguments = dict(call_signature.bind(*args, **kwargs).arguments)
+            call_inspect.signature = inspect.signature(method)
+            parameters = dict(call_inspect.signature.parameters)
+            arguments = dict(
+                call_inspect.signature.bind(*args, **kwargs).arguments)
             unpassed = list(parameters.keys() - arguments.keys())
-            if includes:
-                for argument in unpassed:
+            for argument in unpassed:
+                if includes:
                     if argument in includes:
                         try:
-                            arguments.update({argument: getattr(self, argument)})
+                            arguments.update(
+                                {argument: getattr(self, argument)})
                         except AttributeError:
                             pass
-            elif excludes:
-                for argument in unpassed:
+                elif excludes:
                     if argument not in excludes:
                         try:
-                            arguments.update({argument: getattr(self, argument)})
+                            arguments.update(
+                                {argument: getattr(self, argument)})
                         except AttributeError:
                             pass
-            else:
-                for argument in unpassed:
+                else:
                     try:
                         arguments.update({argument: getattr(self, argument)})
                     except AttributeError:

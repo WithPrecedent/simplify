@@ -167,20 +167,20 @@ class Recipe(Chapter):
 
 """ Technique Subclass and Decorator """
 
-def numpy_shield(callable: Callable) -> Callable:
+def numpy_shield(process: Callable) -> Callable:
     """
     """
-    @wraps(callable)
+    @wraps(process)
     def wrapper(*args, **kwargs):
-        call_signature = signature(callable)
+        call_signature = signature(process)
         arguments = dict(call_signature.bind(*args, **kwargs).arguments)
         try:
             x_columns = list(arguments['x'].columns.values)
-            result = callable(*args, **kwargs)
+            result = process(*args, **kwargs)
             if isinstance(result, np.ndarray):
                 result = pd.DataFrame(result, columns = x_columns)
         except KeyError:
-            result = callable(*args, **kwargs)
+            result = process(*args, **kwargs)
         return result
     return wrapper
 
@@ -204,7 +204,7 @@ class Tool(Technique):
         module (Optional[str]): name of module where object to use is located
             (can either be a siMpLify or non-siMpLify module). Defaults to
             'simplify.core'.
-        algorithm (Optional[object]): callable object which executes the primary
+        algorithm (Optional[object]): process object which executes the primary
             method of a class instance. Defaults to None.
         parameters (Optional[Dict[str, Any]]): parameters to be attached to
             'algorithm' when 'algorithm' is instanced. Defaults to an empty
