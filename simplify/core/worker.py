@@ -19,7 +19,8 @@ except ImportError:
 import numpy as np
 import pandas as pd
 
-from simplify.core import base
+from simplify.core import book
+from simplify.core import component
 from simplify.core import utilities
 
 
@@ -92,30 +93,11 @@ class Instructions(object):
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
-        # Activates select attributes.
+        # Converts select attributes from strings to objects.
         self._load_attributes()
         return self
 
-    """ Private Methods """
-
-    def _load_attributes(self,
-            attributes: Optional[List[str]] = None) -> None:
-        """Initializes select attribute classes.
-
-        If 'attributes' is not passed, a default list of attributes is used.
-
-        Args:
-            attributes (Optional[List[str]]): attributes to use the lazy loader
-                in the 'load' method on. Defaults to None.
-
-        """
-        if not attributes:
-            attributes = ['book', 'chapter', 'technique', 'options']
-        for attribute in attributes:
-            setattr(self, attribute, self.load(attribute = attribute))
-        return self
-
-    """ Core siMpLify Methods """
+    """ Public Methods """
 
     def load(self, attribute: str) -> object:
         """Returns object named in 'attribute'.
@@ -154,6 +136,25 @@ class Instructions(object):
         else:
             return getattr(self, attribute)
 
+    """ Private Methods """
+
+    def _load_attributes(self,
+            attributes: Optional[List[str]] = None) -> None:
+        """Initializes select attribute classes.
+
+        If 'attributes' is not passed, a default list of attributes is used.
+
+        Args:
+            attributes (Optional[List[str]]): attributes to use the lazy loader
+                in the 'load' method on. Defaults to None.
+
+        """
+        if not attributes:
+            attributes = ['book', 'chapter', 'technique', 'options']
+        for attribute in attributes:
+            setattr(self, attribute, self.load(attribute = attribute))
+        return self
+
 
 @dataclasses.dataclass
 class Worker(base.SimpleSystem):
@@ -180,10 +181,13 @@ class Worker(base.SimpleSystem):
 
     """
     name: Optional[str] = None
-    instructions: Optional['Instructions'] = None
+    instructions: Optional[Instructions] = dataclasses.field(
+        default_factory = Instructions)
     idea: Optional['Idea'] = None
-    options: Optional['SimpleRepository'] = None
-    book: Optional['Book'] = None
+    options: Optional[component.SimpleRepository] = dataclasses.field(
+        default_factory = component.SimpleRepository)
+    book: Optional[book.Book] = dataclasses.field(
+        default_factory = book.Book)
     auto_draft: Optional[bool] = True
     auto_publish: Optional[bool] = True
     auto_apply: Optional[bool] = False
@@ -193,7 +197,7 @@ class Worker(base.SimpleSystem):
         super().__post_init__()
         return self
 
-    """ Core siMpLify Methods """
+    """ Public Methods """
 
     def publish(self, project: 'Project') -> 'Project':
         """Finalizes 'Book' instance in 'project'.
@@ -286,7 +290,7 @@ class Worker(base.SimpleSystem):
 
 
 @dataclasses.dataclass
-class Overview(base.SimpleRepository):
+class Overview(component.SimpleRepository):
     """Stores outline of a siMpLify project.
 
     Args:
@@ -307,45 +311,6 @@ class Overview(base.SimpleRepository):
     name: Optional[str] = None
     contents: Optional[Dict[str, Dict[str, List[str]]]] = dataclasses.field(
         default_factory = dict)
-
-    # """ Factory Method """
-
-    # @classmethod
-    # def create(cls,
-    #         name: str,
-    #         source: 'SimpleRepository',
-    #         steps: Optional[Union[List[str], 'SimpleRepository']],
-    #         idea: Optional['Idea'],
-    #         level: Optional[str],
-    #         **kwargs) -> 'SimpleRepository':
-    #     """Returns a class object based upon arguments passed.
-
-    #     """
-    #     if isinstance(items, cls):
-    #         return items
-    #     else:
-    #         new_repository = cls(name = name, **kwargs)
-    #         if not steps:
-    #             new_repository.steps = getattr(idea, f'_get_{level}')(name)
-    #         new_repository.add(items = source[steps])
-    #         return new_repository
-
-    """ Factory Method """
-
-    @classmethod
-    def create(cls, manager: 'Manager') -> 'Overview':
-        """Creates an 'Overview' instance from 'workers'.
-
-        Args:
-            manager ('Manager'): an instance with stored 'workers'.
-
-        Returns:
-            'Overview': instance, properly configured.
-
-        """
-        contents = {
-            name: worker.outline() for name, worker in manager.workers.items()}
-        return cls(contents = contents)
 
     """ Required ABC Methods """
 

@@ -17,6 +17,7 @@ dependencies:
 - more-itertools
 - numpy
 - pandas
+- pathos
 - pip
 - pip: 
   - tensorflow==2.0.0-rc0

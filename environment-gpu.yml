@@ -2,15 +2,14 @@ name: model
 channels:
 - conda-forge
 - districtdatalabs
+- rapidsai
 dependencies:
-- python>=3.6
+- python>=3.7
 - category_encoders
 - configparser
 - cython
-- dataclasses.dataclasses
+- dataclasses
 - eli5
-- flit
-- git
 - glob2
 - imbalanced-learn
 - ipykernel
@@ -20,6 +19,7 @@ dependencies:
 - more-itertools
 - numpy
 - pandas
+- pathos
 - pip
 - pip:
   - tensorflow-gpu==2.0.0-rc0
