@@ -15,8 +15,6 @@ try:
 except ImportError:
     import multiprocessing as mp
 
-from simplify.core import component
-
 
 @dataclasses.dataclass
 class SimpleHandler(abc.ABC):
@@ -25,8 +23,8 @@ class SimpleHandler(abc.ABC):
     """ Required Subclass Methods """
 
     @abc.abstractmethod
-    def apply(self, 
-            data: component.SimpleComponent, **kwargs) -> component.SimpleComponent:
+    def apply(self,
+            data: core.SimpleComponent, **kwargs) -> core.SimpleComponent:
         """Subclasses must provide their own methods."""
         return self
 

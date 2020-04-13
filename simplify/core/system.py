@@ -12,13 +12,13 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 
 @dataclasses.dataclass
-class SimpleSystem(collections.abc.Iterable):
+class SimpleSystem(collections.abc.Iterator):
     """Base class for siMpLify project stages.
 
-    A 'SimpleSystem' subclass maintains a progress state stored in the attribute
+    A 'SimpleSystem' maintains a progress state stored in the attribute
     'stage'. The 'stage' corresponds to whether one of the core workflow
     methods has been called. The string stored in 'stage' can then be used by
-    subclasses to alter instance behavior, call methods, or change access
+    instances to alter instance behavior, call methods, or change access
     method functionality.
 
     Args:
@@ -29,11 +29,9 @@ class SimpleSystem(collections.abc.Iterable):
             When subclassing, it is a good idea to use the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
-        stages (Optional[Union[List[str], Dict[str, str]]]): list of recognized
-            states which correspond to methods within a class instance or a dict
-            with keys of recognized states and values for different iterables to
-            return when the '__iter__' method is called. Defaults to
-            ['initialize', 'draft', 'publish', 'apply'].
+        stages (Optional[List[str]]): list of recognized states which correspond
+            to methods within a class instance. Defaults to ['initialize',
+            'draft', 'publish', 'apply'].
         auto_advance (Optional[bool]): whether to automatically advance 'stage'
             when one of the stage methods is called (True) or whether 'stage'
             must be changed manually by using the 'advance' method. Defaults to
@@ -41,7 +39,7 @@ class SimpleSystem(collections.abc.Iterable):
 
     """
     name: Optional[str] = None
-    stages: Optional[Union[List[str], Dict[str, str]]] = dataclasses.field(
+    stages: Optional[List[str]] = dataclasses.field(
         default_factory = lambda: ['initialize', 'draft', 'publish', 'apply'])
     auto_advance: Optional[bool] = True
 
@@ -95,24 +93,33 @@ class SimpleSystem(collections.abc.Iterable):
     """ Required ABC Methods """
 
     def __iter__(self) -> Iterable:
-        """Returns iterable for class instance, depending upon 'stage'.
+        """Returns iterable of methods corresponding to 'stages'.
 
         Returns:
-            Iterable: different depending upon stage.
+            Iterable: methods with names in 'stages'.
+
+        """
+        return iter([getattr(self, stage) for stage in self.stages])
+
+    def __next__(self) -> Callable:
+        """Returns next method after method matching 'stage'.
+
+        Returns:
+            Callable: next method corresponding to those listed in 'stages'.
 
         """
         try:
-            return iter(getattr(self, self._iterables[self.stage]))
-        except AttributeError:
-            return iter(self.stages)
+            return getattr(self.stages[self.stages.index(self.stage) + 1])
+        except IndexError:
+            raise StopIteration()
 
-    """ Dunder Methods """
+    """ Other Dunder Methods """
 
     def __getattribute__(self, attribute: str) -> Any:
         """Changes 'stage' if one of the corresponding methods are called.
 
-        If attribute matches any item in 'stages', the 'stage' attribute is
-        assigned to 'attribute.'
+        This method only differs from the normal '__getattribute__' if
+        'auto_advance' is True.
 
         Args:
             attribute (str): name of attribute sought.
@@ -131,14 +138,13 @@ class SimpleSystem(collections.abc.Iterable):
     def _validate_stages(self) -> None:
         """Validates 'stages' type and existence of corresponding methods.
 
+        This method ignores the first item in 'stages' which does not require
+        a corresponding method.
+
         Raises:
             AttributeError: if a method listed in 'stages' does not exist.
 
         """
-        # Converts 'stages' to a list and stores dict in '_iterables'.
-        if isinstance(self.stages, dict):
-            self._iterables = copy(self.stages)
-            self.stages = list(self.stages.keys())
         # Tests whether stage methods listed in 'stages' exist.
         for stage in self.stages:
             if stage not in dir(instance) and stage not in [self.stages[0]]:

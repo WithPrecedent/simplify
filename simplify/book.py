@@ -6,16 +6,16 @@
 :license: Apache-2.0
 """
 
-import abc
-import collections.abc
 import dataclasses
 import importlib
 import types
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+from simplify import core
+
 
 @dataclasses.dataclass
-class Book(base.SimpleRepository, base.SimpleProxy):
+class Book(core.SimplePlan, core.SimpleProxy):
     """Top-level siMpLify iterable for a 'Worker'.
 
     Args:
@@ -26,23 +26,24 @@ class Book(base.SimpleRepository, base.SimpleProxy):
             When subclassing, it is a good idea to use the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
-        chapters (Optional['SimpleRepository']): iterable collection of
-            'Chapter' instances. Defaults to an empty 'SimpleRepository'.
+        chapters (Optional[core.SimplePlan]): iterable collection of
+            'Chapter' instances. Defaults to an empty core.SimplePlan.
 
     """
     name: Optional[str] = None
-    chapters: Optional['SimpleRepository'] = dataclasses.field(
-        default_factory = base.SimpleRepository)
+    chapters: Optional[core.SimplePlan] = dataclasses.field(
+        default_factory = core.SimplePlan)
 
     def __post_init__(self) -> None:
         """Converts 'chapters' to a property for 'contents' attribute."""
+        super().__post_init__()
         self.contents = self.chapters
         self.proxify(proxy = 'chapters', name = 'contents')
         return self
 
 
 @dataclasses.dataclass
-class Chapter(base.SimpleRepository, base.SimpleProxy):
+class Chapter(core.SimplePlan, core.SimpleProxy):
     """Standard class for siMpLify nested iterable storage.
 
     Args:
@@ -53,23 +54,24 @@ class Chapter(base.SimpleRepository, base.SimpleProxy):
             When subclassing, it is a good idea to use the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
-        techniques (Optional['SimpleRepository']): iterable collection of
-            'Technique' instances. Defaults to an empty 'SimpleRepository'.
+        techniques (Optional[core.SimplePlan]): iterable collection of
+            'Technique' instances. Defaults to an empty core.SimplePlan.
 
     """
     name: Optional[str] = None
-    techniques: Optional['SimpleRepository'] = dataclasses.field(
-        default_factory = base.SimpleRepository)
+    techniques: Optional[core.SimplePlan] = dataclasses.field(
+        default_factory = core.SimplePlan)
 
     def __post_init__(self) -> None:
         """Converts 'techniques' to a property for 'contents' attribute."""
+        super().__post_init__()
         self.contents = self.techniques
         self.proxify(proxy = 'techniques', name = 'contents')
         return self
 
 
 @dataclasses.dataclass
-class Technique(base.SimpleComponent):
+class Technique(core.SimpleLoader):
     """Base method wrapper for applying algorithms to data.
 
     Args:
@@ -113,7 +115,7 @@ class Technique(base.SimpleComponent):
 
 
 @dataclasses.dataclass
-class Parameters(structure.SimpleRepository):
+class Parameters(core.SimpleRepository):
     """Base class for constructing and storing 'Technique' parameters.
 
     Args:
@@ -130,7 +132,7 @@ class Parameters(structure.SimpleRepository):
 
 
 @dataclasses.dataclass
-class Expert(base.SimpleCreator):
+class Expert(core.SimpleHandler):
 
     worker: 'Worker'
 

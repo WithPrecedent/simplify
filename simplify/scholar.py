@@ -24,7 +24,7 @@ from simplify.core import utilities
 
 
 @dataclasses.dataclass
-class Scholar(base.SimpleCreator):
+class Scholar(base.SimpleHandler):
     """Base class for applying 'Book' instances to data.
 
     Args:
@@ -106,7 +106,7 @@ class Scholar(base.SimpleCreator):
 
 
 @dataclasses.dataclass
-class Finisher(SimpleCreator):
+class Finisher(SimpleHandler):
     """Finalizes 'Technique' instances with data-dependent parameters.
 
     Args:
@@ -278,7 +278,7 @@ class Finisher(SimpleCreator):
 
 
 @dataclasses.dataclass
-class Specialist(SimpleCreator):
+class Specialist(SimpleHandler):
     """Base class for applying 'Technique' instances to data.
 
     Args:
@@ -371,7 +371,7 @@ class Specialist(SimpleCreator):
 
 
 @dataclasses.dataclass
-class Parallelizer(SimpleCreator):
+class Parallelizer(SimpleHandler):
     """Applies techniques using one or more CPU or GPU cores.
 
     Args:

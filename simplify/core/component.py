@@ -50,10 +50,15 @@ class SimpleLoader(SimpleComponent):
         module (Optional[str]): name of module where object to use is located
             (can either be a siMpLify or non-siMpLify module). Defaults to
             'simplify.core'.
+        default_module (Optional[str]): a backup name of module where object to
+            use is located (can either be a siMpLify or non-siMpLify module).
+            Defaults to 'simplify.core'.
 
     """
     name: Optional[str] = None
     module: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'simplify.core')
+    default_module: Optional[str] = dataclasses.field(
         default_factory = lambda: 'simplify.core')
 
     """ Public Methods """
@@ -64,11 +69,15 @@ class SimpleLoader(SimpleComponent):
         If 'attribute' is not a str, it is assumed to have already been loaded
         and is returned as is.
 
+        The method searches both 'module' and 'default_module' for the named
+        'attribute'.
+
         Args:
-            attribute (str): name of local attribute to load from 'module'.
+            attribute (str): name of local attribute to load from 'module' or
+                'default_module'.
 
         Returns:
-            object: from 'module'.
+            object: from 'module' or 'default_module'.
 
         """
         # If 'attribute' is a string, attempts to load from 'module' or, if not
@@ -79,8 +88,14 @@ class SimpleLoader(SimpleComponent):
                     importlib.import_module(self.module),
                     getattr(self, attribute))
             except (ImportError, AttributeError):
-                raise ImportError(
-                    f'{getattr(self, attribute)} is not in {module}')
+                try:
+                    return getattr(
+                        importlib.import_module(self.default_module),
+                        getattr(self, attribute))
+                except (ImportError, AttributeError):
+                    raise ImportError(
+                        f'{getattr(self, attribute)} is neither in \
+                        {self.module} nor {self.default_module}')
         # If 'attribute' is not a string, it is returned as is.
         else:
             return getattr(self, attribute)
@@ -88,7 +103,14 @@ class SimpleLoader(SimpleComponent):
 
 @dataclasses.dataclass
 class SimplePlan(SimpleComponent, collections.abc.MutableMapping):
-    """Base class for siMpLify iterables.
+    """Base class for iterating over lists of 'SimpleComponent' instances.
+
+    A 'SimplePlan' stores a list of items with 'name' attributes. Each 'name'
+    acts as a key to create the facade of a dictionary with the items in the
+    stored list serving as values. This allows for duplicate keys and the
+    storage of class instances at the expense of lookup speed. Since normal
+    use cases do not include repeat accessing of 'SimplePlan' instances, the
+    loss of lookup speed should have negligible effect.
 
     Args:
         name (Optional[str]): designates the name of the class instance used
@@ -98,17 +120,21 @@ class SimplePlan(SimpleComponent, collections.abc.MutableMapping):
             When subclassing, it is a good idea to use the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
-        contents (Optional[str, Any]): stored dictionary. Defaults to an empty
-            dictionary.
+        contents (Optional[List[SimpleComponent]]): stored list. Defaults to an
+            empty list.
 
     """
     name: Optional[str] = None
-    contents: Optional[Dict[str, Any]] = dataclasses.field(
-        default_factory = dict)
+    contents: Optional[List[SimpleComponent]] = dataclasses.field(
+        default_factory = list)
 
     """ Public Methods """
 
-    def add(self, contents: Union['SimplePlan', Dict[str, Any]]) -> None:
+    def add(self,
+            contents: Union[
+                'SimplePlan',
+                List['SimpleComponent'],
+                'SimpleComponent']) -> None:
         """Combines arguments with 'contents'.
 
         Args:
@@ -116,22 +142,20 @@ class SimplePlan(SimpleComponent, collections.abc.MutableMapping):
                 instance or compatible dictionary.
 
         """
-        self.contents.update(contents)
-        return self
-
-    def reorder(self, order: Union[Any, List[Any]]) -> None:
-        """Reorders keys in 'contents' to 'order'.
-
-        Args:
-            order (Union[Any, List[Any]]): sequence to store keys in 'contents'.
-
-        """
-        self.contents = {step: self.contents[step] for step in order}
+        if isinstance(contents, SimplePlan):
+            self.contents.extend(contents.contents)
+        elif isinstance(contents, SimpleComponent):
+            self.contents.append(contents)
+        elif isinstance(contents, list):
+            self.contents.extend(contents)
+        else:
+            raise TypeError(
+                f'contents must be a SimpleComponent, SimplePlan, or list type')
         return self
 
     """ Required ABC Methods """
 
-    def __getitem__(self, key: Union[List[str], str]) -> Union[List[Any], Any]:
+    def __getitem__(self, key: str) -> List[SimpleComponent]:
         """Returns value(s) for 'key' in 'contents'.
 
         The method searches for 'all', 'default', and 'none' matching wildcard
@@ -144,34 +168,37 @@ class SimplePlan(SimpleComponent, collections.abc.MutableMapping):
             Union[List[Any], Any]: value(s) stored in 'contents'.
 
         """
-        return self.contents[key]
+        return [item for item in self.contents if item.name == key]
 
-    def __setitem__(self,
-            key: Union[List[str], str],
-            value: Union[List[Any], Any]) -> None:
-        """Sets 'key' in 'contents' to 'value'.
+    def __setitem__(self, key: Union[str], value: 'SimpleComponent') -> None:
+        """Adds 'value' to 'contents' if 'key' matches 'value.name'.
 
         Args:
-            key (Union[List[str], str]): name of key(s) to set in 'contents'.
-            value (Union[List[Any], Any]): value(s) to be paired with 'key' in
+            key (str): name of key(s) to set in 'contents'.
+            value ('SimpleComponent'): value(s) to be added at the end of
                 'contents'.
 
         """
-        self.contents[key] = value
+        if hasattr(value, name) and value.name in [key]:
+            self.add(contents = contents)
+        else:
+            raise TypeError(
+                f'{self.name} requires a value with a name atttribute')
         return self
 
-    def __delitem__(self, key: Union[List[str], str]) -> None:
+    def __delitem__(self, key: str) -> None:
         """Deletes 'key' in 'contents'.
 
         Args:
-            key (Union[List[str], str]): name(s) of key(s) in 'contents' to
+            key (str): name(s) of key(s) in 'contents' to
                 delete the key/value pair.
 
         """
         try:
-            del self.contents[key]
-        except KeyError:
-            pass
+            self.contents = [item for item in self.contents if item.name != key]
+        except AttributeError:
+            raise TypeError(
+                f'{self.name} requires a value with a name atttribute')
         return self
 
     def __iter__(self) -> Iterable:
@@ -194,7 +221,11 @@ class SimplePlan(SimpleComponent, collections.abc.MutableMapping):
 
     """ Other Dunder Methods """
 
-    def __add__(self, other: Uzznion['SimplePlan', Dict[str, Any]]) -> None:
+    def __add__(self,
+            other: Union[
+                'SimplePlan',
+                List['SimpleComponent'],
+                'SimpleComponent']) -> None:
         """Combines argument with 'contents'.
 
         Args:
@@ -205,7 +236,11 @@ class SimplePlan(SimpleComponent, collections.abc.MutableMapping):
         self.add(contents = other)
         return self
 
-    def __iadd__(self, other: Union['SimplePlan', Dict[str, Any]]) -> None:
+    def __iadd__(self,
+            other: Union[
+                'SimplePlan',
+                List['SimpleComponent'],
+                'SimpleComponent']) -> None:
         """Combines argument with 'contents'.
 
         Args:
@@ -232,9 +267,7 @@ class SimplePlan(SimpleComponent, collections.abc.MutableMapping):
             str: representation of 'contents'.
 
         """
-        return f'{self.__class__.__name__}, \
-            contents: {self.contents.__str__()}, \
-            iterable: {self.iterable}'
+        return self.contents.__str__()
 
 
 @dataclasses.dataclass
@@ -256,7 +289,7 @@ class SimpleRepository(SimpleComponent, collections.abc.MutableMapping):
             passed, 'default' will be set to all keys.
 
     """
-    name: Optional[str] = None  
+    name: Optional[str] = None
     contents: Optional[Dict[str, Any]] = dataclasses.field(
         default_factory = dict)
     defaults: Optional[List[str]] = dataclasses.field(default_factory = list)
@@ -495,7 +528,7 @@ class SimpleProxy(abc.ABC):
         if proxify_methods:
             self._proxify_methods(proxy = proxy)
         return self
-        
+
     """ Proxy Property Methods """
 
     def _proxy_getter(self) -> Any:
