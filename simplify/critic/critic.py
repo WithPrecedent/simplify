@@ -162,11 +162,11 @@ class CriticScholar(Scholar):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (Optional['Idea']): instance with project settings.
+        idea (Optional[Idea]): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -189,11 +189,11 @@ class CriticFinisher(Finisher):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (Optional['Idea']): instance with project settings.
+        idea (Optional[Idea]): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Private Methods """
 
@@ -222,11 +222,11 @@ class CriticSpecialist(Specialist):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (Optional['Idea']): instance with project settings.
+        idea (Optional[Idea]): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Private Methods """
 
@@ -266,10 +266,10 @@ class Evaluators(SimpleRepository):
     """A dictonary of Evaluator options for the Analyst subpackage.
 
     Args:
-        idea (Optional['Idea']): shared 'Idea' instance with project settings.
+        idea (Optional[Idea]): shared 'Idea' instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Private Methods """
 
@@ -387,7 +387,7 @@ class Critic(Worker):
         export_folder (Optional[str]): name of attribute in 'filer' which
             contains the path to the default folder for exporting data objects.
             Defaults to 'processed'.
-        idea (Optional['Idea']): shared project configuration settings.
+        idea (Optional[Idea]): shared project configuration settings.
 
     """
     name: Optional[str] = dataclasses.field(default_factory = lambda: 'critic')
@@ -399,7 +399,7 @@ class Critic(Worker):
     scholar: Optional[str] = dataclasses.field(default_factory = lambda: 'CriticScholar')
     options: Optional[str] = dataclasses.field(default_factory = lambda: 'Evaluators')
     data: Optional[str] = dataclasses.field(default_factory = lambda: 'analyst')
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Core siMpLify Methods """
 

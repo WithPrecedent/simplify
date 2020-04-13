@@ -6,19 +6,19 @@
 :license: Apache-2.0
 """
 
-from ast import literal_eval
-from collections.abc import Container
-from dataclasses.dataclasses import dataclasses.dataclass
-from dataclasses.dataclasses import dataclasses.field
-from datetime import datetime
-from datetime import timedelta
-from pathlib import pathlib.Path
+import ast
+import collections.abc
+import dataclasses
+import datetime
+import pathlib
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from simplify.core.utilities import utilities.listify
+import simplify
+from simplify import core
+from simplify.core import utilities
 
 
 @dataclasses.dataclass
@@ -26,9 +26,9 @@ class Dataset(object):
     """Collection of associated pandas data objects.
 
     Args:
-        data (Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]]): a dataset
-            for all pandas objects to be derived or file path information for
-            such an object to be imported. Defaults to None.
+        data (Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]]): a 
+            dataset for all pandas objects to be derived or file path 
+            information for such an object to be imported. Defaults to None.
         datatypes (Optional[Dict[str, str]]): keys are column names and values
             are siMpLify proxy datatypes. Defaults to an empty dictionary.
         prefixes (Optional[Dict[str, str]]): keys are column prefixes and
@@ -42,15 +42,18 @@ class Dataset(object):
             coordination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
             None. If not passed, '__class__.__name__.lower()' is used.
-        idea (Optional['Idea']): shared 'Idea' instance with project settings.
+        idea (Optional[Idea]): shared 'Idea' instance with project settings.
         filer (ClassVar['Filer']): shared 'Filer' instance with
             project file management settings.
 
     """
-    data: Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]] = None
-    datatypes: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
-    prefixes: Optional[Dict[str, str]] = dataclasses.field(default_factory = dict)
-    idea: Optional['Idea'] = None
+    data: Optional[Union[
+        pd.DataFrame, np.ndarray, str, pathlib.Path]] = None
+    datatypes: Optional[Dict[str, str]] = dataclasses.field(
+        default_factory = dict)
+    prefixes: Optional[Dict[str, str]] = dataclasses.field(
+        default_factory = dict)
+    idea: Optional[core.Idea] = None
     filer: Optional['Filer'] = None
     name: Optional[str] = None
 
@@ -68,12 +71,15 @@ class Dataset(object):
 
     @classmethod
     def create(cls,
-            data: Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]] = None,
-            x: Optional[Union[pd.DataFrame, np.ndarray, str, pathlib.Path]] = None,
-            y: Optional[Union[pd.Series, np.ndarray, str, pathlib.Path]] = None,
+            data: Optional[Union[
+                pd.DataFrame, np.ndarray, str, pathlib.Path]] = None,
+            x: Optional[Union[
+                pd.DataFrame, np.ndarray, str, pathlib.Path]] = None,
+            y: Optional[Union[
+                pd.Series, np.ndarray, str, pathlib.Path]] = None,
             datatypes: Optional[Dict[str, str]] = None,
             prefixes: Optional[Dict[str, str]] = None,
-            idea: Optional['Idea'] = None,
+            idea: Optional[core.Idea] = None,
             filer: Optional['Filer'] = None) -> 'Dataset':
         """Creates an Dataset instance.
 
@@ -98,7 +104,7 @@ class Dataset(object):
             prefixes (Optional[Dict[str, str]]): keys are column prefixes and
                 values are siMpLify proxy datatypes. Defaults to an empty
                 dictionary.
-            idea (Optional['Idea']): shared 'Idea' instance with project
+            idea (Optional[Idea]): shared 'Idea' instance with project
                 settings.
             filer (Optional['Filer']): shared 'Filer' instance with
                 project file management settings.

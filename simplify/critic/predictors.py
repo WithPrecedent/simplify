@@ -22,10 +22,10 @@ class Predictor(Evaluator):
     """Base class for report preparation.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Core siMpLify Methods """
 

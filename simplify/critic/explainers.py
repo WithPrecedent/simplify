@@ -20,10 +20,10 @@ class Explainer(Evaluator):
     """Base class for explaining model performance.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     def __post_init__(self) -> None:
         """Creates initial attributes."""
@@ -71,10 +71,10 @@ class SklearnExplain(Explainer):
     """Explains model performance with the sklearn package.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
     name: Optional[str] = dataclasses.field(default_factory = lambda: 'sklearn')
 
     """ Private Methods """
@@ -132,10 +132,10 @@ class Eli5Explain(Explainer):
     """Explains model performance with the ELI5 package.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
     name: Optional[str] = dataclasses.field(default_factory = lambda: 'eli5')
 
 
@@ -208,10 +208,10 @@ class ShapExplain(Explainer):
     """Base class for explaining model performance.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
     name: Optional[str] = dataclasses.field(default_factory = lambda: 'shap')
 
     """ Private Methods """
@@ -310,11 +310,11 @@ class SkaterExplain(Explainer):
     """Base class for explaining model performance.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
     name: Optional[str] = dataclasses.field(default_factory = lambda: 'skater')
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
 
     """ Private Methods """

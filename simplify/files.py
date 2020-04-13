@@ -57,7 +57,7 @@ class Filer(collections.abc.MutableMapping):
     results_folder: Optional[str] = dataclasses.field(
         default_factory = lambda: 'results')
     states: Optional[Union[List[str], 'SimpleState']] = None
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     def __post_init__(self) -> None:
         """Creates initial attributes."""
@@ -83,14 +83,14 @@ class Filer(collections.abc.MutableMapping):
     @classmethod
     def create(cls,
             filer: Optional[Union[str, pathlib.Path, List[str]]] = None,
-            idea: Optional['Idea'] = None,
+            idea: Optional[core.Idea] = None,
             **kwargs) -> 'Filer':
         """Creates an Filer instance from passed arguments.
 
         Args:
             filer (Optional[Union[str, pathlib.Path, List[str]]]): Filer
                 instance or root folder for one.
-            idea (Optional['Idea']): an Idea instance.
+            idea (Optional[Idea]): an Idea instance.
 
         Returns:
             Filer: instance, properly configured.

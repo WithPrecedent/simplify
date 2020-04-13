@@ -22,10 +22,10 @@ class Reporter(Evaluator):
     """Base class for report preparation.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Core siMpLify Methods """
 
@@ -39,10 +39,10 @@ class ConfusionMatrix(Reporter):
     """Summary report for Analyst performance.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Private Methods """
 
@@ -76,10 +76,10 @@ class ClassificationReport(Reporter):
     """Summary report for Analyst performance.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Private Methods """
 
@@ -108,10 +108,10 @@ class SimplifyReporter(Reporter):
     """Summary report for Analyst performance.
 
     Args:
-        idea (Optional['Idea']): an instance with project settings.
+        idea (Optional[Idea]): an instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
 # @dataclasses.dataclass
 # class Article(object):

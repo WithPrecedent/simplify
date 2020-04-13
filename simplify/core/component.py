@@ -580,7 +580,7 @@ class SimpleProxy(abc.ABC):
         for item in dir(self):
             if (self._attribute in item
                     and not item.startswith('__')
-                    and callabe(item)):
+                    and callable(item)):
                 self.__dict__[item.replace(self._attribute, proxy)] = (
                     getattr(self, item))
         return self

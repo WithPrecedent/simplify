@@ -344,11 +344,11 @@ class AnalystScholar(Scholar):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (Optional['Idea']): instance with project settings.
+        idea (Optional[Idea]): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -404,11 +404,11 @@ class AnalystFinisher(Finisher):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (Optional['Idea']): instance with project settings.
+        idea (Optional[Idea]): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Private Methods """
 
@@ -472,11 +472,11 @@ class AnalystSpecialist(Specialist):
     Args:
         worker ('Worker'): instance with information needed to apply a 'Book'
             instance.
-        idea (Optional['Idea']): instance with project settings.
+        idea (Optional[Idea]): instance with project settings.
 
     """
     worker: 'Worker'
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     """ Private Methods """
 
@@ -578,10 +578,10 @@ class Tools(SimpleRepository):
     """A dictonary of Tool options for the Analyst subpackage.
 
     Args:
-        idea (Optional['Idea']): shared 'Idea' instance with project settings.
+        idea (Optional[Idea]): shared 'Idea' instance with project settings.
 
     """
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
 
     def create(self) -> None:
         self.contents = {
@@ -1240,4 +1240,4 @@ class Analyst(Worker):
         default_factory = lambda: 'AnalystPublisher')
     scholar: Optional[str] = dataclasses.field(default_factory = lambda: 'AnalystScholar')
     options: Optional[str] = dataclasses.field(default_factory = lambda: 'Tools')
-    idea: Optional['Idea'] = None
+    idea: Optional[core.Idea] = None
