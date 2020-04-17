@@ -15,10 +15,25 @@ try:
 except ImportError:
     import multiprocessing as mp
 
+import simplify
+from simplify import core
+
 
 @dataclasses.dataclass
-class SimpleHandler(abc.ABC):
-    """Base class for creating or modifying other siMpLify classes."""
+class SimpleHandler(core.SimpleComponent):
+    """Base class for creating or modifying other siMpLify classes.
+
+    Args:
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class
+            instance needs settings from the shared Idea instance, 'name'
+            should match the appropriate section name in that Idea instance.
+            When subclassing, it is a good idea to use the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes. Defaults to None or __class__.__name__.lower().
+
+    """
+    name: Optional[str] = None
 
     """ Required Subclass Methods """
 
@@ -34,12 +49,19 @@ class SimpleParallel(SimpleHandler):
     """Applies workflow using one or more CPU or GPU cores.
 
     Args:
+        name (Optional[str]): designates the name of the class instance used
+            for internal referencing throughout siMpLify. If the class
+            instance needs settings from the shared Idea instance, 'name'
+            should match the appropriate section name in that Idea instance.
+            When subclassing, it is a good idea to use the same 'name' attribute
+            as the base class for effective coordination between siMpLify
+            classes. Defaults to None or __class__.__name__.lower().
         gpu (Optional[bool]): whether to use GPU cores, when possible, to
             parallelize operations (True) or to solely use CPU cores (False).
             Defaults to False.
 
     """
-
+    name: Optional[str] = None
     gpu: Optional[bool] = False
 
     """ Private Methods """

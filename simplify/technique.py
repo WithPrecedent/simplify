@@ -38,11 +38,16 @@ class Technique(core.SimpleLoader):
 
     """
     name: Optional[str] = None
+    
     module: Optional[str] = dataclasses.field(
         default_factory = lambda: 'simplify.core')
     algorithm: Optional[Union[str, object]] = None
     parameters: Optional[Dict[str, Any]] = dataclasses.field(
         default_factory = dict)
+
+    def __post_init__(self) -> None:
+        self.load('algorithm')
+        return self
 
     """ Other Dunder Methods """
 

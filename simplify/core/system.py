@@ -10,12 +10,15 @@ import collections.abc
 import dataclasses
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+import simplify
+from simplify import core
+
 
 @dataclasses.dataclass
-class SimpleSystem(collections.abc.Iterator):
+class SimpleSystem(core.SimpleComponent, collections.abc.Iterator):
     """Base class for siMpLify project stages.
 
-    A 'SimpleSystem' maintains a progress state stored in the attribute
+    A SimpleSystem maintains a progress state stored in the attribute
     'stage'. The 'stage' corresponds to whether one of the core workflow
     methods has been called. The string stored in 'stage' can then be used by
     instances to alter instance behavior, call methods, or change access
@@ -24,8 +27,8 @@ class SimpleSystem(collections.abc.Iterator):
     Args:
         name (Optional[str]): designates the name of the class instance used
             for internal referencing throughout siMpLify. If the class
-            instance needs settings from the shared 'Idea' instance, 'name'
-            should match the appropriate section name in that 'Idea' instance.
+            instance needs settings from the shared Idea instance, 'name'
+            should match the appropriate section name in that Idea instance.
             When subclassing, it is a good idea to use the same 'name' attribute
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
@@ -34,8 +37,8 @@ class SimpleSystem(collections.abc.Iterator):
             'draft', 'publish', 'apply'].
         auto_advance (Optional[bool]): whether to automatically advance 'stage'
             when one of the stage methods is called (True) or whether 'stage'
-            must be changed manually by using the 'advance' method. Defaults to
-            True.
+            must be changed manually by using the 'advance' method (False).
+            Defaults to True.
 
     """
     name: Optional[str] = None
@@ -46,14 +49,15 @@ class SimpleSystem(collections.abc.Iterator):
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         # Sets 'name' to the default value if it is not passed.
-        self.name = self.name or self.__class__.__name__.lower()
+        super().__post_init__()
         # Validates that corresponding methods exist for each stage after the
-        # first stage and constructs attributes for the class iterable.
+        # first stage.
         self._validate_stages()
         # Sets initial stage.
         self.stage = self.stages[0]
-        # Automatically calls stage methods if attribute named 'auto_{stage}'
-        # is set to True.
+        # Automatically calls stage methods if attributes named 'auto_{stage}'
+        # are set to True. For example, if there is an attribute named
+        # 'auto_draft' and it is True, the 'draft' method will be called.
         self._auto_stages()
         return self
 
@@ -118,6 +122,9 @@ class SimpleSystem(collections.abc.Iterator):
     def __getattribute__(self, attribute: str) -> Any:
         """Changes 'stage' if one of the corresponding methods are called.
 
+        For example, if 'publish' is in 'stages' and the 'publish' method is
+        called, this method advances the 'stage' attribute to 'publish'.
+
         This method only differs from the normal '__getattribute__' if
         'auto_advance' is True.
 
@@ -136,7 +143,7 @@ class SimpleSystem(collections.abc.Iterator):
     """ Private Methods """
 
     def _validate_stages(self) -> None:
-        """Validates 'stages' type and existence of corresponding methods.
+        """Validates 'stages' and existence of corresponding methods.
 
         This method ignores the first item in 'stages' which does not require
         a corresponding method.

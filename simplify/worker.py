@@ -47,18 +47,18 @@ class Instructions(core.SimpleLoader):
             Defaults to 'Worker'.
         technique (Optional[str]): name of Technique object in 'module' to load.
             Defaults to 'Technique'.
-        parametizer (Optional[str]): name of Parametizer object in 'module' to 
-            load. Defaults to 'Parametizer'.
-        finalizer (Optional[str]): name of Finalizer object in 'module' to 
+        specialist (Optional[str]): name of Specialist object in 'module' to
+            load. Defaults to 'Specialist'.
+        finalizer (Optional[str]): name of Finalizer object in 'module' to
             load. Defaults to 'Finalizer'.
-        scholar (Optional[str]): name of Scholar object in 'module' to 
+        scholar (Optional[str]): name of Scholar object in 'module' to
             load. Defaults to 'Scholar'.
-        book (Optional[str]): value to use for 'name' attribute of SimplePlan 
+        book (Optional[str]): value to use for 'name' attribute of SimplePlan
             instance that constitutes the 'book'. Defaults to 'book'.
-        chapter (Optional[str]): value to use for 'name' attribute of SimplePlan 
+        chapter (Optional[str]): value to use for 'name' attribute of SimplePlan
             instance that constitutes a 'chapter'. Defaults to 'chapter'.
-        options (Optional[Union[str, core.SimpleRepository]]): name of a 
-            SimpleRepository instance with various options available to a 
+        options (Optional[Union[str, core.SimpleRepository]]): name of a
+            SimpleRepository instance with various options available to a
             particular 'Worker' instance or a SimpleRepository instance.
             Defaults to an empty SimpleRepository.
         data (Optional[str]): name of attribute or key in a 'Project' instance
@@ -84,8 +84,8 @@ class Instructions(core.SimpleLoader):
         default_factory = lambda: 'Worker')
     technique: Optional[str] = dataclasses.field(
         default_factory = lambda: 'Technique')
-    parametizer: Optional[str] = dataclasses.field(
-        default_factory = lambda: 'Parametizer')
+    specialist: Optional[str] = dataclasses.field(
+        default_factory = lambda: 'Specialist')
     finalizer: Optional[str] = dataclasses.field(
         default_factory = lambda: 'Finalizer')
     scholar: Optional[str] = dataclasses.field(
@@ -99,9 +99,9 @@ class Instructions(core.SimpleLoader):
     loadables: Optional[List[str]] = dataclasses.field(
         default_factory = lambda: [
             'options',
-            'parametizer', 
-            'finisher', 
-            'scholar', 
+            'specialist',
+            'finisher',
+            'scholar',
             'technique'])
     data: Optional[str] = dataclasses.field(
         default_factory = lambda: 'dataset')
@@ -134,8 +134,8 @@ class Worker(core.SimpleSystem):
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
         idea (Optional[Idea]): shared project configuration settings.
-        instructions (Optional[Instructions]): an instance with information to 
-            create and apply the essential components of a Worker. Defaults to 
+        instructions (Optional[Instructions]): an instance with information to
+            create and apply the essential components of a Worker. Defaults to
             None.
         auto_draft (Optional[bool]): whether to call the 'draft' method when
             instanced. Defaults to True.
@@ -156,9 +156,9 @@ class Worker(core.SimpleSystem):
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         super().__post_init__()
-        # Creates instances of helper classes which aid in completing and 
+        # Creates instances of helper classes which aid in completing and
         # applying Technique instances.
-        for attribute in ['parametizer', 'finisher', 'scholar']:
+        for attribute in ['specialist', 'finisher', 'scholar']:
             setattr(self, attribute, getattr(self.instructions, attribute)(
                 idea = self.idea,
                 instructions = self.instructions))
@@ -195,11 +195,8 @@ class Worker(core.SimpleSystem):
         """
         new_chapters = []
         for chapter in book:
-            new_steps = []
-            for technique in chapter:
-                new_steps.append(self.instructions.parametizer.publish(
-                    technique = technique))
-            chapter.contents = new_steps
+            chapter.contents = [
+                self.specialist.apply(technique = t) for t in chapter]
         book.contents = new_chapters
         return book
 
@@ -223,10 +220,10 @@ class Worker(core.SimpleSystem):
         for chapter in self.library[self.name]:
             new_steps = []
             for technique in chapter:
-                new_steps.append(self.finalizer.apply())
-        self.library[self.name] = self.finisher.apply(
-            book = self.library[self.name],
-            data = data_to_use)
+                new_steps.append(self.finisher.apply(
+                    book = self.library[self.name],
+                    data = data_to_use))
+            chapter.contents = new_steps
         # Applies each 'Technique' instance to 'data_to_use'.
         self.library[self.name] = self.specialist.apply(
             book = self.library[self.name],
@@ -329,8 +326,8 @@ class Comparer(Worker):
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
         idea (Optional[Idea]): shared project configuration settings.
-        instructions (Optional[Instructions]): an instance with information to 
-            create and apply the essential components of a Worker. Defaults to 
+        instructions (Optional[Instructions]): an instance with information to
+            create and apply the essential components of a Worker. Defaults to
             None.
         auto_draft (Optional[bool]): whether to call the 'draft' method when
             instanced. Defaults to True.
@@ -379,7 +376,7 @@ class Comparer(Worker):
                 technique = self.instructions.technique.load()(
                     name = technique[0],
                     technique = technique[1])
-                technique = self.parametizer.draft(technique = technique)
+                technique = self.specialist.draft(technique = technique)
                 chapter.add(contents = technique)
             book.add(contents = chapter)
         return book
@@ -398,7 +395,7 @@ class Sequencer(Worker):
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
         idea (Optional[Idea]): shared project configuration settings.
-        instructions (Optional[Instructions]): an instance with information to 
+        instructions (Optional[Instructions]): an instance with information to
             create and apply the essential components of a Worker. Defaults to None.
         auto_draft (Optional[bool]): whether to call the 'draft' method when
             instanced. Defaults to True.
@@ -440,13 +437,13 @@ class Sequencer(Worker):
                     name = step,
                     technique = technique)
                 chapter.add(contents = technique)
-            book.add(contents = chapter)  
-        return book              
+            book.add(contents = chapter)
+        return book
 
 
 @dataclasses.dataclass
-class Parametizer(core.SimpleSystem):
-    """
+class Specialist(core.SimpleHandler):
+    """Constructs 'Technique' with an 'algorithm' and 'parameters'.
 
     Args:
         name (Optional[str]): designates the name of the class instance used
@@ -457,23 +454,18 @@ class Parametizer(core.SimpleSystem):
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
         idea (Optional[Idea]): shared project configuration settings.
-        instructions (Optional[Instructions]): an instance with information to 
-            create and apply the essential components of a Worker. Defaults to 
+        instructions (Optional[Instructions]): an instance with information to
+            create and apply the essential components of a Worker. Defaults to
             None.
 
     """
     name: Optional[str] = None
-    instructions: Optional[Instructions] = None
     idea: Optional[core.Idea] = None
-
+    instructions: Optional[Instructions] = None
 
     """ Public Methods """
 
-    def draft(self, step: Tuple[str, str]) -> core.Technique:
-
-        return technique
-
-    def publish(self, step: Tuple[str, str]) -> 'Technique':
+    def apply(self, technique: core.Technique) -> core.Technique:
         """Finalizes 'Technique' instance from 'step'.
 
         Args:
@@ -484,27 +476,15 @@ class Parametizer(core.SimpleSystem):
             'Technique': instance ready for application.
 
         """
-        if step[1] in ['none']:
-            return [self.worker.technique(name = 'none', step = step[0])]
-        elif step[1] in ['all', 'default']:
-            final_techniques = []
-            techniques = self.worker.options[step[0]][step[1]]
-            for technique in techniques:
-                final_techniques.append(
-                    self._publish_technique(
-                        step = step,
-                        technique = technique))
-            return final_techniques
+        if technique.technique in ['none']:
+            return technique
         else:
-            # Gets appropriate Technique and creates an instance.
-            technique = self.worker.options[step[0]][step[1]]
-            return [self._publish_technique(
-                step = step,
-                technique = technique)]
+            technique.load('algorithm')
+            return self._get_parameters(technique = technique)
 
     """ Private Methods """
 
-    def _publish_technique(self,
+    def _get_technique(self,
             technique: core.Technique,
             step: Tuple[str, str]) -> core.Technique:
         """Finalizes 'technique'.
@@ -519,9 +499,9 @@ class Parametizer(core.SimpleSystem):
         technique.step = step[0]
         if technique.module and technique.algorithm:
             technique.algorithm = technique.load('algorithm')
-        return self._publish_parameters(technique = technique)
+        return self._get_parameters(technique = technique)
 
-    def _publish_parameters(self, technique: 'Technique') -> 'Technique':
+    def _get_parameters(self, technique: 'Technique') -> 'Technique':
         """Finalizes 'parameters' for 'technique'.
 
         Args:
@@ -541,7 +521,7 @@ class Parametizer(core.SimpleSystem):
                 pass
         return technique
 
-    def _publish_idea(self, technique: 'Technique') -> 'Technique':
+    def _get_idea(self, technique: 'Technique') -> 'Technique':
         """Acquires parameters from 'Idea' instance.
 
         Args:
@@ -562,7 +542,7 @@ class Parametizer(core.SimpleSystem):
                 pass
         return technique
 
-    def _publish_selected(self, technique: 'Technique') -> 'Technique':
+    def _get_selected(self, technique: 'Technique') -> 'Technique':
         """Limits parameters to those appropriate to the 'technique'.
 
         If 'technique.selected' is True, the keys from 'technique.defaults' are
@@ -590,7 +570,7 @@ class Parametizer(core.SimpleSystem):
             technique.parameters = new_parameters
         return technique
 
-    def _publish_required(self, technique: 'Technique') -> 'Technique':
+    def _get_required(self, technique: 'Technique') -> 'Technique':
         """Adds required parameters (mandatory additions) to 'parameters'.
 
         Args:
@@ -606,7 +586,7 @@ class Parametizer(core.SimpleSystem):
             pass
         return technique
 
-    def _publish_search(self, technique: 'Technique') -> 'Technique':
+    def _get_search(self, technique: 'Technique') -> 'Technique':
         """Separates variables with multiple options to search parameters.
 
         Args:
@@ -631,7 +611,7 @@ class Parametizer(core.SimpleSystem):
         technique.parameters = new_parameters
         return technique
 
-    def _publish_runtime(self, technique: 'Technique') -> 'Technique':
+    def _get_runtime(self, technique: 'Technique') -> 'Technique':
         """Adds parameters that are determined at runtime.
 
         The primary example of a runtime parameter throughout siMpLify is the
@@ -670,14 +650,38 @@ class Finisher(core.SimpleHandler):
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
         idea (Optional[Idea]): shared project configuration settings.
-        instructions (Optional[Instructions]): an instance with information to 
-            create and apply the essential components of a Worker. Defaults to 
+        instructions (Optional[Instructions]): an instance with information to
+            create and apply the essential components of a Worker. Defaults to
             None.
 
     """
     name: Optional[str] = None
-    instructions: Optional[Instructions] = None
     idea: Optional[core.Idea] = None
+    instructions: Optional[Instructions] = None
+
+    """ Public Methods """
+
+    def apply(self,
+            book: core.SimplePlan,
+            data: Union[core.Dataset, core.SimplePlan]) -> core.SimplePlan:
+        """Applies 'Book' instance in 'project' to 'data' or other stored books.
+
+        Args:
+            book ('Book'): instance with stored 'Technique' instances (either
+                stored in the 'techniques' or 'chapters' attributes).
+            data ([Union['Dataset', 'Book']): a data source with information to
+                finalize 'parameters' for each 'Technique' instance in 'book'
+
+        Returns:
+            'Book': with 'parameters' for each 'Technique' instance finalized
+                and connected to 'algorithm'.
+
+        """
+        if hasattr(book, 'techniques'):
+            book = self._finalize_techniques(manuscript = book, data = data)
+        else:
+            book = self._finalize_chapters(book = book, data = data)
+        return book
 
     """ Private Methods """
 
@@ -695,10 +699,10 @@ class Finisher(core.SimpleHandler):
             'Book': with any necessary modofications made.
 
         """
-        new_chapters = []
-        for chapter in book.chapters:
-            new_chapters.append(
-                self._finalize_techniques(manuscript = chapter, data = data))
+        new_chapters = [
+            self._finalize_techniques(chapter = chapter, data = data)
+            for chapter in book.chapters]
+
         book.chapters = new_chapters
         return book
 
@@ -719,7 +723,7 @@ class Finisher(core.SimpleHandler):
         """
         new_techniques = []
         for technique in manuscript.techniques:
-            if not technique.name in ['none']:
+            if technique.name not in ['none']:
                 new_technique = self._add_conditionals(
                     manuscript = manuscript,
                     technique = technique,
@@ -810,28 +814,6 @@ class Finisher(core.SimpleHandler):
                     pass
         return technique
 
-    """ Core siMpLify Methods """
-
-    def apply(self, book: 'Book', data: Union['Dataset', 'Book']) -> 'Book':
-        """Applies 'Book' instance in 'project' to 'data' or other stored books.
-
-        Args:
-            book ('Book'): instance with stored 'Technique' instances (either
-                stored in the 'techniques' or 'chapters' attributes).
-            data ([Union['Dataset', 'Book']): a data source with information to
-                finalize 'parameters' for each 'Technique' instance in 'book'
-
-        Returns:
-            'Book': with 'parameters' for each 'Technique' instance finalized
-                and connected to 'algorithm'.
-
-        """
-        if hasattr(book, 'techniques'):
-            book = self._finalize_techniques(manuscript = book, data = data)
-        else:
-            book = self._finalize_chapters(book = book, data = data)
-        return book
-
 
 @dataclasses.dataclass
 class Scholar(core.SimpleHandler):
@@ -846,8 +828,8 @@ class Scholar(core.SimpleHandler):
             as the base class for effective coordination between siMpLify
             classes. Defaults to None or __class__.__name__.lower().
         idea (Optional[Idea]): shared project configuration settings.
-        instructions (Optional[Instructions]): an instance with information to 
-            create and apply the essential components of a Worker. Defaults to 
+        instructions (Optional[Instructions]): an instance with information to
+            create and apply the essential components of a Worker. Defaults to
             None.
 
     """
