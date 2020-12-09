@@ -21,7 +21,7 @@ import simplify
 
 
 @dataclasses.dataclass
-class Project(core.SimpleSystem):
+class Project(core.SimpleProject):
     """Top-level iterator class for siMpLify projects.
 
     Args:

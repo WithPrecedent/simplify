@@ -122,7 +122,7 @@ class Instructions(core.SimpleLoader):
 
 
 @dataclasses.dataclass
-class Worker(core.SimpleSystem):
+class Worker(core.SimpleProject):
     """Generic subpackage controller class for siMpLify data projects.
 
     Args:
@@ -347,7 +347,7 @@ class Comparer(Worker):
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
-        super(core.SimpleSystem).__post_init__()
+        super(core.SimpleProject).__post_init__()
         return self
 
     """ Public Methods """
@@ -415,7 +415,7 @@ class Sequencer(Worker):
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
-        super(core.SimpleSystem).__post_init__()
+        super(core.SimpleProject).__post_init__()
         return self
 
     """ Public Methods """
