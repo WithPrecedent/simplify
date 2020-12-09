@@ -14,10 +14,10 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import sourdough
 
 import simplify
-from simplify import core
-from simplify.core import utilities
+
 
 
 @dataclasses.dataclass

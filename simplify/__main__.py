@@ -9,7 +9,9 @@
 import sys
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
-from simplify.core.project import Project
+import sourdough
+
+import simplify
 
 
 def _args_to_dict() -> Dict[str, str]:
