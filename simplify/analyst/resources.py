@@ -1,5 +1,5 @@
 """
-analyst: modeling and analytic classes and functions
+analyst.resources: resources for data analysis and modeling
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020, Corey Rayburn Yung
 License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
@@ -10,104 +10,17 @@ Contents:
 """
 from __future__ import annotations
 import dataclasses
-import pathlib
 from types import ModuleType
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Mapping, 
                     Optional, Sequence, Tuple, Type, Union)
-
-import numpy as np
-import pandas as pd
 
 import simplify
 import sourdough
 
 
-@dataclasses.dataclass
-class Analyze(simplify.SimpleProject):
-    """Constructs, organizes, and implements data analysis.
-
-    Args:
-        contents (Mapping[str, object]]): stored objects created by the 
-            'create' methods of 'creators'. Defaults to an empty dict.
-        settings (Union[Type, str, pathlib.Path]]): a Settings-compatible class,
-            a str or pathlib.Path containing the file path where a file of a 
-            supported file type with settings for a Settings instance is 
-            located. Defaults to the default Settings instance.
-        manager (Union[Type, str, pathlib.Path]]): a Manager-compatible class,
-            or a str or pathlib.Path containing the full path of where the root 
-            folder should be located for file input and output. A 'manager'
-            must contain all file path and import/export methods for use 
-            throughout sourdough. Defaults to the default Manager instance. 
-        creators (Sequence[Union[Type, str]]): a Creator-compatible classes or
-            strings corresponding to the keys in registry of the default
-            'creator' in 'bases'. Defaults to a list of 'simple_architect', 
-            'simple_builder', and 'simple_worker'. 
-        name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example if a 
-            sourdough instance needs settings from a Settings instance, 'name' 
-            should match the appropriate section name in the Settings instance. 
-            When subclassing, it is sometimes a good idea to use the same 'name' 
-            attribute as the base class for effective coordination between 
-            sourdough classes. If it is None, the 'name' will be attempted to be 
-            inferred from the first section name in 'settings' after 'general' 
-            and 'files'. If that fails, 'name' will be the snakecase name of the
-            class. Defaults to None. 
-        identification (str): a unique identification name for a Project 
-            instance. The name is used for creating file folders related to the 
-            project. If it is None, a str will be created from 'name' and the 
-            date and time. Defaults to None.   
-        automatic (bool): whether to automatically advance 'director' (True) or 
-            whether the director must be advanced manually (False). Defaults to 
-            True.
-        data (object): any data object for the project to be applied. If it is
-            None, an instance will still execute its workflow, but it won't
-            apply it to any external data. Defaults to None.  
-        bases (ClassVar[object]): contains information about default base 
-            classes used by a Project instance. Defaults to an instance of 
-            SimpleBases.
-
-    """
-    contents: Sequence[Any] = dataclasses.field(default_factory = dict)
-    settings: Union[object, Type, str, pathlib.Path] = None
-    manager: Union[object, Type, str, pathlib.Path] = None
-    creators: Sequence[Union[Type, str]] = dataclasses.field(
-        default_factory = lambda: ['analyst_architect', 'analyst_builder', 
-                                   'analyst_worker'])
-    name: str = None
-    identification: str = None
-    automatic: bool = True
-    data: Union[pd.DataFrame, np.ndArray, simplify.Dataset] = None
-    bases: ClassVar[object] = simplify.SimpleBases()
-
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        sourdough.rules.validations.append('data')
-        # Calls parent and/or mixin initialization method(s).
-        try:
-            super().__post_init__()
-        except AttributeError:
-            pass
-        
-    """ Private Methods """
-    
-    def _validate_data(self) -> None:
-        """Validates 'data' or converts it to a Dataset instance."""
-        pass
-
-
-
-@dataclasses.dataclass
-class AnalystAlgorithm(simplify.Algorithm):
-    
-    pass
-
-
-
-raw_options: Dict[str, AnalystAlgorithm] = {
+raw_options: Dict[str, simplify.SimpleTechnique] = {
     'fill': {
-        'defaults': AnalystAlgorithm(
+        'defaults': simplify.SimpleTechnique(
             name = 'defaults',
             module = 'simplify.analyst.algorithms',
             algorithm = 'smart_fill',
@@ -120,28 +33,28 @@ raw_options: Dict[str, AnalystAlgorithm] = {
                 'list': [],
                 'datetime': 1/1/1900,
                 'timedelta': 0}}),
-        'impute': AnalystAlgorithm(
+        'impute': simplify.SimpleTechnique(
             name = 'defaults',
             module = 'sklearn.impute',
             algorithm = 'SimpleImputer',
             default = {'defaults': {}}),
-        'knn_impute': AnalystAlgorithm(
+        'knn_impute': simplify.SimpleTechnique(
             name = 'defaults',
             module = 'sklearn.impute',
             algorithm = 'KNNImputer',
             default = {'defaults': {}})},
     'categorize': {
-        'automatic': AnalystAlgorithm(
+        'automatic': simplify.SimpleTechnique(
             name = 'automatic',
             module = 'simplify.analyst.algorithms',
             algorithm = 'auto_categorize',
             default = {'threshold': 10}),
-        'binary': AnalystAlgorithm(
+        'binary': simplify.SimpleTechnique(
             name = 'binary',
             module = 'sklearn.preprocessing',
             algorithm = 'Binarizer',
             default = {'threshold': 0.5}),
-        'bins': AnalystAlgorithm(
+        'bins': simplify.SimpleTechnique(
             name = 'bins',
             module = 'sklearn.preprocessing',
             algorithm = 'KBinsDiscretizer',
@@ -151,51 +64,51 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             selected = True,
             required = {'encode': 'onehot'})},
     'scale': {
-        'gauss': AnalystAlgorithm(
+        'gauss': simplify.SimpleTechnique(
             name = 'gauss',
             module = None,
             algorithm = 'Gaussify',
             default = {'standardize': False, 'copy': False},
             selected = True,
             required = {'rescaler': 'standard'}),
-        'maxabs': AnalystAlgorithm(
+        'maxabs': simplify.SimpleTechnique(
             name = 'maxabs',
             module = 'sklearn.preprocessing',
             algorithm = 'MaxAbsScaler',
             default = {'copy': False},
             selected = True),
-        'minmax': AnalystAlgorithm(
+        'minmax': simplify.SimpleTechnique(
             name = 'minmax',
             module = 'sklearn.preprocessing',
             algorithm = 'MinMaxScaler',
             default = {'copy': False},
             selected = True),
-        'normalize': AnalystAlgorithm(
+        'normalize': simplify.SimpleTechnique(
             name = 'normalize',
             module = 'sklearn.preprocessing',
             algorithm = 'Normalizer',
             default = {'copy': False},
             selected = True),
-        'quantile': AnalystAlgorithm(
+        'quantile': simplify.SimpleTechnique(
             name = 'quantile',
             module = 'sklearn.preprocessing',
             algorithm = 'QuantileTransformer',
             default = {'copy': False},
             selected = True),
-        'robust': AnalystAlgorithm(
+        'robust': simplify.SimpleTechnique(
             name = 'robust',
             module = 'sklearn.preprocessing',
             algorithm = 'RobustScaler',
             default = {'copy': False},
             selected = True),
-        'standard': AnalystAlgorithm(
+        'standard': simplify.SimpleTechnique(
             name = 'standard',
             module = 'sklearn.preprocessing',
             algorithm = 'StandardScaler',
             default = {'copy': False},
             selected = True)},
     'split': {
-        'group_kfold': AnalystAlgorithm(
+        'group_kfold': simplify.SimpleTechnique(
             name = 'group_kfold',
             module = 'sklearn.model_selection',
             algorithm = 'GroupKFold',
@@ -204,7 +117,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             selected = True,
             fit_method = None,
             transform_method = 'split'),
-        'kfold': AnalystAlgorithm(
+        'kfold': simplify.SimpleTechnique(
             name = 'kfold',
             module = 'sklearn.model_selection',
             algorithm = 'KFold',
@@ -214,7 +127,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             required = {'shuffle': True},
             fit_method = None,
             transform_method = 'split'),
-        'stratified': AnalystAlgorithm(
+        'stratified': simplify.SimpleTechnique(
             name = 'stratified',
             module = 'sklearn.model_selection',
             algorithm = 'StratifiedKFold',
@@ -224,7 +137,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             required = {'shuffle': True},
             fit_method = None,
             transform_method = 'split'),
-        'time': AnalystAlgorithm(
+        'time': simplify.SimpleTechnique(
             name = 'time',
             module = 'sklearn.model_selection',
             algorithm = 'TimeSeriesSplit',
@@ -233,7 +146,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             selected = True,
             fit_method = None,
             transform_method = 'split'),
-        'train_test': AnalystAlgorithm(
+        'train_test': simplify.SimpleTechnique(
             name = 'train_test',
             module = 'sklearn.model_selection',
             algorithm = 'ShuffleSplit',
@@ -244,78 +157,78 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             fit_method = None,
             transform_method = 'split')},
     'encode': {
-        'backward': AnalystAlgorithm(
+        'backward': simplify.SimpleTechnique(
             name = 'backward',
             module = 'category_encoders',
             algorithm = 'BackwardDifferenceEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'basen': AnalystAlgorithm(
+        'basen': simplify.SimpleTechnique(
             name = 'basen',
             module = 'category_encoders',
             algorithm = 'BaseNEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'binary': AnalystAlgorithm(
+        'binary': simplify.SimpleTechnique(
             name = 'binary',
             module = 'category_encoders',
             algorithm = 'BinaryEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'dummy': AnalystAlgorithm(
+        'dummy': simplify.SimpleTechnique(
             name = 'dummy',
             module = 'category_encoders',
             algorithm = 'OneHotEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'hashing': AnalystAlgorithm(
+        'hashing': simplify.SimpleTechnique(
             name = 'hashing',
             module = 'category_encoders',
             algorithm = 'HashingEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'helmert': AnalystAlgorithm(
+        'helmert': simplify.SimpleTechnique(
             name = 'helmert',
             module = 'category_encoders',
             algorithm = 'HelmertEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'james_stein': AnalystAlgorithm(
+        'james_stein': simplify.SimpleTechnique(
             name = 'james_stein',
             module = 'category_encoders',
             algorithm = 'JamesSteinEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'loo': AnalystAlgorithm(
+        'loo': simplify.SimpleTechnique(
             name = 'loo',
             module = 'category_encoders',
             algorithm = 'LeaveOneOutEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'm_estimate': AnalystAlgorithm(
+        'm_estimate': simplify.SimpleTechnique(
             name = 'm_estimate',
             module = 'category_encoders',
             algorithm = 'MEstimateEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'ordinal': AnalystAlgorithm(
+        'ordinal': simplify.SimpleTechnique(
             name = 'ordinal',
             module = 'category_encoders',
             algorithm = 'OrdinalEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'polynomial': AnalystAlgorithm(
+        'polynomial': simplify.SimpleTechnique(
             name = 'polynomial_encoder',
             module = 'category_encoders',
             algorithm = 'PolynomialEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'sum': AnalystAlgorithm(
+        'sum': simplify.SimpleTechnique(
             name = 'sum',
             module = 'category_encoders',
             algorithm = 'SumEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'target': AnalystAlgorithm(
+        'target': simplify.SimpleTechnique(
             name = 'target',
             module = 'category_encoders',
             algorithm = 'TargetEncoder',
             data_dependent = {'cols': 'categoricals'}),
-        'woe': AnalystAlgorithm(
+        'woe': simplify.SimpleTechnique(
             name = 'weight_of_evidence',
             module = 'category_encoders',
             algorithm = 'WOEEncoder',
             data_dependent = {'cols': 'categoricals'})},
     'mix': {
-        'polynomial': AnalystAlgorithm(
+        'polynomial': simplify.SimpleTechnique(
             name = 'polynomial_mixer',
             module = 'sklearn.preprocessing',
             algorithm = 'PolynomialFeatures',
@@ -323,25 +236,25 @@ raw_options: Dict[str, AnalystAlgorithm] = {
                 'degree': 2,
                 'interaction_only': True,
                 'include_bias': True}),
-        'quotient': AnalystAlgorithm(
+        'quotient': simplify.SimpleTechnique(
             name = 'quotient',
             module = None,
             algorithm = 'QuotientFeatures'),
-        'sum': AnalystAlgorithm(
+        'sum': simplify.SimpleTechnique(
             name = 'sum',
             module = None,
             algorithm = 'SumFeatures'),
-        'difference': AnalystAlgorithm(
+        'difference': simplify.SimpleTechnique(
             name = 'difference',
             module = None,
             algorithm = 'DifferenceFeatures')},
     'cleave': {
-        'cleaver': AnalystAlgorithm(
+        'cleaver': simplify.SimpleTechnique(
             name = 'cleaver',
             module = 'simplify.analyst.algorithms',
             algorithm = 'Cleaver')},
     'sample': {
-        'adasyn': AnalystAlgorithm(
+        'adasyn': simplify.SimpleTechnique(
             name = 'adasyn',
             module = 'imblearn.over_sampling',
             algorithm = 'ADASYN',
@@ -349,7 +262,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             runtime = {'random_state': 'seed'},
             fit_method = None,
             transform_method = 'fit_resample'),
-        'cluster': AnalystAlgorithm(
+        'cluster': simplify.SimpleTechnique(
             name = 'cluster',
             module = 'imblearn.under_sampling',
             algorithm = 'ClusterCentroids',
@@ -357,7 +270,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             runtime = {'random_state': 'seed'},
             fit_method = None,
             transform_method = 'fit_resample'),
-        'knn': AnalystAlgorithm(
+        'knn': simplify.SimpleTechnique(
             name = 'knn',
             module = 'imblearn.under_sampling',
             algorithm = 'AllKNN',
@@ -365,7 +278,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             runtime = {'random_state': 'seed'},
             fit_method = None,
             transform_method = 'fit_resample'),
-        'near_miss': AnalystAlgorithm(
+        'near_miss': simplify.SimpleTechnique(
             name = 'near_miss',
             module = 'imblearn.under_sampling',
             algorithm = 'NearMiss',
@@ -373,7 +286,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             runtime = {'random_state': 'seed'},
             fit_method = None,
             transform_method = 'fit_resample'),
-        'random_over': AnalystAlgorithm(
+        'random_over': simplify.SimpleTechnique(
             name = 'random_over',
             module = 'imblearn.over_sampling',
             algorithm = 'RandomOverSampler',
@@ -381,7 +294,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             runtime = {'random_state': 'seed'},
             fit_method = None,
             transform_method = 'fit_resample'),
-        'random_under': AnalystAlgorithm(
+        'random_under': simplify.SimpleTechnique(
             name = 'random_under',
             module = 'imblearn.under_sampling',
             algorithm = 'RandomUnderSampler',
@@ -389,7 +302,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             runtime = {'random_state': 'seed'},
             fit_method = None,
             transform_method = 'fit_resample'),
-        'smote': AnalystAlgorithm(
+        'smote': simplify.SimpleTechnique(
             name = 'smote',
             module = 'imblearn.over_sampling',
             algorithm = 'SMOTE',
@@ -397,7 +310,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             runtime = {'random_state': 'seed'},
             fit_method = None,
             transform_method = 'fit_resample'),
-        'smotenc': AnalystAlgorithm(
+        'smotenc': simplify.SimpleTechnique(
             name = 'smotenc',
             module = 'imblearn.over_sampling',
             algorithm = 'SMOTENC',
@@ -407,7 +320,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
                 'categorical_features': 'categoricals_indices'},
             fit_method = None,
             transform_method = 'fit_resample'),
-        'smoteenn': AnalystAlgorithm(
+        'smoteenn': simplify.SimpleTechnique(
             name = 'smoteenn',
             module = 'imblearn.combine',
             algorithm = 'SMOTEENN',
@@ -415,7 +328,7 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             runtime = {'random_state': 'seed'},
             fit_method = None,
             transform_method = 'fit_resample'),
-        'smotetomek': AnalystAlgorithm(
+        'smotetomek': simplify.SimpleTechnique(
             name = 'smotetomek',
             module = 'imblearn.combine',
             algorithm = 'SMOTETomek',
@@ -424,44 +337,44 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             fit_method = None,
             transform_method = 'fit_resample')},
     'reduce': {
-        'kbest': AnalystAlgorithm(
+        'kbest': simplify.SimpleTechnique(
             name = 'kbest',
             module = 'sklearn.feature_selection',
             algorithm = 'SelectKBest',
             default = {'k': 10, 'score_func': 'f_classif'},
             selected = True),
-        'fdr': AnalystAlgorithm(
+        'fdr': simplify.SimpleTechnique(
             name = 'fdr',
             module = 'sklearn.feature_selection',
             algorithm = 'SelectFdr',
             default = {'alpha': 0.05, 'score_func': 'f_classif'},
             selected = True),
-        'fpr': AnalystAlgorithm(
+        'fpr': simplify.SimpleTechnique(
             name = 'fpr',
             module = 'sklearn.feature_selection',
             algorithm = 'SelectFpr',
             default = {'alpha': 0.05, 'score_func': 'f_classif'},
             selected = True),
-        'custom': AnalystAlgorithm(
+        'custom': simplify.SimpleTechnique(
             name = 'custom',
             module = 'sklearn.feature_selection',
             algorithm = 'SelectFromModel',
             default = {'threshold': 'mean'},
             runtime = {'estimator': 'algorithm'},
             selected = True),
-        'rank': AnalystAlgorithm(
+        'rank': simplify.SimpleTechnique(
             name = 'rank',
             module = 'simplify.critic.rank',
             algorithm = 'RankSelect',
             selected = True),
-        'rfe': AnalystAlgorithm(
+        'rfe': simplify.SimpleTechnique(
             name = 'rfe',
             module = 'sklearn.feature_selection',
             algorithm = 'RFE',
             default = {'n_features_to_select': 10, 'step': 1},
             runtime = {'estimator': 'algorithm'},
             selected = True),
-        'rfecv': AnalystAlgorithm(
+        'rfecv': simplify.SimpleTechnique(
             name = 'rfecv',
             module = 'sklearn.feature_selection',
             algorithm = 'RFECV',
@@ -469,54 +382,54 @@ raw_options: Dict[str, AnalystAlgorithm] = {
             runtime = {'estimator': 'algorithm'},
             selected = True)}}
 
-raw_model_options: Dict[str, AnalystAlgorithm] = {
+raw_model_options: Dict[str, simplify.SimpleTechnique] = {
     'classify': {
-        'adaboost': AnalystAlgorithm(
+        'adaboost': simplify.SimpleTechnique(
             name = 'adaboost',
             module = 'sklearn.ensemble',
             algorithm = 'AdaBoostClassifier',
             transform_method = None),
-        'baseline_classifier': AnalystAlgorithm(
+        'baseline_classifier': simplify.SimpleTechnique(
             name = 'baseline_classifier',
             module = 'sklearn.dummy',
             algorithm = 'DummyClassifier',
             required = {'strategy': 'most_frequent'},
             transform_method = None),
-        'logit': AnalystAlgorithm(
+        'logit': simplify.SimpleTechnique(
             name = 'logit',
             module = 'sklearn.linear_model',
             algorithm = 'LogisticRegression',
             transform_method = None),
-        'random_forest': AnalystAlgorithm(
+        'random_forest': simplify.SimpleTechnique(
             name = 'random_forest',
             module = 'sklearn.ensemble',
             algorithm = 'RandomForestClassifier',
             transform_method = None),
-        'svm_linear': AnalystAlgorithm(
+        'svm_linear': simplify.SimpleTechnique(
             name = 'svm_linear',
             module = 'sklearn.svm',
             algorithm = 'SVC',
             required = {'kernel': 'linear', 'probability': True},
             transform_method = None),
-        'svm_poly': AnalystAlgorithm(
+        'svm_poly': simplify.SimpleTechnique(
             name = 'svm_poly',
             module = 'sklearn.svm',
             algorithm = 'SVC',
             required = {'kernel': 'poly', 'probability': True},
             transform_method = None),
-        'svm_rbf': AnalystAlgorithm(
+        'svm_rbf': simplify.SimpleTechnique(
             name = 'svm_rbf',
             module = 'sklearn.svm',
             algorithm = 'SVC',
             required = {'kernel': 'rbf', 'probability': True},
             transform_method = None),
-        'svm_sigmoid': AnalystAlgorithm(
+        'svm_sigmoid': simplify.SimpleTechnique(
             name = 'svm_sigmoid ',
             module = 'sklearn.svm',
             algorithm = 'SVC',
             required = {'kernel': 'sigmoid', 'probability': True},
             transform_method = None),
-        'tensorflow': AnalystAlgorithm(
+        'tensorflow': simplify.SimpleTechnique(
             name = 'tensorflow',
             module = 'tensorflow',
             algorithm = None,
@@ -524,228 +437,200 @@ raw_model_options: Dict[str, AnalystAlgorithm] = {
                 'batch_size': 10,
                 'epochs': 2},
             transform_method = None),
-        'xgboost': AnalystAlgorithm(
+        'xgboost': simplify.SimpleTechnique(
             name = 'xgboost',
             module = 'xgboost',
             algorithm = 'XGBClassifier',
             # data_dependent = 'scale_pos_weight',
             transform_method = None)},
     'cluster': {
-        'affinity': AnalystAlgorithm(
+        'affinity': simplify.SimpleTechnique(
             name = 'affinity',
             module = 'sklearn.cluster',
             algorithm = 'AffinityPropagation',
             transform_method = None),
-        'agglomerative': AnalystAlgorithm(
+        'agglomerative': simplify.SimpleTechnique(
             name = 'agglomerative',
             module = 'sklearn.cluster',
             algorithm = 'AgglomerativeClustering',
             transform_method = None),
-        'birch': AnalystAlgorithm(
+        'birch': simplify.SimpleTechnique(
             name = 'birch',
             module = 'sklearn.cluster',
             algorithm = 'Birch',
             transform_method = None),
-        'dbscan': AnalystAlgorithm(
+        'dbscan': simplify.SimpleTechnique(
             name = 'dbscan',
             module = 'sklearn.cluster',
             algorithm = 'DBSCAN',
             transform_method = None),
-        'kmeans': AnalystAlgorithm(
+        'kmeans': simplify.SimpleTechnique(
             name = 'kmeans',
             module = 'sklearn.cluster',
             algorithm = 'KMeans',
             transform_method = None),
-        'mean_shift': AnalystAlgorithm(
+        'mean_shift': simplify.SimpleTechnique(
             name = 'mean_shift',
             module = 'sklearn.cluster',
             algorithm = 'MeanShift',
             transform_method = None),
-        'spectral': AnalystAlgorithm(
+        'spectral': simplify.SimpleTechnique(
             name = 'spectral',
             module = 'sklearn.cluster',
             algorithm = 'SpectralClustering',
             transform_method = None),
-        'svm_linear': AnalystAlgorithm(
+        'svm_linear': simplify.SimpleTechnique(
             name = 'svm_linear',
             module = 'sklearn.cluster',
             algorithm = 'OneClassSVM',
             transform_method = None),
-        'svm_poly': AnalystAlgorithm(
+        'svm_poly': simplify.SimpleTechnique(
             name = 'svm_poly',
             module = 'sklearn.cluster',
             algorithm = 'OneClassSVM',
             transform_method = None),
-        'svm_rbf': AnalystAlgorithm(
+        'svm_rbf': simplify.SimpleTechnique(
             name = 'svm_rbf',
             module = 'sklearn.cluster',
             algorithm = 'OneClassSVM,',
             transform_method = None),
-        'svm_sigmoid': AnalystAlgorithm(
+        'svm_sigmoid': simplify.SimpleTechnique(
             name = 'svm_sigmoid',
             module = 'sklearn.cluster',
             algorithm = 'OneClassSVM',
             transform_method = None)},
     'regress': {
-        'adaboost': AnalystAlgorithm(
+        'adaboost': simplify.SimpleTechnique(
             name = 'adaboost',
             module = 'sklearn.ensemble',
             algorithm = 'AdaBoostRegressor',
             transform_method = None),
-        'baseline_regressor': AnalystAlgorithm(
+        'baseline_regressor': simplify.SimpleTechnique(
             name = 'baseline_regressor',
             module = 'sklearn.dummy',
             algorithm = 'DummyRegressor',
             required = {'strategy': 'mean'},
             transform_method = None),
-        'bayes_ridge': AnalystAlgorithm(
+        'bayes_ridge': simplify.SimpleTechnique(
             name = 'bayes_ridge',
             module = 'sklearn.linear_model',
             algorithm = 'BayesianRidge',
             transform_method = None),
-        'lasso': AnalystAlgorithm(
+        'lasso': simplify.SimpleTechnique(
             name = 'lasso',
             module = 'sklearn.linear_model',
             algorithm = 'Lasso',
             transform_method = None),
-        'lasso_lars': AnalystAlgorithm(
+        'lasso_lars': simplify.SimpleTechnique(
             name = 'lasso_lars',
             module = 'sklearn.linear_model',
             algorithm = 'LassoLars',
             transform_method = None),
-        'ols': AnalystAlgorithm(
+        'ols': simplify.SimpleTechnique(
             name = 'ols',
             module = 'sklearn.linear_model',
             algorithm = 'LinearRegression',
             transform_method = None),
-        'random_forest': AnalystAlgorithm(
+        'random_forest': simplify.SimpleTechnique(
             name = 'random_forest',
             module = 'sklearn.ensemble',
             algorithm = 'RandomForestRegressor',
             transform_method = None),
-        'ridge': AnalystAlgorithm(
+        'ridge': simplify.SimpleTechnique(
             name = 'ridge',
             module = 'sklearn.linear_model',
             algorithm = 'Ridge',
             transform_method = None),
-        'svm_linear': AnalystAlgorithm(
+        'svm_linear': simplify.SimpleTechnique(
             name = 'svm_linear',
             module = 'sklearn.svm',
             algorithm = 'SVC',
             required = {'kernel': 'linear', 'probability': True},
             transform_method = None),
-        'svm_poly': AnalystAlgorithm(
+        'svm_poly': simplify.SimpleTechnique(
             name = 'svm_poly',
             module = 'sklearn.svm',
             algorithm = 'SVC',
             required = {'kernel': 'poly', 'probability': True},
             transform_method = None),
-        'svm_rbf': AnalystAlgorithm(
+        'svm_rbf': simplify.SimpleTechnique(
             name = 'svm_rbf',
             module = 'sklearn.svm',
             algorithm = 'SVC',
             required = {'kernel': 'rbf', 'probability': True},
             transform_method = None),
-        'svm_sigmoid': AnalystAlgorithm(
+        'svm_sigmoid': simplify.SimpleTechnique(
             name = 'svm_sigmoid ',
             module = 'sklearn.svm',
             algorithm = 'SVC',
             required = {'kernel': 'sigmoid', 'probability': True},
             transform_method = None),
-        'xgboost': AnalystAlgorithm(
+        'xgboost': simplify.SimpleTechnique(
             name = 'xgboost',
             module = 'xgboost',
             algorithm = 'XGBRegressor',
             # data_dependent = 'scale_pos_weight',
             transform_method = None)}}
 
-raw_gpu_options: Dict[str, AnalystAlgorithm] = {
+raw_gpu_options: Dict[str, simplify.SimpleTechnique] = {
     'classify': {
-        'forest_inference': AnalystAlgorithm(
+        'forest_inference': simplify.SimpleTechnique(
             name = 'forest_inference',
             module = 'cuml',
             algorithm = 'ForestInference',
             transform_method = None),
-        'random_forest': AnalystAlgorithm(
+        'random_forest': simplify.SimpleTechnique(
             name = 'random_forest',
             module = 'cuml',
             algorithm = 'RandomForestClassifier',
             transform_method = None),
-        'logit': AnalystAlgorithm(
+        'logit': simplify.SimpleTechnique(
             name = 'logit',
             module = 'cuml',
             algorithm = 'LogisticRegression',
             transform_method = None)},
     'cluster': {
-        'dbscan': AnalystAlgorithm(
+        'dbscan': simplify.SimpleTechnique(
             name = 'dbscan',
             module = 'cuml',
             algorithm = 'DBScan',
             transform_method = None),
-        'kmeans': AnalystAlgorithm(
+        'kmeans': simplify.SimpleTechnique(
             name = 'kmeans',
             module = 'cuml',
             algorithm = 'KMeans',
             transform_method = None)},
     'regressor': {
-        'lasso': AnalystAlgorithm(
+        'lasso': simplify.SimpleTechnique(
             name = 'lasso',
             module = 'cuml',
             algorithm = 'Lasso',
             transform_method = None),
-        'ols': AnalystAlgorithm(
+        'ols': simplify.SimpleTechnique(
             name = 'ols',
             module = 'cuml',
             algorithm = 'LinearRegression',
             transform_method = None),
-        'ridge': AnalystAlgorithm(
+        'ridge': simplify.SimpleTechnique(
             name = 'ridge',
             module = 'cuml',
             algorithm = 'RidgeRegression',
             transform_method = None)}}
 
-
-@dataclasses.dataclass
-class AnalystAlgorithms(sourdough.types.Catalog):
-    """A dictonary of AnalystAlgorithm options for the Analyst subpackage.
+def get_algorithms(project: sourdough.Project) -> sourdough.types.Catalog:
+    """[summary]
 
     Args:
-        contents (Mapping[Any, Any]]): stored dictionary. Defaults to an empty 
-            dict.
-        defaults (Sequence[Any]]): a list of keys in 'contents' which will be 
-            used to return items when 'default' is sought. If not passed, 
-            'default' will be set to all keys.
-        always_return_list (bool): whether to return a list even when the key 
-            passed is not a list or special access key (True) or to return a 
-            list only when a list or special access key is used (False). 
-            Defaults to False.
-        project
+        project (sourdough.Project): [description]
+
+    Returns:
+        sourdough.types.Catalog: [description]
         
     """
-    contents: Mapping[Any, Any] = dataclasses.field(default_factory = dict)  
-    defaults: Sequence[Any] = dataclasses.field(default_factory = list)
-    always_return_list: bool = False
-    project: simplify.SimpleProject = None
-    
-    """ Initialization Methods """
-    
-    def __post_init__(self) -> None:
-        """Initializes class instance."""
-        self._create_contents()
-        # Calls parent initialization methods, if they exist.
-        try:
-            super().__post_init__()
-        except AttributeError:
-            pass      
-        
-    """ Private Methods """
-    
-    def _create_contents(self) -> None:
-        """Populates 'contents' based on 'project.settings'."""
-        self.contents = raw_options
-        self.contents['model'] = raw_model_options[
-            self.project.settings['analyst']['model_type']]
-        if self.project.settings['general']['gpu']:
-            self.contents['model'].update(
-                raw_gpu_options[self.project.settings['analyst']['model_type']])
-        return self
+    algorithms = raw_options
+    algorithms['model'] = raw_model_options[
+        project.settings['analyst']['model_type']]
+    if project.settings['general']['gpu']:
+        algorithms['model'].update(
+            raw_gpu_options[project.settings['analyst']['model_type']])
+    return algorithms
