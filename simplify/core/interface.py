@@ -34,7 +34,7 @@ class SimpleBases(sourdough.Bases):
             Defaults to sourdough.Settings.
         manager (Type): the file manager class to use in a sourdough project.
             Defaults to simplify.SimpleManager.   
-        creator (Type): the product/builder class to use in a sourdough 
+        project (Type): the product/builder class to use in a sourdough 
             project. Defaults to simplify.SimpleCreator.    
         product (Type): the product output class to use in a sourdough 
             project. Defaults to sourdough.Product. 
@@ -108,6 +108,8 @@ class SimpleProject(sourdough.Project):
     automatic: bool = True
     data: Union[pd.DataFrame, np.ndArray, simplify.Dataset] = None
     bases: ClassVar[object] = SimpleBases()
+    options: sourdough.project.resources.Options = None
+    rules: sourdough.project.resources.Rules = None
     system: ClassVar[SimpleSystem] = None
 
     """ Initialization Methods """
@@ -132,13 +134,21 @@ class SimpleProject(sourdough.Project):
         pass
 
 
+project_options = sourdough.types.Catalog(contents = {
+    'wrangler': simplify.wrangler,
+    'actuary': simplify.actuary, 
+    'analyst': simplify.analyst, 
+    'critic': simplify.critic, 
+    'artist': simplify.artist})
+
+
 @dataclasses.dataclass
-class SimpleSystem(sourdough.Project):
+class SimpleSystem(sourdough.types.Lexicon):
     """Constructs, organizes, and implements a data science project.
 
     Args:
         contents (Mapping[str, object]]): stored objects created by the 
-            'create' methods of 'creators'. Defaults to an empty dict.
+            'create' methods of 'projects'. Defaults to an empty dict.
         settings (Union[Type, str, pathlib.Path]]): a Settings-compatible class,
             a str or pathlib.Path containing the file path where a file of a 
             supported file type with settings for a Settings instance is 
@@ -148,9 +158,9 @@ class SimpleSystem(sourdough.Project):
             folder should be located for file input and output. A 'manager'
             must contain all file path and import/export methods for use 
             throughout sourdough. Defaults to the default Manager instance. 
-        creators (Sequence[Union[Type, str]]): a Creator-compatible classes or
+        projects (Sequence[Union[Type, str]]): a Creator-compatible classes or
             strings corresponding to the keys in registry of the default
-            'creator' in 'bases'. Defaults to a list of 'simple_architect', 
+            'project' in 'bases'. Defaults to a list of 'simple_architect', 
             'simple_builder', and 'simple_worker'. 
         name (str): designates the name of a class instance that is used for 
             internal referencing throughout sourdough. For example if a 
@@ -181,15 +191,13 @@ class SimpleSystem(sourdough.Project):
         default_factory = dict)
     settings: Union[object, Type, str, pathlib.Path] = None
     manager: Union[object, Type, str, pathlib.Path] = None
-    creators: Sequence[Union[Type, str]] = dataclasses.field(
-        default_factory = lambda: ['simple_architect', 'simple_builder', 
-                                   'simple_worker'])
+    projects: Mapping[str, ModuleType] = dataclasses.field(
+        default_factory = lambda: project_options)
     name: str = None
     identification: str = None
     automatic: bool = True
     data: Union[pd.DataFrame, np.ndArray, simplify.Dataset] = None
     _validated: bool = False
-    bases: ClassVar[object] = SimpleBases()
 
     """ Initialization Methods """
 
@@ -204,8 +212,108 @@ class SimpleSystem(sourdough.Project):
             pass
         
     """ Private Methods """
+
+    def _create_project(self, project: str) -> SimpleProject:
+        """[summary]
+
+        Args:
+            project (str): [description]
+
+        Returns:
+            SimpleProject: [description]
+        """
+        project = sourdough.tools.importify(
+            module = self.projects[project],
+            key = 'project')
+        options = self._get_options(project = project)
+        rules = self._get_rules(project = project, options = options)
+        return project(
+            settings = self.settings,
+            manager = self.manager,
+            identification = self.identification,
+            data = self.data,
+            system = self.system,
+            options = options,
+            rulse = rules)
+     
+    def _get_options(self, project: str) -> sourdough.project.resources.Options:
+        """[summary]
+
+        Args:
+            project (str): [description]
+
+        Returns:
+            sourdough.project.resources.Options: [description]
+        """
+        options = getattr(self.projects[project], 'options')
+        try:
+            algorithms = getattr(self.projects[project], 'algorithms')
+        except KeyError:
+            algorithms = getattr(self.projects[project], 'get_algorithms')(
+                settings = self.settings)
+        options.algorithms = algorithms
+        return options    
     
+    def _get_rules(self, project: str, 
+                   options: sourdough.project.resources.Options) -> (
+                       sourdough.project.resources.Rules):
+        """[summary]
+
+        Args:
+            project (str): [description]
+
+        Returns:
+            sourdough.project.resources.Rules: [description]
+        """
+        try:
+            rules = getattr(self.projects[project], 'rules')
+        except KeyError:
+            rules = sourdough.rules
+        rules.options = options
+        return rules
+           
     def _validate_data(self) -> None:
         """Validates 'data' or converts it to a Dataset instance."""
         pass
-  
+
+    
+    def _auto_create(self) -> None:
+        """Advances through the stored Creator instances.
+        
+        The results of the iteration is that each item produced is stored in 
+        'content's with a key of the 'produces' attribute of each project.
+        
+        """
+        for project in iter(self):
+            self.contents.update({project.produces: self.__next__()})
+        return self
+    
+    """ Dunder Methods """
+    
+    def __next__(self) -> Any:
+        """Returns products of the next Creator in 'projects'.
+
+        Returns:
+            Any: item project by the 'create' method of a Creator.
+            
+        """
+        if self.index < len(self.projects):
+            project = self.projects[self.index]()
+            if hasattr(self, 'verbose') and self.verbose:
+                print(
+                    f'{project.action} {project.produces} from {project.needs}')
+            self.index += 1
+            product = project.create(project = self)
+        else:
+            raise IndexError()
+        return product
+    
+    def __iter__(self) -> Iterable:
+        """Returns iterable of 'projects'.
+        
+        Returns:
+            Iterable: iterable sequence of 'projects'.
+            
+        """
+        return iter(self.projects)
+      

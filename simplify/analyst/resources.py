@@ -617,7 +617,7 @@ raw_gpu_options: Dict[str, simplify.SimpleTechnique] = {
             algorithm = 'RidgeRegression',
             transform_method = None)}}
 
-def get_algorithms(project: sourdough.Project) -> sourdough.types.Catalog:
+def get_algorithms(settings: Mapping[str, Any]) -> sourdough.types.Catalog:
     """[summary]
 
     Args:
@@ -628,9 +628,8 @@ def get_algorithms(project: sourdough.Project) -> sourdough.types.Catalog:
         
     """
     algorithms = raw_options
-    algorithms['model'] = raw_model_options[
-        project.settings['analyst']['model_type']]
-    if project.settings['general']['gpu']:
+    algorithms['model'] = raw_model_options[settings['analyst']['model_type']]
+    if settings['general']['gpu']:
         algorithms['model'].update(
-            raw_gpu_options[project.settings['analyst']['model_type']])
+            raw_gpu_options[settings['analyst']['model_type']])
     return algorithms

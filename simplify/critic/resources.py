@@ -18,7 +18,7 @@ import simplify
 import sourdough 
 
 
-algorithms: sourdough.types.Catalog[str, simplify.SimpleTechnique] = (
+raw_algorithms: sourdough.types.Catalog[str, simplify.SimpleTechnique] = (
     sourdough.types.Catalog(contents = { 
         'eli5': simplify.SimpleTechnique(
             name = 'eli5',
@@ -42,7 +42,7 @@ algorithms: sourdough.types.Catalog[str, simplify.SimpleTechnique] = (
             algorithm = 'SklearnExplain')}))
 
 
-def get_algorithms(project: sourdough.Project) -> sourdough.types.Catalog:
+def get_algorithms(settings: Mapping[str, Any]) -> sourdough.types.Catalog:
     """[summary]
 
     Args:
