@@ -15,7 +15,7 @@ import pandas as pd
 from simplify.core.library import Book
 from simplify.core.library import Chapter
 from simplify.core.library import Technique
-from simplify.core.manager import Worker
+from simplify.core.clerk import Worker
 from simplify.core.repository import SimpleRepository
 from simplify.core.scholar import Finisher
 from simplify.core.scholar import Parallelizer
@@ -296,10 +296,10 @@ class Critic(Worker):
         data (Optional[str]): name of attribute or key in a 'Project' instance
             'books' to use as a data object to apply methods to. Defaults to
             'dataset'.
-        import_folder (Optional[str]): name of attribute in 'filer' which
+        import_folder (Optional[str]): name of attribute in 'clerk' which
             contains the path to the default folder for importing data objects.
             Defaults to 'processed'.
-        export_folder (Optional[str]): name of attribute in 'filer' which
+        export_folder (Optional[str]): name of attribute in 'clerk' which
             contains the path to the default folder for exporting data objects.
             Defaults to 'processed'.
         idea (Optional[Idea]): shared project configuration settings.
@@ -516,9 +516,9 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #         Args:
 #             review(Review.report): 'report' from an instance of review
 #         """
-#         self.filer.save(
+#         self.clerk.save(
 #             variable = report,
-#             folder = self.filer.experiment,
+#             folder = self.clerk.experiment,
 #             file_name = self.model_type + '_review',
 #             file_format = 'csv',
 #             header = True)

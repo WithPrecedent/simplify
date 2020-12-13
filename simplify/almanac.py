@@ -38,7 +38,7 @@ class Manual(SimpleBook):
         idea(Idea or str): an instance of Idea or a string containing the file
             path or file name (in the current working directory) where a
             supoorted settings file for an Idea instance is located.
-        filer(filer): an instance of filer.
+        clerk(clerk): an instance of clerk.
         dataset(Dataset or str): an instance of Dataset or a string
             with the file path for a pandas DataFrame that will. This argument
             does not need to be passed when the class is instanced.
@@ -64,7 +64,7 @@ class Manual(SimpleBook):
 
     """
     idea: object = None
-    filer: object = None
+    clerk: object = None
     dataset: object = None
     steps: object = None
     plans: object = None
@@ -117,19 +117,19 @@ class Manual(SimpleBook):
 
     def _implement_file(self, dataset):
         with open(
-                self.filer.path_in, mode = 'r', errors = 'ignore',
+                self.clerk.path_in, mode = 'r', errors = 'ignore',
                 encoding = self.workers.idea['files']['file_encoding']) as a_file:
             dataset.source = a_file.implement()
             for step in self.steps:
                 data = step.implement(data = dataset)
-            self.filer.save(variable = dataset.df)
+            self.clerk.save(variable = dataset.df)
         return dataset
 
     def _implement_glob(self, dataset):
-        self.filer.initialize_writer(
-                file_path = self.filer.path_out)
+        self.clerk.initialize_writer(
+                file_path = self.clerk.path_out)
         dataset.make_series()
-        for file_num, a_path in enumerate(self.filer.path_in):
+        for file_num, a_path in enumerate(self.clerk.path_in):
             if (file_num + 1) % 100 == 0 and self.verbose:
                 print(file_num + 1, 'files parsed')
             with open(
@@ -140,7 +140,7 @@ class Manual(SimpleBook):
                 dataset.df[self.index_column] = file_num + 1
                 for step in self.steps:
                     data = step.implement(data = dataset)
-                self.filer.save(variable = dataset.df)
+                self.clerk.save(variable = dataset.df)
         return dataset
 
     def _set_columns(self, organizer):
@@ -184,6 +184,6 @@ class Manual(SimpleBook):
                 dataset.columns = self.columns
             self.conform(step = self.step)
             self.data = draft.implement(data = self.dataset)
-            self.filer.save(variable = self.dataset,
+            self.clerk.save(variable = self.dataset,
                                 file_name = self.step + '_dataset')
         return self

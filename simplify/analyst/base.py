@@ -33,11 +33,11 @@ class Analyze(simplify.SimpleProject):
             a str or pathlib.Path containing the file path where a file of a 
             supported file type with settings for a Settings instance is 
             located. Defaults to the default Settings instance.
-        manager (Union[Type, str, pathlib.Path]]): a Manager-compatible class,
+        clerk (Union[Type, str, pathlib.Path]]): a Clerk-compatible class,
             or a str or pathlib.Path containing the full path of where the root 
-            folder should be located for file input and output. A 'manager'
+            folder should be located for file input and output. A 'clerk'
             must contain all file path and import/export methods for use 
-            throughout sourdough. Defaults to the default Manager instance. 
+            throughout sourdough. Defaults to the default Clerk instance. 
         creators (Sequence[Union[Type, str]]): a Creator-compatible classes or
             strings corresponding to the keys in registry of the default
             'creator' in 'bases'. Defaults to a list of 'simple_architect', 
@@ -69,7 +69,7 @@ class Analyze(simplify.SimpleProject):
     """
     contents: Sequence[Any] = dataclasses.field(default_factory = dict)
     settings: Union[object, Type, str, pathlib.Path] = None
-    manager: Union[object, Type, str, pathlib.Path] = None
+    clerk: Union[object, Type, str, pathlib.Path] = None
     creators: Sequence[Union[Type, str]] = dataclasses.field(
         default_factory = lambda: ['analyst_architect', 'analyst_builder', 
                                    'analyst_worker'])

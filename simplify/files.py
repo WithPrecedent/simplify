@@ -20,7 +20,7 @@ from simplify.core import utilities
 
 
 @dataclasses.dataclass
-class Filer(collections.abc.MutableMapping):
+class Clerk(collections.abc.MutableMapping):
     """Manages files and folders for siMpLify.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -30,7 +30,7 @@ class Filer(collections.abc.MutableMapping):
     Args:
         idea ('Idea'): an Idea instance with file-management related settings.
         root_folder (Optional[str]): the complete path from which the other
-            paths and folders used by Filer should be created. Defaults to
+            paths and folders used by Clerk should be created. Defaults to
             None. If not passed, the parent folder of the parent folder of the
             current working directory is used.
         data_folder (Optional[str]): the data subfolder name or a complete path
@@ -82,32 +82,32 @@ class Filer(collections.abc.MutableMapping):
 
     @classmethod
     def create(cls,
-            filer: Optional[Union[str, pathlib.Path, List[str]]] = None,
+            clerk: Optional[Union[str, pathlib.Path, List[str]]] = None,
             idea: Optional[core.Idea] = None,
-            **kwargs) -> 'Filer':
-        """Creates an Filer instance from passed arguments.
+            **kwargs) -> 'Clerk':
+        """Creates an Clerk instance from passed arguments.
 
         Args:
-            filer (Optional[Union[str, pathlib.Path, List[str]]]): Filer
+            clerk (Optional[Union[str, pathlib.Path, List[str]]]): Clerk
                 instance or root folder for one.
             idea (Optional[Idea]): an Idea instance.
 
         Returns:
-            Filer: instance, properly configured.
+            Clerk: instance, properly configured.
 
         Raises:
-            TypeError if filer is neither an Filer instance, string
+            TypeError if clerk is neither an Clerk instance, string
                 folder path, nor list to create a folder path.
 
         """
-        if isinstance(filer, Filer):
-            return filer
-        elif isinstance(filer, (str, pathlib.Path, List)):
-            return cls(root_folder = filer, idea = idea, **kwargs)
-        elif filer is None:
+        if isinstance(clerk, Clerk):
+            return clerk
+        elif isinstance(clerk, (str, pathlib.Path, List)):
+            return cls(root_folder = clerk, idea = idea, **kwargs)
+        elif clerk is None:
             return cls(idea = idea, **kwargs)
         else:
-            raise TypeError('filer must be Filer type or folder path')
+            raise TypeError('clerk must be Clerk type or folder path')
 
     """ Required ABC Methods """
 
@@ -127,7 +127,7 @@ class Filer(collections.abc.MutableMapping):
         try:
             return self.folders[key]
         except KeyError:
-            raise KeyError(' '.join([key, 'is not found in Filer']))
+            raise KeyError(' '.join([key, 'is not found in Clerk']))
 
     def __delitem__(self, key: str) -> None:
         """Deletes 'key' entry in 'folders'.
@@ -432,12 +432,12 @@ class Filer(collections.abc.MutableMapping):
             file_path (Optional[Union[str, pathlib.Path]]): a complete file path.
                 Defaults to None.
             folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
-                name of a folder stored in 'filer'. Defaults to None.
+                name of a folder stored in 'clerk'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
             file_format (Optional[Union[str, 'FileFormat']]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'filer'. Defaults to None
+                such an object stored in 'clerk'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -474,12 +474,12 @@ class Filer(collections.abc.MutableMapping):
             file_path (Optional[Union[str, pathlib.Path]]): a complete file path.
                 Defaults to None.
             folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
-                name of a folder stored in 'filer'. Defaults to None.
+                name of a folder stored in 'clerk'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
             file_format (Optional[Union[str, 'FileFormat']]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'filer'. Defaults to None
+                such an object stored in 'clerk'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -550,22 +550,22 @@ class Filer(collections.abc.MutableMapping):
         self._draft_file_names()
         # Creates importer and exporter instances for file management.
         self.data_importer = Importer(
-            filer = self,
+            clerk = self,
             root_folder = self.data_folder,
             folders = self.import_folders,
             file_format_states = self.import_format_states,
             file_names = self.import_file_names)
         self.data_exporter = Exporter(
-            filer = self,
+            clerk = self,
             root_folder = self.data_folder,
             folders = self.export_folders,
             file_format_states = self.export_format_states,
             file_names = self.export_file_names)
         self.results_importer = Importer(
-            filer = self,
+            clerk = self,
             root_folder = self.data_folder)
         self.results_exporter = Exporter(
-            filer = self,
+            clerk = self,
             root_folder = self.results_folder)
         return self
 
@@ -575,17 +575,17 @@ class SimpleDistributor(ABC):
     """Base class for siMpLify Importer and Exporter.
 
     Args:
-        filer ('Filer'): a related Filer instance.
+        clerk ('Clerk'): a related Clerk instance.
 
     """
 
-    filer: 'Filer'
+    clerk: 'Clerk'
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         # Creates 'pathlib.Pathifier' instance for dynamic path creation.
         self.pathifier = pathlib.Pathifier(
-            filer = self.filer,
+            clerk = self.clerk,
             distributor = self)
         return self
 
@@ -610,12 +610,12 @@ class SimpleDistributor(ABC):
         new_kwargs = passed_kwargs
         for variable in file_format.addtional_kwargs:
             if not variable in passed_kwargs:
-                if variable in self.filer.default_kwargs:
+                if variable in self.clerk.default_kwargs:
                     new_kwargs.update(
-                        {variable: self.filer.default_kwargs[variable]})
-                elif hasattr(self.filer, variable):
+                        {variable: self.clerk.default_kwargs[variable]})
+                elif hasattr(self.clerk, variable):
                     new_kwargs.update(
-                        {variable: getattr(self.filer, variable)})
+                        {variable: getattr(self.clerk, variable)})
         return new_kwargs
 
     def _check_file_format(self,
@@ -633,10 +633,10 @@ class SimpleDistributor(ABC):
         if isinstance(file_format, FileFormat):
             return file_format
         elif isinstance(file_format, str):
-            return self.filer.file_formats[file_format]
+            return self.clerk.file_formats[file_format]
         else:
-            return self.filer.file_formats[
-                self.file_formats[self.filer.state]]
+            return self.clerk.file_formats[
+                self.file_formats[self.clerk.state]]
 
     def _make_parameters(self,
             file_format: 'FileFormat',
@@ -669,16 +669,16 @@ class Importer(SimpleDistributor):
     """Manages file importing for siMpLify.
 
     Args:
-        filer ('Filer'): related Filer instance.
+        clerk ('Clerk'): related Clerk instance.
         root_folder (Optional[str]): the root folder for files to be loaded.
-            This should usually be the data or results folder from 'filer'.
+            This should usually be the data or results folder from 'clerk'.
             Defaults to None.
         folders (Optional[Dict[str, str]]): mapping with keys of Project ststes
-            and values corresponding to folders stored in 'filer'. Defaults
+            and values corresponding to folders stored in 'clerk'. Defaults
             to an empty dictionary.
         file_format_states (Optional[Dict[str, str]]): mapping with keys of
             Project states and values corresponding to keys of 'file_formats'
-            in filer. This mapping is used if different file formats are
+            in clerk. This mapping is used if different file formats are
             used at different stages of the project (most often when the
             original data format is not desired for long-term use). Defaults to
             an empty dictionary.
@@ -687,7 +687,7 @@ class Importer(SimpleDistributor):
             dictionary.
 
     """
-    filer: 'Filer'
+    clerk: 'Clerk'
     root_folder: Optional[str] = None
     folders: Optional[Dict[str, str]] = dataclasses.field(
         default_factory = dict)
@@ -723,7 +723,7 @@ class Importer(SimpleDistributor):
             Iterable: matching file paths.
 
         """
-        folder = folder or self.filer[self.folders[self.filer.stage]]
+        folder = folder or self.clerk[self.folders[self.clerk.stage]]
         file_format = self._check_file_format(file_format = file_format)
         if include_subfolders:
             return pathlib.Path(folder).rglob('.'.join(
@@ -779,12 +779,12 @@ class Importer(SimpleDistributor):
             file_path (Optional[Union[str, pathlib.Path]]): a complete file
                 path. Defaults to None.
             folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
-                name of a folder stored in 'filer'. Defaults to None.
+                name of a folder stored in 'clerk'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
             file_format (Optional[Union[str, 'FileFormat']]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'filer'. Defaults to None
+                such an object stored in 'clerk'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -814,16 +814,16 @@ class Exporter(SimpleDistributor):
     """Manages file exporting for siMpLify.
 
     Args:
-        filer ('Filer'): related Filer instance.
+        clerk ('Clerk'): related Clerk instance.
         root_folder (Optional[str]): the root folder for files to be loaded.
-            This should usually be the data or results folder from 'filer'.
+            This should usually be the data or results folder from 'clerk'.
             Defaults to None.
         folders (Optional[Dict[str, str]]): mapping with keys of Project ststes
-            and values corresponding to folders stored in 'filer'. Defaults
+            and values corresponding to folders stored in 'clerk'. Defaults
             to an empty dictionary.
         file_format_states (Optional[Dict[str, str]]): mapping with keys of
             Project states and values corresponding to keys of 'file_formats'
-            in filer. This mapping is used if different file formats are
+            in clerk. This mapping is used if different file formats are
             used at different stages of the project (most often when the
             original data format is not desired for long-term use). Defaults to
             an empty dictionary.
@@ -832,7 +832,7 @@ class Exporter(SimpleDistributor):
             dictionary.
 
     """
-    filer: 'Filer' = None
+    clerk: 'Clerk' = None
     root_folder: Optional[str] = None
     folders: Optional[Dict[str, str]] = dataclasses.field(
         default_factory = dict)
@@ -859,7 +859,7 @@ class Exporter(SimpleDistributor):
         """
         # Checks whether True/False should be exported in data files. If
         # 'boolean_out' is set to False, 1/0 are used instead.
-        if not self.filer.boolean_out:
+        if not self.clerk.boolean_out:
             data.replace({True: 1, False: 0}, inplace = True)
         return data
 
@@ -916,12 +916,12 @@ class Exporter(SimpleDistributor):
             file_path (Optional[Union[str, pathlib.Path]]): a complete file
                 path. Defaults to None.
             folder (Optional[Union[str, pathlib.Path]]): a complete folder path or the
-                name of a folder stored in 'filer'. Defaults to None.
+                name of a folder stored in 'clerk'. Defaults to None.
             file_name (Optional[str]): file name without extension. Defaults to
                 None.
             file_format (Optional[Union[str, 'FileFormat']]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'filer'. Defaults to None
+                such an object stored in 'clerk'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -949,11 +949,11 @@ class Pathifier(object):
     """Builds file_paths based upon state.
 
     Args:
-        filer ('Filer): related 'Filer' instance.
+        clerk ('Clerk): related 'Clerk' instance.
         distributor ('SimpleDistributor'): related 'SimpleDistributor' instance.
 
     """
-    filer: 'Filer'
+    clerk: 'Clerk'
     distributor: 'SimpleDistributor'
 
     def __post_init__(self) -> None:
@@ -972,11 +972,11 @@ class Pathifier(object):
 
         """
         if not folder:
-            return self.filer.folders[self.distributor.folders[
-                self.filer.state]]
+            return self.clerk.folders[self.distributor.folders[
+                self.clerk.state]]
         else:
             try:
-                return self.filer.folders[folder]
+                return self.clerk.folders[folder]
             except AttributeError:
                 if isinstance(folder, str):
                     return pathlib.Path(folder)
@@ -994,7 +994,7 @@ class Pathifier(object):
 
         """
         if not file_name:
-            return self.distributor.file_names[self.filer.state]
+            return self.distributor.file_names[self.clerk.state]
         else:
             return file_name
 

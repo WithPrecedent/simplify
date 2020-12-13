@@ -18,7 +18,7 @@ import pandas as pd
 
 from simplify.core.idea import Idea
 from simplify.core.dataset import Dataset
-from simplify.core.filer import Filer
+from simplify.core.clerk import Clerk
 from simplify.core.utilities import deduplicate
 from simplify.core.utilities import utilities.listify
 
@@ -93,7 +93,7 @@ def SimplifyValidator(SimpleValidator):
         idea
         data
         dataset
-        filer
+        clerk
 
     """
 
@@ -108,7 +108,7 @@ def SimplifyValidator(SimpleValidator):
             'idea': create_idea,
             'data': create_data,
             'dataset': create_dataset,
-            'filer': create_filer}
+            'clerk': create_clerk}
         super().__init__()
         return self
 

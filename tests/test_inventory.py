@@ -1,5 +1,5 @@
 """
-.. module:: filer test
+.. module:: clerk test
 :synopsis: tests Idea class
 :author: Corey Rayburn Yung
 :copyright: 2019-2020
@@ -9,16 +9,16 @@
 from pathlib import pathlib.Path
 
 from simplify.core.idea import Idea
-from simplify.core.filer import Filer
+from simplify.core.clerk import Clerk
 
 
-def test_filer():
+def test_clerk():
     idea = Idea(
         configuration = pathlib.Path.cwd().joinpath('tests', 'idea_settings.ini'))
-    filer = Filer(idea = idea)
-    assert filer.folders['root'] == pathlib.Path.cwd().joinpath('..\..')
+    clerk = Clerk(idea = idea)
+    assert clerk.folders['root'] == pathlib.Path.cwd().joinpath('..\..')
     return
 
 
 if __name__ == '__main__':
-    test_filer()
+    test_clerk()

@@ -35,7 +35,7 @@ idea = pathlib.Path.cwd().joinpath('examples', 'cancer_settings.ini')
 # settings in the 'idea_file'.
 cancer_project = Project(
     idea = idea,
-    # filer = root_folder,
+    # clerk = root_folder,
     dataset = df)
 # Converts label to boolean type to correct numpy default above.
 cancer_project.dataset.change_datatype(

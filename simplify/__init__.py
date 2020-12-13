@@ -7,7 +7,7 @@
 """
 
 from simplify.core.dataset import Dataset
-from simplify.core.filer import Filer
+from simplify.core.clerk import Clerk
 from simplify.core.idea import Idea
 from simplify.core.project import Project
 from simplify.core.worker import Worker
@@ -20,7 +20,7 @@ __author__ = 'Corey Rayburn Yung'
 
 __all__ = [
     'Dataset',
-    'Filer',
+    'Clerk',
     'Idea',
     'Project',
     'Worker',

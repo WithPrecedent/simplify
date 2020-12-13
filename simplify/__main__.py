@@ -44,5 +44,5 @@ if __name__ == '__main__':
     # Calls Project with passed command-line arguments.
     Project(
         idea = arguments.get('-idea'),
-        filer = arguments.get('-filer', None),
+        clerk = arguments.get('-clerk', None),
         dataset = arguments.get('-dataset', None))

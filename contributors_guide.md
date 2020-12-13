@@ -55,7 +55,7 @@ Any new subpackages, Books, Chapters, and SimpleRepository should follow a simil
 
 ## siMpLify Worker
 
-1. All file management should be perfomed throught the shared Filer instance.
+1. All file management should be perfomed throught the shared Clerk instance.
 
 2. All external settings should be imported and constructed using the shared 'Idea' instance. To inject matching attributes from the Idea instance, use this idiom from a subclass with the Idea instance stored at 'idea':
 
@@ -67,7 +67,7 @@ Any new subpackages, Books, Chapters, and SimpleRepository should follow a simil
 
 5. If you create a proxy for typing, please subclass the SimpleType class in simplify.core.definitionsetter, if possible.
 
-6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'worker' attribute is an attribute to a Filer instance and 'data_state' is an attribute to an Dataset instance.
+6. State management is currently handled by classes in simplify.core.states, but are typically accessed indirectly. The overall 'worker' attribute is an attribute to a Clerk instance and 'data_state' is an attribute to an Dataset instance.
 
 ## General
 

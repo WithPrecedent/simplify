@@ -41,7 +41,7 @@ class Download(WranglerTechnique):
 
     def publish(self, dataset):
         """Downloads file from a URL if the file is available."""
-        file_path = os.path.join(self.filer.external,
+        file_path = os.path.join(self.clerk.external,
                                  self.file_name)
         file_response = requests.get(self.file_url)
         with open(file_path, 'wb') as file:

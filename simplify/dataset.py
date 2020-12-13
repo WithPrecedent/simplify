@@ -43,7 +43,7 @@ class Dataset(object):
             __class__.__name__ to make such subclassing easier. Defaults to
             None. If not passed, '__class__.__name__.lower()' is used.
         idea (Optional[Idea]): shared 'Idea' instance with project settings.
-        filer (ClassVar['Filer']): shared 'Filer' instance with
+        clerk (ClassVar['Clerk']): shared 'Clerk' instance with
             project file management settings.
 
     """
@@ -54,7 +54,7 @@ class Dataset(object):
     prefixes: Optional[Dict[str, str]] = dataclasses.field(
         default_factory = dict)
     idea: Optional[core.Idea] = None
-    filer: Optional['Filer'] = None
+    clerk: Optional['Clerk'] = None
     name: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -80,7 +80,7 @@ class Dataset(object):
             datatypes: Optional[Dict[str, str]] = None,
             prefixes: Optional[Dict[str, str]] = None,
             idea: Optional[core.Idea] = None,
-            filer: Optional['Filer'] = None) -> 'Dataset':
+            clerk: Optional['Clerk'] = None) -> 'Dataset':
         """Creates an Dataset instance.
 
         Either 'data' or 'x' and 'y' should be passed to Datatset, but not both.
@@ -106,7 +106,7 @@ class Dataset(object):
                 dictionary.
             idea (Optional[Idea]): shared 'Idea' instance with project
                 settings.
-            filer (Optional['Filer']): shared 'Filer' instance with
+            clerk (Optional['Clerk']): shared 'Clerk' instance with
                 project file management settings.
 
         Returns:
@@ -120,11 +120,11 @@ class Dataset(object):
             Make 'x' and 'y' combination work for non-DataFrames
 
         """
-        # Injects 'idea' and 'filer' into 'Dataset' class, if passed.
+        # Injects 'idea' and 'clerk' into 'Dataset' class, if passed.
         if idea is not None:
             cls.idea = idea
-        if filer is not None:
-            cls.filer = filer
+        if clerk is not None:
+            cls.clerk = clerk
         if x is not None and y is not None and data is None:
             data = x
             data[cls.idea['analyst']['label']] = y
@@ -139,7 +139,7 @@ class Dataset(object):
                 datatypes = datatypes,
                 prefixes = prefixes,
                 idea = idea,
-                filer = filer)
+                clerk = clerk)
         elif isinstance(data, pd.Series):
             # To do add row to DataFrame.
             pass
@@ -167,7 +167,7 @@ class Dataset(object):
         elif isinstance(data, np.ndarray):
             return pd.DataFrame(data = data)
         elif isinstance(data, (str, pathlib.Path)):
-            return cls.filer.load(file_path = data)
+            return cls.clerk.load(file_path = data)
 
     """ Dunder Methods """
 
@@ -790,10 +790,10 @@ class DataStage(object):
         test_set (Optional[Tuple[str, str]]): names of attributes in a
             'Dataset' instance to return when 'test' is accessed. Defaults to
             None.
-        import_folder (Optional[str]): name of an attribute in an 'Filer'
+        import_folder (Optional[str]): name of an attribute in an 'Clerk'
             instance corresponding to a path where data should be imported
             from. Defaults to 'processed'.
-        export_folder (Optional[str]): name of an attribute in an 'Filer'
+        export_folder (Optional[str]): name of an attribute in an 'Clerk'
             instance corresponding to a path where data should be exported
             from. Defaults to 'processed'.
 

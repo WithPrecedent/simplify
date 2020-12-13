@@ -209,9 +209,9 @@ class SimplifyReporter(Reporter):
 #         Args:
 #             review(Review.report): 'report' from an instance of review
 #         """
-#         self.filer.save(
+#         self.clerk.save(
 #             variable = report,
-#             folder = self.filer.experiment,
+#             folder = self.clerk.experiment,
 #             file_name = self.model_type + '_review',
 #             file_format = 'csv',
 #             header = True)

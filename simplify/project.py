@@ -29,25 +29,25 @@ class Project(core.SimpleProject):
             containing the file path or file name (in the current working
             directory) where a file of a supported file type with settings for
             an Idea instance is located. Defaults to None.
-        filer (Optional[Union['Filer', str]]): an instance of Filer or a string
+        clerk (Optional[Union['Clerk', str]]): an instance of Clerk or a string
             containing the full path of where the root folder should be located
-            for file output. A filer instance contains all file path and
+            for file output. A clerk instance contains all file path and
             import/export methods for use throughout siMpLify. Defaults to None.
         dataset (Optional[Union['Dataset', pd.DataFrame, np.ndarray, str]]): an
             instance of Dataset, an instance of Data, a string containing the
             full file path where a data file for a pandas DataFrame is located,
             a string containing a file name in the default data folder (as
-            defined in the shared Filer instance), a full folder path where raw
+            defined in the shared Clerk instance), a full folder path where raw
             files for data to be extracted from, a string
-            containing a folder name which is an attribute in the shared Filer
+            containing a folder name which is an attribute in the shared Clerk
             instance, a DataFrame, or numpy ndarray. If a DataFrame, Data
             instance, ndarray, or string is
             passed, the resultant data object is stored in the 'data' attribute
             in a new Dataset instance as a DataFrame. Defaults to None.
         workers (Optional[Union[List[str], Dict[str, 'Package'], Dict[str,
-            'Worker'], core.SimpleRepository, 'Manager']]): mapping of 'Package'
+            'Worker'], core.SimpleRepository, 'Clerk']]): mapping of 'Package'
             instances or the information needed to create one and store it in
-            a 'Manager' instance. Defaults to an empty 'core.SimpleRepository'
+            a 'Clerk' instance. Defaults to an empty 'core.SimpleRepository'
             instance.
         name (Optional[str]): designates the name of the class used for internal
             referencing throughout siMpLify. If the class needs settings from
@@ -71,7 +71,7 @@ class Project(core.SimpleProject):
 
     """
     idea: Optional[simplify.Idea] = None
-    filer: Optional[simplify.Filer] = None
+    clerk: Optional[simplify.Clerk] = None
     dataset: Optional[Union[
         simplify.Dataset,
         pd.DataFrame,
@@ -102,8 +102,8 @@ class Project(core.SimpleProject):
         self.idea = simplify.Idea(contents = self.idea)
         # Adds general attributes from 'idea'.
         self.idea.inject(instance = self)
-        # Validates 'Filer' instance.
-        self.filer = simplify.Filer(root_folder = self.filer, idea = self.idea)
+        # Validates 'Clerk' instance.
+        self.clerk = simplify.Clerk(root_folder = self.clerk, idea = self.idea)
         # Validates 'Dataset' instance.
         self.dataset = simplify.Dataset(data = self.dataset, idea = self.idea)
         # Validates and initializes 'options' and 'workers'.
@@ -181,13 +181,13 @@ class Project(core.SimpleProject):
                 simplify.Book],
             name: Optional[str] = None,
             overwrite: Optional[bool] = False) -> None:
-        """Adds 'worker' to 'manager' or 'book' to 'library'.
+        """Adds 'worker' to 'clerk' or 'book' to 'library'.
 
         Args:
             item (Union[simplify.Worker, str, simplify.Book): a siMpLify object
                 to add or a string corresponding to a default worker.
             name (Optional[str]): key to use for the passed item in either
-                'library' or 'manager'. Defaults to None. If not passed, the
+                'library' or 'clerk'. Defaults to None. If not passed, the
                 'name' attribute of item will be used as the key for item.
            overwrite (Optional[bool]): whether to overwrite an existing
                 attribute with the imported object (True) or to update the
@@ -263,7 +263,7 @@ class Project(core.SimpleProject):
                 (False). Defaults to True.
 
         """
-        loaded = self.filer(file_path = file_path)
+        loaded = self.clerk(file_path = file_path)
         if isinstance(loaded, Project):
             self = loaded
         elif isinstance(loaded, Library):
@@ -273,13 +273,13 @@ class Project(core.SimpleProject):
                 self.library.update(loaded)
         elif isinstance(loaded, Book):
             self.library.add(book = loaded)
-        elif isinstance(loaded, Manager):
+        elif isinstance(loaded, Clerk):
             if overwrite:
-                self.manager = loaded
+                self.clerk = loaded
             else:
-                self.manager.update(loaded)
+                self.clerk.update(loaded)
         elif isinstance(loaded, Worker):
-            self.manager.add(worker = loaded)
+            self.clerk.add(worker = loaded)
         elif isinstance(loaded, Dataset):
             if overwrite:
                 self.dataset = loaded
@@ -288,7 +288,7 @@ class Project(core.SimpleProject):
         else:
             raise TypeError(
                 'loaded object must be Projecct, Library, Book, Dataset, \
-                     Manager, or Worker type')
+                     Clerk, or Worker type')
         return self
 
     def save(self,
@@ -304,7 +304,7 @@ class Project(core.SimpleProject):
 
         Raises:
             AttributeError: if 'attribute' is a string and cannot be found in
-                the 'Project' subclass or its 'manager' and 'library'
+                the 'Project' subclass or its 'clerk' and 'library'
                 attributes.
 
         """
@@ -313,14 +313,14 @@ class Project(core.SimpleProject):
                 attribute = getattr(self, attribute)
             except AttributeError:
                 try:
-                    attribute = getattr(self.manager, attribute)
+                    attribute = getattr(self.clerk, attribute)
                 except AttributeError:
                     try:
                         attribute = getattr(self.library, attribute)
                     except AttributeError:
                         AttributeError(f'attribute not found in {self.name}')
         else:
-            self.filer.save(attribute)
+            self.clerk.save(attribute)
         return self
 
     """ Dunder Methods """

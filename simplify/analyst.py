@@ -1722,10 +1722,10 @@ class Analyst(Worker):
         data (Optional[str]): name of attribute or key in a 'Project' instance
             'library' to use as a data object to apply methods to. Defaults to
             'dataset'.
-        import_folder (Optional[str]): name of attribute in 'filer' which
+        import_folder (Optional[str]): name of attribute in 'clerk' which
             contains the path to the default folder for importing data objects.
             Defaults to 'processed'.
-        export_folder (Optional[str]): name of attribute in 'filer' which
+        export_folder (Optional[str]): name of attribute in 'clerk' which
             contains the path to the default folder for exporting data objects.
             Defaults to 'processed'.
 

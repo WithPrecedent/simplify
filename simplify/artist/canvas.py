@@ -22,16 +22,16 @@ class Canvas(Book):
             file path or file name (in the current working directory) where a
             file of a supoorted file type with settings for an Idea instance is
             located.
-        filer (Optional[Union['Filer', str]]): an instance of
-            filer or a string containing the full path of where the root
-            folder should be located for file output. A filer instance
+        clerk (Optional[Union['Clerk', str]]): an instance of
+            clerk or a string containing the full path of where the root
+            folder should be located for file output. A clerk instance
             contains all file path and import/export methods for use throughout
             the siMpLify package. Defaults to None.
         dataset (Optional[Union['Dataset', pd.DataFrame, pd.Series,
             np.ndarray, str]]): an instance of Dataset, a string containing
             the full file path where a data file for a pandas DataFrame or
             Series is located, a string containing a file name in the default
-            data folder, as defined in the shared Filer instance, a
+            data folder, as defined in the shared Clerk instance, a
             DataFrame, a Series, or numpy ndarray. If a DataFrame, ndarray, or
             string is provided, the resultant DataFrame is stored at the 'df'
             attribute in a new Dataset instance. Defaults to None.
@@ -53,7 +53,7 @@ class Canvas(Book):
 
     """
     idea: Union['Idea', str]
-    filer: Optional[Union['Filer', str]] = None
+    clerk: Optional[Union['Clerk', str]] = None
     dataset: Optional[Union[
         'Dataset',
         pd.DataFrame,

@@ -140,7 +140,7 @@ The examples folder, from which the above settings are taken, currently shows ho
     import numpy as np
     from sklearn.datasets import load_breast_cancer
 
-    from simplify import Idea, filer, Dataset
+    from simplify import Idea, clerk, Dataset
     from simplify.analyst import Cookbook
 
     # Loads cancer data and converts from numpy arrays to pandas dataframe.
@@ -150,7 +150,7 @@ The examples folder, from which the above settings are taken, currently shows ho
     # Initializes core simplify classes.
     idea = Idea(configuration = os.path.join(os.getcwd(), 'examples',
                                             'cancer_settings.ini'))
-    filer = filer(root_folder = os.path.join('..', '..'))
+    clerk = clerk(root_folder = os.path.join('..', '..'))
     dataset = Dataset(df = df)
     # Converts label to boolean type - conversion from numpy arrays leaves all
     # columns as float type.

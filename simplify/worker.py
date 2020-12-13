@@ -1,6 +1,6 @@
 """
 .. module:: Worker
-:synopsis: generic siMpLify manager
+:synopsis: generic siMpLify clerk
 :publisher: Corey Rayburn Yung
 :copyright: 2019-2020
 :license: Apache-2.0
@@ -64,10 +64,10 @@ class Instructions(core.SimpleLoader):
         data (Optional[str]): name of attribute or key in a 'Project' instance
             'books' to use as a data object to apply methods to. Defaults to
             'dataset'.
-        import_folder (Optional[str]): name of attribute in 'filer' which
+        import_folder (Optional[str]): name of attribute in 'clerk' which
             contains the path to the default folder for importing data objects.
             Defaults to 'processed'.
-        export_folder (Optional[str]): name of attribute in 'filer' which
+        export_folder (Optional[str]): name of attribute in 'clerk' which
             contains the path to the default folder for exporting data objects.
             Defaults to 'processed'.
         comparer (Optional[bool]): whether the 'Worker' has a parallel structure

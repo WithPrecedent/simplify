@@ -47,7 +47,7 @@ class Harvest(SimpleIterable):
         return self
 
     def _publish_organize(self, key):
-        file_path = os.path.join(self.filer.techniques,
+        file_path = os.path.join(self.clerk.techniques,
                                  'organizer_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}
@@ -56,7 +56,7 @@ class Harvest(SimpleIterable):
         return algorithm
 
     def _publish_parse(self, key):
-        file_path = os.path.join(self.filer.techniques,
+        file_path = os.path.join(self.clerk.techniques,
                                  'parser_' + key + '.csv')
         self.parameters = {'step': self.step,
                            'file_path': file_path}
