@@ -111,7 +111,7 @@ class Evaluator(Technique):
             the shared 'Idea' instance, 'name' should match the appropriate
             section name in 'Idea'. When subclassing, it is a good idea to use
             the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
+            coord   ination between siMpLify classes. 'name' is used instead of
             __class__.__name__ to make such subclassing easier. Defaults to
             None or __class__.__name__.lower() if super().__post_init__ is
             called.
