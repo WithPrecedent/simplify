@@ -1,27 +1,22 @@
 """
-.. module:: siMpLify
-:synopsis: data science made simple
-:author: Corey Rayburn Yung
-:copyright: 2019-2020
-:license: Apache-2.0
+simplify: making data science simple
+Corey Rayburn Yung <coreyrayburnyung@gmail.com>
+Copyright 2020, Corey Rayburn Yung
+License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+Contents:
+    
 """
 
-from simplify.core.dataset import Dataset
-from simplify.core.clerk import Clerk
-from simplify.core.idea import Idea
-from simplify.core.project import Project
-from simplify.core.worker import Worker
-from simplify.core.utilities import simple_timer
+from .core.base import SimpleTechnique
+from .core.base import SimpleStep
+
+from .core.interface import SimpleBases
+from .core.interface import SimpleProject
 
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = [
-    'Dataset',
-    'Clerk',
-    'Idea',
-    'Project',
-    'Worker',
-    'simple_timer']
+__all__ = []
