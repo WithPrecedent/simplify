@@ -16,13 +16,14 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 
+import sourdough
 import simplify
 from simplify import core
 from simplify.core import utilities
 
 
 @dataclasses.dataclass
-class Dataset(object):
+class Dataset(sourdough.quirks.Element):
     """Collection of associated pandas data objects.
 
     Args:
@@ -34,28 +35,17 @@ class Dataset(object):
         prefixes (Optional[Dict[str, str]]): keys are column prefixes and
             values are siMpLify proxy datatypes. Defaults to an empty
             dictionary.
-        name (Optional[str]): designates the name of the class used for internal
-            referencing throughout siMpLify. If the class needs settings from
-            the shared 'Idea' instance, 'name' should match the appropriate
-            section name in 'Idea'. When subclassing, it is a good idea to use
-            the same 'name' attribute as the base class for effective
-            coordination between siMpLify classes. 'name' is used instead of
-            __class__.__name__ to make such subclassing easier. Defaults to
-            None. If not passed, '__class__.__name__.lower()' is used.
-        idea (Optional[Idea]): shared 'Idea' instance with project settings.
-        clerk (ClassVar['Clerk']): shared 'Clerk' instance with
-            project file management settings.
+        name (str): designates the name of a class instance that is used for 
+            internal referencing throughout sourdough. For example, if a 
+            sourdough instance needs settings from a Configuration instance, 
+            'name' should match the appropriate section name in a Configuration 
+            instance. Defaults to None.
 
     """
-    data: Optional[Union[
-        pd.DataFrame, np.ndarray, str, pathlib.Path]] = None
-    datatypes: Optional[Dict[str, str]] = dataclasses.field(
-        default_factory = dict)
-    prefixes: Optional[Dict[str, str]] = dataclasses.field(
-        default_factory = dict)
-    idea: Optional[core.Idea] = None
-    clerk: Optional['Clerk'] = None
-    name: Optional[str] = None
+    data: Union[pd.DataFrame, np.ndarray, str, pathlib.Path] = None
+    datatypes: Dict[str, str] = dataclasses.field(default_factory = dict)
+    prefixes: Dict[str, str] = dataclasses.field(default_factory = dict)
+    name: str = None
 
     def __post_init__(self) -> None:
         """Sets instance attributes."""
