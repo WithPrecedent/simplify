@@ -5,7 +5,8 @@ Copyright 2020, Corey Rayburn Yung
 License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 
 Contents:
-
+    Analyst (SimpleManager):
+    Report (SimpleSummary):
     
 """
 from __future__ import annotations
@@ -26,8 +27,8 @@ class Analyst(simplify.base.SimpleManager):
             sourdough instance needs settings from a SimpleSettings
             instance, 'name' should match the appropriate section name in a 
             SimpleSettings instance. Defaults to None. 
-        workflow (simplify.base.SimpleWorkflow): a workflow of a project subpart derived 
-            from 'outline'. Defaults to None.
+        workflow (simplify.base.SimpleWorkflow): a workflow of a project subpart 
+            derived from 'outline'. Defaults to None.
         needs (ClassVar[Union[Sequence[str], str]]): attributes needed from 
             another instance for some method within a subclass. Defaults to an
             empty list.
