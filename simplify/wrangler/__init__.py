@@ -1,15 +1,20 @@
 """
-.. module:: wrangler
-:synopsis: data processing made simple
-:author: Corey Rayburn Yung
-:copyright: 2019-2020
-:license: Apache-2.0
+wrangler: data acquisition and cleaning made simple
+Corey Rayburn Yung <coreyrayburnyung@gmail.com>
+Copyright 2020, Corey Rayburn Yung
+License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+Contents:
+    
 """
 
-from .manual import Manual
+from .algorithms import *
+from .base import *
+from .components import *
+
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = ['Manual']
+__all__ = []

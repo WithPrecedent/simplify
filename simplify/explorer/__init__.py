@@ -1,5 +1,5 @@
 """
-artist: data visualization made simple
+analyst: data analysis made simple
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020, Corey Rayburn Yung
 License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)

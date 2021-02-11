@@ -1,21 +1,20 @@
 """
-.. module:: siMpLify critic
-:synopsis: model evaluation made simple
-:author: Corey Rayburn Yung
-:copyright: 2019-2020
-:license: Apache-2.0
+critic: model explanation made simple
+Corey Rayburn Yung <coreyrayburnyung@gmail.com>
+Copyright 2020, Corey Rayburn Yung
+License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+Contents:
+    
 """
 
+from .algorithms import *
+from .base import *
+from .components import *
 
-from simplify.critic.critic import Anthology
-from simplify.critic.critic import Critic
-from simplify.critic.critic import Evaluators
 
 __version__ = '0.1.1'
 
 __author__ = 'Corey Rayburn Yung'
 
-__all__ = [
-    'Anthology',
-    'Critic',
-    'Evaluators']
+__all__ = []

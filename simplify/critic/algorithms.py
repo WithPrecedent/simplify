@@ -1,26 +1,472 @@
 """
-.. module:: critic algorithms
-:synopsis: siMpLify algorithms for project evaluation
-:author: Corey Rayburn Yung
-:copyright: 2019-2020
-:license: Apache-2.0
+critic.algorithms
+Corey Rayburn Yung <coreyrayburnyung@gmail.com>
+Copyright 2020, Corey Rayburn Yung
+License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+Contents:
+    
+
+    
 """
 
-from dataclasses.dataclasses import dataclasses.dataclass
-from dataclasses.dataclasses import dataclasses.field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from __future__ import annotations
+import copy
+import dataclasses
+import functools
+from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Mapping, 
+                    Optional, Sequence, Tuple, Type, Union)
 
-from simplify.critic.critic import Evaluator
+import numpy as np
+import pandas as pd
+import scipy
+import sklearn
+
+import simplify
+import sourdough
 
 
-def compute_metrics(data: 'Dataset') -> 'Dataset':
-    return data
 
-def pandas_describe(data: 'Dataset') -> 'Dataset':
-    return data
+@dataclasses.dataclass
+class Metric(Technique):
+    """Base class for model performance evaluation measurements.
 
-def simplify_report(data: 'Dataset') -> 'Dataset':
-    return data
+    Args:
+        name (Optional[str]): designates the name of the class used for internal
+            referencing throughout siMpLify. If the class needs settings from
+            the shared 'Idea' instance, 'name' should match the appropriate
+            section name in 'Idea'. When subclassing, it is a good idea to use
+            the same 'name' attribute as the base class for effective
+            coordination between siMpLify classes. 'name' is used instead of
+            __class__.__name__ to make such subclassing easier. Defaults to
+            None or __class__.__name__.lower() if super().__post_init__ is
+            called.
+        step (Optional[str]): name of step when the class instance is to be
+            applied. Defaults to None.
+        module (Optional[str]): name of module where object to use is located
+            (can either be a siMpLify or non-siMpLify module). Defaults to
+            'simplify.core'.
+        algorithm (Optional[object]): process object which executes the primary
+            method of a class instance. Defaults to None.
+        parameters (Optional[Dict[str, Any]]): parameters to be attached to
+            'algorithm' when 'algorithm' is instanced. Defaults to an empty
+            dictionary.
+
+    To Do:
+        Add attributes for cluster metrics.
+
+    """
+    name: Optional[str] = None
+    step: Optional[str] = dataclasses.field(default_factory = lambda: 'measure')
+    module: Optional[str] = None
+    algorithm: Optional[object] = None
+    parameters: Optional[Dict[str, Any]] = dataclasses.field(default_factory = dict)
+    negative: Optional[bool] = False
+    probabilities: Optional[bool] = False
+    actual: Optional[str] = 'y_true'
+    predicted: Optional[str] = 'y_pred'
+    conditional: Optional[bool] = False
+
+
+@dataclasses.dataclass
+class SklearnMetrics(SimpleRepository):
+    """A dictonary of Evaluator options for the Analyst subpackage.
+
+    Args:
+        idea (Optional[Idea]): shared 'Idea' instance with project settings.
+
+    To Do:
+        Add attributes for cluster metrics.
+
+    """
+    idea: Optional[core.Idea] = None
+
+    """ Private Methods """
+
+    def _cluster_metrics(self) -> None:
+        self.contents = {
+            'adjusted_mutual_info': Metric(
+                name = 'adjusted_mutual_info',
+                module = 'sklearn.metrics',
+                algorithm = 'adjusted_mutual_info_score'),
+            'adjusted_rand': Metric(
+                name = 'adjusted_rand',
+                module = 'sklearn.metrics',
+                algorithm = 'adjusted_rand_score'),
+            'calinski_harabasz': Metric(
+                name = 'calinski_harabasz',
+                module = 'sklearn.metrics',
+                algorithm = 'calinski_harabasz_score'),
+            'davies_bouldin': Metric(
+                name = 'davies_bouldin',
+                module = 'sklearn.metrics',
+                algorithm = 'davies_bouldin_score'),
+            'completeness': Metric(
+                name = 'completeness',
+                module = 'sklearn.metrics',
+                algorithm = 'completeness_score'),
+            'fowlkes_mallows': Metric(
+                name = 'fowlkes_mallows',
+                module = 'sklearn.metrics',
+                algorithm = 'fowlkes_mallows_score'),
+            'homogeneity': Metric(
+                name = 'homogeneity',
+                module = 'sklearn.metrics',
+                algorithm = 'homogeneity'),
+            'mutual_info': Metric(
+                name = 'mutual_info',
+                module = 'sklearn.metrics',
+                algorithm = 'mutual_info_score'),
+            'normalized_mutual_info': Metric(
+                name = 'normalized_mutual_info',
+                module = 'sklearn.metrics',
+                algorithm = 'normalized_mutual_info_score'),
+            'silhouette': Metric(
+                name = 'silhouette',
+                module = 'sklearn.metrics',
+                algorithm = 'silhouette_score'),
+            'silhouette_samples': Metric(
+                name = 'accuracy',
+                module = 'sklearn.metrics',
+                algorithm = 'accuracy_score'),
+            'v_measure': Metric(
+                name = 'v_measure',
+                module = 'sklearn.metrics',
+                algorithm = 'v_measure_score')}
+        return self
+
+    def _classify_metrics(self) -> None:
+        self.contents = {
+            'accuracy': Metric(
+                name = 'accuracy',
+                module = 'sklearn.metrics',
+                algorithm = 'accuracy_score'),
+            'balanced_accuracy': Metric(
+                name = 'balanced_accuracy',
+                module = 'sklearn.metrics',
+                algorithm = 'balanced_accuracy_score'),
+            'brier_loss': Metric(
+                name = 'brier_loss',
+                module = 'sklearn.metrics',
+                algorithm = 'brier_score_loss',
+                negative = True,
+                probabilities = True,
+                predicated = 'y_prob'),
+            'cohen_kappa': Metric(
+                name = 'cohen_kappa',
+                module = 'sklearn.metrics',
+                algorithm = 'cohen_kappa_score',
+                predicted = 'y1',
+                actual = 'y2'),
+            'dcg': Metric(
+                name = 'dcg',
+                module = 'sklearn.metrics',
+                algorithm = 'dcg_score',
+                probabilities = True,
+                predicted = 'y_score'),
+            'f1': Metric(
+                name = 'f1',
+                module = 'sklearn.metrics',
+                algorithm = 'f1_score'),
+            'fbeta': Metric(
+                name = 'fbeta',
+                module = 'sklearn.metrics',
+                algorithm = 'fbeta_score',
+                parameters = {'beta': 1}),
+            'hamming_loss': Metric(
+                name = 'hamming_loss',
+                module = 'sklearn.metrics',
+                algorithm = 'hamming_loss',
+                negative = True),
+            'hinge_loss': Metric(
+                name = 'hinge_loss',
+                module = 'sklearn.metrics',
+                algorithm = 'hinge_loss',
+                predicted = 'pred_decision',
+                condtional = True),
+            'jaccard': Metric(
+                name = 'jaccard',
+                module = 'sklearn.metrics',
+                algorithm = 'jaccard_score'),
+            'neg_log_loss': Metric(
+                name = 'neg_log_loss',
+                module = 'sklearn.metrics',
+                algorithm = 'log_loss'),
+            'matthews': Metric(
+                name = 'matthews',
+                module = 'sklearn.metrics',
+                algorithm = 'matthews_corrcoef'),
+            'ndcg': Metric(
+                name = 'ndcg',
+                module = 'sklearn.metrics',
+                algorithm = 'ndcg_score',
+                probabilities = True,
+                predicted = 'y_score'),
+            'precision': Metric(
+                name = 'precision_',
+                module = 'sklearn.metrics',
+                algorithm = 'precision__score'),
+            'recall': Metric(
+                name = 'recall',
+                module = 'sklearn.metrics',
+                algorithm = 'recall_score'),
+            'roc_auc': Metric(
+                name = 'roc_auc',
+                module = 'sklearn.metrics',
+                algorithm = 'roc_auc_score',
+                probabilities = True,
+                predicted = 'y_score'),
+            'zero_one_loss': Metric(
+                name = 'zero_one_loss',
+                module = 'sklearn.metrics',
+                algorithm = 'zero_one_loss',
+                negative = True)}
+        return self
+
+    def _regress_metrics(self) -> None:
+        self.contents = {
+            'adjusted_r2': Metric(
+                name = 'adjusted_r2',
+                module = 'simplify.critic.metrics',
+                algorithm = 'adjusted_r2',
+                parameters = {'data': 'data', 'r2': 'r2'}),
+            'explained_variance': Metric(
+                name = 'explained_variance',
+                module = 'sklearn.metrics',
+                algorithm = 'explained_variance_score'),
+            'max_error': Metric(
+                name = 'max_error',
+                module = 'sklearn.metrics',
+                algorithm = 'max_error'),
+            'mean_absolute_error': Metric(
+                name = 'mean_absolute_error',
+                module = 'sklearn.metrics',
+                algorithm = 'mean_absolute_error'),
+            'mean_squared_error': Metric(
+                name = 'mean_squared_error',
+                module = 'sklearn.metrics',
+                algorithm = 'mean_squared_error'),
+            'mean_squared_log_error': Metric(
+                name = 'mean_squared_log_error',
+                module = 'sklearn.metrics',
+                algorithm = 'mean_squared_log_error'),
+            'median_absolute_error': Metric(
+                name = 'median_absolute_error',
+                module = 'sklearn.metrics',
+                algorithm = 'median_absolute_error'),
+            'r2': Metric(
+                name = 'r2',
+                module = 'sklearn.metrics',
+                algorithm = 'r2_score'),
+            'mean_poisson_deviance': Metric(
+                name = 'mean_poisson_deviance',
+                module = 'sklearn.metrics',
+                algorithm = 'mean_poisson_deviance'),
+            'mean_gamma_deviance': Metric(
+                name = 'mean_gamma_deviance',
+                module = 'sklearn.metrics',
+                algorithm = 'mean_gamma_deviance'),
+            'mean_tweedie_deviance': Metric(
+                name = 'mean_tweedie_deviance',
+                module = 'sklearn.metrics',
+                algorithm = 'mean_tweedie_deviance')}
+        return self
+
+    """ Private Methods """
+
+    def create(self) -> None:
+        getattr(self, '_'.join(
+            ['_', self.idea['analyst']['model_type'], 'metrics']))()
+        return self
+
+
+def adjusted_r2(data: 'DataBundle', r2: float) -> float:
+    return 1 - (1-r2)*(len(data.y)-1)/(len(data.y)-data.x.shape[1]-1)
+
+
+@dataclasses.dataclass
+class ConfusionMatrix(Reporter):
+    """Summary report for Analyst performance.
+
+    Args:
+        idea (Optional[Idea]): an instance with project settings.
+
+    """
+    idea: Optional[core.Idea] = None
+
+    """ Private Methods """
+
+    def _create_report(self,
+            actual: Union[np.ndarray, pd.Series],
+            prediction: Union[np.ndarray, pd.Series]) -> pd.DataFrame:
+        return pd.DataFrame(
+            self.algorithm(
+                actual,
+                prediction,
+                labels = ['yes', 'no']),
+                index = ['actual:yes', 'actual:no'],
+                columns =['predicted:yes', 'predicted:no'])
+
+    """ Core siMpLify Methods """
+
+    def apply(self, data: 'Chapter') -> 'Chapter':
+        self.algorithm = algorithm.load('algorithm')
+        actual = getattr(data.data, '_'.join(
+            'y', self.idea['critic']['data_to_review']))
+        for key, prediction in data.predictions:
+            new_key = '_'.join('classification', key)
+            data.reports[new_key] = self._create_report(
+                prediction = prediction,
+                actual = actual)
+        return data
+
+
+@dataclasses.dataclass
+class ClassificationReport(Reporter):
+    """Summary report for Analyst performance.
+
+    Args:
+        idea (Optional[Idea]): an instance with project settings.
+
+    """
+    idea: Optional[core.Idea] = None
+
+    """ Private Methods """
+
+    def _create_report(self,
+            actual: Union[np.ndarray, pd.Series],
+            prediction: Union[np.ndarray, pd.Series]) -> pd.DataFrame:
+        return pd.DataFrame(
+            self.algorithm(actual, prediction, output_dict = True)).transpose()
+
+    """ Core siMpLify Methods """
+
+    def apply(self, data: 'Chapter') -> 'Chapter':
+        self.algorithm = algorithm.load('algorithm')
+        actual = getattr(data.data, '_'.join(
+            'y', self.idea['critic']['data_to_review']))
+        for key, prediction in data.predictions:
+            new_key = '_'.join('classification', key)
+            data.reports[new_key] = self._create_report(
+                prediction = prediction,
+                actual = actual)
+        return data
+
+
+@dataclasses.dataclass
+class SimplifyReporter(Reporter):
+    """Summary report for Analyst performance.
+
+    Args:
+        idea (Optional[Idea]): an instance with project settings.
+
+    """
+    idea: Optional[core.Idea] = None
+
+# @dataclasses.dataclass
+# class Article(object):
+
+#     def __post_init__(self) -> None:
+#         super().__post_init__()
+#         return self
+
+#     """ Private Methods """
+
+#     def _add_row(self, recipe, report):
+#         new_row = pd.Series(index = self.columns)
+#         for column, variable in self.required_columns.items():
+#             new_row[column] = getattr(recipe, variable)
+#         for column in report:
+#             new_row[column] = report[column]
+#         self.text.loc[len(self.text)] = new_row
+#         return self
+
+#     def _check_best(self, recipe):
+#         """Checks if the current recipe is better than the current best recipe
+#         based upon the primary scoring metric.
+
+#         Args:
+#             recipe: an instance of Recipe to be tested versus the current best
+#                 recipe stored in the 'best_recipe' attribute.
+#         """
+#         if not self._exists('best_recipe'):
+#             self.best_recipe = recipe
+#             self.best_recipe_score = self.article.loc[
+#                     self.article.index[-1],
+#                     utilities.listify(self.metrics)[0]]
+#         elif (self.article.loc[
+#                 self.article.index[-1],
+#                 utilities.listify(self.metrics)[0]] > self.best_recipe_score):
+#             self.best_recipe = recipe
+#             self.best_recipe_score = self.article.loc[
+#                     self.article.index[-1],
+#                     utilities.listify(self.metrics)[0]]
+#         return self
+
+#     def _format_step(self, attribute):
+#         if getattr(self.recipe, attribute).step in ['none', 'all']:
+#             step_column = getattr(self.recipe, attribute).step
+#         else:
+#             step = getattr(self.recipe, attribute).step
+#             parameters = getattr(self.recipe, attribute).parameters
+#             step_column = f'{step}, parameters = {parameters}'
+#         return step_column
+
+#     def _get_step_name(self, step):
+#         """Returns appropriate algorithm to the report attribute."""
+#         if step.step in ['none', 'all']:
+#             return step.step
+#         else:
+#             return step.algorithm
+
+#     def print_best(self):
+#         """Prints output to the console about the best recipe."""
+#         if self.verbose:
+#             print('The best test recipe, based upon the',
+#                   utilities.listify(self.metrics)[0], 'metric with a score of',
+#                   f'{self.best_recipe_score: 4.4f}', 'is:')
+#             for step in getattr(self,
+#                     self.iterator).best_recipe.steps:
+#                 print(step.capitalize(), ':',
+#                       getattr(getattr(self, self.iterator).best_recipe,
+#                               step).step)
+#         return
+
+#     def _set_columns(self, recipe):
+#         self.required_columns = {
+#             'recipe_number': 'number',
+#             'options': 'steps',
+#             'seed': 'seed',
+#             'validation_set': 'using_val_set'}
+#         self.columns = list(self.required_columns.keys())
+#         self.columns.extend(recipe.steps)
+#         for step in self.steps:
+#             if (hasattr(getattr(self, step), 'columns')
+#                     and getattr(self, step).name != 'summarize'):
+#                 self.columns.extend(getattr(self, step).columns)
+#         return self
+
+#     def _start_report(self, recipe):
+#         self._set_columns(recipe = recipe)
+#         self.text = pd.DataFrame(columns = self.columns)
+#         return self
+
+#     """ Public Import/Export Methods """
+
+#     def save(self, report = None):
+#         """Exports the review report to disk.
+
+#         Args:
+#             review(Review.report): 'report' from an instance of review
+#         """
+#         self.clerk.save(
+#             variable = report,
+#             folder = self.clerk.experiment,
+#             file_name = self.model_type + '_review',
+#             file_format = 'csv',
+#             header = True)
+#         return
+
 
 # eli5_explanation = Technique(
 #     name = 'eli5_explanation',
@@ -74,169 +520,6 @@ def simplify_report(data: 'Dataset') -> 'Dataset':
 #     algorithm = '_get_shap_importances')
 
 """ Metrics SimpleRepository """
-
-# def _get_brier_score_loss_parameters(self, parameters, recipe = None):
-#     if self.step in 'brier_score_loss':
-#         parameters = {
-#             'y_true': getattr(recipe.dataset,
-#                                 'y_' + self.data_to_review),
-#             'y_prob': recipe.probabilities[:, 1]}
-#     elif self.step in ['roc_auc']:
-#             parameters = {
-#                 'y_true': getattr(recipe.dataset,
-#                                 'y_' + self.data_to_review),
-#                 'y_score': recipe.probabilities[:, 1]}
-#     return parameters
-
-# metrics_accuracy = Technique(
-#     name = 'accuracy',
-#     module = 'sklearn.metrics',
-#     algorithm = 'accuracy_score')
-# metrics_adjusted_mutual_info = Technique(
-#     name = 'adjusted_mutual_info_score',
-#     module = 'sklearn.metrics',
-#     algorithm = 'adjusted_mutual_info')
-# metrics_adjusted_rand = Technique(
-#     name = 'adjusted_rand',
-#     module = 'sklearn.metrics',
-#     algorithm = 'adjusted_rand_score')
-# metrics_balanced_accuracy = Technique(
-#     name = 'balanced_accuracy',
-#     module = 'sklearn.metrics',
-#     algorithm = 'balanced_accuracy_score')
-# metrics_brier_score_loss = Technique(
-#     name = 'brier_score_loss',
-#     module = 'sklearn.metrics',
-#     algorithm = 'brier_score_loss')
-# metrics_calinski = Technique(
-#     name = 'calinski_harabasz',
-#     module = 'sklearn.metrics',
-#     algorithm = 'calinski_harabasz_score')
-# metrics_davies = Technique(
-#     name = 'davies_bouldin',
-#     module = 'sklearn.metrics',
-#     algorithm = 'davies_bouldin_score')
-# metrics_completeness = Technique(
-#     name = 'completeness',
-#     module = 'sklearn.metrics',
-#     algorithm = 'completeness_score')
-# metrics_contingency_matrix = Technique(
-#     name = 'contingency_matrix',
-#     module = 'sklearn.metrics',
-#     algorithm = 'cluster.contingency_matrix')
-# metrics_explained_variance = Technique(
-#     name = 'explained_variance',
-#     module = 'sklearn.metrics',
-#     algorithm = 'explained_variance_score')
-# metrics_f1 = Technique(
-#     name = 'f1',
-#     module = 'sklearn.metrics',
-#     algorithm = 'f1_score')
-# metrics_f1_weighted = Technique(
-#     name = 'f1_weighted',
-#     module = 'sklearn.metrics',
-#     algorithm = 'f1_score',
-#     required = {'average': 'weighted'})
-# metrics_fbeta = Technique(
-#     name = 'fbeta',
-#     module = 'sklearn.metrics',
-#     algorithm = 'fbeta_score',
-#     required = {'beta': 1})
-# metrics_fowlkes = Technique(
-#     name = 'fowlkes_mallows',
-#     module = 'sklearn.metrics',
-#     algorithm = 'fowlkes_mallows_score')
-# metrics_hamming = Technique(
-#     name = 'hamming_loss',
-#     module = 'sklearn.metrics',
-#     algorithm = 'hamming_loss')
-# metrics_h_completness = Technique(
-#     name = 'homogeneity_completeness',
-#     module = 'sklearn.metrics',
-#     algorithm = 'homogeneity_completeness_v_measure')
-# metrics_homogeniety = Technique(
-#     name = 'homogeneity',
-#     module = 'sklearn.metrics',
-#     algorithm = 'homogeneity_score')
-# metrics_jaccard = Technique(
-#     name = 'jaccard_similarity',
-#     module = 'sklearn.metrics',
-#     algorithm = 'jaccard_similarity_score')
-# metrics_mae = Technique(
-#     name = 'median_absolute_error',
-#     module = 'sklearn.metrics',
-#     algorithm = 'median_absolute_error')
-# metrics_matthews_corrcoef = Technique(
-#     name = 'matthews_correlation_coefficient',
-#     module = 'sklearn.metrics',
-#     algorithm = 'matthews_corrcoef')
-# metrics_max_error = Technique(
-#     name = 'max_error',
-#     module = 'sklearn.metrics',
-#     algorithm = 'max_error')
-# metrics_mean_absolute_error = Technique(
-#     name = 'mean_absolute_error',
-#     module = 'sklearn.metrics',
-#     algorithm = 'mean_absolute_error')
-# metrics_mse = Technique(
-#     name = 'mean_squared_error',
-#     module = 'sklearn.metrics',
-#     algorithm = 'mean_squared_error')
-# metrics_msle = Technique(
-#     name = 'mean_squared_log_error',
-#     module = 'sklearn.metrics',
-#     algorithm = 'mean_squared_log_error')
-# metrics_mutual_info = Technique(
-#     name = 'mutual_info_score',
-#     module = 'sklearn.metrics',
-#     algorithm = 'mutual_info_score')
-# metrics_log_loss = Technique(
-#     name = 'log_loss',
-#     module = 'sklearn.metrics',
-#     algorithm = 'log_loss')
-# metrics_norm_mutual_info = Technique(
-#     name = 'normalized_mutual_info',
-#     module = 'sklearn.metrics',
-#     algorithm = 'normalized_mutual_info_score')
-# metrics_precision = Technique(
-#     name = 'precision',
-#     module = 'sklearn.metrics',
-#     algorithm = 'precision_score')
-# metrics_precision_weighted = Technique(
-#     name = 'precision_weighted',
-#     module = 'sklearn.metrics',
-#     algorithm = 'precision_score',
-#     required = {'average': 'weighted'})
-# metrics_r2 = Technique(
-#     name = 'r2',
-#     module = 'sklearn.metrics',
-#     algorithm = 'r2_score')
-# metrics_recall = Technique(
-#     name = 'recall',
-#     module = 'sklearn.metrics',
-#     algorithm = 'recall_score')
-# metrics_recall_weighted = Technique(
-#     name = 'recall_weighted',
-#     module = 'sklearn.metrics',
-#     algorithm = 'recall_score',
-#     required = {'average': 'weighted'})
-# metrics_roc_auc = Technique(
-#     name = 'roc_auc',
-#     module = 'sklearn.metrics',
-#     algorithm = 'roc_auc_score')
-# metrics_silhouette = Technique(
-#     name = 'silhouette',
-#     module = 'sklearn.metrics',
-#     algorithm = 'silhouette_score')
-# metrics_v_measure = Technique(
-#     name = 'v_measure',
-#     module = 'sklearn.metrics',
-#     algorithm = 'v_measure_score')
-# metrics_zero_one = Technique(
-#     name = 'zero_one',
-#     module = 'sklearn.metrics',
-#     algorithm = 'zero_one_loss')
-
 
 # @dataclasses.dataclass
 # class Article(object):
