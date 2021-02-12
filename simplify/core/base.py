@@ -122,7 +122,7 @@ class SimpleManager(quirks.SimpleBase, project.Manager):
     library: ClassVar[sourdough.Library] = sourdough.Library()
 
 
- @dataclasses.dataclass
+@dataclasses.dataclass
 class SimpleComponent(quirks.SimpleBase, project.Component):
     """Base class for parts of a data science project workflow.
 
@@ -156,12 +156,13 @@ class SimpleComponent(quirks.SimpleBase, project.Component):
     
 
 @dataclasses.dataclass
-class SimpleAlgorithm(quirks.SimpleBase, sourdough.quirks.Importer):
+class SimpleAlgorithm(quirks.SimpleBase, sourdough.quirks.Importer, 
+                      sourdough.types.Proxy):
     
     name: str = None
     module: str = None
     contents: str = None
-    required: str = None
+    required: Mapping[str, Any] = dataclasses.field(default_factory = dict)
 
 
 @dataclasses.dataclass
@@ -170,4 +171,82 @@ class SimpleCriteria(SimpleAlgorithm):
     name: str = None
     module: str = None
     contents: str = None
-    required: str = None
+    required: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+
+
+@dataclasses.dataclass    
+class SimpleParameters(quirks.SimpleBase, sourdough.quirks.Needy, 
+                       sourdough.types.Lexicon):
+    """
+    """
+    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    default: ClassVar[Mapping[str, str]] = {}
+    runtime: ClassVar[Mapping[str, str]] = {}
+    required: ClassVar[Sequence[str]] = []
+    selected: ClassVar[Sequence[str]] = []
+    needs: ClassVar[Sequence[str]] = ['settings', 'name']
+    
+    """ Public Class Methods """
+    
+    @classmethod
+    def create(cls, **kwargs) -> None:
+        """[summary]
+
+        """
+        return cls.from_settings(**kwargs)
+    
+    @classmethod
+    def from_settings(cls, 
+                      settings: SimpleSettings, 
+                      name: str, 
+                      **kwargs) -> SimpleParameters:
+        """[summary]
+
+        Args:
+            settings (SimpleSettings): [description]
+            name (str): [description]
+
+        Returns:
+            SimpleParameters: [description]
+            
+        """        
+        # Uses kwargs or 'default' parameters as a starting base.
+        parameters = kwargs if kwargs else cls.default
+        # Adds any parameters from 'settings'.
+        try:
+            parameters.update(settings[f'{name}_parameters'])
+        except KeyError:
+            pass
+        # Adds any required parameters.
+        for item in cls.required:
+            if item not in parameters:
+                parameters[item] = cls.default[item]
+        # Limits parameters to those 'selected' unless there are runtime 
+        # parameters to be added, in which case, the selected limit will
+        # be applied then.
+        if not cls.runtime and cls.selected:
+            parameters = {k: parameters[k] for k in cls.selected}
+        return cls(contents = parameters)
+    
+    
+    """ Public Methods """
+    
+    def add_runtime(self, source: object, **kwargs) -> None:
+        """[summary]
+
+        Args:
+            source (object):
+            
+        """    
+        for parameter, attribute in self.runtime.items():
+            try:
+                self.contents[parameter] = getattr(source, attribute)
+            except AttributeError:
+                try:
+                    self.contents[parameter] = source.contents[attribute]
+                except (KeyError, AttributeError):
+                    pass
+        if self.selected:
+            self.contents = {k: self.contents[k] for k in self.selected}
+        return self
+ 

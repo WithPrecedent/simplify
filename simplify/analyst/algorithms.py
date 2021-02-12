@@ -6,10 +6,8 @@ License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 
 Contents:
     
-
     
 """
-
 from __future__ import annotations
 import copy
 import dataclasses
@@ -27,7 +25,7 @@ import sourdough
 
 
 @dataclasses.dataclass
-class Gaussify(TechniqueOutline):
+class Gaussify(simplify.core.SimpleAlgorithm):
     """Transforms data columns to more gaussian distribution.
 
     The particular method applied is chosen between 'box-cox' and 'yeo-johnson'
@@ -42,10 +40,11 @@ class Gaussify(TechniqueOutline):
         auto_draft(bool): whether 'finalize' method should be called when
             the class is instanced. This should generally be set to True.
     """
-
-    step: str = 'box-cox and yeo-johnson'
-    parameters: object = None
-    name: str = 'gaussifier'
+    name: str = 'box-cox and yeo-johnson'
+    module: str = None
+    contents: str = None
+    parameters: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    required: Mapping[str, Any] = dataclasses.field(default_factory = dict)
 
     def __post_init__(self) -> None:
         self.idea_sections = ['analyst']
