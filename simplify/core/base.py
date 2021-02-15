@@ -17,234 +17,290 @@ Contents:
 """
 from __future__ import annotations
 import abc
+import copy
 import dataclasses
+import inspect
 import pathlib
-import random
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Mapping, 
                     Optional, Sequence, Tuple, Type, Union)
 
-from . import quirks
+import more_itertools
 import sourdough
-from sourdough import project
+
+from . import quirks
 
 
 @dataclasses.dataclass
-class Settings(sourdough.Configuration):
-    """Loads and stores configuration settings for a siMpLify project.
-
-    Args:
-        contents (Union[str, pathlib.Path, Mapping[str, Mapping[str, Any]]]): a 
-            dict, a str file path to a file with settings, or a pathlib Path to
-            a file with settings. Defaults to en empty dict.
-        infer_types (bool): whether values in 'contents' are converted to other 
-            datatypes (True) or left alone (False). If 'contents' was imported 
-            from an .ini file, a False value will leave all values as strings. 
-            Defaults to True.
-        defaults (Mapping[str, Mapping[str]]): any default options that should
-            be used when a user does not provide the corresponding options in 
-            their configuration settings. Defaults to a dict with 'general', 
-            'files', and 'simplify' sections listed.
-        skip (Sequence[str]): names of suffixes to skip when constructing nodes
-            for a simplify project. Defaults to a list with 'general', 'files',
-            'simplify', and 'parameters'. 
-                          
+class SimpleBases(object):
+    """Stores base classes in siMpLify.
+     
     """
-    contents: Union[str, pathlib.Path, Mapping[str, Mapping[str, Any]]] = (
-        dataclasses.field(default_factory = dict))
-    infer_types: bool = True
-    defaults: Mapping[str, Mapping[str, Any]] = dataclasses.field(
-        default_factory = lambda: {'general': {'verbose': False,
-                                               'parallelize': False,
-                                               'conserve_memory': False,
-                                               'gpu': False,
-                                               'seed': random.randrange(1000)},
-                                   'files': {'source_format': 'csv',
-                                             'interim_format': 'csv',
-                                             'final_format': 'csv',
-                                             'file_encoding': 'windows-1252'},
-                                   'simplify': {'default_design': 'pipeline',
-                                                'default_workflow': 'graph'}})
-    skip: Sequence[str] = dataclasses.field(
-        default_factory = lambda: ['general', 
-                                   'files', 
-                                   'simplify', 
-                                   'parameters'])
-
- 
-@dataclasses.dataclass
-class Filer(sourdough.Clerk):
-    pass  
-
     
-  
-@dataclasses.dataclass
-class SimpleStage(quirks.SimpleBase, project.Stage):
-    """Creates a siMpLify object.
-
-    Args:
-        needs (ClassVar[Union[Sequence[str], str]]): attributes needed from 
-            another instance for some method within a subclass. Defaults to an
-            empty list.
-        library (ClassVar[Library]): related Library instance that will store
-            subclasses and allow runtime construction and instancing of those
-            stored subclasses.              
+    def register(self, name: str, item: Union[Type, object]) -> None:
+        """[summary]
+        Args:
+            name (str): [description]
+            item (Union[Type, object]): [description]
+        Raises:
+            ValueError: [description]
+            TypeError: [description]
+        Returns:
+            [type]: [description]
             
-    """
-    needs: ClassVar[Union[Sequence[str], str]] = []
-    library: ClassVar[sourdough.Library] = sourdough.Library()  
+        """
+        if name in dir(self):
+            raise ValueError(f'{name} is already registered')
+        elif inspect.isclass(item) and issubclass(item, SimpleBase):
+            setattr(self, name, item)
+        elif isinstance(item, SimpleBase):
+            setattr(self, name, item.__class__)
+        else:
+            raise TypeError(f'item must be a SimpleBase')
+        return self
+
+    def remove(self, name: str) -> None:
+        """[summary]
+        Args:
+            name (str): [description]
+        Raises:
+            AttributeError: [description]
+            
+        """
+        try:
+            delattr(self, name)
+        except AttributeError:
+            raise AttributeError(f'{name} does not exist in {self.__name__}')
 
 
 @dataclasses.dataclass
-class SimpleManager(quirks.SimpleBase, project.Manager):
-    """Manages a distinct portion of a data science project workflow.
-
+class SimpleBase(abc.ABC):
+    """Base mixin for automatic registration of subclasses and instances. 
+    
+    Any concrete (non-abstract) subclass will automatically store itself in the 
+    class attribute 'subclasses' using the snakecase name of the class as the 
+    key.
+    
+    Any direct subclass will automatically store itself in the class attribute 
+    'bases' using the snakecase name of the class as the key.
+    
+    Any instance of a subclass will be stored in the class attribute 'instances'
+    as long as '__post_init__' is called (either by a 'super()' call or if the
+    instance is a dataclass and '__post_init__' is not overridden).
+    
     Args:
-        name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a SimpleSettings instance, 
-            'name' should match the appropriate section name in a SimpleSettings 
-            instance. Defaults to None. 
-        workflow (sourdough.Structure): a workflow of a project subpart derived 
-            from 'outline'. Defaults to None.
-        needs (ClassVar[Union[Sequence[str], str]]): attributes needed from 
-            another instance for some method within a subclass. Defaults to an
-            empty list.
-        library (ClassVar[Library]): related Library instance that will store
-            subclasses and allow runtime construction and instancing of those
-            stored subclasses.
-                
-    """
-    name: str = None
-    workflow: sourdough.Structure = None
-    needs: ClassVar[Union[Sequence[str], str]] = ['outline', 'name']
-    library: ClassVar[sourdough.Library] = sourdough.Library()
-
-
-@dataclasses.dataclass
-class SimpleComponent(quirks.SimpleBase, project.Component):
-    """Base class for parts of a data science project workflow.
-
-    Args:
-        name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a SimpleSettings instance, 
-            'name' should match the appropriate section name in a SimpleSettings 
-            instance. Defaults to None. 
-        contents (Any): stored item(s) for use by a Component subclass instance.
-        iterations (Union[int, str]): number of times the 'implement' method 
-            should  be called. If 'iterations' is 'infinite', the 'implement' 
-            method will continue indefinitely unless the method stops further 
-            iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
-        parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
-            False.
-        library (ClassVar[Library]): related Library instance that will store
-            subclasses and allow runtime construction and instancing of those
-            stored subclasses.    
-                
-    """
-    name: str = None
-    contents: Any = None
-    iterations: Union[int, str] = 1
-    parameters: Mapping[Any, Any] = dataclasses.field(default_factory = dict)
-    parallel: ClassVar[bool] = False
-    library: ClassVar[sourdough.Library] = sourdough.Library()
+        bases (ClassVar[SimpleBases]): library that stores direct subclasses 
+            (those with Base in their '__bases__' attribute) and allows runtime 
+            access and instancing of those stored subclasses.
     
-
-@dataclasses.dataclass
-class SimpleAlgorithm(quirks.SimpleBase, sourdough.quirks.Importer, 
-                      sourdough.types.Proxy):
+    Attributes:
+        subclasses (ClassVar[sourdough.types.Catalog]): library that stores 
+            concrete subclasses and allows runtime access and instancing of 
+            those stored subclasses. 'subclasses' is automatically created when 
+            a direct SimpleBase subclass (SimpleBase is in its '__bases__') is 
+            instanced.
+        instances (ClassVar[sourdough.types.Catalog]): library that stores
+            subclass instances and allows runtime access of those stored 
+            subclass instances. 'instances' is automatically created when a 
+            direct SimpleBase subclass (SimpleBase is in its '__bases__') is 
+            instanced. 
+                      
+    Namespaces: 
+        bases, subclasses, instances, borrow, instance, and __init_subclass__.
     
-    name: str = None
-    module: str = None
-    contents: str = None
-    required: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-
-
-@dataclasses.dataclass
-class SimpleCriteria(SimpleAlgorithm):
-    
-    name: str = None
-    module: str = None
-    contents: str = None
-    required: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-
-
-@dataclasses.dataclass    
-class SimpleParameters(quirks.SimpleBase, sourdough.quirks.Needy, 
-                       sourdough.types.Lexicon):
     """
-    """
-    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-    default: ClassVar[Mapping[str, str]] = {}
-    runtime: ClassVar[Mapping[str, str]] = {}
-    required: ClassVar[Sequence[str]] = []
-    selected: ClassVar[Sequence[str]] = []
-    needs: ClassVar[Sequence[str]] = ['settings', 'name']
+    bases: ClassVar[SimpleBases] = SimpleBases()
     
+    """ Initialization Methods """
+    
+    def __init_subclass__(cls, **kwargs):
+        """Adds 'cls' to appropriate class libraries."""
+        super().__init_subclass__(**kwargs)
+        # Creates a snakecase key of the class name.
+        key = sourdough.tools.snakify(cls.__name__)
+        # Adds class to 'bases' if it is a base class.
+        if SimpleBase in cls.__bases__:
+            # Creates libraries on this class base for storing subclasses.
+            cls.subclasses = sourdough.types.Catalog()
+            cls.instances = sourdough.types.Catalog()
+            # Adds this class to 'bases' using 'key'.
+            cls.bases.register(name = key, item = cls)
+        # Adds concrete subclasses to 'library' using 'key'.
+        if not abc.ABC in cls.__bases__:
+            cls.subclasses[key] = cls
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        # Calls parent and/or mixin initialization method(s).
+        try:
+            super().__post_init__()
+        except AttributeError:
+            pass
+        try:
+            key = self.name
+        except AttributeError:
+            key = sourdough.tools.snakify(self.__class__.__name__)
+        self.instances[key] = self
+ 
     """ Public Class Methods """
     
     @classmethod
-    def create(cls, **kwargs) -> None:
+    def borrow(cls, name: Union[str, Sequence[str]]) -> Type[SimpleBase]:
         """[summary]
-
+        Args:
+            name (Union[str, Sequence[str]]): [description]
+        Raises:
+            KeyError: [description]
+        Returns:
+            SimpleBase: [description]
+            
         """
-        return cls.from_settings(**kwargs)
+        item = None
+        for key in more_itertools.always_iterable(name):
+            try:
+                item = cls.subclasses[key]
+                break
+            except KeyError:
+                pass
+        if item is None:
+            raise KeyError(f'No matching item for {str(name)} was found') 
+        else:
+            return item
+           
+    @classmethod
+    def instance(cls, name: Union[str, Sequence[str]], **kwargs) -> SimpleBase:
+        """[summary]
+        Args:
+            name (Union[str, Sequence[str]]): [description]
+        Raises:
+            KeyError: [description]
+        Returns:
+            SimpleBase: [description]
+            
+        """
+        item = None
+        for key in more_itertools.always_iterable(name):
+            for library in ['instances', 'subclasses']:
+                try:
+                    item = getattr(cls, library)[key]
+                    break
+                except KeyError:
+                    pass
+            if item is not None:
+                break
+        if item is None:
+            raise KeyError(f'No matching item for {str(name)} was found') 
+        elif inspect.isclass(item):
+            return cls(name = name, **kwargs)
+        else:
+            instance = copy.deepcopy(item)
+            for key, value in kwargs.items():
+                setattr(instance, key, value)
+            return instance
+
+
+@dataclasses.dataclass
+class Component(SimpleBase, sourdough.quirks.Element, abc.ABC):
+    """Base class for parts of a sourdough Workflow.
+    
+    Args:
+        name (str): designates the name of a class instance that is used for 
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+                
+    Attributes:
+        bases (ClassVar[SimpleBases]): library that stores siMpLify base classes 
+            and allows runtime access and instancing of those stored subclasses.
+        subclasses (ClassVar[sourdough.types.Catalog]): library that stores 
+            concrete subclasses and allows runtime access and instancing of 
+            those stored subclasses. 
+        instances (ClassVar[sourdough.types.Catalog]): library that stores
+            subclass instances and allows runtime access of those stored 
+            subclass instances.
+                
+    """
+    name: str = None
+
+    """ Required Subclass Methods """
+    
+    @abc.abstractmethod
+    def execute(self, project: sourdough.Project, 
+                **kwargs) -> sourdough.Project:
+        """[summary]
+        Args:
+            project (sourdough.Project): [description]
+        Returns:
+            sourdough.Project: [description]
+            
+        """ 
+        return project
+
+    @abc.abstractmethod
+    def implement(self, project: sourdough.Project, 
+                  **kwargs) -> sourdough.Project:
+        """[summary]
+        Args:
+            project (sourdough.Project): [description]
+        Returns:
+            sourdough.Project: [description]
+            
+        """  
+        return project
+        
+    """ Public Class Methods """
     
     @classmethod
-    def from_settings(cls, 
-                      settings: SimpleSettings, 
-                      name: str, 
-                      **kwargs) -> SimpleParameters:
+    def create(cls, name: Union[str, Sequence[str]], **kwargs) -> Component:
         """[summary]
-
         Args:
-            settings (SimpleSettings): [description]
-            name (str): [description]
-
+            name (Union[str, Sequence[str]]): [description]
+        Raises:
+            KeyError: [description]
         Returns:
-            SimpleParameters: [description]
+            Component: [description]
             
         """        
-        # Uses kwargs or 'default' parameters as a starting base.
-        parameters = kwargs if kwargs else cls.default
-        # Adds any parameters from 'settings'.
-        try:
-            parameters.update(settings[f'{name}_parameters'])
-        except KeyError:
-            pass
-        # Adds any required parameters.
-        for item in cls.required:
-            if item not in parameters:
-                parameters[item] = cls.default[item]
-        # Limits parameters to those 'selected' unless there are runtime 
-        # parameters to be added, in which case, the selected limit will
-        # be applied then.
-        if not cls.runtime and cls.selected:
-            parameters = {k: parameters[k] for k in cls.selected}
-        return cls(contents = parameters)
-    
-    
-    """ Public Methods """
-    
-    def add_runtime(self, source: object, **kwargs) -> None:
-        """[summary]
-
-        Args:
-            source (object):
-            
-        """    
-        for parameter, attribute in self.runtime.items():
-            try:
-                self.contents[parameter] = getattr(source, attribute)
-            except AttributeError:
+        keys = more_itertools.always_iterable(name)
+        for key in keys:
+            for library in ['instances', 'subclasses']:
+                item = None
                 try:
-                    self.contents[parameter] = source.contents[attribute]
-                except (KeyError, AttributeError):
+                    item = getattr(cls, library)[key]
+                    break
+                except KeyError:
                     pass
-        if self.selected:
-            self.contents = {k: self.contents[k] for k in self.selected}
-        return self
- 
+            if item is not None:
+                break
+        if item is None:
+            raise KeyError(f'No matching item for {str(name)} was found') 
+        elif inspect.isclass(item):
+            return cls(name = name, **kwargs)
+        else:
+            instance = copy.deepcopy(item)
+            for key, value in kwargs.items():
+                setattr(instance, key, value)
+            return instance
+
+
+@dataclasses.dataclass
+class Stage(SimpleBase, sourdough.quirks.Needy, abc.ABC):
+    """Creates a sourdough object.
+    
+    Args:
+        needs (ClassVar[Union[Sequence[str], str]]): attributes needed from 
+            another instance for some method within a subclass. Defaults to an
+            empty list.     
+                
+    Attributes:
+        bases (ClassVar[SimpleBases]): library that stores siMpLify base classes 
+            and allows runtime access and instancing of those stored subclasses.
+        subclasses (ClassVar[sourdough.types.Catalog]): library that stores 
+            concrete subclasses and allows runtime access and instancing of 
+            those stored subclasses. 
+        instances (ClassVar[sourdough.types.Catalog]): library that stores
+            subclass instances and allows runtime access of those stored 
+            subclass instances.
+                       
+    """
+    needs: ClassVar[Union[Sequence[str], str]] = []

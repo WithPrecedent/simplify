@@ -10,32 +10,71 @@ Contents:
 from __future__ import annotations
 import abc
 import dataclasses
+import multiprocessing
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Mapping, 
                     Optional, Sequence, Tuple, Type, Union)
 
-from . import base
+import more_itertools
 import sourdough
+
+from . import base
+from . import stages
+
 
    
 @dataclasses.dataclass    
 class Parameters(sourdough.types.Lexicon):
     """Creates and stores parameters for a siMpLify component.
     
+    Parameters allows parameters to be drawn from several different sources, 
+    including those which only become apparent during execution of a siMpLify
+    project.
+    
+    Parameters can be unpacked with '**', which will turn the 'contents' 
+    attribute an ordinary set of kwargs. In this way, it can serve as a drop-in
+    replacement for a dict that would ordinarily be used for accumulating 
+    keyword arguments.
+    
+    If a siMpLify class uses a Parameters instance, the 'finalize' method should
+    be called before that instance's 'implement' method in order for each of the
+    parameter types to be incorporated.
+    
     Args:
-        name (str):
-        contents (Mapping[str, Any]):
-        default: ClassVar[Mapping[str, str]] = {}
-        runtime: ClassVar[Mapping[str, str]] = {}
-        required: ClassVar[Sequence[str]] = []
-        selected: ClassVar[Sequence[str]] = []   
+        name (str): designates the name of a class instance that is used for 
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Mapping[str, Any]): keyword parameters for use by a siMpLify
+            classes' 'implement' method. The 'finalize' method should be called
+            for 'contents' to be fully populated from all sources. Defaults to
+            an empty dict.
+        default (Mapping[str, Any]): default parameters to use if none are 
+            provided through an argument or settings. 'default' will also be
+            used if any parameters are listed in 'required', in which case the
+            parameters will be drawn from 'default' if they are not otherwise
+            provided. Defaults to an empty dict.
+        runtime (Mapping[str, str]): parameters that can only be determined at
+            runtime due to dynamic action of siMpLify. The keys should be the
+            names of the parameters and the values should be attributes or items
+            in 'contents' of 'project' passed to the 'finalize' method. Defaults
+            to an emtpy dict.
+        required (Sequence[str]): parameters that must be passed when the 
+            'implement' method of a siMpLify class is called.
+        selected (Sequence[str]): an exclusive list of parameters that are 
+            allowed. If 'selected' is empty, all possible parameters are 
+            allowed. However, if any are listed, all other parameters that are
+            included are removed. This is can be useful when including 
+            parameters in a Settings instance for an entire step, only some of
+            which might apply to certain techniques. Defaults to an empty dict.
 
     """
     name: str = None
     contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-    default: ClassVar[Mapping[str, str]] = {}
-    runtime: ClassVar[Mapping[str, str]] = {}
-    required: ClassVar[Sequence[str]] = []
-    selected: ClassVar[Sequence[str]] = []
+    default: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    runtime: Mapping[str, str] = dataclasses.field(default_factory = dict)
+    required: Sequence[str] = dataclasses.field(default_factory = list)
+    selected: Sequence[str] = dataclasses.field(default_factory = list)
       
     """ Public Methods """
 
@@ -50,8 +89,11 @@ class Parameters(sourdough.types.Lexicon):
         # Uses kwargs or 'default' parameters as a starting base.
         self.contents = kwargs if kwargs else self.default
         # Adds any parameters from 'settings'.
-        self.contents.update(self._get_from_settings(
-            settings = project.settings))
+        try:
+            self.contents.update(self._get_from_settings(
+                settings = project.settings))
+        except AttributeError:
+            pass
         # Adds any required parameters.
         for item in self.required:
             if item not in self.contents:
@@ -117,19 +159,24 @@ class SimpleProcess(base.Component, abc.ABC):
 
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a Configuration instance, 
-            'name' should match the appropriate section name in a Configuration 
-            instance. Defaults to None.
-        contents (Any): stored item(s) for use by a Component subclass instance.
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Union[Callable, Type, object, str]): stored item(s) for use by 
+            a Component subclass instance. If it is Type or str, an instance 
+            will be created. If it is a str, that instance will be drawn from 
+            the 'instances' or 'subclasses' attributes.
+        parameters (Union[Mapping[str, Any], base.Parameters]): parameters, in 
+            the form of an ordinary dict or a Parameters instance, to be 
+            attached to 'contents'  when the 'implement' method is called.
+            Defaults to an empty Parameters instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
         parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
+            meant to be part of a parallel workflow structure. Defaults to 
             False.
 
     Attributes:
@@ -192,7 +239,7 @@ class SimpleProcess(base.Component, abc.ABC):
 
 
 @dataclasses.dataclass
-class SimpleStep(SimpleProcess):
+class Step(SimpleProcess):
     """Wrapper for a Technique.
 
     Subclasses of Step can store additional methods and attributes to implement
@@ -205,49 +252,62 @@ class SimpleStep(SimpleProcess):
 
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout siMpLify. For example, if a 
-            siMpLify instance needs settings from a Configuration instance, 
-            'name' should match the appropriate section name in a Configuration 
-            instance. Defaults to None.
-        contents (Technique): stored Technique instance used by the 'implement' 
-            method.
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Union[Callable, Type, object, str]): stored item(s) for use by 
+            a Component subclass instance. If it is Type or str, an instance 
+            will be created. If it is a str, that instance will be drawn from 
+            the 'instances' or 'subclasses' attributes.
+        parameters (Union[Mapping[str, Any], base.Parameters]): parameters, in 
+            the form of an ordinary dict or a Parameters instance, to be 
+            attached to 'contents'  when the 'implement' method is called.
+            Defaults to an empty Parameters instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
         parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
-            False.
+            meant to be part of a parallel workflow structure. Because Steps
+            are generally part of a parallel-structured workflow, the attribute
+            defaults to True.
                                                 
     """
     name: str = None
-    contents: SimpleTechnique = None
-    parameters: Mapping[Any, Any] = dataclasses.field(default_factory = dict)
-    parallel: ClassVar[bool] = False
+    contents: Union[Callable, Type, object, str] = None
+    parameters: Union[Mapping[str, Any], base.Parameters] = base.Parameters()
+    iterations: Union[int, str] = 1
+    parallel: ClassVar[bool] = True
 
     
 @dataclasses.dataclass
-class SimpleTechnique(SimpleProcess):
-    """Wrapper for a Technique.
+class Technique(sourdough.quirks.Loader, SimpleProcess):
+    """Primitive object for executing algorithms in a siMpLify workflow.
 
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a Configuration instance, 
-            'name' should match the appropriate section name in a Configuration 
-            instance. Defaults to None.
-        contents (Technique): stored Technique instance used by the 'implement' 
-            method.
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Union[Callable, Type, object, str]): stored item(s) for use by 
+            a Component subclass instance. If it is Type or str, an instance 
+            will be created. If it is a str, that instance will be found in 
+            'module'. Defaults to None.
+        parameters (Union[Mapping[str, Any], base.Parameters]): parameters, in 
+            the form of an ordinary dict or a Parameters instance, to be 
+            attached to 'contents'  when the 'implement' method is called.
+            Defaults to an empty Parameters instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
+        module (str): name of module where 'contents' is located if 'contents'
+            is a string. It can either be a siMpLify or external module, as
+            long as it is available to the python environment. Defaults to None.
         parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
+            meant to be part of a parallel workflow structure. Defaults to 
             False.
                                                 
     """  
@@ -261,33 +321,40 @@ class SimpleTechnique(SimpleProcess):
               
 @dataclasses.dataclass
 class Worker(SimpleProcess):
-    """Base class for parts of a sourdough Workflow.
+    """An iterable in a sourdough workflow that maintains its own workflow.
 
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a Configuration instance, 
-            'name' should match the appropriate section name in a Configuration 
-            instance. Defaults to None.
-        contents (Any): stored item(s) for use by a Component subclass instance.
-        workflow (sourdough.Structure): a workflow of a project subpart derived 
-            from 'outline'. Defaults to None.
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Union[Callable, Type, object, str]): stored item(s) for use by 
+            a Component subclass instance. If it is Type or str, an instance 
+            will be created. If it is a str, that instance will be drawn from 
+            the 'instances' or 'subclasses' attributes.
+        parameters (Union[Mapping[str, Any], base.Parameters]): parameters, in 
+            the form of an ordinary dict or a Parameters instance, to be 
+            attached to 'contents'  when the 'implement' method is called.
+            Defaults to an empty Parameters instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
+        workflow (stages.Workflow): a workflow of other siMpLify Components.
+            Defaults to an empty Workflow.
         parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
-            False.
-                            
+            meant to be part of a parallel workflow structure. Because Steps
+            are generally part of a parallel-structured workflow, the attribute
+            defaults to True.
+                                                
     """
     name: str = None
     contents: Union[Callable, Type, object, str] = None
     parameters: Union[Mapping[str, Any], base.Parameters] = base.Parameters()
     iterations: Union[int, str] = 1
-    parallel: ClassVar[bool] = False
+    workflow: stages.Workflow = stages.Workflow()
+    parallel: ClassVar[bool] = True
     
     """ Public Class Methods """
 
@@ -397,60 +464,75 @@ class Pipeline(Worker):
         
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a Configuration instance, 
-            'name' should match the appropriate section name in a Configuration 
-            instance. Defaults to None.
-        contents (Callable): stored item used by the 'implement' method.
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Union[Callable, Type, object, str]): stored item(s) for use by 
+            a Component subclass instance. If it is Type or str, an instance 
+            will be created. If it is a str, that instance will be drawn from 
+            the 'instances' or 'subclasses' attributes.
+        parameters (Union[Mapping[str, Any], base.Parameters]): parameters, in 
+            the form of an ordinary dict or a Parameters instance, to be 
+            attached to 'contents'  when the 'implement' method is called.
+            Defaults to an empty Parameters instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
+        workflow (stages.Workflow): a workflow of other siMpLify Components.
+            Defaults to an empty Workflow.
         parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
-            True.    
-                        
+            meant to be part of a parallel workflow structure. Because Steps
+            are generally part of a parallel-structured workflow, the attribute
+            defaults to True.
+                                                
     """
     name: str = None
-    contents: Any = None
-    workflow: sourdough.Structure = None
+    contents: Union[Callable, Type, object, str] = None
+    parameters: Union[Mapping[str, Any], base.Parameters] = base.Parameters()
     iterations: Union[int, str] = 1
-    parameters: Mapping[Any, Any] = dataclasses.field(default_factory = dict)
-    parallel: ClassVar[bool] = False
+    workflow: stages.Workflow = stages.Workflow()
+    parallel: ClassVar[bool] = True
     
 
 @dataclasses.dataclass
 class ParallelWorker(Worker, abc.ABC):
     """Resolves a parallel workflow by selecting the best option.
 
-    It resolves a parallel workflow based upon criteria in 'contents'
+    It resolves a parallel workflow based upon the criteria in 'contents'.
         
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a Configuration instance, 
-            'name' should match the appropriate section name in a Configuration 
-            instance. Defaults to None.
-        contents (Callable): stored item used by the 'implement' method.
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Union[Callable, Type, object, str]): stored item(s) for use by 
+            a Component subclass instance. If it is Type or str, an instance 
+            will be created. If it is a str, that instance will be drawn from 
+            the 'instances' or 'subclasses' attributes.
+        parameters (Union[Mapping[str, Any], base.Parameters]): parameters, in 
+            the form of an ordinary dict or a Parameters instance, to be 
+            attached to 'contents'  when the 'implement' method is called.
+            Defaults to an empty Parameters instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
+        workflow (stages.Workflow): a workflow of other siMpLify Components.
+            Defaults to an empty Workflow.
         parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
-            True.    
-                        
+            meant to be part of a parallel workflow structure. Because Steps
+            are generally part of a parallel-structured workflow, the attribute
+            defaults to True.
+                                                
     """
     name: str = None
-    contents: Any = None
-    workflow: sourdough.Structure = None
+    contents: Union[Callable, Type, object, str] = None
+    parameters: Union[Mapping[str, Any], base.Parameters] = base.Parameters()
     iterations: Union[int, str] = 1
-    parameters: Mapping[Any, Any] = dataclasses.field(default_factory = dict)
-    criteria: Callable = None
+    workflow: stages.Workflow = stages.Workflow()
     parallel: ClassVar[bool] = True
 
     """ Public Methods """
@@ -519,28 +601,35 @@ class Contest(ParallelWorker):
         
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a Configuration instance, 
-            'name' should match the appropriate section name in a Configuration 
-            instance. Defaults to None.
-        contents (Callable): stored item used by the 'implement' method.
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Union[Callable, Type, object, str]): stored item(s) for use by 
+            a Component subclass instance. If it is Type or str, an instance 
+            will be created. If it is a str, that instance will be drawn from 
+            the 'instances' or 'subclasses' attributes.
+        parameters (Union[Mapping[str, Any], base.Parameters]): parameters, in 
+            the form of an ordinary dict or a Parameters instance, to be 
+            attached to 'contents'  when the 'implement' method is called.
+            Defaults to an empty Parameters instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
+        workflow (stages.Workflow): a workflow of other siMpLify Components.
+            Defaults to an empty Workflow.
         parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
-            True.    
-                        
+            meant to be part of a parallel workflow structure. Because Steps
+            are generally part of a parallel-structured workflow, the attribute
+            defaults to True.
+                                                
     """
     name: str = None
-    contents: Any = None
-    workflow: sourdough.Structure = None
+    contents: Union[Callable, Type, object, str] = None
+    parameters: Union[Mapping[str, Any], base.Parameters] = base.Parameters()
     iterations: Union[int, str] = 1
-    parameters: Mapping[Any, Any] = dataclasses.field(default_factory = dict)
-    criteria: Callable = None
+    workflow: stages.Workflow = stages.Workflow()
     parallel: ClassVar[bool] = True
 
     """ Public Methods """
@@ -567,28 +656,35 @@ class Study(ParallelWorker):
         
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a Configuration instance, 
-            'name' should match the appropriate section name in a Configuration 
-            instance. Defaults to None.
-        contents (Callable): stored item used by the 'implement' method.
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Union[Callable, Type, object, str]): stored item(s) for use by 
+            a Component subclass instance. If it is Type or str, an instance 
+            will be created. If it is a str, that instance will be drawn from 
+            the 'instances' or 'subclasses' attributes.
+        parameters (Union[Mapping[str, Any], base.Parameters]): parameters, in 
+            the form of an ordinary dict or a Parameters instance, to be 
+            attached to 'contents'  when the 'implement' method is called.
+            Defaults to an empty Parameters instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
+        workflow (stages.Workflow): a workflow of other siMpLify Components.
+            Defaults to an empty Workflow.
         parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
-            True.   
-                         
+            meant to be part of a parallel workflow structure. Because Steps
+            are generally part of a parallel-structured workflow, the attribute
+            defaults to True.
+                                                
     """
     name: str = None
-    contents: Any = None
-    workflow: sourdough.Structure = None
+    contents: Union[Callable, Type, object, str] = None
+    parameters: Union[Mapping[str, Any], base.Parameters] = base.Parameters()
     iterations: Union[int, str] = 1
-    parameters: Mapping[Any, Any] = dataclasses.field(default_factory = dict)
-    criteria: Callable = None
+    workflow: stages.Workflow = stages.Workflow()
     parallel: ClassVar[bool] = True
 
     """ Public Methods """
@@ -614,27 +710,35 @@ class Survey(ParallelWorker):
         
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout sourdough. For example, if a 
-            sourdough instance needs settings from a Configuration instance, 
-            'name' should match the appropriate section name in a Configuration 
-            instance. Defaults to None.
-        contents (Callable): stored item used by the 'implement' method.
+            internal referencing throughout siMpLify. For example, if a siMpLify 
+            instance needs options from a Settings instance, 'name' should match 
+            the appropriate section name in a Settings instance. Defaults to 
+            None. 
+        contents (Union[Callable, Type, object, str]): stored item(s) for use by 
+            a Component subclass instance. If it is Type or str, an instance 
+            will be created. If it is a str, that instance will be drawn from 
+            the 'instances' or 'subclasses' attributes.
+        parameters (Union[Mapping[str, Any], base.Parameters]): parameters, in 
+            the form of an ordinary dict or a Parameters instance, to be 
+            attached to 'contents'  when the 'implement' method is called.
+            Defaults to an empty Parameters instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
-            when the 'implement' method is called. Defaults to an empty dict.
+        workflow (stages.Workflow): a workflow of other siMpLify Components.
+            Defaults to an empty Workflow.
         parallel (ClassVar[bool]): indicates whether this Component design is
-            meant to be at the end of a parallel workflow structure. Defaults to 
-            True.   
-                          
+            meant to be part of a parallel workflow structure. Because Steps
+            are generally part of a parallel-structured workflow, the attribute
+            defaults to True.
+                                                
     """
     name: str = None
-    contents: Any = None
-    workflow: sourdough.Structure = None
+    contents: Union[Callable, Type, object, str] = None
+    parameters: Union[Mapping[str, Any], base.Parameters] = base.Parameters()
     iterations: Union[int, str] = 1
-    parameters: Mapping[Any, Any] = dataclasses.field(default_factory = dict)
+    workflow: stages.Workflow = stages.Workflow()
     parallel: ClassVar[bool] = True
 
     """ Public Methods """

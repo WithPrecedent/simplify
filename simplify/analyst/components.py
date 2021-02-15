@@ -19,6 +19,73 @@ from . import base
 
 
 @dataclasses.dataclass
+class AnalystComponent(sourdough.project.Component):
+    """Base class for parts of a data science project workflow.
+
+    Args:
+        name (str): designates the name of a class instance that is used for 
+            internal referencing throughout sourdough. For example, if a 
+            sourdough instance needs settings from a SimpleSettings instance, 
+            'name' should match the appropriate section name in a SimpleSettings 
+            instance. Defaults to None. 
+        contents (Any): stored item(s) for use by a Component subclass instance.
+        iterations (Union[int, str]): number of times the 'implement' method 
+            should  be called. If 'iterations' is 'infinite', the 'implement' 
+            method will continue indefinitely unless the method stops further 
+            iteration. Defaults to 1.
+        parameters (Mapping[Any, Any]]): parameters to be attached to 'contents' 
+            when the 'implement' method is called. Defaults to an empty dict.
+        parallel (ClassVar[bool]): indicates whether this Component design is
+            meant to be at the end of a parallel workflow structure. Defaults to 
+            False.
+        after_split (ClassVar[bool]): whether the instance's method should
+            only be called after the data is split into training and testing
+            sets. Defaults to False.
+        before_split (ClassVar[bool]): whether the instance's method should
+            only be called before the data is split into training and testing
+            sets. Defaults to False.
+        model_limts (ClassVar[bool]): any model types that the method must be
+            used with. If None are listed, simplify assumes that the instance is
+            compatible with all model types. Defaults to an empty list.
+                
+    """
+    name: str = None
+    contents: Any = None
+    iterations: Union[int, str] = 1
+    parameters: Mapping[Any, Any] = dataclasses.field(default_factory = dict)
+    parallel: ClassVar[bool] = False
+    after_split: ClassVar[bool] = False
+    before_split: ClassVar[bool] = False
+    model_limits: ClassVar[Sequence[str]] = []
+    
+    """ Public Methods """
+    
+    def implement(self, data: simplify.core.Dataset, **kwargs) -> Any:
+        """[summary]
+
+        Args:
+            data (Any): [description]
+
+        Returns:
+            Any: [description]
+            
+        """
+        if data.split and self.before_split:
+            raise ValueError(
+                f'{self.name} component can only be used with unsplit data')
+        elif not data.split and self.after_split:
+            raise ValueError(
+                f'{self.name} component can only be used with split data')            
+        if self.parameters:
+            parameters = self.parameters
+            parameters.update(kwargs)
+        else:
+            parameters = kwargs
+        if self.contents not in [None, 'None', 'none']:
+            data = self.contents.implement(data = data, **parameters)
+        return data
+
+@dataclasses.dataclass
 class SimpleFill(base.SimpleStep):
     
     name: str = 'fill'
