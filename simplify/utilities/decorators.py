@@ -14,6 +14,8 @@ import types
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Mapping, 
                     Optional, Sequence, Tuple, Type, Union)
 
+import numpy as np
+import pandas as pd
 import sourdough
 
 
@@ -34,6 +36,30 @@ def namify(process: Callable) -> Callable:
             arguments['name'] = name
         return process(**arguments)
     return wrapped
+
+def numpy_shield(process: Callable) -> Callable:
+    """[summary]
+
+    Args:
+        process (Callable): [description]
+
+    Returns:
+        Callable: [description]
+    """   
+     
+    @functools.wraps(process)
+    def wrapper(*args, **kwargs):
+        call_signature = inspect.signature(process)
+        arguments = dict(call_signature.bind(*args, **kwargs).arguments)
+        try:
+            x_columns = list(arguments['x'].columns.values)
+            result = process(*args, **kwargs)
+            if isinstance(result, np.ndarray):
+                result = pd.DataFrame(result, columns = x_columns)
+        except KeyError:
+            result = process(*args, **kwargs)
+        return result
+    return wrapper
     
 def timer(process: str = None) -> Callable:
     """Decorator for computing the length of time a process takes.

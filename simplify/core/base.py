@@ -19,6 +19,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 import pathlib
+import random
 from typing import (Any, Callable, ClassVar, Dict, Iterable, List, Mapping, 
                     Optional, Sequence, Tuple, Type, Union)
 
@@ -28,8 +29,8 @@ from sourdough import project
 
 
 @dataclasses.dataclass
-class SimpleSettings(quirks.SimpleBase, project.Settings):
-    """Loads and stores configuration settings for a Project.
+class Settings(sourdough.Configuration):
+    """Loads and stores configuration settings for a siMpLify project.
 
     Args:
         contents (Union[str, pathlib.Path, Mapping[str, Mapping[str, Any]]]): a 
@@ -42,41 +43,38 @@ class SimpleSettings(quirks.SimpleBase, project.Settings):
         defaults (Mapping[str, Mapping[str]]): any default options that should
             be used when a user does not provide the corresponding options in 
             their configuration settings. Defaults to a dict with 'general', 
-            'files', and 'sourdough' sections listed.
+            'files', and 'simplify' sections listed.
         skip (Sequence[str]): names of suffixes to skip when constructing nodes
-            for a sourdough project. Defaults to a list with 'general', 'files',
-            'sourdough', and 'parameters'.
-        library (ClassVar[Library]): related Library instance that will store
-            subclasses and allow runtime construction and instancing of those
-            stored subclasses.    
-            
+            for a simplify project. Defaults to a list with 'general', 'files',
+            'simplify', and 'parameters'. 
+                          
     """
-    contents: Union[Mapping[str, Mapping[str, Any]],
-                    pathlib.Path,
-                    str] = (dataclasses.field(default_factory = dict))
+    contents: Union[str, pathlib.Path, Mapping[str, Mapping[str, Any]]] = (
+        dataclasses.field(default_factory = dict))
     infer_types: bool = True
     defaults: Mapping[str, Mapping[str, Any]] = dataclasses.field(
         default_factory = lambda: {'general': {'verbose': False,
                                                'parallelize': False,
-                                               'conserve_memery': False},
+                                               'conserve_memory': False,
+                                               'gpu': False,
+                                               'seed': random.randrange(1000)},
                                    'files': {'source_format': 'csv',
                                              'interim_format': 'csv',
                                              'final_format': 'csv',
                                              'file_encoding': 'windows-1252'},
-                                   'sourdough': {'default_design': 'pipeline',
-                                                 'default_workflow': 'graph'}})
+                                   'simplify': {'default_design': 'pipeline',
+                                                'default_workflow': 'graph'}})
     skip: Sequence[str] = dataclasses.field(
         default_factory = lambda: ['general', 
                                    'files', 
-                                   'sourdough', 
+                                   'simplify', 
                                    'parameters'])
-    library: ClassVar[sourdough.Library] = sourdough.Library()
 
-
+ 
 @dataclasses.dataclass
-class SimpleFiler(quirks.SimpleBase, project.Filer):
-    
-    pass
+class Filer(sourdough.Clerk):
+    pass  
+
     
   
 @dataclasses.dataclass
