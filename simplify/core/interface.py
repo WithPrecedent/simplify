@@ -5,7 +5,7 @@ Copyright 2020, Corey Rayburn Yung
 License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 
 Contents:
-    SimpleProject (sourdough.Project): main access point and interface for
+    Project (sourdough.Project): main access point and interface for
         creating and implementing data science projects.
     
 """
@@ -25,7 +25,7 @@ import sourdough
 
 
 @dataclasses.dataclass
-class SimpleProject(quirks.SimpleBase, sourdough.Project):
+class Project(quirks.SimpleBase, sourdough.Project):
     """Directs construction and execution of a data science project.
     
     Args:

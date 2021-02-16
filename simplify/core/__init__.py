@@ -9,8 +9,10 @@ Contents:
 """
 
 from .quirks import *
+from .framework import *
 from .base import *
 from .components import *
+from .externals import *
 from .stages import *
 from .criteria import *
 from .dataset import *

@@ -35,7 +35,6 @@ class SimpleBases(object):
     """Stores base classes in siMpLify.
      
     """
-    
     def register(self, name: str, item: Union[Type, object]) -> None:
         """[summary]
         Args:
